@@ -1,0 +1,793 @@
+To do:
+======
+
++ DVD support: added a missing 'linux-default' link referring the default virtual
+  computer filesystem, and another one for the router.
+  This doesn't imply any source changes, but we write this entry here so that it
+  is recorded in our 'history'. This is a change against the 0.50.0-pre1 DVD, which
+  we explicitly *DON't* support, because it's a prerelease.
+
++ Moved the Xnest keyboard layout setting support from the host to the guest.
+
++ Added keyboard layout choosing support in Xnest guest sessions, via the new environment
+  variable MARIONNET_KEYBOARD_LAYOUT.
+
++ 'Change working directory' now fails when given a path mounted on a filesystem
+  without sparse file support, as it should
+
++ Now also *directory* names (and not only file names) are checked for the absence
+  of funny characters, in 'Change working directory', 'New project', 'Save As' and
+  'Copy Into'.
+
++ Hidden the 'work-around the wirefilter problem' menu item
+
++ Routers need an implicit variant, which is always selected if it exists.
+
++ Bugfix: I was using memq in several places, without knowing it compared by identity.
+
++ Minor bugfix: non-existing cow files (i.e. clean-state filesystems) can now be
+  exported as variants without the interface complaining.
+
++ The gateway tap name is now randomly chosen.
+
++ Defects_interface, Network_details_interface: minor refactoring
+
++ Exam mode: reports importing is now supported also for routers.
+
++ Made the Ethernet socket host bridge name configurable via the new environment 
+  variable MARIONNET_BRIDGE. If the variable is not defined the name defaults to
+  "marbre". The `run' make target now executes Marionnet with the bridge name set
+  to `br0'. Jean-Vincent can easily imagine why :-).
+
++ Simple_dialogs, Talking: made question and confirm dialogs unclosable: now the only
+  way to close them is by pushing a button.
+
++ When in exam mode the shell history is now imported as a document at shutdown
+  time, just like the report (this requires the new machine filesystem I've
+  uploaded to marionnettix)
+
++ Bumped version number
+
++ Minor translation changes
+
++ Updated the Ethernet plug icons
+
++ Now the 'marbre' bridge is setup at startup time
+  + No, not any more :-)
+
++ Minor treeview changes.
+
++ Texts treeview: added HTML support
+
++ Minor refactoring.
+
++ Automatically import exam reports into the text treeview
+
++ Added a toggle button or clickable pixmap to ledgrid windows so that they can
+  be made always-on-top
+
++ Auto-generated IPv6 addressed: used a shorter and more beautiful default
+
++ Details treeview: moved the `MAC address' column
+
++ User interface: added the file name constraint also to:
+  + ``Save As''
+  + ``Copy into''
+  + Refactored the related code
+
++ Disabled UML terminal for routers
+  (look for "Change this when debugging the router device" in simulated_network.ml)
+
++- JUST BEFORE THE RELEASE:
+  + enable the splash screen (marionnet.ml, at the end)
+  + Autogenerate IP addresses: set the default to false
+  + Add a link to Marionnet in the UML wiki (most of the projects we mentioned in the article 
+    are already there): http://uml.jfdi.org/uml/Wiki.jsp?page=Tools
+  + bisogna ricordarsi di mettere a zero (cat /dev/zero >> zeros; rm zeros) lo 
+    spazio non utilizzato di tutti i filesystems di backend. 
+    La cosa è importante per snellire la piattaforma, sia in casi come quello 
+    della sala Q203 dell'IUT, sia per un'immagine knoppix un po' più snella
+    => c'è già un vecchio script che fa bene questo lavoro (setfs) che devo 
+       integrare agli strumenti di lavoro (bob.marionnet.* ?) 
+  - About dialog: write our e-mail addresses with domain marionnet.org, as soon as they
+    exist and work :-)
+  +- GUI: de-activate the interface controlling unimplemented features
+  - Check that the plug can be used with a guest ``dhclient'' without the UML process crashing.
+    This happened to me on mccarthy when using a new kernel (2.6.22.9) *without*
+    CONFIG_COMPAT_VDSO.
+  - Be sure that the guest not supporting NAT kernel is not distributed; it's now useless
+    and it has problems.
+  + Turn on the wirefilter problem workaround thing, but with a long interval
+
+
++ Router: support a `suggested' variant which is the only used one, if it exists.
+
++ Bugfix (deadlock). To trigger: startup two machines and a switch with a and S1
+  connected by a cable, and then shut down everything *after everything is up*.
+  The thing does not happen without the cable. I suspect it's a deadlock in the
+  new cable logic.
+  + Solved this and other stuff with some very ugly kludges. Synchronization added as an
+    afterthought is a mess; we knew it. [In Freiburg]
+
++ Worked around a problem with uml_console: it succeeds when sending a 'cad' message to a UML
+  process which has just started; however the UML doesn't die. [In Freiburg]
+
++ Progress bar dialogs: made them unresizable
+
++ Bug: startup two machines and a switch with a and S1 connected by a cable, and then shut down
+  everything *after everything is up*. The thing does not happen without the cable.
+  I suspect it's a deadlock in the new cable logic. [In Freiburg]
+  + Solved this and other stuff with some very ugly kludges. Synchronization added as an
+    afterthought is a mess; we knew it. [In Freiburg]
+
++ Worked around a problem with uml_console: it succeeds when sending a 'cad' message to a UML
+  process which has just started; however the UML doesn't die. [In Freiburg]
+
++ Progress bar dialogs: made them unresizable
+
++ Show a superimposed state indicator on device icons
+  + Added the next_simulated_device_state method to simulated device, and updated the
+    internal state when appropriate. The method returns a
+    simulated_device_automaton_state option, using None to mean 'no transition is in
+    course'.
+  + Use this information in refresh_sketch [J.V.]
+
++ Prevent ``incorrect'' cables from working:
+  + Essentially done, and in a clean and general way.
+  + Now I only need the predicate telling whether a device is ``correct''.
+
++- gateway
+  + simulation infrastructure
+  + GUI bindings
+  - filtering; user-provided IP address
+  - Don't use a bridge??
+
++- Routers: add variant support
+  + Done, except for the interface
+  + Done in mariokit
+  + Done in the filesystem history treeview: states can be exported as variants
+  + Support variants in the GUI? Is it a good idea?
+    [No, it isn't. --L.] 
++ Routers: make them work
+  [J.V.]
+
++- Translate the rest of the user interface into French
+
+- Gateway and host X server: use a non-hardwired bridge name
+  [Well, by now I'd just say no :-) --L., in Freiburg]
+
++ Added guest swap partition support (thanks to Jean for some information I lacked)
+
++ Guest system: added a nice xfce installation to be run in Xnest sessions
+
++ Per-guest Xnest support
+  + Some changes in the distribution were needed for this
+
++ Support more than one host X server, for concurrent Marionnet instances.
+  + Added x.ml to implement what's needed for this
+
++ Experimented with ocaml-gettext
+  + Found it to be a bit messy; we're gonna use something simpler.
+
++ Gateway: dynamically compute host tap name
+
++ Host X server access control: now it is granted and revoked more selectively, without any
+  need for something ugly and insecure like "xhost +".
+
++ Fixed default values for IPv4 netmask and broadcast address
+
++ Defects: automatic device shutdown at defects update
+
+- "Unexpected environment received from dialog": sometimes I get this at exit time.
+  - Do I *still* get it? Maybe not...
+
++ About: move the reference to the University from 'Authors' to 'Thanks'.
+
+- Cleanly exit from the main thread (with exit code EXIT_SUCCESS, of course, in case
+  of no errors).
+
++ mariokit: updated some old support for variants, which had a different rationale
+
++ Implemented filesystem variants
+  + in the GUI
+  + in mariokit
+  + in filesystem_history
+  - Do it also for routers
+
++ Interface: forbid distribution change for any machine with existing non-clean states
+  + Done the same also for variants
+
++ Nasty bug fix: for a filesystem foo, $MARIONNET_HOME/filesystems/foo_variants was also
+  considered a filesystem image, even if it is always a directory.
+
+
++ Hide the 'Image DOT source' tab.
+
++- cloud (2 endpoints; delay and ttl decreased by a random amount in [min, max].
+  + Fixed the interface code to agree with itself about how endpoints should be
+    named :-)
+  + Simulation part
+  + Defects on by default
+  - Implementation: do it as a further modification to VDE, in a special hublet
+    altering the ttl field in IP packets and dropping the frame if needed
+                            +-+
+                       -->->|H|-+-->
+                            +-+
+
++ IPv6: probably netmask and broadcast are not (explicitly) used. Fields should be
+  different (I think that just an 'IPv6 address' with an updated column constraint
+  would suffice).
+  + Ask Jean-Vincent about this.
+  - fix constraint predicate for IPv6 address validation
+  - test on the guest
+
++ Marionnet Logo: replace Suse's logo with Mandriva's logo
+
+-+ UI: by default the first port to connect should be the one with minimum
+  index.
+  - [I'm not sure it always works as I want it]
+
++ Let's set on a convention for cable colors (for example red = crossover,
+  blue = straight, green = serial), and stick to it. It would be very useful
+  in the 'Network details' page.
+  If we want to support B/W printing we can choose colors which look "different
+  enough" when printed (e.g. black and light green), or use both color and
+  thickness.
+  + [tentatively: red for cross-over, blue for straight, black for serial. This 
+     convention is used in the defects interface]
+  + Do it for the graph [J.V.]
+
++ Added a 'reboot' functionality for devices.
+
++ Treeview: added whole-row "after update" callback
+
++ UML process: non-graceful startup is now implemented first with uml_mconsole halt, and
+  --if this fails-- with signals. Also hung UMLs should be correctly killed this way.
+
++ Reduced progress bar pusling overhead
+
++ Hublet spawn: get rid of the sleep kludge. This is actually *unsafe*, and can fail with
+  large networks.
+  + The new version is safe and also way faster.
+
++ Killing processes: also UML appears to be resistent to SIGINT in some cases. Always send a 
+  SIGKILL if needed.
+
++ Parallelized process spawning and termination when possible, within a single device.
+
++ Death monitor: made the unexpected-death callback non-optional named parameters, also
+  for process subclasses and not only for device subclasses
+
++ Death monitor: show a different message on unexpected death, much friendlier and more accurate
+  in the case of cables.
+
++ Saving: add a progress bar
+  + [No, it's complicated: it should be done in a separate thread, but it would interact
+     with *everything* in the application]
+
++ Cable disconnection: test it. The interface bug doesn't seem limited to the interface
+  + Quickly fixed with a kludgish work-around in the Glade part...
+  + ...and a more important fix in can_resume for Ethernet cables: see mariokit.ml
+
++ Cable disconnection: it works, but the interface allows to disconnect a cable more than once.
+  This bug is completely harmless, but ugly. [No, it wasn't harmless --L.]
+
++ LED grids: added the Marionnet icon. Unfortunately it's nontrivial to add it to
+  virtual terminals.
+
++ Death monitor: in case of unexpected death we need to poweroff devices at the level
+  of mariokit, and not simply in simulated_network: in order to implement this all
+  devices in simulated_network need to be passed an *unexpected_death_callback* parameter
+  at construction time.
+
++ Remove old defects GUI
+  - I've not removed the logic dealing with XML. I could break something... It's better to
+    leave that alone by now.
+
++ Defects: automatically highlight defective interfaces (and possibly also devices), so that
+  defective parts are readily visible. I think this can make the interface friendlier. 
+
++ Options|Autoconfigure IP addresses
+
++ Treeview: don't hide headings when scolling
+  + Also added horizontal scrolling
+
++ Defects: fix bit flipping probablity
+  + Also give a warning when the user sets it very high
+
++ Progress bars have a noticeable overhead when they are many. Use only one shared
+  timer instead of one timer per progress bar.
+
++ Startup/Shutdown/Poweroff everything: parallelize.
+
++ Modify a connected cable, changing an endpoint: a new cable is correctly created with
+  refcount 3, but its process is not spawned. Investigate.
+
++ Get rid of all the SIGCHLD indebuggable stuff, and re-implement the death monitor with
+  polling.
+
++ Signals: Look for this in the glibc manual, there's an example which is exactly what
+  we need:
+  -----------------------------------------------------------------------
+    Here's an example of how to use `waitpid' to get the status from all
+  child processes that have terminated, without ever waiting.  This
+  function is designed to be a handler for `SIGCHLD', the signal that
+  indicates that at least one child process has terminated.
+  -----------------------------------------------------------------------
+
++ Removed waitpid() calls from everywhere except the new SIGCHLD handler, whose task is
+  to get notified when any child dies; in order to avoid the merged signal 'feature' (see
+  the GNU libc manual) the handler calls waitpid() in a loop.
+  This saves the need to use waitpid() to avoid zombies, and avoids nasty
+  interactions between kill() and waitpid(), or several concurrent waitpid() calls.
+  This kind of debugging is so fun :-).
+
++ Other funny signal problem: system() is implemented with waitpid()... (see umix.ml, in the
+  OCaml sources); hence I have to temporarily block the SIGCHLD handler when using
+  Unix.system. 
+  + Done the same also for run (implemented with Unix.system), as defined in UnixExtra...
+
++ Shutdown everything should have a confirm dialog
+
++ Add "power-off everything"
+  + ...with a confirm dialog
+
++ Fix this: connecting two interfaces of the same device with a crossover doesn't work
+  (the cable is not added).
+
++ Fixed a nasty bug related to device creation order and defects, in talking.ml. In some cases
+  a cable was instantiated *before* its defects were added to the defects treeview, hence
+  failing when the instantiation procedure looked for the defects.
+
++ Implement defects in the simulated network
+  + done for everything except machine-router
+  + done it for machine_or_router
+
++ guest-side network configuration script using boot_parameters
+  - To do: port it to the router
+
++ Network details: automatically save at any caller-level modification
++ Network defects: automatically save at any caller-level modification
+
++ Network details: bind to the interface in talking.
+  + machine
+  + router
+  + cloud
+  + gateway
+
++ Network details: also marshal/unmarshal the counters used for generating fresh
+  addresses.
+
++ Removed old debug prints scattered thru the code
+
++ hostfs support (especially to work around the kernel command line length limitation):
+  from the guest: mount none /.host -t hostfs -o HOSTDIRECTORY
+  + Recorded the guest name into hostfs; it's useful from the host side.
+
++ boot_parameters script supplied to each guest via hostfs
+
++ Refactor: all GUI code should be able to show a dialog displaying an error
+  message.
+
++ Added a facility allowing to show a progress bar dialog
+
++ Treeview: add a general-purpose method row_ids_such_that
+
++ Filesystem history: the most recent state of each device is now always
+  highlighted.
+
++ Build system: added a kludgish Makefile in OCAMLBRICKS, ugly but useful.
+
++ states interface: reimplemented with the new treeview
+
++ Fail immediately if MARIONNET_HOME is not set.
+
++ Fail immediately if the UID is not 0
+
+- Support pathnames with spaces
+
++ Some images pathnames should be made relative
+  + Rationalize image file paths
+
+- Remove checkboxes from dynamic menu items
+
+- Bug in my ghostification patch: adding a default gateway allows to (implicitly) set a route
+  thru the ghost interface (and the route is impossible to remove later: this is correct).
+  The problem is that the ghost interface name can't be computed from ADDRT ioctl parameters
+  without looking at the current routing tables (conditionally implemented in two different
+  ways).
+  This should not harm users who don't know about all of this stuff, but could be exploited
+  as an unauthorized way to communicate with the host.
+  Nontrivial to fix.
+
+-+ UI: also show cables endpoint names
+  + Done for defects
+  + Do it for the main Hardware UI
+    [No, now we show cable names in the network graph. It's even better]
+
++ global communication LEDgrid
+  [No, it's not needed. Single-device LEDgrids are enough.]
+
+- In some cases the ".mar" suffix is not appended when saving a file. When?
+  + I think it doesn't happen any more. I haven't seen this for a long time.
+
++ machine: alter implementation adding one more level of hublets, to be able to implement
+  defects
+
+- serial connection
++ defect
+  + new subtab of 'Materiel', with port detailed configuration
+    [Done, but it's unrelated to defects...]
+  + new subtab of 'Materiel', with defects for ports and wires
+    (resolution: each direction of each port and cable)
+
+- teacher -> students
+- Allow the user to shutdown machines with halt from within UML without messing up our state
+
+- Correct hublet aynchronous initialization without sleeping: it can be done with a datagram
+  socket, just like blinking
+- Asynchronous startup/shutdown with threads
+
+- project GPG signatures
+
+- assisted mode / student mode
+
++ UML filesystems: add support for a swap file, dynamically created at startup and destroyed on shutdown
+  + [No: I tried, but it's problematic: cow files (as it should be expected) become *very* big.
+     And swap files can't be on hostfs or NFS. I don't see any easy solution. --L.]
+
++ Bug in my ghostification patch: another (relatively subtle) case of missing copy_from_user(),
+  in the SIOCADDRT ioctl.
+
++ Bug in my ghostification patch: dhclient fails to add the default gateway:
+  "The user aked to add a route involving the ghost interface . We make this operation fail"
+                                                              ^
+                                                              |
+                                            empty string! ----+
+
++ Bug in my ghostification patch: can't acquire a spinlock in preemptable or SMP kernel
+  without disabling interrupts.
+  Testcase: while true; do dhclient; done
+
++ Too heaviweight locking in my ghostification patch: use rw_spinlocks to allow readers to
+  execute concurrently. The read case is infinitely more common, as only ghostification and
+  unghostification involve writing.
+
++ In some cases saving with a different name with 'Save As' (and 'Copy Into'?) seems to
+  break the states interface. I think the states prefix path needs to be updated.
+
++ Start a machine and *immediately* shut down everything, before tha machine has actually
+  started. The GUI hangs waiting forever that the process terminates, but its termination
+  message hasn't arrived because uml_console just failed, and we didn't notice.
+
++ exam mode
+
++ eth42
+
++ cable dynamic menu
+  + connect/disconnect
+  + remove default entries
+
++ Interface: forbid saving when there are machines or routers running
+
++ network element update, keeping identity
+  + simulation level
+  + static network graph level
+  + LEDgrids: destroy and re-create them on update
+
++ states
+  + more elaborate support for states
+
++ Ghostification patch: now that ugly stacktrace does not appear on startup any more.
+  Also worked around a strange problem with arch/um/os-Linux/sys-i386/registers.c,
+  using some macros like JB_PC, JB_SP and JB_BP -- which apparently should be defined
+  in <bits/setjmp.h>, but aren't.
+
+-----------------------------------------------------
+
+-----------------
+Riguardo alle uml
+-----------------
+
++ emacs lentissimo a lanciarsi
+
++- vi si comporta in maniera bizzarra con la tastiera ed è inutilizzabile
+  + (I think this has been solved by upgrading debian packages)
+
+- ifconfig eth? <ip>/(8|16|24) dà un messaggio di errore strano
+  - l'interfaccia sembra tuttavia ben configurata
+  - non ho testato ma il sintomo potrebbe verificarsi solo quando il numero di 
+    bit accesi del netmask [8/16/24] non corrisponde alla classe convenzionale
+    (per esempio se dico ifconfig eth0 192.168.1.3/8)
+
+- /etc/hosts da ripulire (ci sono linee con myrouter)
+
+- ping -b .. (broadcast) non funziona
+
++ route add .. eth? provoca un crash del kernel host (senza eth? no)
+
+
+--------------------
+Riguardo a marionnet
+--------------------
+
+- se marionnet viene lanciata da un terminale e quest'ultimo viene chiuso, 
+  l'interfaccia grafica impazzisce e non è più utilizzabile   
+  => si potrebbe risolvere utilizzando nohup nel marionnet_starter?
+    + [Yes, good idea: nohup (plus a small modification I did) solves this. --L.]
+    - Add nohup to marionnet_starter (I don't have a copy)
+
++ mancano crudelmente le barre di progressione per capire che l'applicazione 
+  sta lavorando e che non c'è da preoccuparsi
+  => si sistemerà con il pilota dei processi
+
++ shutdown non parallelo delle macchine virtuali
+  => si sistemerà anche questo con e nel pilota dei processi
+
++ quando si fa Quitter, poi Annuler, esce ugualmente!
+
+- IDEA: per evitare il rischio di terminali bloccati, avviare sin dall'inizio
+  una batteria di terminali per la stessa uml? Utilizzare una konsole con vari 
+  tab? Dare la possibilità nell'interfaccia di lanciare un nuovo terminale su
+  una certa macchina (solo quando in esecuzione)?
+
++ IDEA: mettere da qualche parte ben visibile (titolo della finestra?) il nome
+  del progetto sul quale si lavora
+
++ IDEA: mettere il logo Paris 13 nell'about, dopo i nostri nomi, magari 
+  preceduto da una frase tipo "Projet financé par l'UP13"
+
+- IDEA: sarebbe bene un commento o un'etichetta anche per la macchine (come 
+  per hub e switch). In questo modo si potrebbe mettere per esempio il numero 
+  IP (o uno schema di numero IP come per esempio 192.168.k.7 dove k è un 
+  parametro che dipende dallo studente che deve fare l'esame) in modo che
+  appaia chiaramente sullo sketch senza che lo studente abbia bisogno di 
+  rileggere l'enunciato del problema posto 
+
+- IDEA: nella finestra di definizione di una macchina permettere con un 
+  pulsantino vicino alla scelta della distribuzione di sfogliare (chiamata
+  ad un qualunque visualizzatore o editor esterno) la lista dei pacchetti
+  installati (output di dpkg -l). Idem per il kernel; in questo caso si potrà 
+  sfogliare il .config  
+
++ nelle cose da fare bisogna aggiungere la "dinamicità" dello sketch 
+  (distinguere tra componenti in esecuzione, sospesi, inattivi,..)
+
+--------------------------------
+Riguardo alla piattaforma (host)
+--------------------------------
+
++ le finestre dei terminali delle macchine virtuali non si sistemano 
+  automaticamente nello spazio libero del desktop; al contrario si accumulano
+  una sull'altra 
+  => opzione di lanciamento del terminale o opzione di X?
+    [This should be possible to set *in a global way* if we can configure the
+     window manager. It's doable for networked classrooms and LiveDVD, not
+     for normal user installation --L.]
+
+------------------------------------------------------
+Riguardo alle cose che avrei tanto desiderato testare 
+e che ho dimenticato di testare
+------------------------------------------------------
+
+- controllare che tcpdump sia sincrono e se non lo è cercare di capire per 
+  quale ragione non lo è (più)
+  + [Now it appears to be synchronous. We might have "solved" the problem
+     by recompiling the kernel with a different configuration. --L.]
+  - No, I can reproduce the problem again now [--L., September 2007]
+
++ About: thank the artist who drew our logo
+
++ Logo and splash image: blurred Mandriva's logo to make it blend with the painting in a
+  more natural way
+
++ Guest filesystem:
+  + set the xterm title at early boot time (added /etc/init.d/marionnet-xterm-title.sh)
+  + updated the distribution
+  + compiled Emacs from sources (unicode-2 branch from CVS). This solves the slow boot
+    problem.
+
++ Death monitor: don't popup a warning window per process when a cluster of processes
+  implementing a single device is killed by a callback; just show the one which actually
+  failed.
+
++ Added an automatically generated version.ml
+
+- Initialization: check that /tmp is a filesystem suitable to handle cow's;
+  do the same at working-directory change.
+
+- Allow to change the working directory
+
+- Explain the xterm Ctrk+Button3 trick in the user manual
+
+- Xephyr: modify it to be able to set the window title and disable the grab feature.
+
++ newMachine simplified constructor: removed an old use of "X host" as a string,
+  which is now replaced by an agebraic type
+
++ Treeviews: fixed a nasty bug which prevented undumping
+
++ Removed some old debug prints
+
++ Treeviews: forward-compatibility in file dumps (old Marionnets can read new files
+  by simply not using unknown fields, when all row and column constraints are respected)
+
++ Treeviews: backward-compatibility in file dumps (new Marionnets can read old files,
+  providing defaults for new fields not specified in files)
+
++ Treeview: column headers are now internally stored in English, but an
+  internationalized translation may be shown: see the new optional parameter
+  ?shown_header in `column' and its subclasses.
+
++ Minor aesthetical changes
+
++ New treeview for texts
+  + Texts treeview: removed partial copies in case of import error
+
++ Added a quick and easy forest-undumping facility
+
++ Made hublet termination even more paranoidly safe
+
++ UI: Gtk callbacks sometimes raise exceptions when creating cables which
+  can not be connected due to their kind or to port availability:
+  "In callback for signal activate, uncaught exception: Failure("getNodeByName \"\"")"
+  Recipe to reproduce: create a new straight cable in an empty network
+
++ Bugfix: now it's again possible to set a label for straight Ethernet cables
+
++ Bugfix: updated the 'Add cable' menu item sensitivity also on machine edit.
+  Added the method update_add_cable_sensitivity to state, replacing the previous
+  kludge which tied this feature to each sketch update.
+
++ Fixed a pernicious bug involving how router ports should be named (portX rather than
+  ethX)
+
+- The progress bar dialog 'shutting down machine' also appears for machines which are
+  not running at project close/open.
+  [This is only noticeable when using variants, because of the copying/removing
+   latency. In other cases the window flashes just for a moment, or Gtk doesn't even
+   have the time to draw it before it's destroyed --L.].
+
++ Talking: added some missing calls to st#update_cable_sensitivity
+
++ Bugfix: remove machine: delete all cow's
+
++ Bugfix: correctly save and restore filesystem history
+
++ Talking: now the sketch is refreshed at cable connection/disconnection
+
++ Ledgrid manager: made LEDgrid windows not resizable
+
++ simple_dialogs.ml: Added the fancy ask_text_dialog
+
++ strExtra: trivial generalization of wellFormedName
+
++ Cable treeview icons: updated colors; now they are coherent with the graph
+  conventions
+
++ GUI, talking: added the Marionnet icon to all dialogs which still lacked it.
+
++ Makefile: trivial changes
+
++ Minor cosmetic changes
+
++ Bugfix: filesystem history: ``startup in this state'' did not generate a child in the 
+  correct position within the forest.
+
++ Bugfix: when removing a device implies removing some cables, such cables must also be
+  removed from defects
+
++ Filesystem history: moved the tab to 'Hardware'
+
++ Sketch: added synchronization
+
++ Connected/disconnected cables in the sketch: fixed a buglet
+
++ Filesystem history: implmenent ``Export as variant''
+
++ Filesystem history: minor refactoring
+
++ Translated the Glade part of the user interface into French
+
++ Starting up a network with no computers is now allowed.
+
++ Update the Dot image to show more detailed state (suspended devices, disconnected cables,
+  ... [and cable names, I'd say --L.]) [J.V.]
+
++ Implement the new variant semantics:
+  + (i)   if there exists a symlink [or non-symlink file] named `suggested' in the
+          appropriate variant directory, than make the GUI select *that* as the initial
+          entry, when creating a new machine; ['no variant' comes as the second element
+          when 'suggested' exists]
+    (ii)  If no such link exists then `no variant' is the initial entry
+    (iii) In any case it must be possible to select `no variant'
+  + Remove the `default' variant [easy: there was no `default' variant :-)]
+  + Rename `clean' to 'no variant' (for variants, not filesystem states)
+  + At machine [and router] creation time use `readlink' to resolve the variant name if
+    it's a symlink, and store the resolved name instead of the link name, for any link
+  + The constraint on variant read-only-ness at machine update is ok.
+
++ Gateway GUI: made the IP number textboxes non-sensitive
+
++ Treeview: added view-detaching support. Load should be faster.
+
+- Document the filesystem name convention: names should contain a never-changing
+  checksum.
+
++ Solved more synchronization problems.
+
++ Added a very beautiful message-passing synchronization in
+  wait_for_all_currently_scheduled_tasks. enqueue/dequeue replace both lock/unlock and
+  wait/signal, they're higher level and easy to use.
+
++ Bugfix: "Save as" and "Copy into" did't append the ".mar" extension to the given
+  pathname.
+
++ Fixed several concurrency-related problems, including some quite serious ones
+  manifesting at project close time.
+
++ task_runner: added the method wait_for_all_currently_scheduled_tasks .
+
++ Sometimes cables seem to hang using 100% CPU [and, just to be clear, it's most
+  probably due to my own patches to VDE. --L.]. This could be worked around by
+  restarting them every k seconds, with a smallish k like 10. I needed the new
+  more elaborate synchronization support to be able to do this. [in Freiburg]
+  + Also added a user option to toggle this behavior. [in Freiburg]
+
++ mariokit: added some more needed (and some non-needed, just to play it safe)
+  synchronization in class cable
+
++ Other minor cleanups [in Freiburg]
+
++ ...synchronization: added a recursive mutex implementation. Not optimized (and very
+  defensive for such a low-level thing), but it seems to work. Very delicate stuff,
+  but useful.
+
++ Mariokit: other dangerous synchronization changes :-)
+
++ wirefilter processes survive a Marionnet close operation when the project is not closed.
+  [Not any more, I think --L., in Freiburg]
+
++ Mariokit: added some needed synchronization
+
++ Synchronization: bugfix on cable connect/disconnect
+
++ Machine dialog: the default kernel should be 'default', when it exists.
+  +- It's already that way, apparently. Mmm, I think to have observed a different
+     behavior, but I'm not sure.
+
++ Interface: redundant 'Power off' menu entries were hidden, and 'Shutdown' menu
+  entries were relabeled to 'Power off', keeping the 'Stop' stock icon. This was
+  done for: hub, switch, cloud, gateway (i.e. Ethernet plug)
+
++ (Seemingly) easy user interface changes:
+  + change the default label locations so that both device names *and* interface names
+    are visible in the network graph [J.V.]
+  + switch icon: the 'off' version is taller than the 'on' version; I don't think it's
+    intentional, as this is not true for either the hub or the router.
+    The switch 'on' icon should be re-cropped. [J.V.]
+
++ Removed the Ethernet cloud and the Ethernet plug from the details interface.
+
++- Removed the correct-crossedness constraint on cables: now the interface allows to
+  add ``incorrect'' cables
+  + Prevent ``incorrect'' cables from working
+    + Added all the needed infrastructure, now also in the `network' class in mariokit
+    + Just used the new method `would_a_cable_be_correct_between' at cable 
+      construction time (modification is implemented as destruction + re-construction)
+  - Conditionally restore the old behavior, where the GUI prevents the user from doing
+    mistakes
+
++ Constrained project names: they must be ``identifiers''; of course we still
+  accept an explicitly supplied ".mar" extension, and we still silently add it
+  when missing.
+
+-+ The main process exit code should be 0
+  -+ [No, I tried handling SIGINT and SIGTERM and it worked in many cases, but it's too
+      dangerous: sometimes the interface just hangs and some threads remain alive.
+      As of now I've just slightly cleaned the code but the strategy is essentially the
+      same as before. --L.]
+
++ Treeview:
+  + a just-added tree should be collapsed by default
+  + all trees are now collpsed at undump time

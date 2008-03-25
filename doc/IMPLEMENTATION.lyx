@@ -1,0 +1,116 @@
+#LyX 1.4.2 created this file. For more info see http://www.lyx.org/
+\lyxformat 245
+\begin_document
+\begin_header
+\textclass article
+\language french
+\inputencoding auto
+\fontscheme default
+\graphics default
+\paperfontsize default
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Documentazione Marionnet
+\end_layout
+
+\begin_layout Section
+Introduzione
+\end_layout
+
+\begin_layout Description
+GODI si suppone un'installazione di ocaml/ocamlduce basata sul sistema GODI
+ (
+\family typewriter
+http://godi.ocaml-programming.de/
+\family default
+)
+\end_layout
+
+\begin_layout Subsection
+
+\series medium
+Moduli
+\end_layout
+
+\begin_layout Itemize
+
+\series medium
+modulekit,widget,xmllight_loader
+\series default
+ sono moduli generici di supporto
+\end_layout
+
+\begin_layout Itemize
+mariokit,state,talking sono moduli propri all'applicazione Marionnet
+\end_layout
+
+\begin_layout Section
+TODO
+\end_layout
+
+\begin_layout Subsection
+Hashmap 
+\end_layout
+
+\begin_layout Standard
+Sostituire la classe Modulekit.env con Hashmap
+\end_layout
+
+\begin_layout Subsection
+Marshal di oggetti
+\end_layout
+
+\begin_layout Standard
+Aprofittare della serializzazione nativa di oggetti del modulo Marshal per
+\end_layout
+
+\begin_layout Enumerate
+eliminare il modulo Modulekit.PolyList
+\end_layout
+
+\begin_layout Enumerate
+eliminare le concretizzazioni dei metodi asTuple, setFromTuple, newFromTuple
+ della classe Dotoptions.network
+\end_layout
+
+\begin_layout Subsection
+UUnix.cat
+\end_layout
+
+\begin_layout Standard
+Rifare un po' meglio (efficiente) oppure cercare nelle librerie non std.
+\end_layout
+
+\begin_layout Section
+TODO (A LUNGO TERMINE)
+\end_layout
+
+\begin_layout Subsection
+Operazioni insiemistiche
+\end_layout
+
+\begin_layout Standard
+Implementare per Hashset et Hash*map.
+\end_layout
+
+\end_body
+\end_document

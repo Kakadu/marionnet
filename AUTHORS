@@ -1,4 +1,4 @@
-This file is part of our reusable OCaml BRICKS library
+This file is part of Marionnet, a virtual network laboratory.
 Copyright (C) 2008  Luca Saiu
 Copyright (C) 2008  Jean-Vincent Loddo
 
@@ -16,7 +16,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+Authors
+=======
+
 This project is by:
 
-Jean-Vincent Loddo <loddo@lipn.univ-paris13.fr>
-Luca Saiu          <saiu@lipn.univ-paris13.fr>
+Jean-Vincent Loddo
+------------------
+E-mail:    loddo@lipn.univ-paris13.fr
+Home page: http://www-lipn.univ-paris13.fr/~loddo
+
+Luca Saiu
+---------
+E-mail:    saiu@lipn.univ-paris13.fr
+Home page: http://www-lipn.univ-paris13.fr/~saiu

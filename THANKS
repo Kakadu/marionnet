@@ -1,4 +1,4 @@
-This file is part of our reusable OCaml BRICKS library
+This file is part of Marionnet, a virtual network laboratory.
 Copyright (C) 2008  Luca Saiu
 Copyright (C) 2008  Jean-Vincent Loddo
 
@@ -16,6 +16,36 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-The authors wish to thank:
-- ... [To do: write this.]
-- ... [To do: write this.]
+Thanks
+======
+
+We are deeply grateful to other free software projects for many
+good-quality components we have reused, helping to make Marionnet what
+it is now and to make it a pleasure to develop for us; Marionnet is
+part of our contribution, still unworthy, back to the community. 
+
+We wish to thank Jeff Dike for User Mode Linux (UML), Renzo Davoli for
+Virtual Distributed Ethernet (VDE), the authors of OCaml and of course
+the whole free software community, whose foremost contributors remain
+the GNU and Linux projects. 
+
+Davide Vaghetti taught us to set up Quagga-based virtual
+routers. Thierry Hamon helped debugging an early prototype and gave us
+useful suggestions. Joseph Cerrato, Christophe Fouqueré and Christian
+Lafont encouraged us when we needed it and solved many otherwise
+unsolvable administrative problems. 
+
+Silviu Barsanu designed our beautiful logo; Perfect produced icons for
+Marionnet, covers and desktop wallpapers for the DVD. 
+
+Jonathan Roudiere is doing a great work on making debian packages, and
+is the installer and main administrator of the server www.marionnet.org.
+
+Université Paris 13 sustained us while we were working on Marionnet by
+financing it as an e-learning project. Further support was provided by
+the IUT of Villetaneuse and Institut Galilée. LIPN provided us with
+computing devices, Internet connection, and a very enjoyable
+environment where to live and work.
+
+--Jean-Vincent Loddo
+--Luca Saiu

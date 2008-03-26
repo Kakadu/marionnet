@@ -1,6 +1,5 @@
-This file is part of our reusable OCaml BRICKS library
+This file is part of our build system for OCaml projects.
 Copyright (C) 2008  Luca Saiu
-Copyright (C) 2008  Jean-Vincent Loddo
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,5 +15,171 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-[To do: write a generic INSTALL file suitable to our new build
-system, and copy it into the 'buildsystem' project.]
+These are generic installation instructions, applyable to all the
+OCaml projects released by Jean-Vincent Loddo and Luca Saiu.
+
+
+Requirements
+============
+
+GNU Make and OCamlBuild are always required *for compilation*. Please
+also see the file "REQUIREMENTS" for the specific build-time and 
+runtime requirements of this particular project.
+
+
+Configuration
+=============
+
+Configuration is currently manual, but very easy; you need to edit the
+CONFIGME text file, which is actually a bash script. CONFIGME contains
+three distinct sections: you can setup:
+ * Configuration time parameters, for example enabling or disabling some
+   features.
+ * Installation parametetrs, for example installation paths.
+ * Default settings which will be copied into /etc/PROJECTNAME; such
+   default settings are overridable by each user by creating a
+   ~/.PROJECTNAME file.
+
+A "configure" script is also provided just in order to make the feel of
+the configuration more "standard", but the script is currently limited to
+printing a message asking the user to edit CONFIGME.
+
+
+Compilation
+===========
+
+You can build all the default targets by simply running GNU make, with no
+parameters; this means just typing
+  make
+on GNU systems such as GNU/Linux, and possibly
+  gmake
+on other systems such as BSD. From now on we are going to assume that GNU
+Make is installed as "make".
+
+Programs and libraries are always created in the "_build/"
+subdirectory. Make should print "Success" at the end of the compilation
+process if all goes well.
+
+Some other useful targets are "programs", "libraries" and "data", which
+build only programs, only libraries, or only machine-generated data,
+respectively.
+
+Potential parallelism in building is currently not exploited.
+
+
+Installation and uninstallation
+===============================
+
+Installation and uninstallation are very easy, if you have correctly
+setup paths in the configuration phase.
+
+Installation
+------------
+In order to install the package on your system (in the pathnames you
+have specified at configuration time) just build the target "install".
+On GNU systems this means typing
+  make install
+. Note that, at least as of now, only a single version at the time
+can be installed for each package which contains *libraries*; this
+limitations does not exist for *programs*.
+
+Uninstallation
+--------------
+If you have already installed your package but you want to remove it,
+then build the target "uninstall" by typing
+  make uninstall
+. Note that you need to have the same CONFIGME you have used when you
+configured the package for installation: CONFIGME contains the path
+information, which is obviously required also at uninstallation time.
+
+
+OCamlDoc source documentation
+=============================
+
+You can generate OCamlDoc source documentation in HTML format by building
+the target "ocamldoc". Note that the OCamlDoc settings are not the default
+ones supported by OCamlBuild, and in particular they include module
+implementations, and not only their signatures.
+
+Documentation is generated in the directory _build/PROJECTNAME.docdir/ .
+
+
+Making tarballs
+===============
+
+The build system includes some features to generate source and binary
+tarballs in a very convenient way; this is particularly useful when
+you have downloaded a snapshot of the package from a revision-control
+system such as CVS or darcs, and you want to distribute an easy-to-use
+tarball to other users.
+
+Source tarballs
+---------------
+You can generate a source gzipped tarball with a suitable name is by 
+building the "dist" target:
+  make dist
+Notice that the tarball is actually generated in the "_build/" directory.
+
+Binary tarballs
+---------------
+Binary tarballs don't contain sources, but are installable and uninstallable
+by building the appropriate Make target after decompression. Their file name
+also includes the operating system and hardware architecture name. You can
+generate a binary tarball by building the "dist-binary" target:
+  make dist-binary
+The tarball is generated in "_build/".
+
+An important reminder about binary tarballs
+-------------------------------------------
+There shouldn't be any need to remind you of this, but just to play it
+safe: remember that the GPL requires you to *ALSO DISTRIBUTE SOURCES* if
+you distribute binaries. Hence, if you make a binary tarball available,
+then you *MUST* also publish a source tarball in the same place. See
+the GPL text for all the details.
+
+
+How this system works
+=====================
+This system uses a combination of GNU Make and OCamlBuild to create targets:
+
+OCamlBuild is only used for automatic dependency tracking, which is by itself
+a quite complex job. Its configuration is customized by a _tags file and a
+plugin, myocamlbuild.ml: *both* files are automatically generated from the
+information present int META (which includes the package name, version string,
+and the like), from the CONFIGME file, and from the results of build-time
+analyes of the source directories.
+
+We conceptually always work on a *flat directory structure*, in which any file
+can refer any other -- unless there are circular dependencies: this is a
+current, quite unfortunate limitation of OCaml.
+Notice that different Makefiles for each directory are *NOT* required, nor
+supported. See the section "An alternative Approach to subdirectories" in the
+AutoMake manual for justifications of this idea.
+
+The build system logic is independent from the particular project and is
+implemented in the main "Makefile". Despite such Makefile being quite readable
+and well-commented, its behavior is not completely trivial, requiring some
+minor GNU Make and Bash magic.
+
+For each project a Makefile.local file (included by the main Makefile) defines
+some variables such as PROGRAMS and LIBRARIES, and optionally provides rules to
+build automatically generated sources. Makefile.local can extend the behavior
+of most targets by defining "-local" targets.
+
+For each library provided by the project (of course they may be zero) an ".mllib"
+file is provided listing the OCaml modules (*modules*, not file names) to be
+included.
+When generation of OCamlDoc source documentation is desired, a "PROJECTNAME.odocl"
+file is provided, again containing a list of OCaml modules.
+
+Please see the Makefile for more details.
+
+
+Bug reporting, suggestions and discussions
+==========================================
+
+Bugs in this build system should be reported by using the Savane interface at
+https://savane.marionnet.org/projects/marionnet or to the public mailing list
+marionnet-dev@marionnet.org .
+The mailing list can also be used for general discussions about the build system.
+We welcome feedback.

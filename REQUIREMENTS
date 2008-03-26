@@ -1,0 +1,40 @@
+This file is part of Marionnet, a virtual network laboratory
+Copyright (C) 2008  Luca Saiu
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+Requirements
+============
+
+You need several pieces of software to build and use this package; some
+of them are only used at build time, while others are needed at runtime.
+
+Please note that for build-time requirements it's essential to also have
+the headers/mli files available: if you use the package system of your
+distro, this translates into having installed also the "-dev" or "-devel"
+packages.
+
+
+Build-time requirements
+=======================
+GNU Make and OCamlBuild are required (as for all our OCaml projects). And
+of course you need the OCaml compiler.
+
+[To do: fill this...]
+
+
+Runtime requirements
+====================
+[To do: fill this...]

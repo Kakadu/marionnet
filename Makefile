@@ -15,13 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# This is the revision of 2008-03-25.
+# This is the revision of 2008-03-26.
 
 
 ######################################################################
-# This make file is
-# general-purpose: the actual project-dependant part should be
-# written for each specific project in a 'Makefile.local' file.
+# This make file is general-purpose: the actual project-dependant part
+# should be written for each specific project in a 'Makefile.local'
+# file.
 #
 # This contains some (simple) makefile magic which is only supported
 # by GNU Make. Don't even try to use other make implementations.
@@ -34,13 +34,47 @@
 # versions:
 
 # The main target. Its implementation is entirely project-dependant:
-main: _tags myocamlbuild.ml main-local
-	@(for x in $(PROGRAMS) $(LIBRARIES); do \
-	  echo "Building \"$$x\"..."; \
-	  $(MAKE) $$x; \
-	  echo "Ok, \"$$x\" was built with success."; \
-	done && \
-	echo "Success.")
+main: ocamlbuild-stuff main-local data libraries programs
+	@(echo "Success.")
+
+# Build only data:
+data: ocamlbuild-stuff data-local $(DATA)
+	@(((echo "Building data..."; \
+	shopt -s execfail; set -e; \
+	for x in $(DATA); do \
+	  (echo "Building \"$$x\"..." && \
+	  $(MAKE) $$x && \
+	  echo "Ok, \"$$x\" was built with success.") || \
+	  (echo "Failed when building \"$$x\"."; exit -1); \
+	done) && \
+	echo "Success: data were built.") || \
+	(echo "Failure in building data."; exit -1))
+
+# Build only libraries:
+libraries: ocamlbuild-stuff libraries-local $(LIBRARIES)
+	@(((echo "Building libraries..."; \
+	shopt -s execfail; set -e; \
+	for x in $(LIBRARIES); do \
+	  (echo "Building \"$$x\"..." && \
+	  $(MAKE) $$x && \
+	  echo "Ok, \"$$x\" was built with success.") || \
+	  (echo "Failed when building \"$$x\"."; exit -1); \
+	done) && \
+	echo "Success: libraries were built.") || \
+	(echo "Failure in building libraries."; exit -1))
+
+# Build only programs:
+programs: ocamlbuild-stuff programs-local $(PROGRAMS)
+	@(((echo "Building programs..."; \
+	shopt -s execfail; set -e; \
+	for x in $(PROGRAMS); do \
+	  (echo "Building \"$$x\"..." && \
+	  $(MAKE) $$x && \
+	  echo "Ok, \"$$x\" was built with success.") || \
+	  (echo "Failed when building \"$$x\"."; exit -1); \
+	done) && \
+	echo "Success: programs were built.") || \
+	(echo "Failure in building programs."; exit -1))
 
 # 'all' is just an alias for 'main':
 all: main
@@ -52,15 +86,15 @@ world: world-local main
 
 # Generate ocamldoc documentation:
 ocamldoc: main ocamldoc-local
-	@(ocamlbuild ocamlbricks.docdir/index.html &> /dev/null && \
-	rm ocamlbricks.docdir && \
+	@($(call READ_META, name); \
+	ocamlbuild $$name.docdir/index.html &> /dev/null && \
+	rm $$name.docdir && \
 	echo 'Success.'; \
 	echo 'The documentation has been built with success under _build/')
 
 # Install programs and libraries:
 install: install-programs install-libraries install-data install-local
 	@(echo 'Success.')
-
 
 # The user is free to override this to add custom targets to install into the
 # $prefix/share/$name installation directory:
@@ -195,7 +229,8 @@ dist: clean dist-local
 
 # These files are included also in binary tarballs:
 FILES_TO_ALWAYS_DISTRIBUTE = \
-  COPYING README INSTALL AUTHORS THANKS META Makefile Makefile.local CONFIGME
+  COPYING README INSTALL AUTHORS THANKS META Makefile Makefile.local CONFIGME \
+  REQUIREMENTS
 
 # Make a binary tarball:
 dist-binary: dist-binary-local main #ocamldoc
@@ -229,7 +264,7 @@ dist-binary: dist-binary-local main #ocamldoc
 	done; \
 	for x in main main-local install-libraries-local install-programs-local \
 	         install-local install-data-local clean clean-local \
-		 _tags myocamlbuild.ml \
+		 ocamlbuild-stuff \
 	; do \
 		echo "This dummy file prevents make from building the \"$$x\" target." \
 		  > _build/$$directoryname/$$x; \
@@ -259,6 +294,9 @@ targets:
 # by default:
 main-local:
 world-local:
+data-local:
+libraries-local:
+programs-local:
 ocamldoc-local:
 install-local:
 uninstall-local:
@@ -282,8 +320,9 @@ all-local:
 #####################################################################
 # Default compilation flags. The user *is* expected to override or
 # extend these:
-PROGRAMS =
+DATA =
 LIBRARIES =
+PROGRAMS =
 COMPILE_OPTIONS = -thread
 DIRECTORIES_TO_INCLUDE =
 LIBRARIES_TO_LINK =
@@ -293,17 +332,17 @@ LIBRARIES_TO_LINK =
 # Default rules:
 
 # Bytecode libraries:
-%.cma: _tags myocamlbuild.ml
+%.cma: ocamlbuild-stuff
 	@(ocamlbuild $@)
 # Native libraries:
-%.cmxa: _tags myocamlbuild.ml
+%.cmxa: ocamlbuild-stuff
 	@(ocamlbuild $@)
 # Bytecode programs:
-%.byte: _tags myocamlbuild.ml
+%.byte: ocamlbuild-stuff
 	@(ocamlbuild $@; \
 	rm $@)
 # Native programs:
-%.native: _tags myocamlbuild.ml
+%.native: ocamlbuild-stuff
 	@(ocamlbuild $@; \
 	rm $@)
 
@@ -414,6 +453,12 @@ ADD_PREFIX_TO_EACH_WORD = \
 PROJECT_NAME = \
 	$$( $(call GREP_AND_TEST,META,name); \
 	echo $$name )
+
+# Automatically generate _tags and the OCamlBuild plugin. Note that the
+# target name is never created as a file. This is intentional: those
+# two targets should be re-generated every time.
+ocamlbuild-stuff: _tags myocamlbuild.ml
+	@(echo '_tags and myocamlbuild.ml were (re-)generated with success.')
 
 # We automatically generate the _tags file needed by OCamlBuild.
 # Every subdirectory containing sources is included. This may be more than what's needed,

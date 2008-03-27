@@ -1,5 +1,6 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007  Luca Saiu
+   Minor change in 2008 by Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -62,7 +63,7 @@ let rec lock (the_mutex, fields_mutex, owning_thread_ref, lock_counter_ref) =
 
 (** Unlock a recursive mutex owned by the calling thread. *)
 let unlock (the_mutex, fields_mutex, owning_thread_ref, lock_counter_ref) =
-  let my_thread = Thread.self () in
+  let _ = Thread.self () in
   Mutex.lock fields_mutex;
   match !owning_thread_ref with
     None ->

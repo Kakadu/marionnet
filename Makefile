@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# This is the revision of 2008-03-26.
+# This is the revision of 2008-03-27.
 
 
 ######################################################################
@@ -279,7 +279,8 @@ clean: clean-local
 	find -type f -name \*~ -exec rm -f {} \;; \
 	find -type f -name \#\*\# -exec rm -f {} \;; \
 	find -type f -name core -exec rm -f {} \;; \
-	rm -f _tags myocamlbuild.ml)
+	rm -f _tags myocamlbuild.ml; \
+	echo "Success.")
 
 # Meta-help about the targets defined in this make file:
 targets:

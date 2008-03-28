@@ -15,6 +15,84 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Daemon_language;;
 open Daemon_parameters;;
+open Recursive_mutex;;
 
+let the_daemon_client_mutex =
+  Printf.printf "Creating the socket...\n"; flush_all ();
+  Recursive_mutex.create ();;
+
+let the_daemon_client_socket =
+  Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0;;
+
+Printf.printf "Connecting...\n"; flush_all ();;
+Unix.connect the_daemon_client_socket (Unix.ADDR_UNIX socket_name);;
+Printf.printf "Ok.\n"; flush_all ();;
+
+(** Send the given request to the server, and return the response.
+    Synchronization is correctly performed *within* this function. *)
+let ask_the_server request =
+  with_mutex the_daemon_client_mutex
+    (fun () ->
+      let buffer = String.make message_length 'x' in
+      let request_as_string = print_request request in
+      (* Printf.printf "The request is \"%s\"\n" request_as_string; *)
+      (* flush_all (); *)
+      let sent_bytes_no = Unix.send the_daemon_client_socket request_as_string 0 message_length [] in
+      (if not (sent_bytes_no == sent_bytes_no) then
+        failwith "send() failed");
+      let received_bytes_no =
+        Unix.read the_daemon_client_socket buffer 0 message_length in
+      (if received_bytes_no < message_length then
+        failwith "recv() failed, or the message is ill-formed");
+      (* Printf.printf "The response is \"%s\"\n" buffer; *)
+      (* flush_all (); *)
+      let response = parse_response buffer in
+      response);;
+
+(** The thunk implementing the thread which periodically sends keepalives: *)
+let thread_sending_keepalives_thunk () = 
+  try
+    while true do
+      let _ = ask_the_server IAmAlive in
+      Thread.delay inter_keepalive_interval;
+    done;
+  with e -> begin
+    Printf.printf "The keepalive-sending thread failed: %s\n." (Printexc.to_string e);
+    Printf.printf "Bailing out.\n";
+    flush_all ();
+  end;;
+
+let thread_sending_keepalives = 
+  Thread.create thread_sending_keepalives_thunk ();;
+
+let main _ =
+  try
+    while true do
+      (* Thread.delay 0.001; *)
+      let request =
+        if (Random.float 10.0) < 1.0 then
+          DestroyAllMyResources
+        else
+          Make AnyTap in
+      Printf.printf "Request:  %s\n" (string_of_daemon_request request);
+      flush_all ();
+      let response =
+        ask_the_server request in
+      Printf.printf "Response: %s\n" (string_of_daemon_response response);
+      Printf.printf "\n";
+      flush_all ();
+    done
+  with e -> begin
+    Printf.printf "The daemon client failed: %s\n." (Printexc.to_string e);
+    Printf.printf "Bailing out.\n";
+    flush_all ();
+  end;;
+
+while true do
+  Thread.delay 1.0;
+  Printf.printf "I'm in a useless thread\n";
+  flush_all ();
+done;;

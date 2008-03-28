@@ -104,11 +104,11 @@ let make_resource client resource_pattern =
       try
         (* Create a resource satisfying the given specification, and return it: *)
         Printf.printf
-          "Adding pattern %s %s\n"
-          (string_of_client client)
-          (string_of_daemon_resource_pattern resource_pattern);
+          "Making %s for %s\n"
+          (string_of_daemon_resource_pattern resource_pattern)
+          (string_of_client client);
         let resource = make_system_resource resource_pattern in
-        Printf.printf "Adding %s %s\n" (string_of_client client) (string_of_daemon_resource resource);
+        Printf.printf "Adding %s for %s\n" (string_of_daemon_resource resource) (string_of_client client);
         resource_map#add client resource;
         resource
       with e -> begin
@@ -315,6 +315,7 @@ let connection_server_thread (client, socket) =
     Printf.printf "This is the connection server thread for client %i.\n" client;
     flush_all ();
     while true do
+      Printf.printf "Beginning of the iteration.\n"; flush_all ();
       (* We want the message to be initially invalid, at every iteration, to
          avoid the risk of not seeing a receive error. Just to play it extra
         safe: *)
@@ -326,32 +327,43 @@ let connection_server_thread (client, socket) =
       if (List.length failed) > 0 then
         failwith "select() reported failure with the socket"
       else if (List.length ready_for_read) > 0 then begin
-        let received_bytes =
+        let received_bytes_no =
           Unix.read socket buffer 0 message_length in
-        if received_bytes < message_length then
+        if received_bytes_no < message_length then
           failwith "recv() failed, or the message is ill-formed"
         else begin
           let request = parse_request buffer in
-          Printf.printf "The request is\n  %s\n" (string_of_daemon_request request);
+          Printf.printf "The request is\n  %s\n" (string_of_daemon_request request); flush_all ();
+    Printf.printf "Before keep-alive.\n"; flush_all ();
           keep_alive_client client;
+    Printf.printf "After keep-alive.\n"; flush_all ();
           let response = serve_request request client in
-          Printf.printf "My response is\n  %s\n" (string_of_daemon_response response);
+          Printf.printf "My response is\n  %s\n" (string_of_daemon_response response); flush_all ();
+    Printf.printf "Ok-Q 0\n"; flush_all ();
           let sent_bytes_no = Unix.send socket (print_response response) 0 message_length [] in
+    Printf.printf "Ok-Q 1 (%i bytes sent)\n" sent_bytes_no; flush_all ();
           (if not (sent_bytes_no == sent_bytes_no) then
             failwith "send() failed");
+    Printf.printf "Ok-Q 2\n"; flush_all ();
         end; (* inner else *)
-      end; (* outer else *)
-      (* If we arrived here select() returned due to the timeout, and we
-         didn't receive anything: loop again. *)
+      end else begin
+        (* If we arrived here select() returned due to the timeout, and we
+           didn't receive anything: loop again. *)
+        Printf.printf "select() returned due to timeout.\n"; flush_all ();
+      end;
+      Printf.printf "End of the iteration.\n"; flush_all ();
     done;
   with e -> begin
     Printf.printf
-      "Failed (%s).\nExiting the connection_server_thread for client %i.\n"
+      "Failed in connection_server_thread (%s) for client %i.\nBailing out.\n"
       (Printexc.to_string e)
       client;
     destroy_client client; (* This also closes the socket *)
+    Printf.printf "Exiting from the thread which was serving client %i\n" client;
+    flush_all ();
   end;;
 
+(*
 let the_server_main_thread =
   ignore (Thread.create timeout_thread_thunk ());
   ignore (Thread.create debugging_thread_thunk ());
@@ -372,3 +384,32 @@ let the_server_main_thread =
     Printf.printf "The new client id is %i\n" client_no; flush_all ();
     ignore (Thread.create connection_server_thread (client_no, socket_to_client));
   done;;
+*)
+
+let the_server_main_thread =
+  ignore (Thread.create timeout_thread_thunk ());
+  ignore (Thread.create debugging_thread_thunk ());
+  let connections_no_limit = 10 in
+  let accepting_socket = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
+  let sock_addr = Unix.ADDR_UNIX socket_name in
+  Printf.printf "I am waiting on %s.\n" socket_name; flush_all ();
+  Unix.bind accepting_socket sock_addr;
+  Unix.listen accepting_socket connections_no_limit;
+  while true do 
+    try
+      Printf.printf "Waiting for the next connection...\n"; flush_all ();
+      let (socket_to_client, socket_to_client_address) = Unix.accept accepting_socket in
+      Printf.printf "A new connection was accepted.\n"; flush_all ();
+      let client_no = make_client socket_to_client in
+      Printf.printf "The new client id is %i\n" client_no; flush_all ();
+      ignore (Thread.create connection_server_thread (client_no, socket_to_client));
+    with e -> begin
+    Printf.printf
+      "Failed in the main thread (%s).\n Going on.\n"
+      (Printexc.to_string e);
+      flush_all ();
+    end;
+  done;;
+
+Printf.printf "I should *never* get here!!!\n";;
+flush_all ();;

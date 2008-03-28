@@ -29,4 +29,6 @@ assert (select_timeout > 0.0);;
     frequency even when under load, without its resources being destroyed: *)
 let inter_keepalive_interval = timeout_interval /. 5.0;;
 
+let socket_name = "/tmp/marionnet-daemon-socket";;
+
 let debug_interval = 10.0;;

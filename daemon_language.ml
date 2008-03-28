@@ -124,7 +124,11 @@ let print_response response =
 
 let remove_trailing_spaces string =
   let rec index_of_the_last_nonblank string index =
-    if String.get string index = ' ' then
+    (* We return -1 if the string is completely made of spaces. This is
+       coherent with the way we use this local funcion below. *)
+    if index = -1 then
+      -1
+    else if String.get string index = ' ' then
       index_of_the_last_nonblank string (index - 1)
     else
       index
@@ -140,9 +144,7 @@ let split_message message =
   let opcode = String.get message 0 in
   let rest = String.sub message 1 (message_length - 1) in
   let parameter = remove_trailing_spaces rest in
-let result = opcode, parameter in
-Printf.printf "<%c, %s>\n\n" opcode parameter;flush_all ();
-result;;
+  opcode, parameter;;
 
 let parse_request request =
   let (opcode, parameter) = split_message request in
@@ -161,3 +163,21 @@ let parse_response response  =
   | 'c' -> Created (Tap parameter)
   | '!' -> SorryIThoughtYouWereDead
   | _ -> failwith ("Could not parse the response \"" ^ response ^ "\"");;
+
+(** We need to handle SIGPIPE when working with sockets, as a SIGPIPE
+    is the visible effect of an interrupted primitive at the OCaml level.
+    Not doing this leads to extremely nasty bugs, very hard to reproduce.
+    This may not the "correct" module to implement this, but in this way
+    I'm sure that every process, both Marionnet (client) and the daemon
+    (server) always handle the signal. *)
+let sigpipe_handler =
+  fun signal ->
+    Printf.printf "=========================\n";
+    Printf.printf "I received the signal %i!\n" signal;
+    Printf.printf "=========================\n";
+    flush_all ();
+    (* Raise an exception instead of silently killing a process... *)
+    failwith "got a SIGPIPE" in
+Sys.set_signal
+  Sys.sigpipe
+  (Sys.Signal_handle sigpipe_handler);;

@@ -16,7 +16,8 @@
 
 
 (** The Marionnet daemon is controlled by a simple command language. Messages
-    are passed as marshaled objects over sockets. *)
+    are passed as strings over sockets, which are printed from [parsed to]
+    very simple abstract syntax terms. *)
 
 (** Tap names and bridge names are just strings: *)
 type tap_name =
@@ -74,7 +75,7 @@ and string_of_daemon_response response =
   | Error message ->
       Printf.sprintf "(error \"%s\")" message
   | Created resource ->
-      Printf.sprintf "(created \"%s\")" (string_of_daemon_resource resource);;
+      Printf.sprintf "(created %s)" (string_of_daemon_resource resource);;
 
 (** The length of all requests and responses in our protocol: *)
 let message_length = 64;;
@@ -139,7 +140,9 @@ let split_message message =
   let opcode = String.get message 0 in
   let rest = String.sub message 1 (message_length - 1) in
   let parameter = remove_trailing_spaces rest in
-  opcode, parameter;;
+let result = opcode, parameter in
+Printf.printf "<%c, %s>\n\n" opcode parameter;flush_all ();
+result;;
 
 let parse_request request =
   let (opcode, parameter) = split_message request in

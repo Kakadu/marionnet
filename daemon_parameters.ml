@@ -17,11 +17,16 @@
 
 (** The number of seconds which must elapse from the last keepalive
     for the server to destroy all the resources of a client: *)
-let timeout_interval = 11.0;;
+let timeout_interval = 5.0;;
 assert (timeout_interval > 0.0);;
+
+let select_timeout = 10.0;;
+assert (select_timeout > 0.0);;
 
 (** The number of seconds which should elapse between successive keepalives
     from the same client. It's safer to make this considerably smaller than
     timeout_interval, so that the client can send messages at a reasonable
     frequency even when under load, without its resources being destroyed: *)
 let inter_keepalive_interval = timeout_interval /. 5.0;;
+
+let debug_interval = 10.0;;

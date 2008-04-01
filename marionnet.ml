@@ -173,6 +173,22 @@ print_string "Starting the application\n";;
 (* let guiThread = GtkThread.start () in (\* start GUI thread *\)  *)
 (* Thread.join guiThread;; *)
 
+(try
+  Daemon_client.initialize_daemon_client ();
+  ignore
+    (Thread.create
+       (fun () ->
+         Daemon_client.start_thread_sending_keepalives ())
+       ());
+with e -> begin
+  Simple_dialogs.warning
+    "FRENCH Could not connect to the daemon"
+    (Printf.sprintf
+       "FRENCH Connecting to the Marionnet daemon failed (%s); Marionnet will work, but some features (graphics on virtual machines and host sockets) won't be available."
+       (Printexc.to_string e))
+    ();
+end);;
+
 Splash.show_splash (* ~timeout:15000 *) ();;
 
 GtkThread.main ();;

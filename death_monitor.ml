@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -55,8 +55,9 @@ let map_size = ref 0;;
 let death_monitor_mutex = Mutex.create ();;
 
 (** Check whether a given process is still alive, using /proc. Only for
-    internal use. Incomparably faster than is_alive_using_ps. *)
-let rec is_alive pid =
+    internal use. Incomparably faster than is_alive_using_ps (even if very
+    kludgish), but it only works for the root user... *)
+let rec is_alive_using_proc pid =
   (* Only alive processes have a cwd. Zombies have a dead link here. Yeah, it's ugly. *)
   let directory_name = Printf.sprintf "/proc/%i/cwd" pid in
   try
@@ -65,11 +66,38 @@ let rec is_alive pid =
     true; (* ok, the process exists *)
   with Unix.Unix_error (Unix.ENOENT, "opendir", _) ->
     false (* the process doesn't exist any more *)
+  | Unix.Unix_error(error, function_name, parameter) -> begin
+      Printf.printf "WARNING: death_monitor: opendir or closedir failed (%s, \"%s\", \"%s\") . Retrying.\n"
+        (Unix.error_message error) function_name parameter;
+      is_alive_using_proc pid;
+  end
   |_ -> begin
       (* Is this a signal interruption? *)
       Printf.printf "WARNING: death_monitor: opendir or closedir failed, but not with ENOENT. Retrying.\n";
-      is_alive pid;
+      is_alive_using_proc pid;
     end;;
+
+(** This is slower than is_alive_using_proc, but also works with non-root users: *)
+let rec is_alive_using_grep pid =
+  let command_line =
+    Printf.sprintf "ps -A | grep '^%i\\ ' &> /dev/null" pid in
+  match Unix.system command_line with
+    Unix.WEXITED 0 ->
+      true
+  | Unix.WEXITED _ ->
+      false
+  | Unix.WSIGNALED _ | Unix.WSTOPPED _ -> begin
+      (* retry: *)
+      Printf.printf "is_alive_using_grep: retrying\n";
+      flush_all ();
+      is_alive_using_grep pid;
+  end;;
+
+let is_alive =
+  if (Unix.getuid ()) = 0 then
+    is_alive_using_proc
+  else
+    is_alive_using_grep;;
 
 let rec is_taking_a_whole_cpu pid =
   let command_line1 =

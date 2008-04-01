@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -37,3 +37,15 @@ match Unix.system command_line with
 
 (* Seed the random number generator: *)
 Random.self_init ();
+
+(* Check that we're *not* running as root. Yes, this has been reversed
+   since the last version: *)
+Printf.printf "Checking whether Marionnet is running as root...\n";;
+if (Unix.getuid ()) != 0 then begin
+  Printf.printf "\n**********************************************\n";
+  Printf.printf "* Marionnet should *not* be run as root, for * \n";
+  Printf.printf "* security reasons.                          *\n";
+  Printf.printf "*****************************************\n\n";
+else
+  Printf.printf "Success.\n\n";;
+end;;

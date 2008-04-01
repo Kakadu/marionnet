@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@ open ListExtra;;
 open UnixExtra;;
 open Defects_interface;;
 open Recursive_mutex;;
+open Daemon_language;;
 
 (** Fork a process which just sleeps forever without doing any output. Its stdout is
     perfect to be used as stdin for processes created with create_process which wait
@@ -665,6 +666,19 @@ class uml_process =
   let octet3 = truncated_id mod 254 in
   let ip42 = Printf.sprintf "172.23.%i.%i" octet2 octet3 in
   let _ = Printf.printf "eth42 has IP %s\n" ip42 in
+  let tap_name =
+    match Daemon_client.ask_the_server
+            (Make (AnyTap((Unix.getuid ()),
+                          (* "172.23.0.254" *) ip42))) with
+    | Created (Tap tap_name) ->
+        tap_name
+    | _ -> begin
+        Simple_dialogs.warning
+          "FRENCH Could not create a tap"
+          "FRENCH Could not create a tap"
+          ();
+        "wrong-tap-name";
+    end in
   let command_line_arguments =
     List.append
       (List.map
@@ -684,7 +698,9 @@ class uml_process =
        "hostname="^umid;
 (*        "xterm=myxterm,-T,-e"; *)
        (* Ghost interface configuration. The IP address is relative to a *host* tap: *)
-       "eth42=tuntap,,"^(random_ghost_mac_address ())^",172.23.0.254";] in
+       (* "eth42=tuntap,,"^(random_ghost_mac_address ())^",172.23.0.254"; *)
+       "eth42=tuntap,"^tap_name^","^(random_ghost_mac_address ())^",172.23.0.254";
+     ] in
   let command_line_arguments =
     if Command_line.are_we_in_exam_mode then
       "exam=1" :: command_line_arguments
@@ -728,7 +744,7 @@ object(self)
       system_or_fail dd_command_line;
       Printf.printf "Created the swap file %s.\n" swap_file_name;
       let mkswap_command_line =
-        Printf.sprintf "mkswap %s &> /dev/null" swap_file_name in
+        Printf.sprintf "export PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin; mkswap %s &> /dev/null" swap_file_name in
       system_or_fail mkswap_command_line;
       Printf.printf "Executed mkswap on the swap file %s.\n" swap_file_name;
     with e -> begin
@@ -757,7 +773,8 @@ object(self)
 
   method private gracefully_terminate_with_mconsole =
     self#stop_monitoring;
-    Unix.system ("uml_mconsole " ^ umid ^ " cad &> /dev/null")
+    ignore (Daemon_client.ask_the_server (Destroy (Tap tap_name)));
+    Unix.system ("uml_mconsole " ^ umid ^ " cad &> /dev/null");
 
   (** There is a specific and better way to terminate a UML processes, using
       mconsole. Note that terminate (not overridden here) remains useful as a
@@ -828,7 +845,8 @@ object(self)
             (try self#kill_with_signal Sys.sigkill with _ -> ());
           done;
         with _ -> ());
-        pid := None
+        pid := None;
+        ignore (Daemon_client.ask_the_server (Destroy (Tap tap_name)));
       end
     | None ->
         raise (ProcessIsntInTheRightState "terminate")
@@ -841,11 +859,13 @@ object(self)
   method private make_hostfs_stuff_if_not_already_present =
     (* Make the directory: *)
     (try
-      Unix.mkdir self#hostfs_directory_pathname 0x777;
+      Unix.mkdir
+        self#hostfs_directory_pathname
+        0o777 (* a+rwx; To do: this should be made slightly more restrictive... *);
     with _ -> ());
     (* Fill it: *)
     let descriptor =
-      Unix.openfile boot_parameters_pathname [Unix.O_WRONLY; Unix.O_CREAT] 0x777 in
+      Unix.openfile boot_parameters_pathname [Unix.O_WRONLY; Unix.O_CREAT] 0o777 in
     let out_channel = 
       Unix.out_channel_of_descr descriptor in
     List.iter
@@ -1589,8 +1609,9 @@ object(self)
   method spawn_processes =
     (* Make the gateway tap, and add it to the host main bridge: *)
     (match Unix.system
+        (* This is currently disabled. We have to decide what to do about this: *)
         (Printf.sprintf
-           "tunctl -t %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s"
+           "echo 'tunctl -t %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s'"
            (* tunctl *)
            tap_name
            (* ifconfig *)
@@ -1599,6 +1620,19 @@ object(self)
            bridge_name tap_name) with
       (Unix.WEXITED 0) -> ();
     | _ -> failwith "Failed in setting up a gateway host tap");
+    (* (try *)
+    (*   ignore (Daemon_client.ask_the_server *)
+    (*             (Make (AnyGatewayTap (Unix.getuid ())))); *)
+    (* with e -> begin *)
+    (*   Printf.printf *)
+    (*     "WARNING: Failed in creating a gateway host tap: %s\n" *)
+    (*     (Printexc.to_string e); *)
+    (*   Simple_dialogs.warning *)
+    (*     "FRENCH Failed in creating a gateway host tap" *)
+    (*     (Printexc.to_string e) *)
+    (*     (); *)
+    (* end); *)
+
     (* Spawn the gateway hub process, and wait to be sure it's started: *)
     self#get_gateway_hub_process#spawn;
 (*     Thread.delay 2.0; *)
@@ -1635,15 +1669,28 @@ object(self)
     (* Unreference everything: *)
     internal_cable_process := None;
     (* Remove the gateway tap from the host bridge, and destroy it: *)
-    let command_line = (* To do: the host bridge name is currently hardwired *)
-      Printf.sprintf
-        "ifconfig %s down && brctl delif %s %s && tunctl -d %s"
-        tap_name bridge_name tap_name tap_name in
-    match Unix.system command_line with
-      (Unix.WEXITED 0) ->
+    (try
+      ignore (Daemon_client.ask_the_server
+                (Destroy (Tap tap_name)));
+    with e -> begin
+      Printf.printf
+        "WARNING: Failed in destroying a gateway host tap: %s\n"
+        (Printexc.to_string e);
+      Simple_dialogs.warning
+        "FRENCH Failed in destroying a gateway host tap"
+        (Printexc.to_string e)
         ();
-    | _ ->
-        print_string "WARNING: Failed in destroying a gateway host tap";
+    end);
+    (* let command_line = *)
+    (*   (\* This is currently disabled. We have to decide what to do about this: *\) *)
+    (*   Printf.sprintf *)
+    (*     "echo 'ifconfig %s down && brctl delif %s %s && tunctl -d %s'" *)
+    (*     tap_name bridge_name tap_name tap_name in *)
+    (* match Unix.system command_line with *)
+    (*   (Unix.WEXITED 0) -> *)
+    (*     (); *)
+    (* | _ -> *)
+    (*     print_string "WARNING: Failed in destroying a gateway host tap"; *)
     
   (** As gateways are stateless from the point of view of the user, stop/continue
       aren't distinguishable from terminate/spawn: *)

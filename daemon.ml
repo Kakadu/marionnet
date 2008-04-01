@@ -61,15 +61,48 @@ let make_fresh_tap_name () =
 let make_fresh_bridge_name () =
   make_fresh_name "bridge";;
 
-let make_system_tap (tap_name : tap_name) =
+(* To do: move this into UnixExtra or something like that: *)
+(** Run system with the given argument, and raise exception in case of failure;
+    return unit on success. *)
+let system_or_fail command_line =
+  Printf.printf "Executing \'%s\'...\n" command_line;
+  flush_all ();
+  match Unix.system command_line with
+    Unix.WEXITED 0 ->
+      ()
+  | Unix.WEXITED n ->
+      failwith (Printf.sprintf "Unix.system: the process exited with %i" n)
+  | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
+      failwith "Unix.system: the process was signaled or stopped";;
+
+let make_system_tap (tap_name : tap_name) uid ip_address =
+  Printf.printf "Creating the tap %s...\n" tap_name;
+  let command_line =
+    Printf.sprintf
+      "tunctl -u %i -t %s && ifconfig %s 172.23.0.254 netmask 255.255.255.255 up; route add %s %s"
+      uid tap_name tap_name ip_address tap_name in
+  system_or_fail command_line;
+  Printf.printf "The tap %s was created with success\n" tap_name;
+  flush_all ();;
+let make_system_gateway_tap (tap_name : tap_name) uid =
   Printf.printf "Creating the tap %s [To do: actually do it]\n" tap_name;
   ();;
 let make_system_bridge (bridge_name : bridge_name) =
-  Printf.printf "Creating the bridge %s [To do: actually do it]\n" bridge_name;
-  ();;
+  Printf.printf "Creating the bridge %s...\n" bridge_name;
+  let command_line =
+    Printf.sprintf "/usr/marionnet/bin/prepare_bridge.sh %s" bridge_name in
+  system_or_fail command_line;
+  Printf.printf "The bridge %s was created with success\n" bridge_name;
+  flush_all ();;
 let destroy_system_tap (tap_name : tap_name) =
-  Printf.printf "Destroying the tap %s [To do: actually do it]\n" tap_name;
-  ();;
+  Printf.printf "Destroying the tap %s...\n" tap_name;
+  let command_line =
+    Printf.sprintf
+      "while ! (ifconfig %s down && tunctl -d %s); do echo 'I can not destroy %s yet...'; sleep 1; done&"
+      tap_name tap_name tap_name in
+  system_or_fail command_line;
+  Printf.printf "The tap %s was destroyed with success\n" tap_name;
+  flush_all ();;
 let destroy_system_bridge (bridge_name : bridge_name) =
   Printf.printf "Destroying the bridge %s [To do: actually do it]\n" bridge_name;
   ();;
@@ -78,9 +111,13 @@ let destroy_system_bridge (bridge_name : bridge_name) =
     the instantiated resource: *)
 let make_system_resource resource_pattern =
   match resource_pattern with
-  | AnyTap ->
+  | AnyTap(uid, ip_address) ->
       let name = make_fresh_tap_name () in
-      make_system_tap name;
+      make_system_tap name uid ip_address;
+      Tap name
+  | AnyGatewayTap uid ->
+      let name = make_fresh_tap_name () in
+      make_system_gateway_tap name uid;
       Tap name
   | AnyBridge ->
       let name = make_fresh_bridge_name () in
@@ -126,10 +163,11 @@ let destroy_resource client resource =
     (fun () ->
       try
         Printf.printf "Removing %s %s\n" (string_of_client client) (string_of_daemon_resource resource);
+        resource_map#remove_key_value_or_fail client resource;
         destroy_system_resource resource;
-        resource_map#remove_key_value_or_fail client resource
+        (* resource_map#remove_key_value_or_fail client resource; *)
       with e -> begin
-        Printf.printf "Failed (%s) when destroying %s for %s; bailing out.\n"
+        Printf.printf "WARNING: failed (%s) when destroying %s for %s.\n"
           (Printexc.to_string e)
           (string_of_daemon_resource resource)
           (string_of_client client);
@@ -181,13 +219,33 @@ let keep_alive_client client =
     from 1 to 0. *)
 let clients_no = ref 0;;
 let the_bridge_if_any = ref None;;
+let global_bridge () =
+  with_mutex the_daemon_mutex
+    (fun () ->
+      match !the_bridge_if_any with
+      | None ->
+          failwith "the global bridge does not exist; this should never happen"
+      | Some (Bridge bridge_name) ->
+          bridge_name
+      | _ ->
+          failwith "the global bridge is not a bridge; this should never happen");;
+let create_global_resources_unlocked_ () =
+  assert(!the_bridge_if_any = None);
+  the_bridge_if_any := Some (make_system_resource AnyBridge);;
+let destroy_global_resources_unlocked_ () =
+  match !the_bridge_if_any with
+  | None -> assert false
+  | Some bridge -> begin
+      destroy_system_resource bridge;
+      the_bridge_if_any := None;
+      flush_all ();
+  end;;
 let increment_clients_no () =
   with_mutex the_daemon_mutex
     (fun () ->
       (if !clients_no = 0 then begin
         Printf.printf "There is at least one client now. Creating global resources...\n";
-        assert(!the_bridge_if_any = None);
-        the_bridge_if_any := Some (make_system_resource AnyBridge); 
+        create_global_resources_unlocked_ ();
         Printf.printf "Global resources were created with success.\n";
         flush_all ();
       end);
@@ -197,15 +255,10 @@ let decrement_clients_no () =
     (fun () ->
       clients_no := !clients_no - 1;
       (if !clients_no = 0 then begin
-        match !the_bridge_if_any with
-        | None -> assert false
-        | Some bridge -> begin
-            Printf.printf "There are no more clients now. Destroying global resources...\n";
-            destroy_system_resource bridge;
-            the_bridge_if_any := None;
-            Printf.printf "Global resources were destroyed with success.\n";
-            flush_all ();
-        end;
+        Printf.printf "There are no more clients now. Destroying global resources...\n";
+        destroy_global_resources_unlocked_ ();
+        Printf.printf "Global resources were destroyed with success.\n";
+        flush_all ();
       end));;
 
 (** Create a new client on which we're going to interact with the given socket,
@@ -323,7 +376,17 @@ let connection_server_thread (client, socket) =
       (* We don't want to block indefinitely on read() because the socket could
          be closed by another thread; so we simply select() with a timeout: *)
       let (ready_for_read, _, failed) =
-        Unix.select [socket] [] [socket] select_timeout in
+(****)
+        try
+          Unix.select [socket] [] [socket] select_timeout
+        with _ -> begin
+          Printf.printf "!!!!FAILED IN select (connection_server_thread)!!!!\n";
+          flush_all ();
+          ([], [], []);
+        end
+in
+(****)
+        (* Unix.select [socket] [] [socket] select_timeout in *)
       if (List.length failed) > 0 then
         failwith "select() reported failure with the socket"
       else if (List.length ready_for_read) > 0 then begin
@@ -334,24 +397,29 @@ let connection_server_thread (client, socket) =
         else begin
           let request = parse_request buffer in
           Printf.printf "The request is\n  %s\n" (string_of_daemon_request request); flush_all ();
-    Printf.printf "Before keep-alive.\n"; flush_all ();
+    (* Printf.printf "Before keep-alive.\n"; flush_all (); *)
           keep_alive_client client;
-    Printf.printf "After keep-alive.\n"; flush_all ();
-          let response = serve_request request client in
+    (* Printf.printf "After keep-alive.\n"; flush_all (); *)
+          let response =
+            try
+              serve_request request client
+            with e ->
+              Error (Printexc.to_string e)
+          in
           Printf.printf "My response is\n  %s\n" (string_of_daemon_response response); flush_all ();
-    Printf.printf "Ok-Q 0\n"; flush_all ();
+    (* Printf.printf "Ok-Q 0\n"; flush_all (); *)
           let sent_bytes_no = Unix.send socket (print_response response) 0 message_length [] in
-    Printf.printf "Ok-Q 1 (%i bytes sent)\n" sent_bytes_no; flush_all ();
+    (* Printf.printf "Ok-Q 1 (%i bytes sent)\n" sent_bytes_no; flush_all (); *)
           (if not (sent_bytes_no == sent_bytes_no) then
             failwith "send() failed");
-    Printf.printf "Ok-Q 2\n"; flush_all ();
+    (* Printf.printf "Ok-Q 2\n"; flush_all (); *)
         end; (* inner else *)
       end else begin
         (* If we arrived here select() returned due to the timeout, and we
            didn't receive anything: loop again. *)
-        Printf.printf "select() returned due to timeout.\n"; flush_all ();
+    (* Printf.printf "select() returned due to timeout.\n"; flush_all (); *)
       end;
-      Printf.printf "End of the iteration.\n"; flush_all ();
+    (* Printf.printf "End of the iteration.\n"; flush_all (); *)
     done;
   with e -> begin
     Printf.printf
@@ -386,30 +454,58 @@ let the_server_main_thread =
   done;;
 *)
 
+(** Remove an old socket file, remained from an old instance or from ours
+    (when we're about to exit). Do nothing if there is no such file: *)
+let remove_socket_file_if_any () =
+  try
+    Unix.unlink socket_name;
+    Printf.printf "[Removed the old socket file %s]\n" socket_name;
+    flush_all ();
+  with _ ->
+    Printf.printf "[There was no need to remove the socket file %s]\n" socket_name;;
+
+(** Destroy the socket and exit on either SIGINT and SIGTERM: *)
+let signal_handler signal =
+  Printf.printf "=========================\n";
+  Printf.printf "I received the signal %i!\n" signal;
+  Printf.printf "=========================\n";
+  remove_socket_file_if_any ();
+  flush_all ();
+  (*Unix.kill Sys.sigkill (Unix.getpid ());*)
+  raise Exit;;
+(** Strangely, without calling this the program is uninterruptable from the
+    console: *)
+Sys.catch_break false;;
+Sys.set_signal Sys.sigint (Sys.Signal_handle signal_handler);;
+Sys.set_signal Sys.sigterm (Sys.Signal_handle signal_handler);;
+
 let the_server_main_thread =
   ignore (Thread.create timeout_thread_thunk ());
   ignore (Thread.create debugging_thread_thunk ());
   let connections_no_limit = 10 in
   let accepting_socket = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
   let sock_addr = Unix.ADDR_UNIX socket_name in
-  Printf.printf "I am waiting on %s.\n" socket_name; flush_all ();
+  (* Remove the socket file, if it already exists: *)
+  remove_socket_file_if_any ();
+  (* Bind the file to the socket; this creates the file, or fails if there
+     are permission or disk space problems: *)
   Unix.bind accepting_socket sock_addr;
+  (* Everybody must be able to send messages to us: *)
+  Unix.chmod socket_name 438 (* a+rw *);
+  Printf.printf "I am waiting on %s.\n" socket_name; flush_all ();
   Unix.listen accepting_socket connections_no_limit;
   while true do 
     try
       Printf.printf "Waiting for the next connection...\n"; flush_all ();
       let (socket_to_client, socket_to_client_address) = Unix.accept accepting_socket in
-      Printf.printf "A new connection was accepted.\n"; flush_all ();
       let client_no = make_client socket_to_client in
-      Printf.printf "The new client id is %i\n" client_no; flush_all ();
+      Printf.printf "A new connection was accepted; the new client id is %i\n" client_no; flush_all ();
       ignore (Thread.create connection_server_thread (client_no, socket_to_client));
     with e -> begin
     Printf.printf
-      "Failed in the main thread (%s).\n Going on.\n"
+      "Failed in the main thread (%s). Bailing out.\n"
       (Printexc.to_string e);
       flush_all ();
+      raise e;
     end;
   done;;
-
-Printf.printf "I should *never* get here!!!\n";;
-flush_all ();;

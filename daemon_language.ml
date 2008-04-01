@@ -24,10 +24,15 @@ type tap_name =
     string;;
 type bridge_name =
     string;;
+type ip_address =
+    string;;
+type uid =
+    int;;
 
 (** The abstract syntax of requests, responses and parameters: *)
 type resource_pattern =
-  | AnyTap
+  | AnyTap of uid * ip_address
+  | AnyGatewayTap of uid
   | AnyBridge
 type resource =
   | Tap of tap_name
@@ -52,8 +57,10 @@ let rec string_of_daemon_resource resource =
       Printf.sprintf "(bridge %s)" name
 let rec string_of_daemon_resource_pattern resource_pattern =
   match resource_pattern with
-  | AnyTap ->
-      "any-tap"
+  | AnyTap(uid, ip_address) ->
+      Printf.sprintf "(any-tap %i %s)" uid ip_address
+  | AnyGatewayTap uid ->
+      Printf.sprintf "(any-gateway-tap %i)" uid
   | AnyBridge ->
       "any-bridge"
 and string_of_daemon_request request =
@@ -78,14 +85,20 @@ and string_of_daemon_response response =
       Printf.sprintf "(created %s)" (string_of_daemon_resource resource);;
 
 (** The length of all requests and responses in our protocol: *)
-let message_length = 64;;
+let message_length = 128;;
 
 (** Return a fixed-length string of exactly message_length bytes, where the first
     character is the given opcode, the following characters are the given parameters,
     and the remaining characters, if any, are filled with spaces. The length of the
     parameter is checked: *)
 let make_fixed_length_message opcode parameter =
-  assert((String.length parameter) + 1 <= message_length);
+  let parameter =
+    if ((String.length parameter) + 1) > message_length then begin
+      Printf.printf "Warning: the parameter \"%s\" is too long. Truncating...\n" parameter;
+      flush_all ();
+      String.sub parameter 0 ((String.length parameter) - 1)
+    end else
+      parameter in
   (Printf.sprintf "%c" opcode) ^
   parameter ^
   (String.make (message_length - (String.length parameter) - 1) ' ');;
@@ -96,8 +109,10 @@ let print_request request =
   match request with
   | IAmAlive ->
       make_fixed_length_message 'i' ""
-  | Make AnyTap ->
-      make_fixed_length_message 'c' ""
+  | Make AnyTap(uid, ip_address) ->
+      make_fixed_length_message 'c' (Printf.sprintf "%i %s" uid ip_address)
+  | Make (AnyGatewayTap uid) ->
+      make_fixed_length_message 'g' (Printf.sprintf "%i" uid)
   | Make AnyBridge ->
       failwith "Make AnyBridge is not printable"
   | Destroy (Bridge _) ->
@@ -150,7 +165,10 @@ let parse_request request =
   let (opcode, parameter) = split_message request in
   match opcode with
   | 'i' -> IAmAlive
-  | 'c' -> Make AnyTap
+  | 'c' ->
+      Scanf.sscanf parameter "%i %s" (fun uid ip_address -> Make (AnyTap(uid, ip_address)))
+  | 'g' ->
+      Scanf.sscanf parameter "%i" (fun uid -> Make (AnyGatewayTap uid))
   | 'd' -> Destroy (Tap parameter)
   | 'D' -> DestroyAllMyResources
   | _ -> failwith ("Could not parse the request \"" ^ request ^ "\"");;
@@ -170,14 +188,12 @@ let parse_response response  =
     This may not the "correct" module to implement this, but in this way
     I'm sure that every process, both Marionnet (client) and the daemon
     (server) always handle the signal. *)
-let sigpipe_handler =
+let signal_handler =
   fun signal ->
     Printf.printf "=========================\n";
     Printf.printf "I received the signal %i!\n" signal;
     Printf.printf "=========================\n";
     flush_all ();
     (* Raise an exception instead of silently killing a process... *)
-    failwith "got a SIGPIPE" in
-Sys.set_signal
-  Sys.sigpipe
-  (Sys.Signal_handle sigpipe_handler);;
+    failwith (Printf.sprintf "got the signal %i" signal);;
+Sys.set_signal Sys.sigpipe (Sys.Signal_handle signal_handler);;

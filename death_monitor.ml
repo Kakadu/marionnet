@@ -80,7 +80,7 @@ let rec is_alive_using_proc pid =
 (** This is slower than is_alive_using_proc, but also works with non-root users: *)
 let rec is_alive_using_grep pid =
   let command_line =
-    Printf.sprintf "ps -A | grep '^%i\\ ' &> /dev/null" pid in
+    Printf.sprintf "ps -p %i &> /dev/null" pid in
   match Unix.system command_line with
     Unix.WEXITED 0 ->
       true

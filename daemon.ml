@@ -411,9 +411,7 @@ in
         else begin
           let request = parse_request buffer in
           Printf.printf "The request is\n  %s\n" (string_of_daemon_request request); flush_all ();
-    (* Printf.printf "Before keep-alive.\n"; flush_all (); *)
           keep_alive_client client;
-    (* Printf.printf "After keep-alive.\n"; flush_all (); *)
           let response =
             try
               serve_request request client
@@ -421,19 +419,14 @@ in
               Error (Printexc.to_string e)
           in
           Printf.printf "My response is\n  %s\n" (string_of_daemon_response response); flush_all ();
-    (* Printf.printf "Ok-Q 0\n"; flush_all (); *)
           let sent_bytes_no = Unix.send socket (print_response response) 0 message_length [] in
-    (* Printf.printf "Ok-Q 1 (%i bytes sent)\n" sent_bytes_no; flush_all (); *)
           (if not (sent_bytes_no == sent_bytes_no) then
             failwith "send() failed");
-    (* Printf.printf "Ok-Q 2\n"; flush_all (); *)
         end; (* inner else *)
       end else begin
         (* If we arrived here select() returned due to the timeout, and we
            didn't receive anything: loop again. *)
-    (* Printf.printf "select() returned due to timeout.\n"; flush_all (); *)
       end;
-    (* Printf.printf "End of the iteration.\n"; flush_all (); *)
     done;
   with e -> begin
     Printf.printf

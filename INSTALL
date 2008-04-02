@@ -80,8 +80,7 @@ have specified at configuration time) just build the target "install".
 On GNU systems this means typing
   make install
 . Note that, at least as of now, only a single version at the time
-can be installed for each package which contains *libraries*; this
-limitations does not exist for *programs*.
+can be installed for each package.
 
 Uninstallation
 --------------
@@ -134,8 +133,10 @@ An important reminder about binary tarballs
 There shouldn't be any need to remind you of this, but just to play it
 safe: remember that the GPL requires you to *ALSO DISTRIBUTE SOURCES* if
 you distribute binaries. Hence, if you make a binary tarball available,
-then you *MUST* also publish a source tarball in the same place. See
-the GPL text for all the details.
+then you should also publish a source tarball in the same place (this is
+the simplest alternative; another possibility is to provide a *written*
+offer, valid for at least three years, to also supply the sources at no
+additional charge; see the GPL text for all the details).
 
 
 How this system works

@@ -23,8 +23,12 @@ open Recursive_mutex;;
 open Hashmap;;
 open Hashmmap;;
 
-type client = int;;
+(** Client identifiers are simply automatically-generated sequential
+    integers: *)
+type client =
+    int;;
 
+(** Pretty-print a client identifier: *)
 let string_of_client client =
   Printf.sprintf "<client #%i>" client;;
 
@@ -57,9 +61,9 @@ let make_fresh_name prefix =
 let make_fresh_tap_name () =
    make_fresh_name "tap";;
 
-(** Generate a random name, very probably unique, for a new bridge: *)
-let make_fresh_bridge_name () =
-  make_fresh_name "bridge";;
+(** Generate a random name, very probably unique, for a new gateway tap: *)
+let make_fresh_gateway_tap_name () =
+  make_fresh_name "gwtap";;
 
 (* To do: move this into UnixExtra or something like that: *)
 (** Run system with the given argument, and raise exception in case of failure;
@@ -75,6 +79,7 @@ let system_or_fail command_line =
   | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
       failwith "Unix.system: the process was signaled or stopped";;
 
+(** Actaully make a tap at the OS level: *)
 let make_system_tap (tap_name : tap_name) uid ip_address =
   Printf.printf "Creating the tap %s...\n" tap_name;
   let command_line =
@@ -84,16 +89,13 @@ let make_system_tap (tap_name : tap_name) uid ip_address =
   system_or_fail command_line;
   Printf.printf "The tap %s was created with success\n" tap_name;
   flush_all ();;
-let make_system_gateway_tap (tap_name : tap_name) uid =
+
+(** Actaully make a gateway tap at the OS level: *)
+let make_system_gateway_tap (tap_name : tap_name) uid bridge_name =
   Printf.printf "Creating the tap %s [To do: actually do it]\n" tap_name;
   ();;
-let make_system_bridge (bridge_name : bridge_name) =
-  Printf.printf "Creating the bridge %s...\n" bridge_name;
-  let command_line =
-    Printf.sprintf "/usr/marionnet/bin/prepare_bridge.sh %s" bridge_name in
-  system_or_fail command_line;
-  Printf.printf "The bridge %s was created with success\n" bridge_name;
-  flush_all ();;
+
+(** Actaully destroy a tap at the OS level: *)
 let destroy_system_tap (tap_name : tap_name) =
   Printf.printf "Destroying the tap %s...\n" tap_name;
   let command_line =
@@ -103,34 +105,33 @@ let destroy_system_tap (tap_name : tap_name) =
   system_or_fail command_line;
   Printf.printf "The tap %s was destroyed with success\n" tap_name;
   flush_all ();;
-let destroy_system_bridge (bridge_name : bridge_name) =
-  Printf.printf "Destroying the bridge %s [To do: actually do it]\n" bridge_name;
-  ();;
+
+(** Actaully destroy a gateway tap at the OS level: *)
+let destroy_system_gateway_tap (tap_name : tap_name) uid bridge_name =
+  Printf.printf "Destroying the gateway tap %s... [To do: actually do it]\n" tap_name;
+  Printf.printf "The gateway tap %s was destroyed with success\n" tap_name;
+  flush_all ();;
 
 (** Instantiate the given pattern, actually create the system object, and return
     the instantiated resource: *)
 let make_system_resource resource_pattern =
   match resource_pattern with
   | AnyTap(uid, ip_address) ->
-      let name = make_fresh_tap_name () in
-      make_system_tap name uid ip_address;
-      Tap name
-  | AnyGatewayTap uid ->
-      let name = make_fresh_tap_name () in
-      make_system_gateway_tap name uid;
-      Tap name
-  | AnyBridge ->
-      let name = make_fresh_bridge_name () in
-      make_system_bridge name;
-      Bridge name;;
+      let tap_name = make_fresh_tap_name () in
+      make_system_tap tap_name uid ip_address;
+      Tap tap_name
+  | AnyGatewayTap(uid, bridge_name) ->
+      let tap_name = make_fresh_gateway_tap_name () in
+      make_system_gateway_tap tap_name uid bridge_name;
+      GatewayTap(tap_name, uid, bridge_name);;
 
 (** Actually destroyed the system object named by the given resource: *)
 let destroy_system_resource resource =
   match resource with
   | Tap tap_name ->
       destroy_system_tap tap_name
-  | Bridge bridge_name ->
-      destroy_system_bridge bridge_name;;
+  | GatewayTap(tap_name, uid, bridge_name) ->
+      destroy_system_gateway_tap tap_name uid bridge_name;;
 
 (** Create a suitable resource matching the given pattern, and return it.
     Synchronization is performed inside this function, hence the caller doesn't need
@@ -226,32 +227,31 @@ let keep_alive_client client =
         failwith ("keep_alive_client: " ^ (string_of_client client) ^ " is not alive.");
       end);;
 
-(** Some resources [only a bridge, as of now] are global, i.e. shared by all
+(** Some resources [well, none as of now] are global, i.e. shared by all
     clients whenever there is at least one. We use a reference-counter to keep
     track of the number of currently existing clients; global resources are
     created when the counter raises from 0 to 1, and destroyed when it drops
     from 1 to 0. *)
 let clients_no = ref 0;;
-let the_bridge_if_any = ref None;;
-let global_bridge () =
+let the_resources_if_any = ref None;;
+let global_resources () =
   with_mutex the_daemon_mutex
     (fun () ->
-      match !the_bridge_if_any with
+      match !the_resources_if_any with
       | None ->
-          failwith "the global bridge does not exist; this should never happen"
-      | Some (Bridge bridge_name) ->
-          bridge_name
-      | _ ->
-          failwith "the global bridge is not a bridge; this should never happen");;
+          failwith "the global resources do not exist; this should never happen"
+      | Some resources ->
+          resources);;
 let create_global_resources_unlocked_ () =
-  assert(!the_bridge_if_any = None);
-  the_bridge_if_any := Some (make_system_resource AnyBridge);;
+  assert(!the_resources_if_any = None);
+  (* To do: actually create something, if needed. *)
+  the_resources_if_any := Some ();;
 let destroy_global_resources_unlocked_ () =
-  match !the_bridge_if_any with
+  match !the_resources_if_any with
   | None -> assert false
-  | Some bridge -> begin
-      destroy_system_resource bridge;
-      the_bridge_if_any := None;
+  | Some resources -> begin
+      (* To do: actually destroy something, if needed. *)
+      the_resources_if_any := None;
       flush_all ();
   end;;
 let increment_clients_no () =

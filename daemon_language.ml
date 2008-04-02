@@ -32,11 +32,10 @@ type uid =
 (** The abstract syntax of requests, responses and parameters: *)
 type resource_pattern =
   | AnyTap of uid * ip_address
-  | AnyGatewayTap of uid
-  | AnyBridge
+  | AnyGatewayTap of uid * bridge_name
 type resource =
   | Tap of tap_name
-  | Bridge of bridge_name
+  | GatewayTap of tap_name * uid * bridge_name
 and daemon_request =
   | IAmAlive
   | Make of resource_pattern
@@ -51,18 +50,16 @@ and daemon_response =
 (** Printer: this is useful for debugging. *)
 let rec string_of_daemon_resource resource =
   match resource with
-  | Tap name ->
-      Printf.sprintf "(tap %s)" name
-  | Bridge name ->
-      Printf.sprintf "(bridge %s)" name
+  | Tap tap_name ->
+      Printf.sprintf "(tap %s)" tap_name
+  | GatewayTap(tap_name, uid, bridge_name) ->
+      Printf.sprintf "(gateway-tap %s %i %s)" tap_name uid bridge_name
 let rec string_of_daemon_resource_pattern resource_pattern =
   match resource_pattern with
   | AnyTap(uid, ip_address) ->
       Printf.sprintf "(any-tap %i %s)" uid ip_address
-  | AnyGatewayTap uid ->
-      Printf.sprintf "(any-gateway-tap %i)" uid
-  | AnyBridge ->
-      "any-bridge"
+  | AnyGatewayTap(uid, bridge_name) ->
+      Printf.sprintf "(any-gateway-tap %i %s)" uid bridge_name
 and string_of_daemon_request request =
   match request with
   | IAmAlive ->
@@ -111,16 +108,14 @@ let print_request request =
       make_fixed_length_message 'i' ""
   | Make AnyTap(uid, ip_address) ->
       make_fixed_length_message 'c' (Printf.sprintf "%i %s" uid ip_address)
-  | Make (AnyGatewayTap uid) ->
-      make_fixed_length_message 'g' (Printf.sprintf "%i" uid)
-  | Make AnyBridge ->
-      failwith "Make AnyBridge is not printable"
-  | Destroy (Bridge _) ->
-      failwith "Destroy (Bridge _) is not printable"
+  | Make (AnyGatewayTap(uid, bridge_name)) ->
+      make_fixed_length_message 'g' (Printf.sprintf "%i %s" uid bridge_name)
   | Destroy (Tap tap_name) ->
-      make_fixed_length_message 'd' tap_name
+      make_fixed_length_message 'd' tap_name 
+  | Destroy (GatewayTap(tap_name, uid, bridge_name)) ->
+      make_fixed_length_message 'D' (Printf.sprintf "%s %i %s" tap_name uid bridge_name)
   | DestroyAllMyResources ->
-      make_fixed_length_message 'D' "";;
+      make_fixed_length_message '!' "";;
 
 (** Response printer (this is for the actually communication language, not for
     debugging): *)
@@ -130,10 +125,12 @@ let print_response response =
       make_fixed_length_message 's' ""
   | Error message ->
       make_fixed_length_message 'e' message
-  | Created (Bridge _) ->
-      failwith "Created (Bridge _) is not printable"
   | Created (Tap tap_name) ->
       make_fixed_length_message 'c' tap_name
+  | Created (GatewayTap(tap_name, uid, bridge_name)) ->
+      make_fixed_length_message
+        'C'
+        (Printf.sprintf "%s %i %s" tap_name uid bridge_name)
   | SorryIThoughtYouWereDead ->
       make_fixed_length_message '!' "";;
 
@@ -164,14 +161,24 @@ let split_message message =
 let parse_request request =
   let (opcode, parameter) = split_message request in
   match opcode with
-  | 'i' -> IAmAlive
+  | 'i' ->
+      IAmAlive
   | 'c' ->
       Scanf.sscanf parameter "%i %s" (fun uid ip_address -> Make (AnyTap(uid, ip_address)))
   | 'g' ->
-      Scanf.sscanf parameter "%i" (fun uid -> Make (AnyGatewayTap uid))
-  | 'd' -> Destroy (Tap parameter)
-  | 'D' -> DestroyAllMyResources
-  | _ -> failwith ("Could not parse the request \"" ^ request ^ "\"");;
+      Scanf.sscanf parameter "%i %s" (fun uid bridge_name -> Make (AnyGatewayTap(uid, bridge_name)))
+  | 'd' ->
+      Destroy (Tap parameter)
+  | 'D' ->
+      Scanf.sscanf
+        parameter
+        "%s %i %s"
+        (fun tap_name uid bridge_name ->
+          Destroy (GatewayTap(tap_name, uid, bridge_name)))
+  | '!' ->
+      DestroyAllMyResources
+  | _ ->
+      failwith ("Could not parse the request \"" ^ request ^ "\"");;
 
 let parse_response response  =
   let (opcode, parameter) = split_message response in
@@ -179,6 +186,12 @@ let parse_response response  =
   | 's' -> Success
   | 'e' -> Error parameter
   | 'c' -> Created (Tap parameter)
+  | 'C' ->
+      Scanf.sscanf
+        parameter
+        "%s %i %s"
+        (fun tap_name uid bridge_name ->
+          Created (GatewayTap(tap_name, uid, bridge_name)))
   | '!' -> SorryIThoughtYouWereDead
   | _ -> failwith ("Could not parse the response \"" ^ response ^ "\"");;
 

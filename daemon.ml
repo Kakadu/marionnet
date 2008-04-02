@@ -445,29 +445,6 @@ in
     flush_all ();
   end;;
 
-(*
-let the_server_main_thread =
-  ignore (Thread.create timeout_thread_thunk ());
-  ignore (Thread.create debugging_thread_thunk ());
-  let port = 12345 in 
-  let connections_no_limit = 10 in
-  let accepting_socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
-  let host = Unix.gethostbyname (Unix.gethostname ()) in
-  let h_addr = host.Unix.h_addr_list.(0) in
-  let sock_addr = Unix.ADDR_INET(h_addr, port) in
-  Printf.printf "I am waiting on %s, port %i.\n" (Unix.gethostname ()) port; flush_all ();
-  Unix.bind accepting_socket sock_addr;
-  Unix.listen accepting_socket connections_no_limit;
-  while true do 
-    Printf.printf "Waiting for the next connection...\n"; flush_all ();
-    let (socket_to_client, socket_to_client_address) = Unix.accept accepting_socket in
-    Printf.printf "A new connection was accepted.\n"; flush_all ();
-    let client_no = make_client socket_to_client in
-    Printf.printf "The new client id is %i\n" client_no; flush_all ();
-    ignore (Thread.create connection_server_thread (client_no, socket_to_client));
-  done;;
-*)
-
 (** Remove an old socket file, remained from an old instance or from ours
     (when we're about to exit). Do nothing if there is no such file: *)
 let remove_socket_file_if_any () =

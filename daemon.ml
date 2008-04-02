@@ -190,6 +190,20 @@ let destroy_all_client_resources client =
           (string_of_client client);
       end);;
 
+let destroy_all_resources () =
+  with_mutex the_daemon_mutex
+    (fun () ->
+      List.iter
+        (fun (client, _) ->
+          try
+            destroy_all_client_resources client
+          with e -> begin
+            Printf.printf "Failed (%s) when removing %s's resources (while removing *all* resources); continuing anyway.\n"
+              (Printexc.to_string e)
+              (string_of_client client);
+          end))
+        client_death_time_map#to_alist;;
+
 let keep_alive_client client =
   with_mutex the_daemon_mutex
     (fun () ->
@@ -464,14 +478,18 @@ let remove_socket_file_if_any () =
   with _ ->
     Printf.printf "[There was no need to remove the socket file %s]\n" socket_name;;
 
-(** Destroy the socket and exit on either SIGINT and SIGTERM: *)
+(** Destroy all resources, destroy the socket and exit on either SIGINT and SIGTERM: *)
 let signal_handler signal =
   Printf.printf "=========================\n";
   Printf.printf "I received the signal %i!\n" signal;
   Printf.printf "=========================\n";
-  remove_socket_file_if_any ();
+  Printf.printf "Destroying all resources...\n";
+  destroy_all_resources ();
+  Printf.printf "Ok, all resources were destroyed.\n";
+  Printf.printf "Removing the socket file...\n";
+  remove_socket_file_if_any (); 
+  Printf.printf "Ok, the socket file was removed.\n";
   flush_all ();
-  (*Unix.kill Sys.sigkill (Unix.getpid ());*)
   raise Exit;;
 (** Strangely, without calling this the program is uninterruptable from the
     console: *)

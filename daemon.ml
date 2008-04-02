@@ -491,6 +491,7 @@ let signal_handler signal =
   Printf.printf "Ok, the socket file was removed.\n";
   flush_all ();
   raise Exit;;
+
 (** Strangely, without calling this the program is uninterruptable from the
     console: *)
 Sys.catch_break false;;

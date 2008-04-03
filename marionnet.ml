@@ -1,6 +1,6 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007  Jean-Vincent Loddo
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -181,6 +181,7 @@ with e -> begin
     ();
 end);;
 
+(** Show the splash: *)
 Splash.show_splash (* ~timeout:15000 *) ();;
 
 (** Choose a reasonable working directory: *)
@@ -191,6 +192,6 @@ else if Shell.dir_comfortable "~/tmp" then
 else
   failwith "Please create either /tmp or your home directory on some reasonable modern filesystem supporting sparse files");
 
-Printf.printf "Ok-B\n";; flush_all ();;
+(** Enter the GTK+ main loop: *)
 GtkThread.main ();;
-Printf.printf "Ok-C\n";; flush_all ();;
+

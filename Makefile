@@ -220,26 +220,29 @@ dist: clean dist-local
 	@($(call READ_META, name, version); \
 	$(call FIX_VERSION); \
 	echo "Making the source tarball _build/$$name-$$version.tar.gz ..."; \
+	$(MAKE) ChangeLog; \
 	mkdir -p _build/$$name-$$version; \
 	cp -af * _build/$$name-$$version/ &> /dev/null; \
 	(tar --exclude=_build --exclude=_darcs -C _build -czf \
 	     _build/$$name-$$version.tar.gz $$name-$$version/ && \
 	rm -rf _build/$$name-$$version)) && \
+	rm -f ChangeLog; \
 	echo "Success."
 
 # These files are included also in binary tarballs:
 FILES_TO_ALWAYS_DISTRIBUTE = \
   COPYING README INSTALL AUTHORS THANKS META Makefile Makefile.local CONFIGME \
-  REQUIREMENTS
+  REQUIREMENTS NEWS ChangeLog
 
 # Make a binary tarball:
 dist-binary: dist-binary-local main #ocamldoc
-	@($(call READ_META, name, version); \
+	@(($(call READ_META, name, version); \
 	$(call FIX_VERSION); \
 	architecture=$$(echo `uname -o`-`uname -m` | sed 's/\//-/g'); \
 	directoryname=$$name-$$version--binary-only--$$architecture; \
 	filename=$$directoryname.tar.gz; \
 	echo "Making the binary tarball _build/$$filename ..."; \
+	$(MAKE) ChangeLog; \
 	mkdir -p _build/$$directoryname; \
 	mkdir -p _build/$$directoryname/_build; \
 	shopt -s nullglob; \
@@ -270,16 +273,29 @@ dist-binary: dist-binary-local main #ocamldoc
 		  > _build/$$directoryname/$$x; \
 	done; \
 	(tar czf _build/$$filename -C _build $$directoryname/ && \
-	rm -rf _build/$$directoryname)) && \
-	echo "Success."
+	(rm -rf _build/$$directoryname && \
+	rm -f ChangeLog))) && \
+	echo "Success.")
 
-# Remove generated stuff:
+# Automatically generate a nice ChangeLog from darcs' history:
+ChangeLog:
+	if [ -e _darcs ]; then \
+	  echo 'No ChangeLog available (Darcs metadata are missing)' > $@; \
+	else \
+	  darcs changes > $@; \
+	fi
+
+# Remove generated stuff (the ChangeLog is only removed if we have Darcs
+# metadata to re-generate it):
 clean: clean-local
 	@(rm -rf _build; \
 	find -type f -name \*~ -exec rm -f {} \;; \
 	find -type f -name \#\*\# -exec rm -f {} \;; \
 	find -type f -name core -exec rm -f {} \;; \
 	rm -f _tags myocamlbuild.ml; \
+	if [ -e _darcs ]; then \
+	  rm -f ChangeLog; \
+	fi; \
 	echo "Success.")
 
 # Meta-help about the targets defined in this make file:

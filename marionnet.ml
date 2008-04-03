@@ -175,12 +175,9 @@ print_string "Starting the application\n";;
 
 (try
   Daemon_client.initialize_daemon_client ();
-  ignore
-    (Thread.create
-       (fun () ->
-         Daemon_client.start_thread_sending_keepalives ())
-       ());
+  Daemon_client.start_thread_sending_keepalives ();
 with e -> begin
+  Daemon_client.disable_daemon_support ();
   Simple_dialogs.warning
     "FRENCH Could not connect to the daemon"
     (Printf.sprintf

@@ -672,13 +672,8 @@ class uml_process =
                           (* "172.23.0.254" *) ip42))) with
     | Created (Tap tap_name) ->
         tap_name
-    | _ -> begin
-        Simple_dialogs.warning
-          "FRENCH Could not create a tap"
-          "FRENCH Could not create a tap"
-          ();
-        "wrong-tap-name";
-    end in
+    | _ ->
+        "wrong-tap-name" in
   let command_line_arguments =
     List.append
       (List.map
@@ -1612,10 +1607,6 @@ object(self)
           | Created (GatewayTap(gateway_tap_name, _, _)) ->
               gateway_tap_name
           | _ -> begin
-              Simple_dialogs.warning
-                "FRENCH Could not create a gateway tap"
-                "FRENCH Could not create a gateway tap"
-                ();
               "non-existing-tap"
           end) in
         the_gateway_tap_name := Some gateway_tap_name;
@@ -1633,11 +1624,6 @@ object(self)
       Printf.printf
         "WARNING: Failed in destroying a gateway host tap: %s\n"
         (Printexc.to_string e);
-      Simple_dialogs.warning
-        "FRENCH Failed in destroying a gateway host tap"
-        (Printexc.to_string e)
-        ();
-      raise e;
     end);
     the_gateway_tap_name := None
 

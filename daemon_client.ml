@@ -32,8 +32,18 @@ let the_daemon_client_socket =
   Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0;;
 
 (** Is the connection with the daemon currently up? *)
-let can_we_communicate_with_the_daemon =
+let can_we_communicate_with_the_daemon_bool_ref =
   ref true;;
+let can_we_communicate_with_the_daemon () =
+  with_mutex the_daemon_client_mutex
+    (fun () ->
+      !can_we_communicate_with_the_daemon_bool_ref);;
+
+(** Stop trying to communicate with the daemon: *)
+let disable_daemon_support () =
+  with_mutex the_daemon_client_mutex
+    (fun () ->
+      can_we_communicate_with_the_daemon_bool_ref := false);;
 
 (** Send the given request (in abstract syntax) to the server, and return
     its response, still in abstract syntax.
@@ -45,7 +55,7 @@ let ask_the_server request =
       try
         Printf.printf "I am about to send %s\n" (string_of_daemon_request request);
         flush_all ();
-        if !can_we_communicate_with_the_daemon then begin
+        if can_we_communicate_with_the_daemon () then begin
           let buffer = String.make message_length 'x' in
           let request_as_string = print_request request in
           Printf.printf "The request is %s\n" (string_of_daemon_request request);
@@ -66,11 +76,11 @@ let ask_the_server request =
       with e -> begin
         Printf.printf "ask_the_server failed: %s\n" (Printexc.to_string e);
         flush_all ();
+        disable_daemon_support ();
         Simple_dialogs.error
           "FRENCH Failure in daemon communication"
-          "FRENCH The connection just went down."
+          "FRENCH Error in trying to communicate with the daemon.\nSeveral things will not work any more [...]"
           ();
-        can_we_communicate_with_the_daemon := false;
         (Error "the socket to the daemon just went down");
       end);;
 

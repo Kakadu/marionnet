@@ -92,8 +92,21 @@ let make_system_tap (tap_name : tap_name) uid ip_address =
 
 (** Actaully make a gateway tap at the OS level: *)
 let make_system_gateway_tap (tap_name : tap_name) uid bridge_name =
-  Printf.printf "Creating the tap %s [To do: actually do it]\n" tap_name;
-  ();;
+  Printf.printf "Creating the tap %s...\n" tap_name;
+  let command_line =
+    Printf.sprintf
+      "tunctl -u %i -t %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s"
+      (* uid *)
+      uid
+      (* tunctl *)
+      tap_name
+      (* ifconfig *)
+      tap_name (* ip_address netmask *)
+      (* brctl *)
+      bridge_name tap_name in
+  system_or_fail command_line;
+  Printf.printf "The tap %s was created with success\n" tap_name;
+  flush_all ();;
 
 (** Actaully destroy a tap at the OS level: *)
 let destroy_system_tap (tap_name : tap_name) =
@@ -108,7 +121,13 @@ let destroy_system_tap (tap_name : tap_name) =
 
 (** Actaully destroy a gateway tap at the OS level: *)
 let destroy_system_gateway_tap (tap_name : tap_name) uid bridge_name =
-  Printf.printf "Destroying the gateway tap %s... [To do: actually do it]\n" tap_name;
+  Printf.printf "Destroying the gateway tap %s...\n" tap_name;
+  let command_line =
+    (* This is currently disabled. We have to decide what to do about this: *)
+    Printf.sprintf
+      "ifconfig %s down && brctl delif %s %s && tunctl -d %s"
+      tap_name bridge_name tap_name tap_name in
+  system_or_fail command_line;  
   Printf.printf "The gateway tap %s was destroyed with success\n" tap_name;
   flush_all ();;
 
@@ -164,9 +183,11 @@ let destroy_resource client resource =
     (fun () ->
       try
         Printf.printf "Removing %s %s\n" (string_of_client client) (string_of_daemon_resource resource);
+        Printf.printf "** resource_map has %i bindings\n" (List.length resource_map#to_alist); flush_all ();
         resource_map#remove_key_value_or_fail client resource;
+        (* resource_map#remove_key_value client resource; *)
+        Printf.printf "** resource_map has %i bindings\n" (List.length resource_map#to_alist); flush_all ();
         destroy_system_resource resource;
-        (* resource_map#remove_key_value_or_fail client resource; *)
       with e -> begin
         Printf.printf "WARNING: failed (%s) when destroying %s for %s.\n"
           (Printexc.to_string e)
@@ -242,7 +263,7 @@ let global_resources () =
           failwith "the global resources do not exist; this should never happen"
       | Some resources ->
           resources);;
-let create_global_resources_unlocked_ () =
+let make_global_resources_unlocked_ () =
   assert(!the_resources_if_any = None);
   (* To do: actually create something, if needed. *)
   the_resources_if_any := Some ();;
@@ -259,7 +280,7 @@ let increment_clients_no () =
     (fun () ->
       (if !clients_no = 0 then begin
         Printf.printf "There is at least one client now. Creating global resources...\n";
-        create_global_resources_unlocked_ ();
+        make_global_resources_unlocked_ ();
         Printf.printf "Global resources were created with success.\n";
         flush_all ();
       end);

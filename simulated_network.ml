@@ -1569,11 +1569,9 @@ end;;
 class gateway =
   fun (* ~id *)
       ~name
-      ?bridge_name:(bridge_name=Global_options.ethernet_socket_bridge_name)
+      ~bridge_name
       ~unexpected_death_callback
       () ->
-let tap_name =
-  Printf.sprintf "gwtap%i" (Random.int 100000) in
 object(self)
   inherit device
       ~name
@@ -1595,47 +1593,72 @@ object(self)
       Some gateway_hub_process -> gateway_hub_process
     | None -> failwith "gateway: get_gateway_hub_process was called when there is no such process"
 
+  val the_gateway_tap_name = ref None 
+  method private get_gateway_tap_name =
+    match !the_gateway_tap_name with
+      None -> failwith "gateway_tap_name: non existing tap"
+    | Some result -> result
+    
+  (** Create a gateway tap via the daemon, and return its name. Fail if a the gateway tap
+      already exists: *)
+  method private make_gateway_tap =
+    match !the_gateway_tap_name with
+      None ->
+        let gateway_tap_name =
+          let server_response =
+            Daemon_client.ask_the_server
+              (Make (AnyGatewayTap((Unix.getuid ()), bridge_name))) in
+          (match server_response with
+          | Created (GatewayTap(gateway_tap_name, _, _)) ->
+              gateway_tap_name
+          | _ ->
+              "non-existing-tap") in
+        the_gateway_tap_name := Some gateway_tap_name;
+        gateway_tap_name
+    | Some _ ->
+        failwith "a gateway tap already exists"
+
+  method private destroy_gateway_tap =
+    (try
+      ignore (Daemon_client.ask_the_server
+                (Destroy (GatewayTap(self#get_gateway_tap_name,
+                                     (Unix.getuid ()),
+                                     bridge_name))));
+    with e -> begin
+      Printf.printf
+        "WARNING: Failed in destroying a gateway host tap: %s\n"
+        (Printexc.to_string e);
+      Simple_dialogs.warning
+        "FRENCH Failed in destroying a gateway host tap"
+        (Printexc.to_string e)
+        ();
+      raise e;
+    end);
+    the_gateway_tap_name := None
+
   val internal_cable_process = ref None
+
   initializer
     assert ((List.length self#get_hublet_processes) = 1);
     the_hublet_process :=
       Some (self#get_hublet_process 0);
     gateway_hub_process :=
-      Some (new gateway_hub_process
-              ~tap_name
-              ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-              ());
+      Some self#make_gateway_hub_process
+
+  method private make_gateway_hub_process =
+    new gateway_hub_process
+      ~tap_name:self#make_gateway_tap
+      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
+      ()
 
   method spawn_processes =
-    (* Make the gateway tap, and add it to the host main bridge: *)
-    (match Unix.system
-        (* This is currently disabled. We have to decide what to do about this: *)
-        (Printf.sprintf
-           "echo 'tunctl -t %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s'"
-           (* tunctl *)
-           tap_name
-           (* ifconfig *)
-           tap_name (* ip_address netmask *)
-           (* brctl *)
-           bridge_name tap_name) with
-      (Unix.WEXITED 0) -> ();
-    | _ -> failwith "Failed in setting up a gateway host tap");
-    (* (try *)
-    (*   ignore (Daemon_client.ask_the_server *)
-    (*             (Make (AnyGatewayTap (Unix.getuid ())))); *)
-    (* with e -> begin *)
-    (*   Printf.printf *)
-    (*     "WARNING: Failed in creating a gateway host tap: %s\n" *)
-    (*     (Printexc.to_string e); *)
-    (*   Simple_dialogs.warning *)
-    (*     "FRENCH Failed in creating a gateway host tap" *)
-    (*     (Printexc.to_string e) *)
-    (*     (); *)
-    (* end); *)
-
+    (match !gateway_hub_process with
+    | None ->
+        gateway_hub_process := Some self#make_gateway_hub_process
+    | Some the_gateway_hub_process ->
+        ());
     (* Spawn the gateway hub process, and wait to be sure it's started: *)
     self#get_gateway_hub_process#spawn;
-(*     Thread.delay 2.0; *)
     (* Create the internal cable process from the single hublet to the gateway hub,
        and spawn it: *)
     let the_internal_cable_process =
@@ -1657,6 +1680,7 @@ object(self)
         () in
     internal_cable_process := Some the_internal_cable_process;
     the_internal_cable_process#spawn
+      
   method terminate_processes =
     (* Terminate the internal cable process and the hub process: *)
     (match !internal_cable_process with
@@ -1666,31 +1690,11 @@ object(self)
             (fun () -> self#get_gateway_hub_process#terminate) ]
     | None ->
         assert false);
+    (* Destroy the gateway tap, via the daemon: *)
+    self#destroy_gateway_tap;
     (* Unreference everything: *)
     internal_cable_process := None;
-    (* Remove the gateway tap from the host bridge, and destroy it: *)
-    (try
-      ignore (Daemon_client.ask_the_server
-                (Destroy (Tap tap_name)));
-    with e -> begin
-      Printf.printf
-        "WARNING: Failed in destroying a gateway host tap: %s\n"
-        (Printexc.to_string e);
-      Simple_dialogs.warning
-        "FRENCH Failed in destroying a gateway host tap"
-        (Printexc.to_string e)
-        ();
-    end);
-    (* let command_line = *)
-    (*   (\* This is currently disabled. We have to decide what to do about this: *\) *)
-    (*   Printf.sprintf *)
-    (*     "echo 'ifconfig %s down && brctl delif %s %s && tunctl -d %s'" *)
-    (*     tap_name bridge_name tap_name tap_name in *)
-    (* match Unix.system command_line with *)
-    (*   (Unix.WEXITED 0) -> *)
-    (*     (); *)
-    (* | _ -> *)
-    (*     print_string "WARNING: Failed in destroying a gateway host tap"; *)
+    gateway_hub_process := None;
     
   (** As gateways are stateless from the point of view of the user, stop/continue
       aren't distinguishable from terminate/spawn: *)

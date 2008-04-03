@@ -17,7 +17,7 @@
 
 (** The number of seconds which must elapse from the last keepalive
     for the server to destroy all the resources of a client: *)
-let timeout_interval = 10.0;;
+let timeout_interval = 3.0;;
 assert (timeout_interval > 0.0);;
 
 let select_timeout = timeout_interval;;

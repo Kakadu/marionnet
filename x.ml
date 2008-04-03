@@ -127,3 +127,6 @@ Printf.printf
   host_name
   display
   screen;;
+
+(** This has to be performed *early* in the initialization process: *)
+let _ = GtkMain.Main.init ();;

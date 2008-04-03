@@ -18,9 +18,7 @@
 COMPILE_OPTIONS += 
 DIRECTORIES_TO_INCLUDE = lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
-#OBJECTS_TO_LINK = gtkInit gtkThread
-#OBJECTS_TO_LINK = gtkThread gtkInit
-OBJECTS_TO_LINK = gtkThread gtkInit
+OBJECTS_TO_LINK = gtkThread
 PROGRAMS = marionnet.byte marionnet.native
 PROGRAMS += daemon.byte daemon.native
 
@@ -64,6 +62,7 @@ GLADE2ML = lablgladecc2
 
 # gui.ml is automatically generated from the patched Glade file:
 gui.ml: share/gui.glade.patched
+#	@(cd share; $(GLADE2ML) -embed gui.glade.patched > ../$@)
 	@(cd share; $(GLADE2ML) gui.glade.patched > ../$@)
 
 # Clean all the automatically-generated sources:

@@ -157,11 +157,6 @@ let texts_interface =
 (** Ignore some signals (for instance CTRL-C *)
 (* List.iter (fun x -> (Sys.set_signal x  Sys.Signal_ignore)) [1;2;3;4;5;6;10;12;15] ;; *)
 
-(** Boot only with a specified working directory *)
-
-if (Array.length (Sys.argv) > 1) && (Shell.dir_comfortable Sys.argv.(1)) then st#set_wdir Sys.argv.(1)
-else st#set_wdir "/tmp" ;;
-
 (** Timeout for refresh the state_coherence *)
 (* let id = GMain.Timeout.add ~ms:1000 ~callback:(fun () -> st#state_coherence ();true) ;; *)
 
@@ -188,4 +183,14 @@ end);;
 
 Splash.show_splash (* ~timeout:15000 *) ();;
 
+(** Choose a reasonable working directory: *)
+(if Shell.dir_comfortable "/tmp" then
+  st#set_wdir "/tmp"
+else if Shell.dir_comfortable "~/tmp" then
+  st#set_wdir "~/tmp"
+else
+  failwith "Please create either /tmp or your home directory on some reasonable modern filesystem supporting sparse files");
+
+Printf.printf "Ok-B\n";; flush_all ();;
 GtkThread.main ();;
+Printf.printf "Ok-C\n";; flush_all ();;

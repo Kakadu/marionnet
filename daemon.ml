@@ -417,7 +417,8 @@ let connection_server_thread (client, socket) =
         with _ -> begin
           Printf.printf "!!!!FAILED IN select (connection_server_thread)!!!!\n";
           flush_all ();
-          ([], [], []);
+          failwith "select() failed";
+          (* ([], [], []); *)
         end
 in
 (****)

@@ -279,7 +279,7 @@ dist-binary: dist-binary-local main #ocamldoc
 
 # Automatically generate a nice ChangeLog from darcs' history:
 ChangeLog:
-	if [ -e _darcs ]; then \
+	if ! [ -e _darcs ]; then \
 	  echo 'No ChangeLog available (Darcs metadata are missing)' > $@; \
 	else \
 	  darcs changes > $@; \

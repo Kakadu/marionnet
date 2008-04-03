@@ -1611,8 +1611,13 @@ object(self)
           (match server_response with
           | Created (GatewayTap(gateway_tap_name, _, _)) ->
               gateway_tap_name
-          | _ ->
-              "non-existing-tap") in
+          | _ -> begin
+              Simple_dialogs.warning
+                "FRENCH Could not create a gateway tap"
+                "FRENCH Could not create a gateway tap"
+                ();
+              "non-existing-tap"
+          end) in
         the_gateway_tap_name := Some gateway_tap_name;
         gateway_tap_name
     | Some _ ->

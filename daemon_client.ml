@@ -31,36 +31,48 @@ let the_daemon_client_mutex =
 let the_daemon_client_socket =
   Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0;;
 
+(** Is the connection with the daemon currently up? *)
+let can_we_communicate_with_the_daemon =
+  ref true;;
+
 (** Send the given request (in abstract syntax) to the server, and return
     its response, still in abstract syntax.
     Synchronization is correctly performed *within* this function, so the
     caller doesn't need to worry about it: *)
 let ask_the_server request =
-  Printf.printf "I am about to send %s\n" (string_of_daemon_request request);
-  flush_all ();
   with_mutex the_daemon_client_mutex
     (fun () ->
-      let buffer = String.make message_length 'x' in
-      let request_as_string = print_request request in
- Printf.printf "The request is %s\n" (string_of_daemon_request request);
- flush_all ();
-      let sent_bytes_no = Unix.send the_daemon_client_socket request_as_string 0 message_length [] in
-      (if not (sent_bytes_no == sent_bytes_no) then
-        failwith "send() failed");
-      let received_bytes_no =
-        Unix.read the_daemon_client_socket buffer 0 message_length in
-      (if received_bytes_no < message_length then
-        failwith "recv() failed, or the message is ill-formed");
-      let response = parse_response buffer in
- Printf.printf "The response is %s\n" (string_of_daemon_response response);
- flush_all ();
-      response
-      (* match response with *)
-      (*   Error message -> *)
-      (*     failwith ("Server-side failure: " ^ message) *)
-      (* | _ -> *)
-      (*     response *)
-);;
+      try
+        Printf.printf "I am about to send %s\n" (string_of_daemon_request request);
+        flush_all ();
+        if !can_we_communicate_with_the_daemon then begin
+          let buffer = String.make message_length 'x' in
+          let request_as_string = print_request request in
+          Printf.printf "The request is %s\n" (string_of_daemon_request request);
+          flush_all ();
+          let sent_bytes_no = Unix.send the_daemon_client_socket request_as_string 0 message_length [] in
+          (if not (sent_bytes_no == sent_bytes_no) then
+            failwith "send() failed");
+          let received_bytes_no =
+            Unix.read the_daemon_client_socket buffer 0 message_length in
+          (if received_bytes_no < message_length then
+            failwith "recv() failed, or the message is ill-formed");
+          let response = parse_response buffer in
+          Printf.printf "The response is %s\n" (string_of_daemon_response response);
+          flush_all ();
+          response
+        end else
+          (Error "the socket to the daemon is down");
+      with e -> begin
+        Printf.printf "ask_the_server failed: %s\n" (Printexc.to_string e);
+        flush_all ();
+        Simple_dialogs.error
+          "FRENCH Failure in daemon communication"
+          "FRENCH The connection just went down."
+          ();
+        can_we_communicate_with_the_daemon := false;
+        (Error "the socket to the daemon just went down");
+      end);;
 
 (** The thunk implementing the thread which periodically sends keepalives: *)
 let thread_sending_keepalives_thunk () = 

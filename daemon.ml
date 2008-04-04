@@ -490,7 +490,17 @@ Sys.catch_break false;;
 Sys.set_signal Sys.sigint (Sys.Signal_handle signal_handler);;
 Sys.set_signal Sys.sigterm (Sys.Signal_handle signal_handler);;
 
+let check_that_we_are_root () =
+  if (Unix.getuid ()) != 0 then begin
+    Printf.printf "\n*********************************************\n";
+    Printf.printf "* The Marionnet daemon must be run as root. *\n";
+    Printf.printf "* Bailing out.                              *\n";
+    Printf.printf "*********************************************\n\n";
+    raise Exit;
+  end;;
+
 let the_server_main_thread =
+  check_that_we_are_root ();
   ignore (Thread.create timeout_thread_thunk ());
   ignore (Thread.create debugging_thread_thunk ());
   let connections_no_limit = 10 in

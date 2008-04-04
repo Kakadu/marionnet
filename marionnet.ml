@@ -192,8 +192,6 @@ else if Shell.dir_comfortable "~/tmp" then
 else
   failwith "Please create either /tmp or your home directory on some reasonable modern filesystem supporting sparse files");;
 
-Simple_dialogs.confirm_dialog ~question: "This is a test." ();;
-
 (** Enter the GTK+ main loop: *)
 GtkThread.main ();;
 

@@ -17,7 +17,7 @@
 
 (** The number of seconds which must elapse from the last keepalive
     for the server to destroy all the resources of a client: *)
-let timeout_interval = 3.0;;
+let timeout_interval = 120.0;;
 assert (timeout_interval > 0.0);;
 
 let select_timeout = timeout_interval;;
@@ -32,4 +32,6 @@ let inter_keepalive_interval = timeout_interval /. 5.0;;
 (** To do: this should be extracted from the configuration file: *)
 let socket_name = "/tmp/marionnet-daemon-socket";;
 
-let debug_interval = 10.0;;
+(** How often we should print information about the currently allocated
+    resources: *)
+let debug_interval = timeout_interval /. 2.0;;

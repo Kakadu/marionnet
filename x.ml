@@ -131,3 +131,9 @@ Printf.printf
 
 (** This has to be performed *early* in the initialization process: *)
 let _ = GtkMain.Main.init ();;
+
+(** This is a workaround for some threading issues suggested by Jacques Garrigue;
+    it's needed to be able to use the 'run' method in GTK and Glade objects 
+    without preventing other unrelated threads to run: *)
+let _ =
+  GMain.Timeout.add ~ms:100 ~callback:(fun () -> Thread.delay 0.001; true);;

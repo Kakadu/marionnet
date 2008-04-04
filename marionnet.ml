@@ -15,9 +15,10 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-(** The main of the application. Here the global state is defined, all bindings between 
-    widgets of the main window and dialogs are made, and the GTK main loop is
-    launched. *)
+
+(** The main module of the application. Here the global state is defined, all
+    bindings between widgets of the main window and dialogs are created, and
+    finally the GTK main loop is launched. *)
 
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open StdLabels;;
@@ -194,4 +195,3 @@ else
 
 (** Enter the GTK+ main loop: *)
 GtkThread.main ();;
-

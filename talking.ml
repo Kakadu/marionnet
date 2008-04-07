@@ -45,16 +45,17 @@ let install_signal_handler signal =
          exit 0));;
 
 let commit_suicide signal =
-  let my_pid = Unix.getpid () in
-  try
-    (* Be sure that every write operation is synced before committing suicide: *)
-    flush_all ();
-    Printf.printf "!! Sending the signal %i to the Marionnet process...\n" signal; flush_all ();
-    Unix.kill my_pid Sys.sigkill;
-  with _ -> begin
-    Printf.printf "!! Sending the signal %i to the Marionnet process failed. Mmm. Very strange.\n" signal;
-    flush_all ();
-  end;;
+  raise Exit;
+  (* let my_pid = Unix.getpid () in *)
+  (* try *)
+  (*   (\* Be sure that every write operation is synced before committing suicide: *\) *)
+  (*   flush_all (); *)
+  (*   Printf.printf "!! Sending the signal %i to the Marionnet process...\n" signal; flush_all (); *)
+  (*   Unix.kill my_pid Sys.sigkill; *)
+  (* with _ -> begin *)
+  (*   Printf.printf "!! Sending the signal %i to the Marionnet process failed. Mmm. Very strange.\n" signal; *)
+  (*   flush_all (); *)
+  (* end;; *)
 
 let make_names_and_thunks st verb what_to_do_with_a_node =
   List.map

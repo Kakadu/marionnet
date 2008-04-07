@@ -45,7 +45,7 @@ let install_signal_handler signal =
          exit 0));;
 
 let commit_suicide signal =
-  raise Exit;
+  raise Exit;;
   (* let my_pid = Unix.getpid () in *)
   (* try *)
   (*   (\* Be sure that every write operation is synced before committing suicide: *\) *)

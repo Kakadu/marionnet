@@ -37,7 +37,8 @@
 # This is a reasonable default, but you can change it if you really want
 # to install into a different, custom prefix.
 # *No* trailing slash should be included.
-libraryprefix=`ocamlc -where || exit -1`
+#libraryprefix=`ocamlc -where || exit -1`
+libraryprefix=/mystrangepath
 
 # Installation prefix, for example /usr or /usr/local
 # *No* trailing slash should be included.

@@ -63,7 +63,7 @@ let automatic_reboot_thread_interval =
 let ethernet_socket_bridge_name =
   let ethernet_socket_bridge_default_name = "marbre" in
   try
-    let name = Sys.getenv "MARIONNET_BRIDGE" in
+    let name = Initialization.configuration#string "MARIONNET_BRIDGE" in
     Printf.printf
       "Setting the bridge name to %s.\n"
       name;
@@ -81,6 +81,6 @@ let ethernet_socket_bridge_name =
 let keyboard_layout =
   let default_layout = None (*Some "fr"*) in
   try
-    Some (Sys.getenv "MARIONNET_KEYBOARD_LAYOUT")
+    Some (Initialization.configuration#string "MARIONNET_KEYBOARD_LAYOUT")
   with Not_found ->
     default_layout;;

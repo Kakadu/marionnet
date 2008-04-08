@@ -53,5 +53,7 @@ end;;
 let configuration =
   new Configuration_files.configuration
     ~software_name:"marionnet"
-    ~variables:["MARIONNET_HOME"; "SOCKET_NAME"]
+    ~variables:["MARIONNET_HOME"; "SOCKET_NAME";
+                "MARIONNET_BRIDGE";
+                "MARIONNET_KEYBOARD_LAYOUT"] (* This is temporary: more than one bridge will be usable... *)
     ();;

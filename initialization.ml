@@ -41,11 +41,17 @@ Random.self_init ();
 (* Check that we're *not* running as root. Yes, this has been reversed
    since the last version: *)
 Printf.printf "Checking whether Marionnet is running as root...\n";;
-if (Unix.getuid ()) != 0 then begin
-  Printf.printf "\n**********************************************\n";
-  Printf.printf "* Marionnet should *not* be run as root, for * \n";
-  Printf.printf "* security reasons.                          *\n";
-  Printf.printf "*****************************************\n\n";
-else
-  Printf.printf "Success.\n\n";;
+if (Unix.getuid ()) = 0 then begin
+  Printf.printf "\n********************************************\n";
+  Printf.printf "* Marionnet must *not* be run as root, for * \n";
+  Printf.printf "* security reasons.                        *\n";
+  Printf.printf "********************************************\n\n";
+  failwith "you must not be root";
 end;;
+
+(** Read configuration files: *)
+let configuration =
+  new Configuration_files.configuration
+    ~software_name:"marionnet"
+    ~variables:["MARIONNET_HOME"; "SOCKET_NAME"]
+    ();;

@@ -23,6 +23,16 @@ open Recursive_mutex;;
 open Hashmap;;
 open Hashmmap;;
 
+(** Read configuration files: *)
+let configuration =
+  new Configuration_files.configuration
+    ~software_name:"marionnet"
+    ~variables:["SOCKET_NAME"]
+    ();;
+
+let socket_name =
+  configuration#string "SOCKET_NAME";;
+
 (** Client identifiers are simply automatically-generated sequential
     integers: *)
 type client =

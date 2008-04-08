@@ -18,15 +18,10 @@ open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 
 Printf.printf "Setting up directory path names for Marionnet...\n";;
 
-(* Fail immediately if the environment directory is not defined: *)
-try
-  ignore (Sys.getenv "MARIONNET_HOME")
-with Not_found ->
-  failwith "The environment variable MARIONNET_HOME is not defined.";;
-
-(* Ok, now we can safely set everything and go on: *)
+(* Fail immediately if the marionnet installation directory is not defined; otherwise
+   store it: *)
 let marionnet_home =
-  Sys.getenv "MARIONNET_HOME";;
+  Initialization.configuration#string "MARIONNET_HOME";;
 let marionnet_home_filesystems =
   marionnet_home^"/filesystems/";;
 let marionnet_home_kernels =

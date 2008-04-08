@@ -22,6 +22,9 @@ open Daemon_language;;
 open Daemon_parameters;;
 open Recursive_mutex;;
 
+let socket_name =
+  Initialization.configuration#string "SOCKET_NAME";;
+
 (** The mutex we use to avoid sending concurrent messages to the same socket
     from different threads: *)
 let the_daemon_client_mutex =

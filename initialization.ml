@@ -18,6 +18,12 @@
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Unix;;
 open Sys;;
+
+(** First of all print the version number. This is useful for problem reports: *)
+Printf.printf
+  "=======================================================\n  Welcome to %s version %s\n=======================================================\n\n"
+  Meta.name Meta.version;;
+
 (*
 (* Create the funny bridge we need for Ethernet plugs: *)
 Printf.printf "Setting up the bridge...\n"; flush_all ();
@@ -53,7 +59,8 @@ end;;
 let configuration =
   new Configuration_files.configuration
     ~software_name:"marionnet"
-    ~variables:["MARIONNET_HOME"; "SOCKET_NAME";
+    ~variables:["MARIONNET_HOME"; (* This should go away, and be automatically computed *)
+                "SOCKET_NAME";
                 "MARIONNET_BRIDGE";(* This is temporary: more than one bridge will be usable... *)
                 "MARIONNET_KEYBOARD_LAYOUT"]
     ();;

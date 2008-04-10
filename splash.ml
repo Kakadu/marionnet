@@ -19,8 +19,8 @@
 let splashscreen_text =
 "<i>Marionnet " ^ Version.version ^ "</i>, " ^ Version.build_time ^ ".
 
-Copyright (C) 2007 Jean-Vincent Loddo
-Copyright (C) 2007 Luca Saiu
+Copyright (C) 2007, 2008 Jean-Vincent Loddo
+Copyright (C) 2007, 2008 Luca Saiu
 
 Sponsored by Université Paris 13
 

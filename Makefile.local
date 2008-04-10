@@ -30,10 +30,10 @@ marionnet.byte: version.ml gui.ml
 marionnet.native: version.ml gui.ml
 
 run: marionnet.byte
-	(export WORKING=`pwd`; export MARIONNET_HOME=/usr/marionnet; cd $$MARIONNET_HOME; $$WORKING/_build/marionnet.byte) | tee /tmp/LOG
+	(export WORKING=`pwd`; $$WORKING/_build/marionnet.byte) | tee /tmp/LOG
 
 runopt: marionnet.native
-	(export WORKING=`pwd`; export MARIONNET_HOME=/usr/marionnet; cd $$MARIONNET_HOME; $$WORKING/_build/marionnet.native) | tee /tmp/LOG
+	(export WORKING=`pwd`; $$WORKING/_build/marionnet.native) | tee /tmp/LOG
 
 run-daemon: daemon.byte
 	sudo _build/daemon.byte

@@ -35,4 +35,4 @@ let marionnet_home_bin =
 try
   Unix.chdir marionnet_home;
 with _ ->
-  failwith "Could not enter the MARIONNET_HOME directory";;
+  failwith ("Could not enter the MARIONNET_HOME directory (" ^ marionnet_home ^ ")");;

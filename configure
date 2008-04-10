@@ -19,7 +19,13 @@
 # To do: this should be copied to buildsystem/
 
 echo "Sorry, there is no automatic configuration system, as of now."
-echo "Now please edit the \"CONFIGME\" file, using your favorite text editor."
+echo
+if [ -e etc ]; then
+  echo "Now please edit the \"CONFIGME\" file and the files in etc/, using"
+  echo "your favorite text editor."
+else
+  echo "Now please edit the \"CONFIGME\" file, using your favorite text editor."
+fi
 
 # Exit with failure: it should be evident that the configuration is not
 # automatic:

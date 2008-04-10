@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# This is the revision of 2008-03-27.
+# This is the revision of 2008-04-10.
 
 
 ######################################################################
@@ -58,8 +58,8 @@ libraries: ocamlbuild-stuff libraries-local $(LIBRARIES)
 	$(call BUILD_FROM_STUFF, libraries, $(LIBRARIES))
 
 # Build only programs:
-programs: ocamlbuild-stuff programs-local $(PROGRAMS)
-	$(call BUILD_FROM_STUFF, programs, $(PROGRAMS))
+programs: ocamlbuild-stuff programs-local $(PROGRAMS) $(ROOT_PROGRAMS)
+	$(call BUILD_FROM_STUFF, programs, $(PROGRAMS) $(ROOT_PROGRAMS))
 
 # 'all' is just an alias for 'main':
 all: main
@@ -78,7 +78,7 @@ ocamldoc: main ocamldoc-local
 	echo 'The documentation has been built with success under _build/')
 
 # Install programs and libraries:
-install: install-programs install-libraries install-data install-local
+install: install-programs install-libraries install-data install-configuration install-local
 	@(echo 'Success.')
 
 # The user is free to override this to add custom targets to install into the
@@ -119,6 +119,43 @@ install-data: main install-data-local
 	  echo "Data installation for $$name was successful."; \
 	fi)
 
+# Install the software configuration files, if any:
+install-configuration: install-configuration-local
+	@($(call READ_CONFIG, configurationprefix); \
+	if [ -e etc ]; then \
+	  echo "Installing configuration files into $$configurationprefix..."; \
+	  mkdir -p $$configurationprefix; \
+	  shopt -s nullglob; \
+	  for file in etc/*; do \
+	    basename=`basename $$file`; \
+	    echo "Installing $$basename into $$configurationprefix..."; \
+	    if ! cp $$file $$configurationprefix/; then \
+	      echo "ERROR: Could not install $$basename into $$configurationprefix"; \
+	      exit -1; \
+	    fi; \
+	  done; \
+	else \
+	  echo "We don't have any configuration files to install."; \
+	fi)
+
+# Uninstall the software configuration files, if any:
+uninstall-configuration: uninstall-configuration-local
+	@($(call READ_CONFIG, configurationprefix); \
+	if [ -e etc ]; then \
+	  echo "Removing configuration files from $$configurationprefix..."; \
+	  shopt -s nullglob; \
+	  for file in etc/*; do \
+	    basename=`basename $$file`; \
+	    echo "Uninstalling $$basename from $$configurationprefix..."; \
+	    if ! rm -f $$configurationprefix/$$basename; then \
+	      echo "ERROR: Could not remove $$basename from $$configurationprefix"; \
+	      exit -1; \
+	    fi; \
+	  done; \
+	else \
+	  echo "We don't have any configuration files to remove."; \
+	fi)
+
 # Remove the data of this package from $prefix/share/$name:
 uninstall-data: uninstall-data-local
 	@( ($(call READ_CONFIG, prefix); \
@@ -135,8 +172,12 @@ uninstall-data: uninstall-data-local
 	echo 'Data uninstallation was successful.')
 
 # The user is free to override this to add custom targets to install into the
-# $prefix/bin installation directory:
+# $prefix/bin installation directory; the typical use of this would be
+# installing scripts.
 OTHER_PROGRAMS_TO_INSTALL =
+
+# These are programs to be installed into $prefix/sbin instead of $prefix/bin:
+ROOT_PROGRAMS =
 
 # Install the programs from this package into $prefix/bin:
 install-programs: main install-programs-local
@@ -147,8 +188,14 @@ install-programs: main install-programs-local
 	echo "Installing programs from $$name into $$prefix/bin/..."; \
 	shopt -s nullglob; \
 	for file in $(OTHER_PROGRAMS_TO_INSTALL) _build/*.byte _build/*.native; do \
+	  basename=`basename $$file`; \
+	  if echo " $(ROOT_PROGRAMS) " | grep -q " $$basename "; then \
+	    echo "Installing "`basename $$file`" as a \"root program\" into $$prefix/sbin..."; \
+	    cp -a $$file $$prefix/sbin; \
+	  else \
 	    echo "Installing "`basename $$file`" into $$prefix/bin..."; \
 	    cp -a $$file $$prefix/bin; \
+	  fi; \
 	done) && \
 	echo 'Program installation was successful.'
 
@@ -156,12 +203,18 @@ install-programs: main install-programs-local
 uninstall-programs: main uninstall-programs-local
 	@($(call READ_CONFIG, prefix); 		     \
 	$(call READ_META, name);   		     \
-	echo "Removing $$name programs from $$prefix/bin/..."; \
+	echo "Removing $$name programs..."; \
 	shopt -s nullglob; \
 	for file in $(OTHER_PROGRAMS_TO_INSTALL) _build/*.byte _build/*.native; do \
+	  basename=`basename $$file`; \
+	  if echo " $(ROOT_PROGRAMS) " | grep -q " $$basename "; then \
+	    echo -e "Removing the \"root program\" $$basename from $$prefix/sbin..."; \
+	    export pathname=$$prefix/sbin/`basename $$file`; \
+	  else \
+	    echo -e "Removing $$basename from $$prefix/bin..."; \
 	    export pathname=$$prefix/bin/`basename $$file`; \
-	    echo "Removing $$pathname..."; \
-	    rm -f $$pathname; \
+	  fi; \
+	  rm -f $$pathname; \
 	done) && \
 	echo 'Program uninstallation was successful.'
 
@@ -188,7 +241,7 @@ install-libraries: main install-libraries-local
 	fi)
 
 # Uninstall programs and libraries:
-uninstall: uninstall-programs uninstall-libraries uninstall-data uninstall-local
+uninstall: uninstall-programs uninstall-libraries uninstall-data uninstall-configuration uninstall-local
 	@(echo 'Success.')
 
 # Remove the library from the installation path chosen at configuration time:
@@ -231,8 +284,8 @@ dist-binary: dist-binary-local main #ocamldoc
 	mkdir -p _build/$$directoryname; \
 	mkdir -p _build/$$directoryname/_build; \
 	shopt -s nullglob; \
-	for x in $(FILES_TO_ALWAYS_DISTRIBUTE); do \
-	  cp $$x _build/$$directoryname; \
+	for x in $(FILES_TO_ALWAYS_DISTRIBUTE) share etc; do \
+	  cp -a $$x _build/$$directoryname &> /dev/null; \
 	done; \
 	for x in $(PROGRAMS) $(LIBRARIES); do \
 	  cp _build/$$x _build/$$directoryname/_build; \
@@ -252,7 +305,7 @@ dist-binary: dist-binary-local main #ocamldoc
 	done; \
 	for x in main main-local install-libraries-local install-programs-local \
 	         install-local install-data-local clean clean-local \
-		 ocamlbuild-stuff \
+		 ocamlbuild-stuff $(PROGRAMS) $(ROOT_PROGRAMS) \
 	; do \
 		echo "This dummy file prevents make from building the \"$$x\" target." \
 		  > _build/$$directoryname/$$x; \
@@ -264,11 +317,11 @@ dist-binary: dist-binary-local main #ocamldoc
 
 # Automatically generate a nice ChangeLog from darcs' history:
 ChangeLog:
-	if ! [ -e _darcs ]; then \
+	@(if ! [ -e _darcs ]; then \
 	  echo 'No ChangeLog available (Darcs metadata are missing)' > $@; \
 	else \
 	  darcs changes > $@; \
-	fi
+	fi)
 
 # Remove generated stuff (the ChangeLog is only removed if we have Darcs
 # metadata to re-generate it):
@@ -308,6 +361,8 @@ install-libraries-local:
 uninstall-libraries-local:
 install-data-local:
 uninstall-data-local:
+install-configuration-local:
+uninstall-configuration-local:
 dist-local:
 dist-binary-local:
 clean-local:
@@ -460,7 +515,7 @@ PROJECT_NAME = \
 # target name is never created as a file. This is intentional: those
 # two targets should be re-generated every time.
 ocamlbuild-stuff: _tags myocamlbuild.ml meta.ml
-	@(echo '_tags and myocamlbuild.ml were (re-)generated with success.')
+#	@(echo '_tags and myocamlbuild.ml were (re-)generated with success.')
 
 # We automatically generate the _tags file needed by OCamlBuild.
 # Every subdirectory containing sources is included. This may be more than what's needed,

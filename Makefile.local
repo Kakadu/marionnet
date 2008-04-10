@@ -19,8 +19,10 @@ COMPILE_OPTIONS +=
 DIRECTORIES_TO_INCLUDE = lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 OBJECTS_TO_LINK = gtkThread
-PROGRAMS = marionnet.byte marionnet.native
-PROGRAMS += daemon.byte daemon.native
+#PROGRAMS = marionnet.byte marionnet.native
+PROGRAMS = marionnet.byte
+ROOT_PROGRAMS = daemon.byte
+#ROOT_PROGRAMS = daemon.byte daemon.native
 
 # Before building the main targets we have to create the machine-generated
 # sources:

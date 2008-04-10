@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Requirements
 ============
-
 You need several pieces of software to build and use this package; some
 of them are only used at build time, while others are needed at runtime.
 
@@ -25,6 +24,17 @@ Please note that for build-time requirements it's essential to also have
 the headers/mli files available: if you use the package system of your
 distro, this translates into having installed also the "-dev" or "-devel"
 packages.
+
+
+Operating System
+================
+Marionnet was developed on and for GNU/Linux. We doubt it would be possible
+to make UML run on systems with any kernel different from Linux. About the
+architecture, again UML is the only limiting factor. Any architecture
+supporting UML should be fine.
+  Some GNU/Linux-isms may be present. Please write us at
+marionnet-dev@marionnet.org if you want to try to port Marionnet to some
+other system, we may be able to help.
 
 
 Build-time requirements
@@ -38,3 +48,4 @@ of course you need the OCaml compiler.
 Runtime requirements
 ====================
 [To do: fill this...]
+[X11 with TCP connections enabled]

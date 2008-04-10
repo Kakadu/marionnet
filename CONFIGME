@@ -44,6 +44,10 @@ libraryprefix=/mystrangepath
 # *No* trailing slash should be included.
 prefix=/usr/local
 
+# Prefix for host-wide configuration files; you should probably keep the
+# default setting:
+configurationprefix=/etc
+
 ###########################################################################
 # Section 3: Default configuration. This will end up in /etc/$name at
 # installation time, providing the default host configuration for this

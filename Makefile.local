@@ -21,8 +21,8 @@ LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 OBJECTS_TO_LINK = gtkThread
 #PROGRAMS = marionnet.byte marionnet.native
 PROGRAMS = marionnet.byte
-ROOT_PROGRAMS = daemon.byte
-#ROOT_PROGRAMS = daemon.byte daemon.native
+ROOT_PROGRAMS = marionnet_daemon.byte
+#ROOT_PROGRAMS = marionnet_daemon.byte marionnet_daemon.native
 
 # Before building the main targets we have to create the machine-generated
 # sources:
@@ -35,8 +35,8 @@ run: marionnet.byte
 runopt: marionnet.native
 	(export WORKING=`pwd`; $$WORKING/_build/marionnet.native) | tee /tmp/LOG
 
-run-daemon: daemon.byte
-	sudo _build/daemon.byte
+run-daemon: marionnet_daemon.byte
+	sudo _build/marionnet_daemon.byte
 
 # version.ml is automatically generated:
 version.ml: VERSION BUILD-TIME

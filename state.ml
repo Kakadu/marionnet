@@ -531,7 +531,7 @@ class globalState = fun () ->
     output_string ch (self#network#dotTrad ());
     close_out ch;
     let command_line =
-      "fdot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
+      "dot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
     Printf.printf "The dot command line is\n%s\n" command_line; flush_all ();
     let exit_code =
       Sys.command command_line in

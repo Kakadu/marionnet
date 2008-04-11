@@ -530,8 +530,26 @@ class globalState = fun () ->
     let ch = open_out fs in 
     output_string ch (self#network#dotTrad ());
     close_out ch;
-    Sys.command("dot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs) => ignore ;
+    let command_line =
+      "fdot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
+    Printf.printf "The dot command line is\n%s\n" command_line; flush_all ();
+    let exit_code =
+      Sys.command command_line in
+    Printf.printf "dot exited with exit code %i\n" exit_code; flush_all ();
     self#mainwin#sketch#set_file self#pngSketchFile ; 
+    (if not (exit_code = 0) then
+      Simple_dialogs.error
+        "FRENCH dot failed"
+        (Printf.sprintf
+           "FRENCH Invoking dot failed. Did you install graphviz?
+The command line is
+%s
+and the exit code is %i.
+Marionnet will work, but you will not see the network graph picture until you fix the problem.
+There is no need to restart the application."
+           command_line
+           exit_code)
+        ());
     
     (* self#mainwin#sketch#set_pixbuf (Widget.Image.zoom 1.2 self#mainwin#sketch#pixbuf) ; *)
     (* Debugging *)

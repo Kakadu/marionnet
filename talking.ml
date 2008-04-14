@@ -554,8 +554,7 @@ let does_directory_support_sparse_files pathname =
   try
     let command_line =
       Printf.sprintf
-        "%s/can_directory_host_sparse_files.sh '%s'"
-        Pathnames.marionnet_home_bin
+        "marionnet-can-directory-host-sparse-files '%s'"
         (check_pathname_validity pathname) in
     match Unix.system command_line with
       Unix.WEXITED 0 ->

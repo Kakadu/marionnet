@@ -2111,7 +2111,7 @@ class gateway =
   method private make_simulated_device =
     new Simulated_network.gateway
       ~name:self#get_name
-      ~bridge_name:"marbre" (* To do: of course this must not be hardwired... *)
+      ~bridge_name:Global_options.ethernet_socket_bridge_name
       ~unexpected_death_callback:self#destroy_because_of_unexpected_death
       ()
 end;; (* gwinternet *)

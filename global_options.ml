@@ -61,21 +61,7 @@ let automatic_reboot_thread_interval =
 
 (** The name of the host bridge device used to implement network sockets: *)
 let ethernet_socket_bridge_name =
-  let ethernet_socket_bridge_default_name = "marbre" in
-  try
-    let name = Initialization.configuration#string "MARIONNET_BRIDGE" in
-    Printf.printf
-      "Setting the bridge name to %s.\n"
-      name;
-    flush_all ();
-    name
-  with Not_found -> begin
-    Printf.printf
-      "MARIONNET_BRIDGE is not defined. Defaulting to %s\n"
-      ethernet_socket_bridge_default_name;
-    flush_all ();
-    ethernet_socket_bridge_default_name;
-  end;;
+  Initialization.configuration#string "MARIONNET_BRIDGE";;
 
 (** Keyboard layout in Xnest sessions; `None' means `don't set anything' *)
 let keyboard_layout =

@@ -194,10 +194,10 @@ install-programs: main install-programs-local
 	  basename=`basename $$file`; \
 	  if echo " $(ROOT_PROGRAMS) " | grep -q " $$basename "; then \
 	    echo "Installing "`basename $$file`" as a \"root program\" into $$prefix/sbin..."; \
-	    cp -a $$file $$prefix/sbin; \
+	    cp -a $$file $$prefix/sbin/; \
 	  else \
 	    echo "Installing "`basename $$file`" into $$prefix/bin..."; \
-	    cp -a $$file $$prefix/bin; \
+	    cp -a $$file $$prefix/bin/; \
 	  fi; \
 	done) && \
 	echo 'Program installation was successful.'

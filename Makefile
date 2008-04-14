@@ -1,6 +1,7 @@
 # This -*- makefile -*- is part of our build system for OCaml projects
 # Copyright (C) 2008  Luca Saiu
 # Copyright (C) 2008  Jean-Vincent Loddo
+# Updated in 2008 by Jonathan Roudiere
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -185,6 +186,8 @@ install-programs: main install-programs-local
 	$(call READ_META, name);   		     \
 	echo "Creating $$prefix/bin/..."; \
 	(mkdir -p $$prefix/bin &> /dev/null || true); \
+	echo "Creating $$prefix/sbin/..."; \
+	(mkdir -p $$prefix/sbin &> /dev/null || true); \
 	echo "Installing programs from $$name into $$prefix/bin/..."; \
 	shopt -s nullglob; \
 	for file in $(OTHER_PROGRAMS_TO_INSTALL) _build/*.byte _build/*.native; do \
@@ -285,7 +288,7 @@ dist-binary: dist-binary-local main #ocamldoc
 	mkdir -p _build/$$directoryname/_build; \
 	shopt -s nullglob; \
 	for x in $(FILES_TO_ALWAYS_DISTRIBUTE) share etc; do \
-	  cp -a $$x _build/$$directoryname &> /dev/null; \
+	  cp $$x _build/$$directoryname &> /dev/null; \
 	done; \
 	for x in $(PROGRAMS) $(LIBRARIES); do \
 	  cp _build/$$x _build/$$directoryname/_build; \
@@ -305,7 +308,7 @@ dist-binary: dist-binary-local main #ocamldoc
 	done; \
 	for x in main main-local install-libraries-local install-programs-local \
 	         install-local install-data-local clean clean-local \
-		 ocamlbuild-stuff $(PROGRAMS) $(ROOT_PROGRAMS) \
+		 ocamlbuild-stuff \
 	; do \
 		echo "This dummy file prevents make from building the \"$$x\" target." \
 		  > _build/$$directoryname/$$x; \
@@ -317,11 +320,11 @@ dist-binary: dist-binary-local main #ocamldoc
 
 # Automatically generate a nice ChangeLog from darcs' history:
 ChangeLog:
-	@(if ! [ -e _darcs ]; then \
+	if ! [ -e _darcs ]; then \
 	  echo 'No ChangeLog available (Darcs metadata are missing)' > $@; \
 	else \
 	  darcs changes > $@; \
-	fi)
+	fi
 
 # Remove generated stuff (the ChangeLog is only removed if we have Darcs
 # metadata to re-generate it):

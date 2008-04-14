@@ -42,18 +42,7 @@ match Unix.system command_line with
 *)
 
 (* Seed the random number generator: *)
-Random.self_init ();
-
-(* Check that we're *not* running as root. Yes, this has been reversed
-   since the last version: *)
-Printf.printf "Checking whether Marionnet is running as root...\n";;
-if (Unix.getuid ()) = 0 then begin
-  Printf.printf "\n********************************************\n";
-  Printf.printf "* Marionnet must *not* be run as root, for * \n";
-  Printf.printf "* security reasons.                        *\n";
-  Printf.printf "********************************************\n\n";
-  failwith "you must not be root";
-end;;
+Random.self_init ();;
 
 (** Read configuration files: *)
 let configuration =

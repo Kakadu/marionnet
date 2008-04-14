@@ -193,5 +193,22 @@ else if Shell.dir_comfortable "~/tmp" then
 else
   failwith "Please create either /tmp or your home directory on some reasonable modern filesystem supporting sparse files");;
 
+(* Check that we're *not* running as root. Yes, this has been reversed
+   since the last version: *)
+Printf.printf "Checking whether Marionnet is running as root...\n";;
+if (Unix.getuid ()) = 0 then begin
+  Printf.printf "\n**********************************************\n";
+  Printf.printf "* Marionnet should *not* be run as root, for * \n";
+  Printf.printf "* security reasons.                          *\n";
+  Printf.printf "* Continuing anyway...                       *\n";
+  Printf.printf "**********************************************\n\n";
+  Simple_dialogs.warning
+    "FRENCH You should not be root!"
+    "FRENCH Marionnet is running with UID 0; this is bad from a security point of view.
+[To do: write a longer, cleaner message...]
+Continuing anyway."
+    ();
+end;;
+
 (** Enter the GTK+ main loop: *)
 GtkThread.main ();;

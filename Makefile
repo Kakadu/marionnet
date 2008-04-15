@@ -123,15 +123,16 @@ install-data: main install-data-local
 # Install the software configuration files, if any:
 install-configuration: install-configuration-local
 	@($(call READ_CONFIG, configurationprefix); \
+	$(call READ_META, name); \
 	if [ -e etc ]; then \
-	  echo "Installing configuration files into $$configurationprefix..."; \
-	  mkdir -p $$configurationprefix; \
+	  echo "Installing configuration files into $$configurationprefix/$$name..."; \
+	  mkdir -p $$configurationprefix/$$name; \
 	  shopt -s nullglob; \
 	  for file in etc/*; do \
 	    basename=`basename $$file`; \
-	    echo "Installing $$basename into $$configurationprefix..."; \
-	    if ! cp $$file $$configurationprefix/; then \
-	      echo "ERROR: Could not install $$basename into $$configurationprefix"; \
+	    echo "Installing $$basename into $$configurationprefix/$$name..."; \
+	    if ! cp $$file $$configurationprefix/$$name/; then \
+	      echo "ERROR: Could not install $$basename into $$configurationprefix/$$name"; \
 	      exit -1; \
 	    fi; \
 	  done; \

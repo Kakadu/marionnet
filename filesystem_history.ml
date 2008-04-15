@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -460,7 +460,6 @@ let add_row
   let result = 
     states_interface#add_row ?parent_row_id:parent row
   in
-  states_interface#save;
   result
 
 let number_of_states_such_that
@@ -501,7 +500,6 @@ let add_device name prefixed_filesystem variant icon =
       ~toggle:false
       () in
   states_interface#highlight_row row_id;
-  save_states ();;
 
 let rename_device old_name new_name =
   let states_interface = get_states_interface () in
@@ -512,8 +510,7 @@ let rename_device old_name new_name =
                   else
                     row)
       (get_forest ()) in
-  states_interface#set_forest altered_forest;
-  save_states ();;
+  states_interface#set_forest altered_forest;;
 
 let remove_device_tree name =
   let states_interface = get_states_interface () in
@@ -533,8 +530,7 @@ let remove_device_tree name =
     Forest.filter
       (fun row -> not ((lookup_alist "Name" row) = String name))
       (get_forest ()) in
-  states_interface#set_forest filtered_forest;
-  save_states ();;
+  states_interface#set_forest filtered_forest;;
 
 let get_the_most_recent_state_with_name name =
   let states_interface = get_states_interface () in
@@ -590,7 +586,6 @@ let add_substate_of parent_file_name =
      bother the user undoing his/her expansions: *)
   (if siblings_no = 0 then
     states_interface#collapse_row parent_row_id);
-  save_states ();
   copied_file_name;;
 
 let get_the_most_recent_file_name_with_name name =

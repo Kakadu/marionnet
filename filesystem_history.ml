@@ -499,7 +499,7 @@ let add_device name prefixed_filesystem variant icon =
       ~scenario:"[no scenario]"
       ~toggle:false
       () in
-  states_interface#highlight_row row_id;
+  states_interface#highlight_row row_id;;
 
 let rename_device old_name new_name =
   let states_interface = get_states_interface () in

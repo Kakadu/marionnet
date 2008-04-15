@@ -35,7 +35,7 @@
 # versions:
 
 # The main target. Its implementation is entirely project-dependant:
-main: ocamlbuild-stuff main-local data libraries programs
+main: ocamlbuild-stuff main-local data libraries programs documentation
 	@(echo "Success.")
 
 BUILD_FROM_STUFF = \
@@ -79,12 +79,53 @@ ocamldoc: main ocamldoc-local
 	echo 'The documentation has been built with success under _build/')
 
 # Install programs and libraries:
-install: install-programs install-libraries install-data install-configuration install-local
+install: install-programs install-libraries install-data install-configuration install-documentation install-local
 	@(echo 'Success.')
 
 # The user is free to override this to add custom targets to install into the
 # $prefix/share/$name installation directory:
 OTHER_DATA_TO_INSTALL =
+
+# The user is free to override this to add custom targets to install into the
+# $documentationprefix/$name installation directory:
+OTHER_DOCUMENTATION_TO_INSTALL =
+
+# Install the documentation from this package into $prefix/share/$name:
+install-documentation: install-documentation-local
+	@($(call READ_CONFIG, documentationprefix); \
+	$(call READ_META, name); \
+	directory=$$documentationprefix/$$name; \
+	shopt -s nullglob; \
+	if [ -e doc ]; then \
+	  documentationifany=`ls -d doc/*`; \
+	else \
+	  documentationifany=''; \
+	fi; \
+	if [ "$$documentationifany" == "" ]; then \
+	  echo "No documentation to install: ok, no problem..."; \
+	else \
+	  echo "Installing $$name documentation into $$directory ..."; \
+	  echo "Creating $$directory ..."; \
+	  if mkdir -p $$directory; then \
+	    echo "The directory $$directory was created with success."; \
+	  else \
+	    echo "Could not create $$directory"; \
+	    exit -1; \
+	  fi; \
+	  echo "Copying $$name documentation to $$directory ..."; \
+	  for x in COPYING README $$documentationifany $(OTHER_DOCUMENTATION_TO_INSTALL); do \
+	    if cp -af $$x $$directory; then \
+	      echo "Installed $$x into $$directory/"; \
+	    else \
+	      echo "Could not write $$directory/$$x."; \
+	      exit -1; \
+	    fi; \
+	  done; \
+	  echo "Documentation installation for $$name was successful."; \
+	fi)
+
+# Just a handy alias:
+install-doc: install-documentation
 
 # Install the data from this package into $prefix/share/$name:
 install-data: main install-data-local
@@ -173,6 +214,28 @@ uninstall-data: uninstall-data-local
 	fi); \
 	echo 'Data uninstallation was successful.')
 
+# Remove the documentation of this package from $documentationprefix/$name:
+uninstall-documentation: documentation uninstall-documentation-local
+	@( ($(call READ_CONFIG, documentationprefix); \
+	$(call READ_META, name); \
+	directory=$$documentationprefix/$$name; \
+	echo "Removing $$name documentation from $$documentationprefix..."; \
+	shopt -s nullglob; \
+	if rm -rf $$directory; then \
+	  echo "The entire directory $$directory was removed."; \
+	else \
+	  echo "Could not delete $$directory"; \
+	  exit -1; \
+	fi); \
+	echo 'Documentation uninstallation was successful.')
+
+# Create the documentation (do nothing by default):
+documentation: documentation-local
+	@(echo 'Success: documentation was build.')
+
+# Just a handy alias:
+doc: documentation
+
 # The user is free to override this to add custom targets to install into the
 # $prefix/bin installation directory; the typical use of this would be
 # installing scripts.
@@ -245,7 +308,7 @@ install-libraries: main install-libraries-local
 	fi)
 
 # Uninstall programs and libraries:
-uninstall: uninstall-programs uninstall-libraries uninstall-data uninstall-configuration uninstall-local
+uninstall: uninstall-programs uninstall-libraries uninstall-data uninstall-configuration uninstall-documentation uninstall-local
 	@(echo 'Success.')
 
 # Remove the library from the installation path chosen at configuration time:
@@ -288,7 +351,7 @@ dist-binary: dist-binary-local main #ocamldoc
 	mkdir -p _build/$$directoryname; \
 	mkdir -p _build/$$directoryname/_build; \
 	shopt -s nullglob; \
-	for x in $(FILES_TO_ALWAYS_DISTRIBUTE) share etc; do \
+	for x in $(FILES_TO_ALWAYS_DISTRIBUTE) share doc etc; do \
 	  cp $$x _build/$$directoryname &> /dev/null; \
 	done; \
 	for x in $(PROGRAMS) $(LIBRARIES); do \
@@ -309,6 +372,7 @@ dist-binary: dist-binary-local main #ocamldoc
 	done; \
 	for x in main main-local install-libraries-local install-programs-local \
 	         install-local install-data-local clean clean-local \
+	         documentation documentation-local install-documentation-local \
 		 ocamlbuild-stuff \
 	; do \
 		echo "This dummy file prevents make from building the \"$$x\" target." \
@@ -367,8 +431,11 @@ install-data-local:
 uninstall-data-local:
 install-configuration-local:
 uninstall-configuration-local:
+install-documentation-local:
+uninstall-documentation-local:
 dist-local:
 dist-binary-local:
+documentation-local:
 clean-local:
 
 # Let's avoid confusion between all and main: they're the same thing

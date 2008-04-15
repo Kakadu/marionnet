@@ -553,12 +553,12 @@ There is no need to restart the application."
     
     (* self#mainwin#sketch#set_pixbuf (Widget.Image.zoom 1.2 self#mainwin#sketch#pixbuf) ; *)
     (* Debugging *)
-    prerr_endline ("============= DEBUGGING ===============");
-    prerr_endline ("*** IDENTIFY :");
-    Sys.command("identify "^ft) => ignore ;
-    prerr_endline ("*** RATIO :");
-    prerr_endline self#dotoptions#ratio ;
-    prerr_endline ("===================================");
+    (* prerr_endline ("============= DEBUGGING ==============="); *)
+    (* prerr_endline ("*** IDENTIFY :"); *)
+    (* Sys.command("identify "^ft) => ignore ; *)
+    (* prerr_endline ("*** RATIO :"); *)
+    (* prerr_endline self#dotoptions#ratio ; *)
+    (* prerr_endline ("==================================="); *)
 
     self#details#rewrite ~tags:["center";"bold";"x-large"] "DOT FILE CONTENT\n\n"     ;
     self#details#append  ~tags:["monospace"] (Unix.cat fs) ;

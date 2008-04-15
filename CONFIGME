@@ -48,6 +48,10 @@ prefix=/usr/local
 # default setting:
 configurationprefix=/etc
 
+# Prefix for documentation files; you should probably keep the
+# default setting:
+documentationprefix="$prefix/share/doc"
+
 ###########################################################################
 # Section 3: Default configuration. This will end up in /etc/$name at
 # installation time, providing the default host configuration for this

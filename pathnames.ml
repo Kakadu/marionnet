@@ -21,7 +21,7 @@ Printf.printf "Setting up directory path names for Marionnet...\n";;
 (* Fail immediately if the marionnet installation directory is not defined; otherwise
    store it: *)
 let marionnet_home =
-  Initialization.configuration#string "MARIONNET_HOME";;
+  Meta.prefix ^ "/share/" ^ Meta.name;;
 let marionnet_home_filesystems =
   marionnet_home^"/filesystems/";;
 let marionnet_home_kernels =
@@ -35,4 +35,4 @@ let marionnet_home_bin =
 try
   Unix.chdir marionnet_home;
 with _ ->
-  failwith ("Could not enter the MARIONNET_HOME directory (" ^ marionnet_home ^ ")");;
+  failwith ("Could not enter the directory (" ^ marionnet_home ^ ")");;

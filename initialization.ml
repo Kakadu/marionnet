@@ -52,3 +52,7 @@ let configuration =
                 "MARIONNET_BRIDGE";(* This is temporary: more than one bridge will be usable... *)
                 "MARIONNET_KEYBOARD_LAYOUT"]
     ();;
+
+(** Remember the cwd directory at startup time: *)
+let cwd_at_startup_time =
+  Unix.getcwd ();;

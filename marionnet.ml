@@ -163,6 +163,10 @@ let texts_interface =
 
 print_string "Starting the application\n";;
 
+(** Re-enter the correct cwd we had saved before: gui.glade has already been loaded
+    at this time, so we can safely exit from marionnet_home: *)
+Unix.chdir Initialization.cwd_at_startup_time;;
+
 (* GMain.Main.main ();; *)
 
 (* let () = ignore (GtkMain.Main.init ());; *)

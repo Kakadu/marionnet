@@ -306,6 +306,14 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
 		      <property name="active">False</property>
 		    </widget>
 		  </child>
+		  <child>
+		    <widget class="GtkCheckMenuItem" id="imgitem_debug_mode">
+		      <property name="visible">True</property>
+		      <property name="label" translatable="yes">Modalité _debug</property>
+		      <property name="use_underline">True</property>
+		      <property name="active">False</property>
+		    </widget>
+		  </child>
 
 		  <child>
 		    <widget class="GtkCheckMenuItem" id="imgitem_workaround_wirefilter_problem">

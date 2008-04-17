@@ -654,6 +654,8 @@ class uml_process =
       ?xnest_display_number
       ~unexpected_death_callback
       () ->
+  let debug_mode =
+    Global_options.get_debug_mode () in
   let console = (* Don't show the xterm console if we're using an Xnest *)
     match xnest_display_number with
       Some xnest_display_number -> "none"

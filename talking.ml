@@ -3097,12 +3097,16 @@ module Talking_OTHER_STUFF = struct
    let (win,opt,net) = (st#mainwin, st#dotoptions, st#network) in 
    let autogenerate_ip_addresses =
      win#imgitem_autogenerate_ip_addresses in
+   let debug_mode =
+     win#imgitem_debug_mode in
    let workaround_wirefilter_problem =
      win#imgitem_workaround_wirefilter_problem in
    (* Also set the default here, so that we don't have to make the Glade interface
       coherent with the defaults in Global_options: *)
    autogenerate_ip_addresses#set_active
      Global_options.autogenerate_ip_addresses_default;
+   debug_mode#set_active
+     Global_options.debug_mode_default;
    workaround_wirefilter_problem#set_active
      Global_options.workaround_wirefilter_problem_default;
    (* Here come the actual bindings: *)
@@ -3112,6 +3116,12 @@ module Talking_OTHER_STUFF = struct
          Printf.printf "You toggled the option (IP)\n"; flush_all ();
          Global_options.set_autogenerate_ip_addresses
            autogenerate_ip_addresses#active) in
+   let _ =
+     debug_mode#connect#toggled
+       ~callback:(fun () ->
+         Printf.printf "You toggled the option (debug)\n"; flush_all ();
+         Global_options.set_debug_mode
+           debug_mode#active) in
    let _ =
      workaround_wirefilter_problem#connect#toggled
        ~callback:(fun () ->

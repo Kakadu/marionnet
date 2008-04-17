@@ -23,6 +23,22 @@ let mutex = create ();;
 let with_mutex thunk =
   Recursive_mutex.with_mutex mutex thunk;;
 
+(** Debug mode: *)
+let debug_mode_default =
+  Initialization.configuration#bool "MARIONNET_DEBUG";;
+
+let debug_mode =
+  ref debug_mode_default;;
+let set_debug_mode value =
+  with_mutex
+    (fun () ->
+      Printf.printf "'Debug mode' now has value %b\n" value; flush_all ();
+      debug_mode := value);;
+let get_debug_mode () =
+  with_mutex
+    (fun () ->
+      !debug_mode);;
+
 (** Automatically generate IP addresses: *)
 let autogenerate_ip_addresses_default =
   false (*false*);;
@@ -32,13 +48,12 @@ let autogenerate_ip_addresses =
 let set_autogenerate_ip_addresses value =
   with_mutex
     (fun () ->
-      Printf.printf "'Autogenerate IP addresses' will now have value %b\n" value; flush_all ();
+      Printf.printf "'Autogenerate IP addresses' now has value %b\n" value; flush_all ();
       autogenerate_ip_addresses := value);;
 let get_autogenerate_ip_addresses () =
   with_mutex
     (fun () ->
       !autogenerate_ip_addresses);;
-
 
 (** Work-around the wirefilter bug (which is probably due to my patches to VDE): *)
 let workaround_wirefilter_problem_default =
@@ -48,7 +63,7 @@ let workaround_wirefilter_problem =
 let set_workaround_wirefilter_problem value =
   with_mutex
     (fun () ->
-      Printf.printf "'Work-around the wirefilter problem' will now have value %b\n" value; flush_all ();
+      Printf.printf "'Work-around the wirefilter problem' now has value %b\n" value; flush_all ();
       workaround_wirefilter_problem := value);;
 let get_workaround_wirefilter_problem () =
   with_mutex

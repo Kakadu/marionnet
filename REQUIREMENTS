@@ -47,5 +47,11 @@ of course you need the OCaml compiler.
 
 Runtime requirements
 ====================
-[To do: fill this...]
+[To do: expand this...]
+Graphviz (we use dot at runtime)
+uml utilities?
+bridge utilities?
+VDE with our patch.
+tunctl
+Filesystems.
 [X11 with TCP connections enabled]

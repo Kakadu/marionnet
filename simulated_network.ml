@@ -20,7 +20,7 @@ open UnixExtra;;
 open Defects_interface;;
 open Recursive_mutex;;
 open Daemon_language;;
-open X;; (* Not really needed: this works around in OCamlBuild 3.10.0 *)
+open X;; (* Not really needed: this works around a problem with OCamlBuild 3.10.0 *)
 
 (** Fork a process which just sleeps forever without doing any output. Its stdout is
     perfect to be used as stdin for processes created with create_process which wait

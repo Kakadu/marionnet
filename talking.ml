@@ -523,6 +523,7 @@ let ask_for_file
   if (help=None) then () else dialog#add_button_stock `HELP `HELP ; 
   dialog#add_button_stock `CANCEL `CANCEL ;
   dialog#add_button_stock `OK `OK;
+  dialog#set_current_folder (Initialization.cwd_at_startup_time);
 
   if (action=`SELECT_FOLDER)        then (try (dialog#add_shortcut_folder "/tmp") with _ -> ());
   if (action=`OPEN or action=`SAVE) then (List.iter (fun x -> dialog#add_filter (fun_filter_of x)) filters); 

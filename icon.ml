@@ -1,5 +1,6 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007  Luca Saiu
+   Updated in 2008 by Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -16,4 +17,7 @@
 
 let icon_pixbuf = 
   GdkPixbuf.from_file  
-    (Pathnames.marionnet_home_images^"ico.marionnet-4.small.png");;
+    (if Command_line.are_we_in_exam_mode then
+      Pathnames.marionnet_home_images^"launcher-icons/marionnet-exam-launcher.png"
+    else
+      Pathnames.marionnet_home_images^"launcher-icons/marionnet-launcher.png");;

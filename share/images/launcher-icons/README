@@ -16,18 +16,5 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-Images in this directory are mostly:
-
-1) original, in which case they are released by Jean-Vincent Loddo and
-Luca Saiu under the GPL version 2 or later,
-
-Exceptioins:
-
-2) ico.info.orig.png, ico.warning.orig.png and ico.error.orig.png
-are taken from the GNOME Amaranth theme (released under the Artistic
-license, a copy of which is included in this directory, by their
-authors).
-
-3) ico.question-2.orig.png is taken from the Gnome icons, released
-by its authors under the GNU GPL version 2; converted by Luca Saiu
-in 2008.
+All the icons in this directory are released by the authors under the GNU
+GPL version 2 or later.

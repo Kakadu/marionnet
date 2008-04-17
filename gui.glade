@@ -30,7 +30,7 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
   <property name="default_height">690</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -6156,7 +6156,7 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -7032,7 +7032,7 @@ Ethernet</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -7482,7 +7482,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -7628,7 +7628,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -7761,7 +7761,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -8137,7 +8137,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -8644,7 +8644,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -9020,7 +9020,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -9536,7 +9536,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -9780,7 +9780,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -10322,7 +10322,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -10837,7 +10837,7 @@ e-learning project by</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -10854,7 +10854,7 @@ e-learning project by</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -10872,7 +10872,7 @@ e-learning project by</property>
   <property name="modal">True</property>
   <property name="resizable">False</property>
   <property name="destroy_with_parent">True</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
@@ -11248,7 +11248,7 @@ e-learning project by</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
-  <property name="icon">ico.marionnet-4.small.png</property>
+  <property name="icon">launcher-icons/marionnet-launcher.png</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>

@@ -71,7 +71,7 @@ world: world-local main
 	@(echo 'Success.')
 
 # Generate ocamldoc documentation:
-ocamldoc: main ocamldoc-local
+ocamldoc: ocamldoc-local
 	@($(call READ_META, name); \
 	ocamlbuild $$name.docdir/index.html &> /dev/null && \
 	rm $$name.docdir && \

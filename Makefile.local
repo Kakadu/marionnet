@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-COMPILE_OPTIONS += 
+COMPILE_OPTIONS += -g
 DIRECTORIES_TO_INCLUDE = lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 OBJECTS_TO_LINK = gtkThread
@@ -32,6 +32,9 @@ marionnet.native: version.ml gui.ml
 
 run: marionnet.byte
 	(export WORKING=`pwd`; $$WORKING/_build/marionnet.byte) | tee /tmp/LOG
+
+runexam: marionnet.byte
+	(export WORKING=`pwd`; $$WORKING/_build/marionnet.byte --exam) | tee /tmp/LOG
 
 runopt: marionnet.native
 	(export WORKING=`pwd`; $$WORKING/_build/marionnet.native) | tee /tmp/LOG

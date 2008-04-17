@@ -51,7 +51,13 @@ let configuration =
     ~variables:["SOCKET_NAME";
                 "MARIONNET_BRIDGE";(* This is temporary: more than one bridge will be usable... *)
                 "MARIONNET_KEYBOARD_LAYOUT";
-                "MARIONNET_DEBUG";]
+                "MARIONNET_DEBUG";
+                "MARIONNET_PDF_READER";
+                "MARIONNET_POSTSCRIPT_READER";
+                "MARIONNET_DVI_READER";
+                "MARIONNET_HTML_READER";
+                "MARIONNET_TEXT_EDITOR";
+              ]
     ();;
 
 (** Remember the cwd directory at startup time: *)

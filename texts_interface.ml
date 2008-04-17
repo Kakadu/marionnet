@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -40,14 +40,15 @@ object(self)
 
   (** Display the document at the given row, in an asynchronous process: *)
   method private display row_id =
-    let reader = item_to_string (self#get_row_item row_id "Reader") in
+    let format = item_to_string (self#get_row_item row_id "Format") in
+    let reader = self#format_to_reader format in
     let file_name = item_to_string (self#get_row_item row_id "FileName") in
     let command_line =
       Printf.sprintf "%s '%s/%s'&" reader self#get_working_directory file_name in
     ignore (Unix.system command_line)
 
   val error_message =
-    "Vous devez sélectionner un document existant et lisible au format PDF, Postscript, DVI ou texte."
+    "Vous devez sélectionner un document existant et lisible au format PDF, Postscript, DVI, HTML ou texte."
 
   (** Ask the user to choose a file, and return its pathname. Fail if the user doesn't
       choose a file or cancels: *)
@@ -89,37 +90,50 @@ object(self)
       Unix.WEXITED 0 -> true
     | _ -> false
 
-  (** Return true iff the given file exists and has the given type, as returned within
-      the output of file(1): *)
-  method private has_file_type pathname file_type =
-    match file_type with
-    | "HTML" | "XML" ->
-      (Filename.check_suffix pathname ".html") or 
-      (Filename.check_suffix pathname ".htm")
-    | "text" ->
-      (Filename.check_suffix pathname ".text") or
-      (Filename.check_suffix pathname ".txt") or
-      (Filename.check_suffix pathname "README")
-    | "PostScript" ->
-      (Filename.check_suffix pathname ".ps")
-    | "DVI" ->
-      (Filename.check_suffix pathname ".dvi")
-    | "PDF" ->
-      (Filename.check_suffix pathname ".pdf")
-    | _ ->
-      false
-      
-(*
-    let command_line =
-      Printf.sprintf
-        "file '%s' | grep '%s' &> /dev/null"
-        pathname
-        file_type in
-    match Unix.system command_line with
-      Unix.WEXITED 0 -> true
-    | _ -> false
-*)
+  method private file_to_format pathname =
+    if Filename.check_suffix pathname ".html" or
+      Filename.check_suffix pathname ".htm" or
+      Filename.check_suffix pathname ".HTML" or
+      Filename.check_suffix pathname ".HTM" then
+      "html"
+    else if Filename.check_suffix pathname ".text" or
+      Filename.check_suffix pathname ".txt" or
+      Filename.check_suffix pathname "readme" or
+      Filename.check_suffix pathname "lisezmoi" or
+      Filename.check_suffix pathname ".TEXT" or
+      Filename.check_suffix pathname ".TXT" or
+      Filename.check_suffix pathname "README" or
+      Filename.check_suffix pathname "LISEZMOI" then
+      "text"
+    else if Filename.check_suffix pathname ".ps" or
+      Filename.check_suffix pathname ".eps" or
+      Filename.check_suffix pathname ".PS" or
+      Filename.check_suffix pathname ".EPS" then
+      "ps"
+    else if Filename.check_suffix pathname ".dvi" or
+      Filename.check_suffix pathname ".DVI" then
+      "dvi"
+    else if Filename.check_suffix pathname ".pdf" or
+      Filename.check_suffix pathname ".PDF" then
+      "pdf"
+    else
+      failwith ("I cannot recognize the file type of " ^ pathname);
     
+  method private format_to_reader format =
+    match format with
+    | "pdf" ->
+        Initialization.configuration#string "MARIONNET_PDF_READER"
+    | "ps" ->
+        Initialization.configuration#string "MARIONNET_POSTSCRIPT_READER"
+    | "dvi" ->
+        Initialization.configuration#string "MARIONNET_DVI_READER"
+    | "html" -> (* 'file' may recognize (X)HTML as XML... *)
+        Initialization.configuration#string "MARIONNET_HTML_READER"
+    | "text" ->
+        Initialization.configuration#string "MARIONNET_TEXT_EDITOR"
+    | _ ->
+      failwith ("The format \"" ^ format ^ "\" is not supported");
+
   (** Import the given file, copying it into the appropriate directory with a fresh name;
       return the fresh name (just the file name, not a complete pathname) and the name
       of an application suitable to read it, as a pair. In case of failure show an error
@@ -127,26 +141,8 @@ object(self)
       copied. *)
   method private import_file ?(move=false) pathname =
     try
-      let reader =
-        if not (self#does_file_exists pathname) then
-          failwith ("The file \"" ^ (Filename.basename pathname) ^ "\" does not exist or is not readable")
-(*        else if self#has_file_type pathname "PDF" or
-                self#has_file_type pathname "PostScript" or
-                self#has_file_type pathname "DVI" then
-          "evince" *)
-        else if self#has_file_type pathname "PDF" then
-          "kpdf"
-        else if self#has_file_type pathname "PostScript" then
-          "kghostview"
-        else if self#has_file_type pathname "DVI" then
-          "kdvi"
-        else if (self#has_file_type pathname "HTML") or
-                (self#has_file_type pathname "XML") then (* 'file' may recognize (X)HTML as XML... *)
-          "konqueror"
-        else if self#has_file_type pathname "text" then
-          "kedit"
-        else
-          failwith ("The file \"" ^ (Filename.basename pathname) ^ "\" has an unsupported format") in
+      let format =
+        self#file_to_format pathname in
       let fresh_pathname =
         Unix.temp_file ~parent:self#get_working_directory ~prefix:"document-" () in
       let fresh_name = 
@@ -160,13 +156,13 @@ object(self)
             "cp -a '%s' '%s' &> /dev/null && chmod a-w '%s'" pathname fresh_pathname fresh_pathname in
       (match Unix.system command_line with
         Unix.WEXITED 0 ->
-          fresh_name, reader
+          fresh_name, format
       | _ -> begin
           (* Copying failed: remove any partial copy which may have been created: *)
           let rm_command_line =
             Printf.sprintf "rm -f '%s' &> /dev/null" fresh_pathname in
           ignore (Unix.system rm_command_line);
-          failwith ("Copying or moving \"" ^ pathname ^ "\" into \""^ fresh_pathname ^"\"failed")
+          failwith ("La copie de \n\"" ^ pathname ^ "\"\n dans \n\""^ fresh_pathname ^"\"\nfailed")
         end)
     with (Failure title) as e -> begin
       Simple_dialogs.error title error_message ();
@@ -190,11 +186,11 @@ object(self)
     self#set_row_item row_id "Comment" (String ("généré le " ^ (Timestamp.current_timestamp_as_string ())));
 
   method import_document ?(move=false) user_path_name =
-    let internal_file_name, reader = self#import_file user_path_name in
+    let internal_file_name, format = self#import_file user_path_name in
     let row_id =
       self#add_row
         [ "FileName", String internal_file_name;
-          "Reader", String reader ] in
+          "Format", String format ] in
     self#save;
     row_id
 
@@ -241,7 +237,7 @@ object(self)
         () in
     let _ =
       self#add_string_column
-        ~header:"Reader"
+        ~header:"Format"
         ~hidden:true
         () in
     (* Make internal data structures: no more columns can be added now: *)

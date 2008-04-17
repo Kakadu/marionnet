@@ -679,7 +679,8 @@ module Talking_PROJET_NOUVEAU = struct
        (if (st#active_project) && (cmd#save_current) then st#save_project ());
        st#close_project () ;
        st#new_project fname ;
-       st#mainwin#window_MARIONNET#set_title ("Marionnet - " ^ fname);
+       st#mainwin#window_MARIONNET#set_title
+         (Command_line.window_title ^ " - " ^ fname);
      with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialogs"))
      end
  | None ->  begin
@@ -745,7 +746,7 @@ module Talking_PROJET_OUVRIR = struct
        begin
          try 
            st#open_project cmd#filename;
-           st#mainwin#window_MARIONNET#set_title ("Marionnet - " ^ cmd#filename);
+           st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ cmd#filename);
          with e -> (Simple_dialogs.error "OUVRIR UN PROJET" ("Erreur en ouvrant le fichier "^cmd#filename) ()); raise e
        end;
      with e -> raise e 
@@ -826,7 +827,7 @@ module Talking_PROJET_ENREGISTRER_SOUS = struct
          begin
            try 
              st#save_project_as cmd#filename;
-             st#mainwin#window_MARIONNET#set_title ("Marionnet - " ^ cmd#filename);
+             st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ cmd#filename);
            with _ -> (Simple_dialogs.error "PROJET ENREGISTRER SOUS" ("Échéc de la sauvegarde du project "^cmd#filename) ()) 
          end
        with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
@@ -930,7 +931,7 @@ module Talking_PROJET_FERMER = struct
        prerr_endline (myname^".react: answer="^cmd#answer); 
        if (st#active_project) && (cmd#answer="yes") then st#save_project ();
        st#close_project ();
-       st#mainwin#window_MARIONNET#set_title ("Marionnet"); (* no project name *)
+       st#mainwin#window_MARIONNET#set_title Command_line.window_title; (* no project name *)
      with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
      end
  | None -> 

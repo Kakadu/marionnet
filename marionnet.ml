@@ -210,5 +210,9 @@ Continuing anyway."
     ();
 end;;
 
+(** Set the main window icon (which may be the exam icon...), and the window title: *)
+st#mainwin#toplevel#set_icon (Some Icon.icon_pixbuf);;
+st#mainwin#window_MARIONNET#set_title (Command_line.window_title);;
+
 (** Enter the GTK+ main loop: *)
 GtkThread.main ();;

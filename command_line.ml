@@ -43,3 +43,9 @@ let are_we_in_exam_mode =
         false
       end)
     command_line_arguments;;
+
+let window_title =
+  if are_we_in_exam_mode then
+    "Marionnet (EXAM)"
+  else
+    "Marionnet";;

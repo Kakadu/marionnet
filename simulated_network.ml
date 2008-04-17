@@ -656,10 +656,15 @@ class uml_process =
       () ->
   let debug_mode =
     Global_options.get_debug_mode () in
-  let console = (* Don't show the xterm console if we're using an Xnest *)
-    match xnest_display_number with
-      Some xnest_display_number -> "none"
-    | None -> console in
+  let console =
+    (* Always use an xterm in debug mode: *)
+    if debug_mode then
+      "xterm"
+    else
+      (* Don't show the xterm console if we're using an Xnest, in non-debug mode. *)
+      match xnest_display_number with
+        Some xnest_display_number -> "none"
+      | None -> console in
   let hostfs_pathname = 
     Printf.sprintf "%s/hostfs/%i" (Filename.dirname (Filename.dirname cow_file_name)) id in
   let boot_parameters_pathname =
@@ -689,9 +694,6 @@ class uml_process =
        "umid=" ^ umid;
        "mem=" ^ (string_of_int memory) ^ "M";
        "root=98:0";
-       ("con0=none"); "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none";
-       ("ssl0="^console); "ssl1=none"; "ssl2=none"; "ssl3=none"; "ssl4=none"; "ssl5=none"; "ssl6=none";
-       "console=ttyS0";
        "hostfs="^hostfs_pathname;
        "hostname="^umid;
 (*        "xterm=myxterm,-T,-e"; *)
@@ -716,6 +718,15 @@ class uml_process =
         command_line_arguments
     | Some keyboard_layout ->
         ("keyboard_layout="^keyboard_layout) :: command_line_arguments in
+  let command_line_arguments =
+    if debug_mode then
+      command_line_arguments @ 
+      ["con0=none"; "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none";
+       "ssl0="^console; "ssl1=none"; "ssl2=none"; "ssl3=none"; "ssl4=none"; "ssl5=none"; "ssl6=none";
+       "console=ttyS0"]
+    else
+      command_line_arguments @ 
+      ["ssl0="^console;] in
 object(self)
   inherit process
       kernel_file_name

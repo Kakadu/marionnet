@@ -85,3 +85,24 @@ let keyboard_layout =
     Some (Initialization.configuration#string "MARIONNET_KEYBOARD_LAYOUT")
   with Not_found ->
     default_layout;;
+
+(** Project working directory: *)
+let project_working_directory_default =
+  None;;
+let project_working_directory =
+  ref project_working_directory_default;;
+let set_project_working_directory value =
+  with_mutex
+    (fun () ->
+      Printf.printf "'Project working directory' now has value %s\n"
+        (match value with
+        | None -> "(none)"
+        | Some value -> value);
+      flush_all ();
+      project_working_directory := value);;
+let get_project_working_directory () =
+  with_mutex
+    (fun () ->
+      match !project_working_directory with
+      | None -> failwith "the current working directory is currently not set"
+      | Some value -> value);;

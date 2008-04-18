@@ -20,6 +20,7 @@ open UnixExtra;;
 open Defects_interface;;
 open Recursive_mutex;;
 open Daemon_language;;
+open FilenameExtra;;
 open X;; (* Not really needed: this works around a problem with OCamlBuild 3.10.0 *)
 
 (** Fork a process which just sleeps forever without doing any output. Its stdout is
@@ -274,7 +275,10 @@ class hub_or_switch_process =
       () ->
 (* Make a unique socket name: *)
 let socket_name =
-  Filename.temp_file "hub-or-switch-" "" in
+  Unix.temp_file
+    ~parent:(Global_options.get_project_working_directory ())
+    ~prefix:"hub-or-switch-"
+    () in
 let _ =
   print_string ("Making a socket at " ^ socket_name ^ "...\n");
   (try Unix.unlink socket_name with _ -> ()) in
@@ -625,7 +629,10 @@ let random_ghost_mac_address () =
 
 (** Create a fresh sparse file name for swap and return it: *)
 let create_swap_file_name () =
-  Unix.temp_file ~parent:"/tmp" ~prefix:"sparse-swap-" ();;
+  Unix.temp_file
+    ~parent:(Global_options.get_project_working_directory ())
+    ~prefix:"sparse-swap-"
+    ();;
 
 (* To do: move this into UnixExtra or something like that: *)
 (** Run system with the given argument, and raise exception in case of failure;

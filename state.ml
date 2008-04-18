@@ -27,6 +27,9 @@ open SysExtra;;
 open Environment;;
 open Mariokit;;
 
+let marionnet_working_directory_prefix =
+  "marionnet-";;
+
 let sketch_mutex =
   Mutex.create ();;
 
@@ -143,19 +146,26 @@ class globalState = fun () ->
   method set_wdir x =
     wdir <- x
 
-  (** Project working directory. *)
-  val mutable pwdir : string option = None    
-
   (** Get working directory. *)
   method get_wdir = wdir
 
+  (** Project working directory. *)
+  val mutable pwdir_field : string option
+      = Global_options.project_working_directory_default
+
   (** Get project working directory. *)
   method get_pwdir =
-    match pwdir with
+    match pwdir_field with
     | Some x ->
         x
     | None ->
         failwith "get_pwdir"
+
+  (** Update the project working directory, also copying the setting to a global which is
+      easier to access from other modules: *)
+  method set_pwdir value =
+    pwdir_field <- value;
+    Global_options.set_project_working_directory value;
 
   (** Handlers for relevant project directories and files. *)
   method getDir dir     = 
@@ -211,7 +221,8 @@ class globalState = fun () ->
       prj_name     <-  Some (self#default_prj_name ()) ;
 
       (* Set the project working directory to a random name in the wdir. *)
-      pwdir        <-  Some (Unix.temp_dir ~parent:wdir ~prefix:"MARIONNET-WORKING-" ~suffix:".dir" ());
+      self#set_pwdir
+        (Some (Unix.temp_dir ~parent:wdir ~prefix:marionnet_working_directory_prefix ~suffix:".dir" ()));
 
       (* Create the directory skeleton into the pwdir. *)
       let prefix = (self#get_pwdir^"/"^(self#get_prj_name)^"/") in
@@ -273,7 +284,7 @@ class globalState = fun () ->
       Printf.printf "** DESTROYING THE OLD WORKING DIRECTORY... DONE\n"; flush_all ();
 
       (* Unset the project working directory. *)
-      pwdir        <-  None ;
+      self#set_pwdir None;
 
       (* Set the app_state. *)
       app_state <- NoActiveProject ;
@@ -342,8 +353,8 @@ class globalState = fun () ->
     prj_filename <- (Some x) ;
       
     (* Set the project working directory to a random name in the wdir. *)
-    let working_directory = Unix.temp_dir ~parent:wdir ~prefix:"MARIONNET-WORKING-" ~suffix:".dir" () in
-    pwdir <- Some working_directory;
+    let working_directory = Unix.temp_dir ~parent:wdir ~prefix:marionnet_working_directory_prefix ~suffix:".dir" () in
+    self#set_pwdir (Some working_directory);
 
     (* Extract the mar file into the pwdir *)  
     Shell.tgz_extract self#get_prj_filename self#get_pwdir;
@@ -451,7 +462,7 @@ class globalState = fun () ->
     if not (app_state=NoActiveProject) then
       try
       begin
-        let old_prj_name = self#get_prj_name in (* To do: Jean, a che serve questo? *)
+        let old_prj_name = self#get_prj_name in (* To do: Jean, what's this for? *)
         let new_prj_name = (self#default_prj_name ~arg:(Some x) ()) in
 
         (* Set the project name *)

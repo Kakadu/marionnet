@@ -1,6 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
-   Updated by Luca Saiu in 2008.
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -24,11 +23,20 @@ open StrExtra;;
 open UnixExtra;;
 open Hashmap;;
 open Ledgrid;;
-open Unix ;;
+open Unix;;
+open UnixExtra;;
 open Gtk.Tags;;
 
 let blinker_thread_socket_file_name =
-  Filename.temp_file "blinker-server-socket-" "";;
+  let parent =
+    try
+      Some (Global_options.get_project_working_directory ())
+    with _ ->
+      None in
+  Unix.temp_file
+    ?parent
+    ~prefix:".marionnet-blinker-server-socket-"
+    ();;
 
 class ledgrid_manager =
 object (self)
@@ -239,7 +247,7 @@ object (self)
                 Hashmap.remove id_to_data id)
               hashmap_as_alist);
 
-  val blinker_thread = ref None
+  val blinker_thread = ref None;
 
   method blinker_thread =
     match !blinker_thread with

@@ -30,7 +30,8 @@ assert (select_timeout > 0.0);;
 let inter_keepalive_interval = timeout_interval /. 5.0;;
 
 (** To do: this should be extracted from the configuration file: *)
-let socket_name = "/tmp/marionnet-daemon-socket";;
+let socket_name =
+  Initialization.configuration#string "SOCKET_NAME";;
 
 (** How often we should print information about the currently allocated
     resources: *)

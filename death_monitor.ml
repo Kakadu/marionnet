@@ -78,26 +78,24 @@ let rec is_alive_using_proc pid =
     end;;
 
 (** This is slower than is_alive_using_proc, but also works with non-root users: *)
-let rec is_alive_using_grep pid =
-  let command_line =
-    Printf.sprintf "ps -p %i &> /dev/null" pid in
-  match Unix.system command_line with
-    Unix.WEXITED 0 ->
-      true
-  | Unix.WEXITED _ ->
-      false
-  | Unix.WSIGNALED _ | Unix.WSTOPPED _ -> begin
-      (* retry: *)
-      Printf.printf "is_alive_using_grep: retrying\n";
-      flush_all ();
-      is_alive_using_grep pid;
-  end;;
+let rec is_alive_using_ps pid =
+  let is_process_existing_command_line =
+    Printf.sprintf "LANGUAGE=C LC_ALL=C ps -p %i | grep '%i ' &> /dev/null" pid pid in
+  let is_existing_process_zombie_command_line =
+    Printf.sprintf "LANGUAGE=C LC_ALL=C ps -p %i | grep '%i ' | grep '<defunct>' &> /dev/null" pid pid in
+  if Unix.system is_process_existing_command_line = Unix.WEXITED 0 then
+    if Unix.system is_existing_process_zombie_command_line = Unix.WEXITED 0 then
+      false (* existing, but zombie *)
+    else
+      true (* existing, not zombie *)
+  else
+    false;; (* not existing *)
 
 let is_alive =
   if (Unix.getuid ()) = 0 then
     is_alive_using_proc
   else
-    is_alive_using_grep;;
+    is_alive_using_ps;;
 
 let rec is_taking_a_whole_cpu pid =
   let command_line1 =

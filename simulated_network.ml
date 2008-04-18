@@ -1061,7 +1061,7 @@ object(self)
     let process_name = Filename.basename process_name in
     let title = 
       Printf.sprintf
-        "Un processus (%s) permettant la simulation de %s est mort de façon inattendue"
+        "Un processus (%s) permettant la simulation de\n%s est mort de façon inattendue"
         process_name
         name in
     let message =

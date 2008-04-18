@@ -48,7 +48,7 @@ Random.self_init ();;
 let configuration =
   new Configuration_files.configuration
     ~software_name:"marionnet"
-    ~variables:["SOCKET_NAME";
+    ~variables:["MARIONNET_SOCKET_NAME";
                 "MARIONNET_BRIDGE";(* This is temporary: more than one bridge will be usable... *)
                 "MARIONNET_KEYBOARD_LAYOUT";
                 "MARIONNET_DEBUG";

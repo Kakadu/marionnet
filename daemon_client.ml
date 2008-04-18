@@ -23,7 +23,7 @@ open Daemon_parameters;;
 open Recursive_mutex;;
 
 let socket_name =
-  Initialization.configuration#string "SOCKET_NAME";;
+  Initialization.configuration#string "MARIONNET_SOCKET_NAME";;
 
 (** The mutex we use to avoid sending concurrent messages to the same socket
     from different threads: *)

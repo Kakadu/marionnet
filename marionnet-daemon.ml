@@ -27,11 +27,11 @@ open Hashmmap;;
 let configuration =
   new Configuration_files.configuration
     ~software_name:"marionnet"
-    ~variables:["SOCKET_NAME"]
+    ~variables:["MARIONNET_SOCKET_NAME"]
     ();;
 
 let socket_name =
-  configuration#string "SOCKET_NAME";;
+  configuration#string "MARIONNET_SOCKET_NAME";;
 
 (** Client identifiers are simply automatically-generated sequential
     integers: *)

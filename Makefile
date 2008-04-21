@@ -66,7 +66,7 @@ byte-libraries: ocamlbuild-stuff byte-libraries-local $(BYTE_LIBRARIES)
 
 # Build only libraries:
 libraries: libraries-local
-	if [ "$$( $(call NATIVE) )" == 'native' ]; then \
+	@(if [ "$$( $(call NATIVE) )" == 'native' ]; then \
 	  echo "Builing native libraries..."; \
 	  $(MAKE) native-libraries; \
 	else \
@@ -77,19 +77,19 @@ libraries: libraries-local
 	  $(MAKE) byte-libraries; \
 	else \
 	  echo "NOT builing bytecode libraries..."; \
-	fi
+	fi)
 
 # Build only native programs:
 native-programs: ocamlbuild-stuff native-programs-local $(NATIVE_PROGRAMS) $(ROOT_NATIVE_PROGRAMS)
 	$(call BUILD_FROM_STUFF, native-programs, $(NATIVE_PROGRAMS) $(ROOT_NATIVE_PROGRAMS))
 
 # Build only bytecode programs:
-byte-programs: ocamlbuild-stuff byte-programs-local $(BYTE_PROGRAMS) $(BYTE_ROOT_PROGRAMS)
-	$(call BUILD_FROM_STUFF, byte-programs, $(BYTE_PROGRAMS) $(BYTE_ROOT_PROGRAMS))
+byte-programs: ocamlbuild-stuff byte-programs-local $(BYTE_PROGRAMS) $(ROOT_BYTE_PROGRAMS)
+	$(call BUILD_FROM_STUFF, byte-programs, $(BYTE_PROGRAMS) $(ROOT_BYTE_PROGRAMS))
 
 # Build only programs:
 programs: programs-local
-	if [ "$$( $(call NATIVE) )" == 'native' ]; then \
+	@(if [ "$$( $(call NATIVE) )" == 'native' ]; then \
 	  echo "Builing native programs..."; \
 	  $(MAKE) native-programs; \
 	else \
@@ -100,7 +100,7 @@ programs: programs-local
 	  $(MAKE) byte-programs; \
 	else \
 	  echo "NOT builing bytecode programs..."; \
-	fi
+	fi)
 
 # 'all' is just an alias for 'main':
 all: main
@@ -297,7 +297,7 @@ install-programs: programs install-programs-local
 	shopt -s nullglob; \
 	for file in $(OTHER_PROGRAMS_TO_INSTALL) _build/*.byte _build/*.native; do \
 	  basename=`basename $$file`; \
-	  if echo " $(ROOT_PROGRAMS) " | grep -q " $$basename "; then \
+	  if echo " $(ROOT_NATIVE_PROGRAMS) $(ROOT_BYTE_PROGRAMS) " | grep -q " $$basename "; then \
 	    echo "Installing "`basename $$file`" as a \"root program\" into $$prefix/sbin..."; \
 	    cp -a $$file $$prefix/sbin/; \
 	  else \
@@ -315,7 +315,7 @@ uninstall-programs: main uninstall-programs-local
 	shopt -s nullglob; \
 	for file in $(OTHER_PROGRAMS_TO_INSTALL) _build/*.byte _build/*.native; do \
 	  basename=`basename $$file`; \
-	  if echo " $(ROOT_PROGRAMS) " | grep -q " $$basename "; then \
+	  if echo " $(ROOT_NATIVE_PROGRAMS) $(ROOT_BYTE_PROGRAMS) " | grep -q " $$basename "; then \
 	    echo -e "Removing the \"root program\" $$basename from $$prefix/sbin..."; \
 	    export pathname=$$prefix/sbin/`basename $$file`; \
 	  else \
@@ -334,8 +334,8 @@ OTHER_LIBRARY_FILES_TO_INSTALL =
 install-libraries: libraries install-libraries-local
 	@($(call READ_CONFIG,libraryprefix); 		     \
 	$(call READ_META,name);        			     \
-	if [ "$(LIBRARIES)" == "" ]; then \
-	  echo "There are no libraries to install: ok, no problem..."; \
+	if [ "$(NATIVE_LIBRARIES) $(BYTE_LIBRARIES)" == " " ]; then \
+	  echo "There are no native libraries to install: ok, no problem..."; \
 	else \
 	  (echo "Installing $$name libraries into $$libraryprefix/$$name/..."; \
 	  (mkdir -p $$libraryprefix/$$name &> /dev/null || true); \
@@ -395,7 +395,7 @@ dist-binary: dist-binary-local main #ocamldoc
 	for x in $(FILES_TO_ALWAYS_DISTRIBUTE) share doc etc; do \
 	  cp $$x _build/$$directoryname &> /dev/null; \
 	done; \
-	for x in $(PROGRAMS) $(LIBRARIES); do \
+	for x in $(NATIVE_PROGRAMS) $(NATIVE_LIBRARIES) $(BYTE_PROGRAMS) $(BYTE_LIBRARIES); do \
 	  cp _build/$$x _build/$$directoryname/_build; \
 	done; \
 	for x in `find _build/ -name \*.cmi | grep -v /my$(OCAMLBUILD) | grep -v _build/$$directoryname` \

@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# This is the revision of 2008-04-16.
+# This is the revision of 2008-04-21.
 
 
 ######################################################################
@@ -34,6 +34,8 @@
 # override these, but only to define the project-dependant '-local'
 # versions:
 
+OCAMLBUILD = $$( $(call OCAMLBUILD_COMMAND_LINE) )
+
 # The main target. Its implementation is entirely project-dependant:
 main: ocamlbuild-stuff main-local data libraries programs documentation
 	@(echo "Success.")
@@ -47,20 +49,58 @@ BUILD_FROM_STUFF = \
 	  echo "Ok, \"$$x\" was built with success.") || \
 	  (echo "Failed when building \"$$x\"."; exit -1); \
 	done)) && \
-	echo "Success: data were built.") || \
+	echo "Success: $(1) were built.") || \
 	(echo "Failure in building $(1)."; exit -1))
 
 # Build only data:
 data: ocamlbuild-stuff data-local $(DATA)
 	$(call BUILD_FROM_STUFF, data, $(DATA))
 
+# Build only native libraries:
+native-libraries: ocamlbuild-stuff native-libraries-local $(NATIVE_LIBRARIES)
+	$(call BUILD_FROM_STUFF, native-libraries, $(NATIVE_LIBRARIES))
+
+# Build only bytecode libraries:
+byte-libraries: ocamlbuild-stuff byte-libraries-local $(BYTE_LIBRARIES)
+	$(call BUILD_FROM_STUFF, byte-libraries, $(BYTE_LIBRARIES))
+
 # Build only libraries:
-libraries: ocamlbuild-stuff libraries-local $(LIBRARIES)
-	$(call BUILD_FROM_STUFF, libraries, $(LIBRARIES))
+libraries: libraries-local
+	if [ "$$( $(call NATIVE) )" == 'native' ]; then \
+	  echo "Builing native libraries..."; \
+	  $(MAKE) native-libraries; \
+	else \
+	  echo "NOT builing native libraries..."; \
+	fi; \
+	if [ "$$( $(call BYTE) )" == 'byte' ]; then \
+	  echo "Builing bytecode libraries..."; \
+	  $(MAKE) byte-libraries; \
+	else \
+	  echo "NOT builing bytecode libraries..."; \
+	fi
+
+# Build only native programs:
+native-programs: ocamlbuild-stuff native-programs-local $(NATIVE_PROGRAMS) $(ROOT_NATIVE_PROGRAMS)
+	$(call BUILD_FROM_STUFF, native-programs, $(NATIVE_PROGRAMS) $(ROOT_NATIVE_PROGRAMS))
+
+# Build only bytecode programs:
+byte-programs: ocamlbuild-stuff byte-programs-local $(BYTE_PROGRAMS) $(BYTE_ROOT_PROGRAMS)
+	$(call BUILD_FROM_STUFF, byte-programs, $(BYTE_PROGRAMS) $(BYTE_ROOT_PROGRAMS))
 
 # Build only programs:
-programs: ocamlbuild-stuff programs-local $(PROGRAMS) $(ROOT_PROGRAMS)
-	$(call BUILD_FROM_STUFF, programs, $(PROGRAMS) $(ROOT_PROGRAMS))
+programs: programs-local
+	if [ "$$( $(call NATIVE) )" == 'native' ]; then \
+	  echo "Builing native programs..."; \
+	  $(MAKE) native-programs; \
+	else \
+	  echo "NOT builing native programs..."; \
+	fi; \
+	if [ "$$( $(call BYTE) )" == 'byte' ]; then \
+	  echo "Builing bytecode programs..."; \
+	  $(MAKE) byte-programs; \
+	else \
+	  echo "NOT builing bytecode programs..."; \
+	fi
 
 # 'all' is just an alias for 'main':
 all: main
@@ -73,7 +113,7 @@ world: world-local main
 # Generate ocamldoc documentation:
 ocamldoc: ocamldoc-local
 	@($(call READ_META, name); \
-	ocamlbuild $$name.docdir/index.html &> /dev/null && \
+	$(OCAMLBUILD) $$name.docdir/index.html &> /dev/null && \
 	rm $$name.docdir && \
 	echo 'Success.'; \
 	echo 'The documentation has been built with success under _build/')
@@ -242,10 +282,11 @@ doc: documentation
 OTHER_PROGRAMS_TO_INSTALL =
 
 # These are programs to be installed into $prefix/sbin instead of $prefix/bin:
-ROOT_PROGRAMS =
+ROOT_NATIVE_PROGRAMS =
+ROOT_BYTE_PROGRAMS =
 
 # Install the programs from this package into $prefix/bin:
-install-programs: main install-programs-local
+install-programs: programs install-programs-local
 	@($(call READ_CONFIG, prefix); 		     \
 	$(call READ_META, name);   		     \
 	echo "Creating $$prefix/bin/..."; \
@@ -290,7 +331,7 @@ uninstall-programs: main uninstall-programs-local
 OTHER_LIBRARY_FILES_TO_INSTALL =
 
 # Install the library in this package into the path chosen at configuration time:
-install-libraries: main install-libraries-local
+install-libraries: libraries install-libraries-local
 	@($(call READ_CONFIG,libraryprefix); 		     \
 	$(call READ_META,name);        			     \
 	if [ "$(LIBRARIES)" == "" ]; then \
@@ -357,13 +398,13 @@ dist-binary: dist-binary-local main #ocamldoc
 	for x in $(PROGRAMS) $(LIBRARIES); do \
 	  cp _build/$$x _build/$$directoryname/_build; \
 	done; \
-	for x in `find _build/ -name \*.cmi | grep -v /myocamlbuild | grep -v _build/$$directoryname` \
-	         `find _build/ -name \*.mli | grep -v /myocamlbuild | grep -v _build/$$directoryname` \
-	         `find _build/ -name \*.cma | grep -v /myocamlbuild | grep -v _build/$$directoryname` \
-	         `find _build/ -name \*.cmxa | grep -v /myocamlbuild | grep -v _build/$$directoryname` \
-	         `find _build/ -name \*.a | grep -v /myocamlbuild | grep -v _build/$$directoryname` \
-	         `find _build/ -name \*.byte | grep -v /myocamlbuild | grep -v _build/$$directoryname` \
-	         `find _build/ -name \*.native | grep -v /myocamlbuild | grep -v _build/$$directoryname` \
+	for x in `find _build/ -name \*.cmi | grep -v /my$(OCAMLBUILD) | grep -v _build/$$directoryname` \
+	         `find _build/ -name \*.mli | grep -v /my$(OCAMLBUILD) | grep -v _build/$$directoryname` \
+	         `find _build/ -name \*.cma | grep -v /my$(OCAMLBUILD) | grep -v _build/$$directoryname` \
+	         `find _build/ -name \*.cmxa | grep -v /my$(OCAMLBUILD) | grep -v _build/$$directoryname` \
+	         `find _build/ -name \*.a | grep -v /my$(OCAMLBUILD) | grep -v _build/$$directoryname` \
+	         `find _build/ -name \*.byte | grep -v /my$(OCAMLBUILD) | grep -v _build/$$directoryname` \
+	         `find _build/ -name \*.native | grep -v /my$(OCAMLBUILD) | grep -v _build/$$directoryname` \
 	; do \
 	  cp $$x _build/$$directoryname/_build; \
 	done; \
@@ -418,7 +459,11 @@ targets:
 main-local:
 world-local:
 data-local:
+native-libraries-local:
+byte-libraries-local:
 libraries-local:
+native-programs-local:
+byte-programs-local:
 programs-local:
 ocamldoc-local:
 install-local:
@@ -449,8 +494,10 @@ all-local:
 # Default compilation flags. The user *is* expected to override or
 # extend these:
 DATA =
-LIBRARIES =
-PROGRAMS =
+NATIVE_LIBRARIES =
+BYTE_LIBRARIES =
+NATIVE_PROGRAMS =
+BYTE_PROGRAMS =
 COMPILE_OPTIONS = -thread
 DIRECTORIES_TO_INCLUDE =
 LIBRARIES_TO_LINK =
@@ -461,22 +508,61 @@ LIBRARIES_TO_LINK =
 
 # Bytecode libraries:
 %.cma: ocamlbuild-stuff
-	@(ocamlbuild $@)
+	@($(OCAMLBUILD) $@)
 # Native libraries:
 %.cmxa: ocamlbuild-stuff
-	@(ocamlbuild $@)
+	@($(OCAMLBUILD) $@)
 # Bytecode programs:
 %.byte: ocamlbuild-stuff
-	@(ocamlbuild $@; \
+	@($(OCAMLBUILD) $@; \
 	rm $@)
 # Native programs:
 %.native: ocamlbuild-stuff
-	@(ocamlbuild $@; \
+	@($(OCAMLBUILD) $@; \
 	rm $@)
 
 
 #####################################################################
 # Some macros, used internally and possibly by Makefile.local:
+
+# Return 'native' if we have a native compiler available, otherwise
+# ''.
+NATIVE = \
+	(if which ocamlopt.opt &> /dev/null || which ocamlopt &> /dev/null ; then \
+	  echo 'native'; \
+	else \
+	  echo ''; \
+	fi)
+
+# Return 'byte' if we have a bytecode compiler available, otherwise
+# ''.
+BYTE = \
+	(if which ocamlc.opt &> /dev/null || which ocamlc &> /dev/null; then \
+	  echo 'byte'; \
+	else \
+	  echo ''; \
+	fi)
+
+# Return 'native' if we have a native compiler available, otherwise
+# 'byte' if we have a byte compiler; otherwise fail.
+NATIVE_OR_BYTE = \
+	(if [ "$$( $(call NATIVE) )" == 'native' ]; then \
+	  echo 'native'; \
+	elif [ "$$( $(call BYTE) )" == 'byte' ]; then \
+	  echo 'byte'; \
+	else \
+	  echo 'FATAL ERROR: could not find an ocaml compiler' ">$$native< >$$byte<"; \
+	  exit -1; \
+	fi)
+
+# Return the proper command line for ocamlbuild, including an option
+# -byte-plugin if needed:
+OCAMLBUILD_COMMAND_LINE = \
+	(if [ $$( $(call NATIVE_OR_BYTE) ) == 'byte' ]; then \
+	  echo 'ocamlbuild -byte-plugin'; \
+	else \
+	  echo 'ocamlbuild'; \
+	fi)
 
 # Macro extracting, via source, the value associated to some keys
 # $(2),..,$(9) in a file $(1).
@@ -582,7 +668,7 @@ PROJECT_NAME = \
 	$$( $(call GREP_AND_TEST,META,name); \
 	echo $$name )
 
-# Automatically generate _tags and the OCamlBuild plugin. Note that the
+# Automatically generate _tags and the $(OCAMLBUILD) plugin. Note that the
 # target name is never created as a file. This is intentional: those
 # two targets should be re-generated every time.
 ocamlbuild-stuff: _tags myocamlbuild.ml meta.ml
@@ -592,7 +678,7 @@ ocamlbuild-stuff: _tags myocamlbuild.ml meta.ml
 # Every subdirectory containing sources is included. This may be more than what's needed,
 # but it will always work and require no per-project customization. sed is used to remove
 # the initial './' from each directory. We refer some settings implemented in our (still
-# automatically generated) OCamlBuild plugin.
+# automatically generated) $(OCAMLBUILD) plugin.
 _tags:
 	@(echo -e "# This file is automatically generated. Please don't edit it.\n" > $@; \
 	for directory in $$( $(call SOURCE_SUBDIRECTORIES) ); do \
@@ -606,7 +692,7 @@ _tags:
 	echo "<**/*.native>: ourincludesettings, ournativelinksettings" >> $@; \
 	echo "<**/*.ml>: ourocamldocsettings" >> $@)
 
-# We automatically generate the OCamlBuild plugin customizing the build process
+# We automatically generate the $(OCAMLBUILD) plugin customizing the build process
 # with our user-specified options, include directories, etc.:
 myocamlbuild.ml:
 	@($(call READ_CONFIG, libraryprefix); \

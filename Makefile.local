@@ -20,8 +20,10 @@ DIRECTORIES_TO_INCLUDE = lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 OBJECTS_TO_LINK = gtkThread
 #PROGRAMS = marionnet.byte marionnet.native
-PROGRAMS = marionnet.byte
-ROOT_PROGRAMS = marionnet-daemon.byte
+BYTE_PROGRAMS = marionnet.byte
+ROOT_BYTE_PROGRAMS = marionnet-daemon.byte
+NATIVE_PROGRAMS = marionnet.native
+ROOT_NATIVE_PROGRAMS = marionnet-daemon.native
 #ROOT_PROGRAMS = marionnet-daemon.byte marionnet-daemon.native
 OTHER_PROGRAMS_TO_INSTALL = scripts/marionnet-can-directory-host-sparse-files
 

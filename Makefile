@@ -41,16 +41,18 @@ main: ocamlbuild-stuff main-local data libraries programs documentation
 	@(echo "Success.")
 
 BUILD_FROM_STUFF = \
-	@( (echo "Building $(1)..."; \
+	@( echo "Building $(1)..."; \
 	shopt -s execfail; set -e; \
-	( (for x in $(2); do \
-	  (echo "Building \"$$x\"..." && \
-	  $(MAKE) $$x && \
-	  echo "Ok, \"$$x\" was built with success.") || \
-	  (echo "Failed when building \"$$x\"."; exit -1); \
-	done)) && \
-	echo "Success: $(1) were built.") || \
-	(echo "Failure in building $(1)."; exit -1))
+	for x in $(2); do \
+	  echo "Building \"$$x\"..."; \
+	  if $(MAKE) $$x; then \
+	    echo "Ok, \"$$x\" was built with success."; \
+	  else \
+	    echo "FAILED when building \"$$x\"."; \
+	    exit -1; \
+	  fi; \
+	done; \
+	echo "Success: $(1) were built.")
 
 # Build only data:
 data: ocamlbuild-stuff data-local $(DATA)
@@ -64,19 +66,38 @@ native-libraries: ocamlbuild-stuff native-libraries-local $(NATIVE_LIBRARIES)
 byte-libraries: ocamlbuild-stuff byte-libraries-local $(BYTE_LIBRARIES)
 	$(call BUILD_FROM_STUFF, byte-libraries, $(BYTE_LIBRARIES))
 
-# Build only libraries:
+# Build libraries; bytecode, native, or both:
 libraries: libraries-local
-	@(if [ "$$( $(call NATIVE) )" == 'native' ]; then \
-	  echo "Builing native libraries..."; \
-	  $(MAKE) native-libraries; \
+	@($(call BUILD_NATIVE_ANDOR_BYTECODE,libraries) ) # Spaces are ok
+
+# Build programs; bytecode, native, or both:
+programs: programs-local
+	@($(call BUILD_NATIVE_ANDOR_BYTECODE,programs) ) # Spaces are ok
+
+# Build the native and/or bytecode version of $(1). $(1) may be either
+# "libraries" or "programs". *Don't* put a space before the argument.
+BUILD_NATIVE_ANDOR_BYTECODE = \
+	(if [ "$$( $(call NATIVE) )" == 'native' ]; then \
+	  echo "Builing native $(1)..."; \
+	  if $(MAKE) native-$(1); then \
+	    echo "Success: native $(1) were built."; \
+	  else \
+	    echo "FAILURE: could not build native $(1)."; \
+	    exit -1; \
+	  fi; \
 	else \
-	  echo "NOT builing native libraries..."; \
+	  echo "NOT builing native $(1)..."; \
 	fi; \
 	if [ "$$( $(call BYTE) )" == 'byte' ]; then \
-	  echo "Builing bytecode libraries..."; \
-	  $(MAKE) byte-libraries; \
+	  echo "Builing bytecode $(1)..."; \
+	  if $(MAKE) byte-$(1); then \
+	    echo "Success: bytecode $(1) were built."; \
+	  else \
+	    echo "FAILURE: could not build bytecode $(1)."; \
+	    exit -1; \
+	  fi; \
 	else \
-	  echo "NOT builing bytecode libraries..."; \
+	  echo "NOT builing bytecode $(1)..."; \
 	fi)
 
 # Build only native programs:
@@ -86,21 +107,6 @@ native-programs: ocamlbuild-stuff native-programs-local $(NATIVE_PROGRAMS) $(ROO
 # Build only bytecode programs:
 byte-programs: ocamlbuild-stuff byte-programs-local $(BYTE_PROGRAMS) $(ROOT_BYTE_PROGRAMS)
 	$(call BUILD_FROM_STUFF, byte-programs, $(BYTE_PROGRAMS) $(ROOT_BYTE_PROGRAMS))
-
-# Build only programs:
-programs: programs-local
-	@(if [ "$$( $(call NATIVE) )" == 'native' ]; then \
-	  echo "Builing native programs..."; \
-	  $(MAKE) native-programs; \
-	else \
-	  echo "NOT builing native programs..."; \
-	fi; \
-	if [ "$$( $(call BYTE) )" == 'byte' ]; then \
-	  echo "Builing bytecode programs..."; \
-	  $(MAKE) byte-programs; \
-	else \
-	  echo "NOT builing bytecode programs..."; \
-	fi)
 
 # 'all' is just an alias for 'main':
 all: main
@@ -514,13 +520,22 @@ LIBRARIES_TO_LINK =
 	@($(OCAMLBUILD) $@)
 # Bytecode programs:
 %.byte: ocamlbuild-stuff
-	@($(OCAMLBUILD) $@; \
-	rm $@)
+	@($(call BUILD_WITH_OCAMLBUILD, $@) )
 # Native programs:
 %.native: ocamlbuild-stuff
-	@($(OCAMLBUILD) $@; \
-	rm $@)
+	@($(call BUILD_WITH_OCAMLBUILD, $@) )
 
+# Build the target $(1) using OCamlBuild. ocamlbuild-stuff is assumed
+# to be already generated.
+BUILD_WITH_OCAMLBUILD = \
+  $(OCAMLBUILD) $@; \
+  if [ -e $@ ]; then \
+    rm $@; \
+    echo "Success: $@ was built"; \
+  else \
+    echo "FAILURE when building $@"; \
+    exit -1; \
+  fi
 
 #####################################################################
 # Some macros, used internally and possibly by Makefile.local:

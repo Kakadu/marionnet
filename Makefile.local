@@ -22,8 +22,12 @@ OBJECTS_TO_LINK = gtkThread
 #PROGRAMS = marionnet.byte marionnet.native
 BYTE_PROGRAMS = marionnet.byte
 ROOT_BYTE_PROGRAMS = marionnet-daemon.byte
-NATIVE_PROGRAMS = marionnet.native
-ROOT_NATIVE_PROGRAMS = marionnet-daemon.native
+
+# To do: these should be enabled for release, but they take too long to
+# build every time...
+#NATIVE_PROGRAMS = marionnet.native
+#ROOT_NATIVE_PROGRAMS = marionnet-daemon.native
+
 #ROOT_PROGRAMS = marionnet-daemon.byte marionnet-daemon.native
 OTHER_PROGRAMS_TO_INSTALL = scripts/marionnet-can-directory-host-sparse-files
 

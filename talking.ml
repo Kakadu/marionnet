@@ -362,15 +362,17 @@ let check_pathname_validity pathname =
   else
     failwith "The pathname "^ pathname ^" contains funny characters, and we don't support it";;
 
-(** Check that the given pathname is acceptable, and that it has extension ".mar" or
-    no extension; if the argument has extension ".mar" then just return it; it it's
-    otherwise valid but has no extension then return the argument with ".mar" appended;
-    if it's invalid or has an extension different from ".mar" then show an appropriate
+(** Check that the given pathname is acceptable, and that it has the correct extension or
+    no extension; if the argument has the corret extension then just return it; it it's
+    otherwise valid but has no extension then return the argument with the extension
+    appended; if it's invalid or has a wrong extension then show an appropriate
     error message and raise an exception. 
     This function is thought as a 'filter' thru which user-supplied filenames should
-    be always sent before use *)
-let check_project_path_name_validity_and_add_extension_if_needed path_name =
+    be always sent before use. The optional argument extension should be a string with
+    *no* dot *)
+let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path_name =
   let directory = Filename.dirname path_name in
+  let correct_extension = "." ^ extension in
   let directory =
     try
       check_pathname_validity directory
@@ -383,7 +385,7 @@ let check_project_path_name_validity_and_add_extension_if_needed path_name =
       failwith "the given directory name is invalid";      
     end in
   let path_name = Filename.basename path_name in
-  let check_project_chopped_basename_validity chopped_basename =
+  let check_chopped_basename_validity chopped_basename =
     if Str.wellFormedName ~allow_dash:true chopped_basename then
       chopped_basename
     else begin
@@ -394,31 +396,35 @@ let check_project_path_name_validity_and_add_extension_if_needed path_name =
         ();
       failwith "the given file name is invalid";
     end in
-  if Filename.check_suffix path_name ".mar" then
-    (* path_name does end with ".mar"; just check that its chopped version is ok: *)
+  if Filename.check_suffix path_name correct_extension then
+    (* path_name does end with the correct extension; just check that its chopped version is ok: *)
     Printf.sprintf
-      "%s/%s.mar"
+      "%s/%s%s"
       directory
-      (check_project_chopped_basename_validity (Filename.chop_extension path_name))
+      (check_chopped_basename_validity (Filename.chop_extension path_name))
+      correct_extension
   else
-    (* path_name doesn't end with ".mar": *)
+    (* path_name doesn't end with the correct extension: *)
     try
       let _ = Filename.chop_extension path_name in
-      (* There is an extension but it's not ".mar"; fail: *)
+      (* There is an extension but it's not the correct one; fail: *)
       Simple_dialogs.error
         "Extension de fichier non admise"
         (Printf.sprintf
-           "Le fichier \"%s\" doit avoir une extension \".mar\", ou aucune (dans ce cas l'extension \".mar\" sera automatiquement ajoutée)."
-           path_name)
+           "Le fichier \"%s\" doit avoir une extension \"%s\", ou aucune (dans ce cas l'extension \"%s\" sera automatiquement ajoutée)."
+           path_name
+           correct_extension
+           correct_extension)
         ();
-      failwith "the given file name has an extension but it's not \".mar\".";
+      failwith ("the given file name has an extension but it's not \"" ^ correct_extension ^ "\".");
     with Invalid_argument _ ->
       (* There is no extension; just check that the filename is otherwise valid, and
          add the extension: *)
       Printf.sprintf
-        "%s/%s.mar"
+        "%s/%s%s"
         directory
-        (check_project_chopped_basename_validity path_name);;
+        (check_chopped_basename_validity path_name)
+        correct_extension;;
 
 
 (* **************************************** *
@@ -482,7 +488,8 @@ let all_files     () = let f = GFile.filter ~name:"All" () in f#add_pattern "*" 
 let script_filter () = GFile.filter ~name:"Scripts Shell/Python (*.sh *.py)"  ~patterns:[ "*.sh"; "*.py" ] () ;;
 let mar_filter    () = GFile.filter ~name:"Marionnet projects (*.mar)" ~patterns:[ "*.mar"; ] () ;;
 let xml_filter    () = GFile.filter ~name:"XML files (*.xml)" ~patterns:[ "*.xml"; "*.XML" ] () ;;
-let jpeg_filter   () = GFile.filter ~name:"JPEG files (*.jpg *.jpeg)" ~patterns:[ "*.jpg"; "*.JPG"; "*.jpeg"; "*.JPEG" ] () let png_filter    () = GFile.filter ~name:"PNG files (*.png)" ~patterns:[ "*.png"; "*.PNG" ] () ;;
+let jpeg_filter   () = GFile.filter ~name:"JPEG files (*.jpg *.jpeg)" ~patterns:[ "*.jpg"; "*.JPG"; "*.jpeg"; "*.JPEG" ] ();;
+let png_filter    () = GFile.filter ~name:"PNG files (*.png)" ~patterns:[ "*.png"; "*.PNG" ] () ;;
 
 (** Filters for Marionnet *)
 type marfilter = MAR | ALL | IMG | SCRIPT | XML | JPEG | PNG ;;
@@ -673,7 +680,7 @@ module Talking_PROJET_NOUVEAU = struct
        let cmd = (new usercmd r) in
        let fname = cmd#filename in
        let fname =
-         check_project_path_name_validity_and_add_extension_if_needed fname in
+         check_path_name_validity_and_add_extension_if_needed fname in
        prerr_endline (myname^".react: save_current="^(string_of_bool cmd#save_current)); 
        prerr_endline (myname^".react: filename="^fname); 
        (if (st#active_project) && (cmd#save_current) then st#save_project ());
@@ -813,7 +820,7 @@ module Talking_PROJET_ENREGISTRER_SOUS = struct
  (** The type of command provided by user by this graphical dialog *)
  class usercmd = fun (r: (string,string) env) -> object 
    method filename   : string =
-     check_project_path_name_validity_and_add_extension_if_needed (r#get "filename")
+     check_path_name_validity_and_add_extension_if_needed (r#get "filename")
  end;;
 
  (** The correspondent reaction of the application for the command given by user *)
@@ -866,7 +873,7 @@ module Talking_PROJET_COPIER_SOUS = struct
  (** The type of command provided by user by this graphical dialog *)
  class usercmd = fun (r: (string,string) env) -> object 
    method filename   : string =
-     check_project_path_name_validity_and_add_extension_if_needed (r#get "filename")
+     check_path_name_validity_and_add_extension_if_needed (r#get "filename")
  end;;
 
  (** The correspondent reaction of the application for the command given by user *)
@@ -1042,7 +1049,8 @@ module Talking_PROJET_EXPORTER_IMAGE = struct
  (** The correspondent reaction of the application for the command given by user *)
  let react (st:globalState) (msg: (string,string) env option) = match msg with
  | Some r -> 
-     let filename =  r#get("filename") in
+     let filename =
+       check_path_name_validity_and_add_extension_if_needed ~extension:"png" (r#get "filename") in
      prerr_endline ("talking_PROJET_EXPORTER_IMAGE.react: filename="^filename); 
      begin
        try

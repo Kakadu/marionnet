@@ -210,6 +210,61 @@ Continuing anyway."
     ();
 end;;
 
+(* To do: move this into UnixExtra or something like that: *)
+(** Run system with the given argument, and raise exception in case of failure;
+    return unit on success. *)
+let system_or_fail command_line =
+  Printf.printf "Executing \'%s\'...\n" command_line;
+  flush_all ();
+  match Unix.system command_line with
+    Unix.WEXITED 0 ->
+      ()
+  | Unix.WEXITED n ->
+      failwith (Printf.sprintf "Unix.system: the process exited with %i" n)
+  | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
+      failwith "Unix.system: the process was signaled or stopped";;
+
+(** Make sure that the user installed all the needed software: *)
+let check_dependency command_line error_message =
+  try
+    system_or_fail command_line;
+  with e ->
+    Simple_dialogs.error
+      "FRENCH Unsatisfied dependency"
+      (error_message ^ "\nFRENCH Continuing anyway, but *some important features will be missing*.")
+      ();;
+
+(** Check whether we have UML computer filesystems: *)
+check_dependency
+  (Printf.sprintf
+    "ls -l %s/machine-default &> /dev/null"
+    Pathnames.marionnet_home_filesystems)
+  "FRENCH You don't have a default filesystem for virtual computers";;
+
+(** Check whether we have UML router filesystems: *)
+check_dependency
+  (Printf.sprintf
+    "ls -l %s/router-default &> /dev/null"
+    Pathnames.marionnet_home_filesystems)
+  "FRENCH You don't have a default filesystem for virtual routers";;
+
+(** Check whether we have UML kernels: *)
+check_dependency
+  (Printf.sprintf
+    "ls -l %s/linux-default &> /dev/null"
+    Pathnames.marionnet_home_kernels)
+  "FRENCH You don't have a default UML kernel";;
+
+(** Check whether we have (our patched) VDE: *)
+check_dependency
+  "which vde_switch &> /dev/null"
+  "FRENCH You don't have VDE";;
+
+(** Check whether we have Graphviz: *)
+check_dependency
+  "which dot &> /dev/null"
+  "FRENCH You don't have Graphviz";;
+
 (** Set the main window icon (which may be the exam icon...), and the window title: *)
 st#mainwin#toplevel#set_icon (Some Icon.icon_pixbuf);;
 st#mainwin#window_MARIONNET#set_title Command_line.window_title;;

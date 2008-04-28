@@ -57,6 +57,10 @@ let configuration =
                 "MARIONNET_DVI_READER";
                 "MARIONNET_HTML_READER";
                 "MARIONNET_TEXT_EDITOR";
+                (* *Optional* configuration variables: *)
+                "MARIONNET_PREFIX";
+                "MARIONNET_FILESYSTEMS_PATH";
+                "MARIONNET_KERNELS_PATH";
               ]
     ();;
 

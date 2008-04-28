@@ -18,14 +18,33 @@ open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 
 Printf.printf "Setting up directory path names for Marionnet...\n";;
 
-(* Fail immediately if the marionnet installation directory is not defined; otherwise
-   store it: *)
+(** Return the value of the given configuration variable, if it's defined
+    as a non-empty string; otherwise return the second argument: *)
+let configuration_variable_or variable_name default_value =
+  let fallback_value =
+    default_value ^ "/" in
+  try
+    let variable_value =
+      Initialization.configuration#string variable_name in
+    if variable_value = "" then
+      default_value ^ "/"
+    else
+      fallback_value
+  with Not_found ->
+    fallback_value;;
+
 let marionnet_home =
-  Meta.prefix ^ "/share/" ^ Meta.name;;
+  configuration_variable_or
+    "MARIONNET_PREFIX"
+    (Meta.prefix ^ "/share/" ^ Meta.name);;
 let marionnet_home_filesystems =
-  marionnet_home^"/filesystems/";;
+  configuration_variable_or
+    "MARIONNET_FILESYSTEMS_DIRECTORY"
+    (marionnet_home^"/filesystems/");;
 let marionnet_home_kernels =
-  marionnet_home^"/kernels/";;
+  configuration_variable_or
+    "MARIONNET_KERNELS_PATH"
+    (marionnet_home^"/kernels/");;
 let marionnet_home_images =
   marionnet_home^"/images/";;
 let marionnet_home_bin =

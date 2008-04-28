@@ -37,10 +37,10 @@ marionnet.byte: version.ml gui.ml
 marionnet.native: version.ml gui.ml
 
 run: marionnet.byte
-	(export WORKING=`pwd`; $$WORKING/_build/marionnet.byte) | tee /tmp/LOG
+	(export WORKING=`pwd`; OCAMLRUNPARAM="b" $$WORKING/_build/marionnet.byte) | tee /tmp/LOG
 
 runexam: marionnet.byte
-	(export WORKING=`pwd`; $$WORKING/_build/marionnet.byte --exam) | tee /tmp/LOG
+	(export WORKING=`pwd`; OCAMLRUNPARAM="b" $$WORKING/_build/marionnet.byte --exam) | tee /tmp/LOG
 
 runopt: marionnet.native
 	(export WORKING=`pwd`; $$WORKING/_build/marionnet.native) | tee /tmp/LOG

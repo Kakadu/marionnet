@@ -257,7 +257,7 @@ check_dependency
 
 (** Check whether we have (our patched) VDE: *)
 check_dependency
-  "which vde_switch &> /dev/null"
+  ("which `basename " ^ Pathnames.vde_prefix ^ "vde_switch` &> /dev/null")
   "FRENCH You don't have VDE";;
 
 (** Check whether we have Graphviz: *)

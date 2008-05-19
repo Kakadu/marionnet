@@ -61,6 +61,7 @@ let configuration =
                 "MARIONNET_PREFIX";
                 "MARIONNET_FILESYSTEMS_PATH";
                 "MARIONNET_KERNELS_PATH";
+                "MARIONNET_VDE_PREFIX";
               ]
     ();;
 

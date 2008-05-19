@@ -50,6 +50,17 @@ let marionnet_home_images =
 let marionnet_home_bin =
   marionnet_home^"/bin/";;
 
+(** The prefix to prepend to VDE executables; this allows us to install
+    patched versions in an easy way, before our changes are integrated
+    into VDE's mainline... *)
+let vde_prefix =
+  try
+    Initialization.configuration#string "MARIONNET_VDE_PREFIX"
+  with _ ->
+    "";;
+
+Printf.printf "the VDE prefix is %s\n" vde_prefix;;
+
 (* Enter the right directory: *)
 try
   Unix.chdir marionnet_home;

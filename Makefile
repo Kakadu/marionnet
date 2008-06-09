@@ -34,9 +34,6 @@
 # override these, but only to define the project-dependant '-local'
 # versions:
 
-# Makefiles (this one as those in other parts) use extensively the bash shell
-SHELL=/bin/bash
-
 OCAMLBUILD = $$( $(call OCAMLBUILD_COMMAND_LINE) )
 
 # The main target. Its implementation is entirely project-dependant:

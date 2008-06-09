@@ -240,7 +240,7 @@ object (self)
       afresh with a new network: *)
   method reset =
     (* print_string "\n\n*************** LEDgrid_manager: reset was called.\n\n"; *)
-    let hashmap_as_alist = Hashmap.to_alist id_to_data in
+    let hashmap_as_alist = Hashmap.to_list id_to_data in
     ignore (List.map
               (fun (id, _) ->
                 self#destroy_device_ledgrid ~id ();

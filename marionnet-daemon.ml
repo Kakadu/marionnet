@@ -193,10 +193,10 @@ let destroy_resource client resource =
     (fun () ->
       try
         Printf.printf "Removing %s %s\n" (string_of_client client) (string_of_daemon_resource resource);
-        Printf.printf "** resource_map has %i bindings\n" (List.length resource_map#to_alist); flush_all ();
+        Printf.printf "** resource_map has %i bindings\n" (List.length resource_map#to_list); flush_all ();
         resource_map#remove_key_value_or_fail client resource;
         (* resource_map#remove_key_value client resource; *)
-        Printf.printf "** resource_map has %i bindings\n" (List.length resource_map#to_alist); flush_all ();
+        Printf.printf "** resource_map has %i bindings\n" (List.length resource_map#to_list); flush_all ();
         destroy_system_resource resource;
       with e -> begin
         Printf.printf "WARNING: failed (%s) when destroying %s for %s.\n"
@@ -234,7 +234,7 @@ let destroy_all_resources () =
               (Printexc.to_string e)
               (string_of_client client);
           end))
-        client_death_time_map#to_alist;;
+        client_death_time_map#to_list;;
 
 let keep_alive_client client =
   with_mutex the_daemon_mutex
@@ -357,7 +357,7 @@ let debugging_thread_thunk () =
         List.iter
           (fun (client, resource) ->
             Printf.printf "* %s (owned by %s)\n" (string_of_daemon_resource resource) (string_of_client client))
-          (resource_map#to_alist);
+          (resource_map#to_list);
         Printf.printf "--------------------------------------------\n";
         flush_all ();
         );
@@ -377,7 +377,7 @@ let timeout_thread_thunk () =
       (fun () -> 
         (* Get up-to-date death time information for all clients: *)
         let current_time = Unix.time () in
-        let client_death_times = client_death_time_map#to_alist in
+        let client_death_times = client_death_time_map#to_list in
         (* Kill all clients whose death time is past: *)
         List.iter
           (fun (client, death_time) ->

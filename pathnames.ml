@@ -39,7 +39,7 @@ let marionnet_home =
     (Meta.prefix ^ "/share/" ^ Meta.name);;
 let marionnet_home_filesystems =
   configuration_variable_or
-    "MARIONNET_FILESYSTEMS_DIRECTORY"
+    "MARIONNET_FILESYSTEMS_PATH"
     (marionnet_home^"/filesystems/");;
 let marionnet_home_kernels =
   configuration_variable_or

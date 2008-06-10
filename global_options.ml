@@ -38,7 +38,7 @@ let get_debug_mode () =
   with_mutex
     (fun () ->
       let result = !debug_mode in
-      Printf.printf "Are we in debug mode? %s\n" (if result then "YES" else "NO"); flush_all ();
+      Log.printf "Are we in debug mode? %s\n" (if result then "YES" else "NO"); flush_all ();
       result);;
 
 (** Automatically generate IP addresses: *)

@@ -726,14 +726,10 @@ class uml_process =
     | Some keyboard_layout ->
         ("keyboard_layout="^keyboard_layout) :: command_line_arguments in
   let command_line_arguments =
-    if debug_mode then
-      command_line_arguments @ 
-      ["con0=none"; "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none";
-       "ssl0="^console; "ssl1=none"; "ssl2=none"; "ssl3=none"; "ssl4=none"; "ssl5=none"; "ssl6=none";
-       "console=ttyS0"]
-    else
-      command_line_arguments @ 
-      ["ssl0="^console;] in
+    command_line_arguments @ 
+    ["con0=none"; "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none";
+     "ssl0="^console; "ssl1=none"; "ssl2=none"; "ssl3=none"; "ssl4=none"; "ssl5=none"; "ssl6=none";
+     "console=ttyS0"] in
 object(self)
   inherit process
       kernel_file_name

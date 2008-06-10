@@ -131,6 +131,8 @@ object(self)
         Initialization.configuration#string "MARIONNET_HTML_READER"
     | "text" ->
         Initialization.configuration#string "MARIONNET_TEXT_EDITOR"
+    | "auto" -> (* the file type in unknown: web browsers can open most everything... *)
+        Initialization.configuration#string "MARIONNET_HTML_READER"
     | _ ->
       failwith ("The format \"" ^ format ^ "\" is not supported");
 
@@ -238,6 +240,9 @@ object(self)
     let _ =
       self#add_string_column
         ~header:"Format"
+        ~default:(fun () -> String "auto") (* unknown format; this is usefule for
+                                              backward-compatibility, as this column
+                                              didn't exist in older Marionnet versions *)
         ~hidden:true
         () in
     (* Make internal data structures: no more columns can be added now: *)

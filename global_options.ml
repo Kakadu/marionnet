@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -37,7 +37,9 @@ let set_debug_mode value =
 let get_debug_mode () =
   with_mutex
     (fun () ->
-      !debug_mode);;
+      let result = !debug_mode in
+      Printf.printf "Are we in debug mode? %s\n" (if result then "YES" else "NO"); flush_all ();
+      result);;
 
 (** Automatically generate IP addresses: *)
 let autogenerate_ip_addresses_default =

@@ -73,7 +73,7 @@ let make_consumer =
   Thread.create 
     (fun () ->
       while true do
-        Printf.printf "From consumer %i: got %i\n" id (queue#dequeue);
+        Log.printf "From consumer %i: got %i\n" id (queue#dequeue);
         flush_all ();
       done)
     ();;
@@ -85,7 +85,7 @@ let make_producer x =
     (fun () ->
       while true do
         w#schedule 
-          (fun () -> Printf.printf "%i" x; flush_all ());
+          (fun () -> Log.printf "%i" x; flush_all ());
       done)
     ();;
 

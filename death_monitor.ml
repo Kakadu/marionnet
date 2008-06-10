@@ -67,13 +67,13 @@ let rec is_alive_using_proc pid =
   with Unix.Unix_error (Unix.ENOENT, "opendir", _) ->
     false (* the process doesn't exist any more *)
   | Unix.Unix_error(error, function_name, parameter) -> begin
-      Printf.printf "WARNING: death_monitor: opendir or closedir failed (%s, \"%s\", \"%s\") . Retrying.\n"
+      Log.printf "WARNING: death_monitor: opendir or closedir failed (%s, \"%s\", \"%s\") . Retrying.\n"
         (Unix.error_message error) function_name parameter;
       is_alive_using_proc pid;
   end
   |_ -> begin
       (* Is this a signal interruption? *)
-      Printf.printf "WARNING: death_monitor: opendir or closedir failed, but not with ENOENT. Retrying.\n";
+      Log.printf "WARNING: death_monitor: opendir or closedir failed, but not with ENOENT. Retrying.\n";
       is_alive_using_proc pid;
     end;;
 
@@ -129,7 +129,7 @@ let default_predicate pid =
 let start_monitoring ?(predicate=default_predicate) pid name callback =
   lock death_monitor_mutex;
   (if Map.mem pid !processes_to_be_monitored then begin
-    Printf.printf "WARNING (THIS MAY BE SERIOUS): death_monitor: I was already monitoring %i" pid;
+    Log.printf "WARNING (THIS MAY BE SERIOUS): death_monitor: I was already monitoring %i" pid;
     flush_all ();
   end
   else begin
@@ -147,7 +147,7 @@ let __stop_monitoring pid =
     map_size := !map_size - 1;
   end
   else begin
-    Printf.printf "WARNING: death_monitor: I was not monitoring %i" pid;
+    Log.printf "WARNING: death_monitor: I was not monitoring %i" pid;
     flush_all ();
   end;;
 
@@ -161,7 +161,7 @@ let stop_monitoring pid =
     (* Don't leave the death_monitor_mutex locked when raising: *)
     unlock death_monitor_mutex;
     (* Re-raise: *)
-    Printf.printf "stop_monitoring: re-raising %s.\n" (Printexc.to_string e);
+    Log.printf "stop_monitoring: re-raising %s.\n" (Printexc.to_string e);
     raise e;
   end;;
       
@@ -204,7 +204,7 @@ let get_poll_interval seconds =
 
 let rec poll_in_a_loop interval_length =
   if interval_length <= 0.0 then begin
-    Printf.printf "Exiting from the infinite polling loop.\n";
+    Log.printf "Exiting from the infinite polling loop.\n";
     flush_all ();
   end
   else begin
@@ -219,21 +219,21 @@ let rec poll_in_a_loop interval_length =
 
 (** Start polling in a loop: *)
 let start_polling_loop () =
-  Printf.printf "Starting the infinite polling loop.\n"; flush_all ();
+  Log.printf "Starting the infinite polling loop.\n"; flush_all ();
   poll_in_a_loop (get_poll_interval ());;
 
 (** Stop polling (at the end of the current interval). This version locks
     death_monitor_death_monitor_mutex, so it is thread safe. *)
 let stop_polling_loop () =
-  Printf.printf "Stopping the infinite polling loop (locked).\n";
-  Printf.printf "If the program hangs at this point then you are probably using the\n";
-  Printf.printf "locked version within a callback. See the comment in death_monitor.ml .\n";
+  Log.printf "Stopping the infinite polling loop (locked).\n";
+  Log.printf "If the program hangs at this point then you are probably using the\n";
+  Log.printf "locked version within a callback. See the comment in death_monitor.ml .\n";
   flush_all ();
   set_poll_interval (-1.0);;
 
 (** See the comment before stop_polling_loop. Non thread-safe. *)
 let __stop_polling_loop () =
-  Printf.printf "Stopping the infinite polling loop (non-locked).\n"; flush_all ();
+  Log.printf "Stopping the infinite polling loop (non-locked).\n"; flush_all ();
   poll_interval := -1.0;; (* this does not touch the death_monitor_mutex *)
 
 let _ =
@@ -250,7 +250,7 @@ let _ =
 (*  let r pid =  *)
 (*    start_monitoring  *)
 (*      pid  *)
-(*  (\*     (fun pid -> Printf.printf "The process %i died unexpectedly.\n" pid);; *\)  *)
+(*  (\*     (fun pid -> Log.printf "The process %i died unexpectedly.\n" pid);; *\)  *)
 (*      (fun _ -> ());;  *)
 (*  List.iter  *)
 (*    (fun i -> r i)  *)

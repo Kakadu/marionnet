@@ -32,7 +32,7 @@ let debug_mode =
 let set_debug_mode value =
   with_mutex
     (fun () ->
-      Printf.printf "'Debug mode' now has value %b\n" value; flush_all ();
+      Log.printf "'Debug mode' now has value %b\n" value; flush_all ();
       debug_mode := value);;
 let get_debug_mode () =
   with_mutex
@@ -48,7 +48,7 @@ let autogenerate_ip_addresses =
 let set_autogenerate_ip_addresses value =
   with_mutex
     (fun () ->
-      Printf.printf "'Autogenerate IP addresses' now has value %b\n" value; flush_all ();
+      Log.printf "'Autogenerate IP addresses' now has value %b\n" value; flush_all ();
       autogenerate_ip_addresses := value);;
 let get_autogenerate_ip_addresses () =
   with_mutex
@@ -63,7 +63,7 @@ let workaround_wirefilter_problem =
 let set_workaround_wirefilter_problem value =
   with_mutex
     (fun () ->
-      Printf.printf "'Work-around the wirefilter problem' now has value %b\n" value; flush_all ();
+      Log.printf "'Work-around the wirefilter problem' now has value %b\n" value; flush_all ();
       workaround_wirefilter_problem := value);;
 let get_workaround_wirefilter_problem () =
   with_mutex
@@ -94,7 +94,7 @@ let project_working_directory =
 let set_project_working_directory value =
   with_mutex
     (fun () ->
-      Printf.printf "'Project working directory' now has value %s\n"
+      Log.printf "'Project working directory' now has value %s\n"
         (match value with
         | None -> "(none)"
         | Some value -> value);

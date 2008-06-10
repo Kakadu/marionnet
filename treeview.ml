@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -283,7 +283,7 @@ fun ~treeview
       (!after_edit_commit_callback) id old_content new_content;
       treeview#run_after_update_callback id;
     with e -> begin
-      Printf.printf
+      Log.printf
         "on_edit: a callback raised an exception (%s), or a constraint was violated.\n"
         (Printexc.to_string e);
       flush_all ();
@@ -380,7 +380,7 @@ fun ~treeview
       (!after_toggle_commit_callback) id old_content new_content;
       treeview#run_after_update_callback id;
     with _ -> begin
-      print_string "on_toggle: a callback raised an exception, or a constraint was violated.\n";
+      Log.print_string "on_toggle: a callback raised an exception, or a constraint was violated.\n";
       flush_all ();
     end);
     treeview#save;
@@ -410,7 +410,7 @@ fun ~treeview
 let strings_and_pixbufs =
   List.map
     (fun (name, pixbuf_pathname) ->
-(*       Printf.printf "Loading icon %s from file %s\n" name pixbuf_pathname; *)
+(*       Log.printf "Loading icon %s from file %s\n" name pixbuf_pathname; *)
       name, (GdkPixbuf.from_file pixbuf_pathname))
     strings_and_pixbufs in
 object(self)
@@ -419,10 +419,10 @@ object(self)
   method private lookup predicate =
     let singleton = List.filter predicate strings_and_pixbufs in
     if not ((List.length singleton) = 1) then begin
-      Printf.printf "ERROR: icon name lookup failed: found %i results instead of 1\n" (List.length singleton);
+      Log.printf "ERROR: icon name lookup failed: found %i results instead of 1\n" (List.length singleton);
       List.iter
         (fun (name, pixbuf) ->
-          Printf.printf
+          Log.printf
             "(predicate is %s for %s)\n"
             (if predicate (name, pixbuf) then "true" else "false")
             name)
@@ -564,7 +564,7 @@ object(self)
     try
       ((Hashtbl.find get_column header) :> column)
     with e -> begin
-      Printf.printf "treeview: get_column: failed in looking for column \"%s\"\n" header;
+      Log.printf "treeview: get_column: failed in looking for column \"%s\"\n" header;
       flush_all ();
       raise e; (* re-raise *)
     end
@@ -652,19 +652,19 @@ object(self)
 
   method private on_row_activation path column =
     let id = self#path_to_id path in
-    Printf.printf "A row was double-clicked. Its id is %s\n" id; flush_all ();
+    Log.printf "A row was double-clicked. Its id is %s\n" id; flush_all ();
     !double_click_on_row_callback id
 
   method private on_row_collapse iter _ =
     let id = self#iter_to_id iter in
     Hashtbl.remove expanded_row_ids id;
-(*     Printf.printf "A row was collapsed. Its id is %s\n" id; flush_all (); *)
+(*     Log.printf "A row was collapsed. Its id is %s\n" id; flush_all (); *)
     !collapse_row_callback id
 
   method private on_row_expand iter _ =
     let id = self#iter_to_id iter in
     Hashtbl.add expanded_row_ids id ();
-(*     Printf.printf "A row was expanded. Its id is %s\n" id; flush_all (); *)
+(*     Log.printf "A row was expanded. Its id is %s\n" id; flush_all (); *)
     !expand_row_callback id
 
   method unselect =
@@ -709,7 +709,7 @@ object(self)
       | None ->
           self#unselect;
           None) in
-    Printf.printf "Showing the contextual menu\n"; flush_all ();
+    Log.printf "Showing the contextual menu\n"; flush_all ();
     let menu = GMenu.menu () in
 (*
     let _ = GMenu.menu_item ~label:!contextual_menu_title ~packing:menu#append () in
@@ -847,7 +847,7 @@ object(self)
            | Some parent_row_id -> some_id = parent_row_id)
         row_id Empty
         !id_forest;
-(*     print_forest !id_forest print_string; *)
+(*     print_forest !id_forest Log.print_string; *)
     flush_all ();
     (* Update the hash table, adding the complete row: *)
     Hashtbl.add id_to_row row_id row;
@@ -857,24 +857,24 @@ object(self)
     List.iter
       (fun (column_header, datum) ->
         try
-(*           Printf.printf "  * looking up the column %s: begin\n" column_header; flush_all (); *)
+(*           Log.printf "  * looking up the column %s: begin\n" column_header; flush_all (); *)
           let column = self#get_column column_header in
-(*           Printf.printf "  * looking up the column %s: end\n" column_header; flush_all (); *)
+(*           Log.printf "  * looking up the column %s: end\n" column_header; flush_all (); *)
           (if column_header = "_id" then begin
-(*             Printf.printf "  * store#set (it should be the _id) %s: begin\n" column_header; flush_all (); *)
+(*             Log.printf "  * store#set (it should be the _id) %s: begin\n" column_header; flush_all (); *)
             store#set ~row:new_row_iter ~column:column#gtree_column row_id;
-(*             Printf.printf "  * store#set (it should be the _id) %s: end\n" column_header; flush_all (); *)
+(*             Log.printf "  * store#set (it should be the _id) %s: end\n" column_header; flush_all (); *)
            end else begin
-(*             Printf.printf "  * column#set %s: begin\n" column_header; flush_all (); *)
+(*             Log.printf "  * column#set %s: begin\n" column_header; flush_all (); *)
             column#set
               row_id
               ~ignore_constraints:true
               datum;
-(*             Printf.printf "  * column#set %s: end\n" column_header; flush_all (); *)
+(*             Log.printf "  * column#set %s: end\n" column_header; flush_all (); *)
            end);
-          (* Printf.printf "  + OK     for column %s\n" column_header; flush_all (); *)
+          (* Log.printf "  + OK     for column %s\n" column_header; flush_all (); *)
         with e -> begin
-          Printf.printf "  - WARNING: unknown column %s (%s)\n" column_header (Printexc.to_string e); flush_all ();
+          Log.printf "  - WARNING: unknown column %s (%s)\n" column_header (Printexc.to_string e); flush_all ();
         end)
       row;
     (* Expand the parent, if any: we want the new row to show up: *)
@@ -883,7 +883,7 @@ object(self)
       (match parent_row_id with
         Some parent_row_id -> self#expand_row parent_row_id
       | None -> ())); *)
-(*     Printf.printf "Added the row %s\n" row_id; flush_all () *)
+(*     Log.printf "Added the row %s\n" row_id; flush_all () *)
 
   method add_row ?parent_row_id (row:row) =
     (* Check that no reserved fields are specified: *)
@@ -937,7 +937,7 @@ object(self)
     self#clear;
     iter
       (fun row parent ->
-        (* Printf.printf "OK-Ba (%s)\n" (item_to_string (lookup_alist "_id" row)); flush_all (); *)
+        (* Log.printf "OK-Ba (%s)\n" (item_to_string (lookup_alist "_id" row)); flush_all (); *)
         ignore
           (self#add_complete_row_with_no_checking
              ?parent_row_id:(match parent with
@@ -947,7 +947,7 @@ object(self)
                                     String value -> Some value
                                   | _ -> assert false))
              row);
-        (* Printf.printf "OK-Bb\n"; flush_all () *))
+        (* Log.printf "OK-Bb\n"; flush_all () *))
       forest
 
   (** Return true iff the given row is currently expanded *)
@@ -973,26 +973,26 @@ object(self)
 
   method save =
     let file_name = self#file_name in (* this failwiths if no filename was set *)
-    Printf.printf "Saving into %s\n" file_name; flush_all ();
+    Log.printf "Saving into %s\n" file_name; flush_all ();
     next_identifier_and_content_forest_marshaler#to_file
       (self#get_next_identifier, self#get_complete_forest)
       file_name;
-    Printf.printf "Saved into %s: success.\n" file_name; flush_all ();
+    Log.printf "Saved into %s: success.\n" file_name; flush_all ();
 
   method load =
     self#detach_view_in
       (fun () ->
         self#clear;
         let file_name = self#file_name in (* this failwiths if no filename was set *)
-        Printf.printf "\nLoading the treeview %s: begin\n" file_name; flush_all ();
+        Log.printf "\nLoading the treeview %s: begin\n" file_name; flush_all ();
         try
           let next_identifier, complete_forest = 
             (next_identifier_and_content_forest_marshaler#from_file file_name) in
           self#set_next_identifier next_identifier;
           self#set_complete_forest complete_forest;
-          Printf.printf "Loaded the treeview %s: success\n\n" file_name; flush_all ();
+          Log.printf "Loaded the treeview %s: success\n\n" file_name; flush_all ();
         with e -> begin
-          Printf.printf "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e); flush_all ();
+          Log.printf "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e); flush_all ();
         end);
     (* This must be executed with the view attached, as it operates on the GUI: *)
     self#collapse_everything;
@@ -1052,14 +1052,14 @@ object(self)
               list)
          []
          (linearize updated_id_forest) in
-(*     Printf.printf "The rows to be expanded are:\n"; flush_all (); *)
+(*     Log.printf "The rows to be expanded are:\n"; flush_all (); *)
 (*     List.iter *)
-(*       (fun row_id -> Printf.printf "%s " row_id) *)
+(*       (fun row_id -> Log.printf "%s " row_id) *)
 (*       updated_expanded_row_ids_as_list; *)
-(*     Printf.printf "\nOk, those were the rows to be expanded.\n"; flush_all (); *)
-(*     Printf.printf "The new id forest will be:\n"; flush_all (); *)
-(*     print_forest updated_id_forest print_string; flush_all (); *)
-(*     Printf.printf "Ok, that was the future id forest.\n"; flush_all (); *)
+(*     Log.printf "\nOk, those were the rows to be expanded.\n"; flush_all (); *)
+(*     Log.printf "The new id forest will be:\n"; flush_all (); *)
+(*     print_forest updated_id_forest Log.print_string; flush_all (); *)
+(*     Log.printf "Ok, that was the future id forest.\n"; flush_all (); *)
      (* Clear the full state, which of course includes the GUI: *)
      self#clear;
      (* Restore the state we have set apart before: *)
@@ -1080,11 +1080,11 @@ object(self)
         first collapse everything and then re-expand exactly what we
         need: *)
 (*      self#collapse_everything; *)
-(*      Printf.printf "The current forest is:\n"; flush_all (); *)
-(*      print_forest !id_forest print_string; flush_all (); *)
-(*      Printf.printf "Ok, that was the current forest.\n"; flush_all (); *)
+(*      Log.printf "The current forest is:\n"; flush_all (); *)
+(*      print_forest !id_forest Log.print_string; flush_all (); *)
+(*      Log.printf "Ok, that was the current forest.\n"; flush_all (); *)
 (*      List.iter *)
-(*        (fun row_id -> Printf.printf "About to expand row %s\n" row_id; flush_all (); *)
+(*        (fun row_id -> Log.printf "About to expand row %s\n" row_id; flush_all (); *)
 (*                       self#expand_row row_id) *)
 (*        (List.rev updated_expanded_row_ids_as_list); *)
 
@@ -1093,11 +1093,11 @@ object(self)
     (* First find out which rows we have to remove: *)
     let ids_of_the_rows_to_be_removed =
       row_id :: (descendant_nodes row_id !id_forest) in
-(*     Printf.printf "The rows to remove are:\n"; flush_all (); *)
+(*     Log.printf "The rows to remove are:\n"; flush_all (); *)
 (*     List.iter *)
-(*       (fun row_id -> Printf.printf "%s " row_id) *)
+(*       (fun row_id -> Log.printf "%s " row_id) *)
 (*       ids_of_the_rows_to_be_removed; *)
-(*     Printf.printf "\nOk, those were the rows to remove.\n"; flush_all (); *)
+(*     Log.printf "\nOk, those were the rows to remove.\n"; flush_all (); *)
     (* Ok, now update id_forest, id_to_row and expanded_row_ids: *)
     List.iter
       (fun row_id ->
@@ -1115,12 +1115,12 @@ object(self)
     (* Finally remove the row, together with its subtrees, from the Gtk+
        tree model: *)
     ignore (self#store#remove row_iter);
-(*     Printf.printf "The new forest is:\n"; flush_all (); *)
-(*     print_forest !id_forest print_string; flush_all (); *)
-(*     Printf.printf "Ok, that was the new forest.\n"; flush_all (); *)
+(*     Log.printf "The new forest is:\n"; flush_all (); *)
+(*     print_forest !id_forest Log.print_string; flush_all (); *)
+(*     Log.printf "Ok, that was the new forest.\n"; flush_all (); *)
 
   method clear =
-(*     Printf.printf "Clearing a treeview\n"; flush_all (); *)
+(*     Log.printf "Clearing a treeview\n"; flush_all (); *)
     id_forest := Empty;
     Hashtbl.clear id_to_row;
     Hashtbl.clear expanded_row_ids;
@@ -1211,10 +1211,10 @@ object(self)
     List.map self#get_row (self#row_ids_such_that predicate)
 
   method row_such_that predicate =
-    print_string "!!!!A1 treeview: row_such_that: begin\n"; flush_all ();
+    Log.print_string "!!!!A1 treeview: row_such_that: begin\n"; flush_all ();
     let result = 
     self#get_row (self#row_id_such_that predicate) in
-    print_string "!!!!A1 treeview: row_such_that: end (success)\n"; flush_all ();
+    Log.print_string "!!!!A1 treeview: row_such_that: end (success)\n"; flush_all ();
     result
 
   (** Return the row_id of the only row satisfying the given predicate. Fail if more
@@ -1236,8 +1236,8 @@ object(self)
           parent_of_row_id := its_parent_id_if_any)
       !id_forest;
     (match !parent_of_row_id with
-      Some parent_id -> Printf.printf "The parent of row %s is %s\n" row_id parent_id; flush_all ()
-    | None -> Printf.printf "Row %s has no parent\n" row_id; flush_all ());
+      Some parent_id -> Log.printf "The parent of row %s is %s\n" row_id parent_id; flush_all ()
+    | None -> Log.printf "Row %s has no parent\n" row_id; flush_all ());
     !parent_of_row_id
 
   method children_of row_id =

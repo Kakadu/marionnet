@@ -24,23 +24,23 @@ let rec do_while body predicate =
     if predicate () then
       do_while body predicate;
   with _ -> begin
-(*    Printf.printf "My (poor man's :-)) do..while loop exited with an exception\n";
+(*    Log.printf "My (poor man's :-)) do..while loop exited with an exception\n";
     flush_all (); *)
   end;;
 
 let rec sigchld_handler signal =
   try
-    Printf.printf "SSS: in sigchld_handler.\n"; flush_all (); 
+    Log.printf "SSS: in sigchld_handler.\n"; flush_all (); 
     let pid, _ = Unix.waitpid [Unix.WNOHANG] 0 
     in if pid <> 0 
     then begin
-      Printf.printf "!!!!!!! The process with pid %i died.\n" pid;
+      Log.printf "!!!!!!! The process with pid %i died.\n" pid;
       flush_all ();
       sigchld_handler signal; (* look for *other* dead children *)
     end;
   with
     Unix.Unix_error(_, "waitpid", _) -> begin
-      Printf.printf "!!!!!!! waitpid() failed (this might also be uninteresting).\n"; flush_all (); 
+      Log.printf "!!!!!!! waitpid() failed (this might also be uninteresting).\n"; flush_all (); 
     end;;
 
 let is_sigchld_handled_ref = ref false;;
@@ -65,7 +65,7 @@ let rec install_sigchld_handler () =
 (*       returned_pid := pid; *)
 (*       if not (pid = 0) && not (pid = -1) then begin *)
 (*         print_string "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"; *)
-(*         Printf.printf *)
+(*         Log.printf *)
 (*           "!!!! The process with pid %i %s\n" *)
 (*           pid *)
 (*           (match process_status with *)
@@ -119,7 +119,7 @@ let with_sigchld_blocked thunk =
     result
   with e -> begin
     (if not was_sigchld_blocked then unblock_sigchld ());
-    Printf.printf
+    Log.printf
       "! Re-raising an exception (%s) from with_sigchld_blocked\n"
       (match e with
         Unix.Unix_error(code, "waitpid", _) -> 
@@ -152,7 +152,7 @@ let my_system argument =
           result
         with e -> begin
           print_string "system: !!!!, waitpid failed, but here it shouldn't!\n"; flush_all ();
-          Printf.printf
+          Log.printf
             "system: the failure is %s\n"
             (match e with
               Unix.Unix_error(code, "waitpid", _) -> 
@@ -163,7 +163,7 @@ let my_system argument =
                 Printf.sprintf "Failure \"%s\"" s
             | _ ->
                 "some unrecognized exception");
-            Printf.printf "my_system: re-raising %s.\n" (Printexc.to_string e);
+            Log.printf "my_system: re-raising %s.\n" (Printexc.to_string e);
             raise e;
         end;;
           

@@ -84,7 +84,7 @@ object(self)
     self#collapse_row row_id;
     self#save;
 (*
-    Printf.printf "eth0 InToOut Loss %%: %f\n"
+    Log.printf "eth0 InToOut Loss %%: %f\n"
       (self#get_port_attribute device_name "eth0" InToOut "Loss %");
     flush_all ();
 *)
@@ -130,18 +130,18 @@ object(self)
     self#remove_device_or_cable name
 
   method private device_or_cable_row_id device_name =
-(*     Printf.printf "!!!!B1 treeview: row_such_that: begin (%s)\n" device_name; flush_all (); *)
+(*     Log.printf "!!!!B1 treeview: row_such_that: begin (%s)\n" device_name; flush_all (); *)
     (*
     Forest.print_forest
       self#get_complete_forest
       (fun row ->
         List.iter
           (fun (name, item) ->
-            Printf.printf " %s: " name;
+            Log.printf " %s: " name;
             match item with
-              String s -> Printf.printf "%s" s
-            | CheckBox b -> Printf.printf "%b" b
-            | Icon i -> Printf.printf "%s" i)
+              String s -> Log.printf "%s" s
+            | CheckBox b -> Log.printf "%b" b
+            | Icon i -> Log.printf "%s" i)
           row);
     flush_all (); *)
     let result = 
@@ -229,7 +229,7 @@ object(self)
   (** Return all the non-reserved data of a given port, in our usual
       <name, item> alist format: *)
   method get_port_data device_name port_name port_direction =
-(*     Printf.printf "defects: get_port_data\n"; flush_all (); *)
+(*     Log.printf "defects: get_port_data\n"; flush_all (); *)
     let device_row_id = self#device_or_cable_row_id device_name in
     let device_port_ids = self#children_of device_row_id in
     let filtered_ports =
@@ -277,7 +277,7 @@ object(self)
       
   (** Return a single port attribute as an item: *)
   method get_port_attribute device_name port_name port_direction column_header =
-(*     Printf.printf "defects: get_port_attribute\n"; flush_all (); *)
+(*     Log.printf "defects: get_port_attribute\n"; flush_all (); *)
     float_of_string
       (item_to_string
          (lookup_alist
@@ -382,7 +382,7 @@ object(self)
         grandparent_row_ids
       else
         parent_row_ids in
-    Printf.printf "List.length devices_row_id = %i\n" (List.length device_row_ids); flush_all ();
+    Log.printf "List.length devices_row_id = %i\n" (List.length device_row_ids); flush_all ();
     assert (List.length device_row_ids = 1);
     let device_row_id = List.hd device_row_ids in
     item_to_string (self#get_row_item device_row_id "Name")

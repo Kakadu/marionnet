@@ -30,7 +30,7 @@ You are welcome to redistribute it under certain
 conditions; see the file `COPYING' for details.</span>";;
 
 let handle_click window _ =
-  Printf.printf "handle_click: the splash screen was closed\n"; flush_all ();
+  Log.printf "handle_click: the splash screen was closed\n"; flush_all ();
   window#misc#hide ();
   window#destroy ();
   true;;

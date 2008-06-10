@@ -1,6 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
-   Minor change in 2008 by Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -96,61 +95,8 @@ let with_mutex mutex thunk =
     result
   with e -> begin
     unlock mutex;
-    Printf.printf
+    Log.printf
       "with_mutex: exception %s raised in critical section.\n  Unlocking and re-raising.\n"
       (Printexc.to_string e);
     raise e;
   end;;
-
-(*
-(* Test *)
-let x =
-  ref 42;;
-let m = create ();;
-let t1 =
-  Thread.create
-    (fun () ->
-      while true do
-        let n = (Random.int 10) + 1 in
-        for i = 1 to n do
-          lock m;
-        done;
-        x := !x + 1;
-        Printf.printf "%i " !x; flush_all ();
-        x := !x - 1;
-        for i = 1 to n do
-          unlock m;
-        done;
-(*         Thread.delay 1.0; *)
-      done)
-    ();;
-let t2 =
-  Thread.create
-    (fun () ->
-      while true do
-        let n = (Random.int 10) + 1 in
-        for i = 1 to n do
-          lock m;
-        done;
-        x := !x - 100;
-        Printf.printf "%i " !x; flush_all ();
-        x := !x + 100;
-        for i = 1 to n do
-          unlock m;
-        done;
-(*         Thread.delay 1.0; *)
-      done)
-    ();;
-let t3 =
-  Thread.create
-    (fun () ->
-      while true do
-        lock m;
-        Printf.eprintf "%i\n" !x; flush_all ();
-        unlock m;
-        Thread.delay 1.0;
-      done)
-    ();;
-
-Thread.delay 60.0;;
-*)

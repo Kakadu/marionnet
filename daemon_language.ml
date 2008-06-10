@@ -91,7 +91,7 @@ let message_length = 128;;
 let make_fixed_length_message opcode parameter =
   let parameter =
     if ((String.length parameter) + 1) > message_length then begin
-      Printf.printf "Warning: the parameter \"%s\" is too long. Truncating...\n" parameter;
+      Log.printf "Warning: the parameter \"%s\" is too long. Truncating...\n" parameter;
       flush_all ();
       String.sub parameter 0 ((String.length parameter) - 1)
     end else
@@ -203,9 +203,9 @@ let parse_response response  =
     (server) always handle the signal. *)
 let signal_handler =
   fun signal ->
-    Printf.printf "=========================\n";
-    Printf.printf "I received the signal %i!\n" signal;
-    Printf.printf "=========================\n";
+    Log.printf "=========================\n";
+    Log.printf "I received the signal %i!\n" signal;
+    Log.printf "=========================\n";
     flush_all ();
     (* Raise an exception instead of silently killing a process... *)
     failwith (Printf.sprintf "got the signal %i" signal);;

@@ -1,7 +1,6 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007  Jean-Vincent Loddo
-   Copyright (C) 2007  Luca Saiu
-   Updated in 2008 by Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -345,15 +344,15 @@ class network =
    begin
     let x = self#gui#get_image_original_width  => Widget.Image.inch_of_pixels in
     let y = self#gui#get_image_original_height => Widget.Image.inch_of_pixels in
-    prerr_endline ("ratio original x="^(x => string_of_float));  
-    prerr_endline ("ratio original y="^(y => string_of_float));  
+    Log.print_endline ("ratio original x="^(x => string_of_float));  
+    Log.print_endline ("ratio original y="^(y => string_of_float));  
     let area  = x *. y in
     let delta_area = extrasize *. area /. 100. in
     let delta = sqrt( (x+.y)**2. +. 4.*. delta_area  )  -.  (x+.y)  in
     let x = x +. delta => string_of_float in
     let y = y +. delta => string_of_float in
-    prerr_endline ("ratio x="^x);  
-    prerr_endline ("ratio y="^y);
+    Log.print_endline ("ratio x="^x);  
+    Log.print_endline ("ratio y="^y);
     "size=\""^x^","^y^
     "\";\nratio=fill;"
    end
@@ -622,13 +621,13 @@ class virtual simulated_device = object(self)
           progress_bar := Some (make_progress_bar_dialog ~title:text ());
           thunk ();
         with e -> begin
-          Printf.printf "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"; 
+          Log.printf "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"; 
           let message = 
             Printf.sprintf "enqueue_task_with_progress_bar: %s %s failed (%s)"
               verb self#get_name (Printexc.to_string e) in
-          Printf.printf "%s\n" message;
+          Log.printf "%s\n" message;
           Simple_dialogs.warning message message ();
-          Printf.printf "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+          Log.printf "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
           flush_all ();
         end));
     the_task_runner#schedule
@@ -678,8 +677,8 @@ class virtual simulated_device = object(self)
   method (*private*) create_right_now =
     with_mutex mutex
       (fun () ->
-        print_string ("+ About to create the simulated device " ^ (self#get_name) ^ "\n");
-        print_string ("  (it's connected to " ^
+        Log.print_string ("+ About to create the simulated device " ^ (self#get_name) ^ "\n");
+        Log.print_string ("  (it's connected to " ^
                       (string_of_int (List.length (self#get_involved_cables))) ^
                       " cables)\n");
         match !automaton_state, !simulated_device with
@@ -689,22 +688,22 @@ class virtual simulated_device = object(self)
                              (* An endpoint for cables linked to self was just added; we
                                 may need to start some cables. *)
                              ignore (List.map
-                                       (fun cable -> print_string ("+ Working on cable\n"^(cable#show "")^"\n");
+                                       (fun cable -> Log.print_string ("+ Working on cable\n"^(cable#show "")^"\n");
                                          cable#increment_alive_endpoints_no)
                                        (self#get_involved_cables)))
         | _ -> raise ForbiddenTransition)
 
   (** The unit parameter is needed: see how it's used in simulated_network: *)
   method private destroy_because_of_unexpected_death () =
-    Printf.printf "You don't deadlock here %s, do you? -1\n" self#get_name; flush_all ();
+    Log.printf "You don't deadlock here %s, do you? -1\n" self#get_name; flush_all ();
     with_mutex mutex
       (fun () ->
-        Printf.printf "You don't deadlock here %s, do you? 0\n" self#get_name;
+        Log.printf "You don't deadlock here %s, do you? 0\n" self#get_name;
         flush_all ();
         (try
           self#destroy_right_now
         with e -> begin
-          Printf.printf "WARNING: destroy_because_of_unexpected_death: failed (%s)\n"
+          Log.printf "WARNING: destroy_because_of_unexpected_death: failed (%s)\n"
             (Printexc.to_string e);
         end;
           self#set_next_simulated_device_state None)); (* don't show next-state icons for this *)
@@ -712,34 +711,34 @@ class virtual simulated_device = object(self)
   method (*private*) destroy_right_now =
     with_mutex mutex
       (fun () ->
-        print_string ("- About to destroy the simulated device " ^ (self#get_name) ^ "\n");
+        Log.print_string ("- About to destroy the simulated device " ^ (self#get_name) ^ "\n");
         match !automaton_state, !simulated_device with
           (DeviceOn | DeviceSleeping), Some(d) ->
-            (print_string ("  (destroying the on/sleeping device " ^ (self#get_name) ^ ". Powering it off first...)\n");
+            (Log.print_string ("  (destroying the on/sleeping device " ^ (self#get_name) ^ ". Powering it off first...)\n");
              self#poweroff_right_now; (* non-gracefully *)
              self#destroy_right_now)
         | NoDevice, None ->
-            print_string ("  (destroying the already 'no-device' device " ^ (self#get_name) ^ ". Doing nothing...)\n");
+            Log.print_string ("  (destroying the already 'no-device' device " ^ (self#get_name) ^ ". Doing nothing...)\n");
             () (* Do nothing, but don't fail. *)
         | DeviceOff, Some(d) ->
             ((* An endpoint for cables linked to self was just added; we
                 may need to start some cables. *)
-             print_string ("  (destroying the off device " ^ (self#get_name) ^ ": decrementing its cables rc...)\n");
+             Log.print_string ("  (destroying the off device " ^ (self#get_name) ^ ": decrementing its cables rc...)\n");
              List.iter
                (fun cable ->
-                 print_string ("- Unpinning the cable "^(cable#show "")^"\n"); flush_all ();
+                 Log.print_string ("- Unpinning the cable "^(cable#show "")^"\n"); flush_all ();
                  cable#decrement_alive_endpoints_no;
-                 print_string ("- The cable "^(cable#show "")^" was unpinned with success\n"); flush_all ())
+                 Log.print_string ("- The cable "^(cable#show "")^" was unpinned with success\n"); flush_all ())
                self#get_involved_cables;
-             print_string ("  (destroying the simulated device implementing " ^ (self#get_name) ^ "...)\n");
+             Log.print_string ("  (destroying the simulated device implementing " ^ (self#get_name) ^ "...)\n");
              d#destroy; (* This is the a method from some object in Simulated_network *)
              simulated_device := None;
              automaton_state := NoDevice;
              self#set_next_simulated_device_state None;
-             Printf.printf "- We're not deadlocked yet (%s). Great.\n" self#get_name; flush_all ());
+             Log.printf "- We're not deadlocked yet (%s). Great.\n" self#get_name; flush_all ());
         | _ ->
             raise ForbiddenTransition);
-    print_string ("- The simulated device " ^ (self#get_name) ^ " was destroyed with success\n");
+    Log.print_string ("- The simulated device " ^ (self#get_name) ^ " was destroyed with success\n");
     flush_all ()
     
 
@@ -749,25 +748,25 @@ class virtual simulated_device = object(self)
         (* Don't startup ``incorrect'' devices. This is currently limited to cables of the
            wrong crossedness which the user has defined by mistake: *)
         if self#is_correct then begin
-          print_string ("* starting up the device " ^ (self#get_name) ^ "...\n");
+          Log.print_string ("* starting up the device " ^ (self#get_name) ^ "...\n");
           match !automaton_state, !simulated_device with 
-            NoDevice, None -> (print_string ("  (creating processes for " ^ (self#get_name) ^ " first...)\n");
+            NoDevice, None -> (Log.print_string ("  (creating processes for " ^ (self#get_name) ^ " first...)\n");
                                self#create_right_now; 
-                               print_string ("  (processes for " ^ (self#get_name) ^ " were created...)\n");
+                               Log.print_string ("  (processes for " ^ (self#get_name) ^ " were created...)\n");
                                self#startup_right_now) 
           | DeviceOff, Some(d) -> (d#startup;  (* This is the a method from some object in Simulated_network *)
                                    automaton_state := DeviceOn;
                                    self#set_next_simulated_device_state None;
-                                   print_string ("* The device " ^ (self#get_name) ^ " was started up\n"))
+                                   Log.print_string ("* The device " ^ (self#get_name) ^ " was started up\n"))
           | _ -> raise ForbiddenTransition
         end else begin
-          print_string ("* REFUSING TO START UP the ``incorrect'' device " ^ (self#get_name) ^ "...\n");
+          Log.print_string ("* REFUSING TO START UP the ``incorrect'' device " ^ (self#get_name) ^ "...\n");
         end)
 
   method (*private*) suspend_right_now =
     with_mutex mutex
       (fun () ->
-        print_string ("|| Suspending up the device " ^ (self#get_name) ^ "...\n");
+        Log.print_string ("|| Suspending up the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
           DeviceOn, Some(d) -> (d#suspend; (* This is the a method from some object in Simulated_network *)
                                 automaton_state := DeviceSleeping;
@@ -777,7 +776,7 @@ class virtual simulated_device = object(self)
   method (*private*) resume_right_now =
     with_mutex mutex
       (fun () ->
-        print_string ("|> Resuming the device " ^ (self#get_name) ^ "...\n");
+        Log.print_string ("|> Resuming the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
           DeviceSleeping, Some(d) -> (d#resume; (* This is the a method from some object in Simulated_network *)
                                       automaton_state := DeviceOn;
@@ -787,7 +786,7 @@ class virtual simulated_device = object(self)
   method (*private*) gracefully_shutdown_right_now =
     with_mutex mutex
       (fun () ->
-        print_string ("* Gracefully shutting down the device " ^ (self#get_name) ^ "...\n");
+        Log.print_string ("* Gracefully shutting down the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
           DeviceOn, Some(d) -> (d#gracefully_shutdown; (* This is the a method from some object in Simulated_network *)
                                 automaton_state := DeviceOff;
@@ -799,7 +798,7 @@ class virtual simulated_device = object(self)
   method (*private*) poweroff_right_now =
     with_mutex mutex
       (fun () ->
-        print_string ("* Powering off the device " ^ (self#get_name) ^ "...\n");
+        Log.print_string ("* Powering off the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
           DeviceOn, Some(d) -> (d#shutdown; (* non-gracefully *)
                                 automaton_state := DeviceOff;
@@ -811,7 +810,7 @@ class virtual simulated_device = object(self)
   method set_hublet_processes_no n =
     with_mutex mutex
       (fun () ->
-        print_string ("* Updating the number of hublets of the device " ^ (self#get_name) ^ "...\n");
+        Log.print_string ("* Updating the number of hublets of the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
           DeviceOff, Some(d) -> d#set_hublet_processes_no n (* update hublets and don't change state *)
         | NoDevice, None -> (self#create_right_now;                    (* Make hublets... *)
@@ -1172,10 +1171,10 @@ class virtual node = fun
         let resolved_variant =
           Filename.basename (Unix.readlink variant_pathname) in
         self#set_variant resolved_variant;
-        Printf.printf "The variant \"%s\" was a symlink. Resolved into \"%s\".\n" variant resolved_variant;
+        Log.printf "The variant \"%s\" was a symlink. Resolved into \"%s\".\n" variant resolved_variant;
         flush_all ();
       with _ ->
-        Printf.printf "The variant \"%s\" is not a symlink.\n" variant; flush_all ());
+        Log.printf "The variant \"%s\" is not a symlink.\n" variant; flush_all ());
     with _ ->
       ();
 end;;
@@ -1199,13 +1198,13 @@ class cable =
    () ->
   let dotoptions = new Dotoptions.cable () in
   let with_mutex mutex thunk =
-(*     Printf.printf "I disabled synchronization here: BEGIN\n"; flush_all (); *)
+(*     Log.printf "I disabled synchronization here: BEGIN\n"; flush_all (); *)
     try
       let result = thunk () in
-(*       Printf.printf "I disabled synchronization here: END\n"; flush_all (); *)
+(*       Log.printf "I disabled synchronization here: END\n"; flush_all (); *)
       result
     with e -> begin
-      Printf.printf "I disabled synchronization here: RE-RAISING %s\n" (Printexc.to_string e); flush_all ();
+      Log.printf "I disabled synchronization here: RE-RAISING %s\n" (Printexc.to_string e); flush_all ();
       raise e;
     end
   in
@@ -1364,7 +1363,7 @@ object (self)
       with_mutex mutex
         (fun () -> 
           (if not self#is_connected then begin
-            print_string ("Connecting the cable " ^ (self#get_name) ^ "\n");
+            Log.print_string ("Connecting the cable " ^ (self#get_name) ^ "\n");
             (* Turn on the relevant LEDgrid lights: *)
             let involved_devices_and_port_nos = self#involved_devices_and_port_nos in
             List.iter
@@ -1377,7 +1376,7 @@ object (self)
               involved_devices_and_port_nos;
             connected := true;
             self#increment_alive_endpoints_no;
-            print_string "Ok: connected\n";
+            Log.print_string "Ok: connected\n";
           end);
           refresh_sketch ());
 
@@ -1386,7 +1385,7 @@ object (self)
       with_mutex mutex
         (fun () -> 
           (if self#is_connected then begin
-            print_string ("Disconnecting the cable " ^ (self#get_name) ^ "\n");
+            Log.print_string ("Disconnecting the cable " ^ (self#get_name) ^ "\n");
             (* Turn off the relevant LEDgrid lights: *)
             let involved_devices_and_port_nos = self#involved_devices_and_port_nos in
             List.iter
@@ -1399,7 +1398,7 @@ object (self)
               involved_devices_and_port_nos;
             connected := false;
             self#decrement_alive_endpoints_no;
-            print_string "Ok: disconnected\n";
+            Log.print_string "Ok: disconnected\n";
           end);
           refresh_sketch ());
         
@@ -1423,8 +1422,8 @@ object (self)
     with_mutex mutex
       (fun () -> 
         assert((!alive_endpoints_no >= 0) && (!alive_endpoints_no <= 3));
-        print_string "The reference count is now ";
-        print_int !alive_endpoints_no; print_string "\n")
+        Log.print_string "The reference count is now ";
+        print_int !alive_endpoints_no; Log.print_string "\n")
 
    (** Record the fact that an endpoint has been created (at a lower level
        this means that its relevant {e hublet} has been created), and
@@ -1432,12 +1431,12 @@ object (self)
    method increment_alive_endpoints_no =
      with_mutex mutex
        (fun () ->
-         print_string "\n+++ increment_alive_endpoints_no\n\n";
+         Log.print_string "\n+++ increment_alive_endpoints_no\n\n";
          self#check_alive_endpoints_no;
          alive_endpoints_no := !alive_endpoints_no + 1;
          self#check_alive_endpoints_no;
          if !alive_endpoints_no = 3 then begin
-           print_string "The reference count raised to three: starting up a cable\n";
+           Log.print_string "The reference count raised to three: starting up a cable\n";
            self#startup_right_now
          end)
    
@@ -1447,7 +1446,7 @@ object (self)
    method decrement_alive_endpoints_no =
      with_mutex mutex
        (fun () ->
-         print_string "\n--- decrement_alive_endpoints_no\n\n";
+         Log.print_string "\n--- decrement_alive_endpoints_no\n\n";
          self#check_alive_endpoints_no;
          alive_endpoints_no := !alive_endpoints_no - 1;
          self#check_alive_endpoints_no;
@@ -1455,7 +1454,7 @@ object (self)
            (* Note that we destroy rather than terminating. This enables to re-create the
               simulated device later, at startup time, referring the correct hublets
               that will exist then, rather than the ones existing now *)
-           print_string "The reference count dropped below three: destroying a cable\n";
+           Log.print_string "The reference count dropped below three: destroying a cable\n";
 (*        self#destroy_right_now; (\* Before radical synchronization changes *\) *)
            self#destroy_right_now;
          end)
@@ -1483,8 +1482,8 @@ object (self)
            match right_node#devkind with
              NotADevice -> None
            | _ -> Some (Printf.sprintf "%i %i" right_node#id right_port_index) in
-         print_string ("left hublet process socket name is " ^ left_hublet_process#get_socket_name ^ "\n");
-         print_string ("right hublet process socket name is " ^ right_hublet_process#get_socket_name ^ "\n");
+         Log.print_string ("left hublet process socket name is " ^ left_hublet_process#get_socket_name ^ "\n");
+         Log.print_string ("right hublet process socket name is " ^ right_hublet_process#get_socket_name ^ "\n");
          let name = self#get_name in
          new Simulated_network.ethernet_cable
            ~name:self#get_name
@@ -1588,8 +1587,8 @@ object (self)
        self#increment_alive_endpoints_no);
      (if right_endpoint#has_hublet_processes then
        self#increment_alive_endpoints_no);
-     print_string ("The reference count for the just-created cable " ^ (self#get_name)^" is ");
-     print_int !alive_endpoints_no; print_string "\n";
+     Log.print_string ("The reference count for the just-created cable " ^ (self#get_name)^" is ");
+     print_int !alive_endpoints_no; Log.print_string "\n";
 end;;
 
 (** Function for make receptacles from 0 to k (so call it with desired number - 1) of desired portkind 
@@ -1610,9 +1609,9 @@ let is_there_a_router_variant () =
     List.mem "default" (MSys.variant_list_of ("router-" ^ router_unprefixed_filesystem) ())
   in
 (*
-  Printf.printf "is_there_a_router_variant (): %b\n" result; flush_all ();
+  Log.printf "is_there_a_router_variant (): %b\n" result; flush_all ();
   List.iter
-    (fun s -> Printf.printf "* %s\n" s; flush_all ())
+    (fun s -> Log.printf "* %s\n" s; flush_all ())
     (MSys.variant_list_of ("router-" ^ router_unprefixed_filesystem) ());
 *)
   result;;
@@ -1703,7 +1702,7 @@ class device =
       let cow_file_name =
         (Filesystem_history.get_states_directory ()) ^
         (Filesystem_history.add_state_for_device self#name) in
-      Printf.printf
+      Log.printf
         "About to start the router %s with the cow file %s\n"
         self#name
         cow_file_name;
@@ -1746,25 +1745,25 @@ class device =
     (* Only for routers: we have to manage the hostfs stuff (when in exam mode) and
        destroy the simulated device, so that we can use a new cow file the next time: *)
     if self#devkind = Router then begin
-      Printf.printf "Calling hostfs_directory_pathname on %s...\n" self#name; flush_all ();
+      Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name; flush_all ();
       let hostfs_directory_pathname = self#hostfs_directory_pathname in
-      Printf.printf "Ok, we're still alive\n"; flush_all ();
+      Log.printf "Ok, we're still alive\n"; flush_all ();
       (* If we're in exam mode then make the report available in the texts treeview: *)
       (if Command_line.are_we_in_exam_mode then begin
         let texts_interface = Texts_interface.get_texts_interface () in
-        Printf.printf "Adding the report on %s to the texts interface\n" self#name; flush_all ();
+        Log.printf "Adding the report on %s to the texts interface\n" self#name; flush_all ();
         texts_interface#import_report 
           ~machine_or_router_name:self#name
           ~pathname:(hostfs_directory_pathname ^ "/report.html")
           ();
-        Printf.printf "Added the report on %s to the texts interface\n" self#name; flush_all ();
+        Log.printf "Added the report on %s to the texts interface\n" self#name; flush_all ();
         (* (* We don't export the shell history for routers *)
-        Printf.printf "Adding the history on %s to the texts interface\n" self#name; flush_all ();
+        Log.printf "Adding the history on %s to the texts interface\n" self#name; flush_all ();
         texts_interface#import_history 
           ~machine_or_router_name:self#name
           ~pathname:(hostfs_directory_pathname ^ "/bash_history.text")
           ();
-        Printf.printf "Added the history on %s to the texts interface\n" self#name; flush_all (); *)
+        Log.printf "Added the history on %s to the texts interface\n" self#name; flush_all (); *)
       end);
       (* ...And destroy, so that the next time we have to re-create the process command line
          can use a new cow file (see the make_simulated_device method) *)
@@ -1948,7 +1947,7 @@ class machine =
     let cow_file_name =
       (Filesystem_history.get_states_directory ()) ^
       (Filesystem_history.add_state_for_device self#name) in
-    Printf.printf
+    Log.printf
       "About to start the machine %s with the cow file %s\n"
       self#name
       cow_file_name;
@@ -1967,26 +1966,26 @@ class machine =
 
   (** Here we also have to manage cow files... *)
   method private gracefully_shutdown_right_now =
-    Printf.printf "Calling hostfs_directory_pathname on %s...\n" self#name; flush_all ();
+    Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name; flush_all ();
     let hostfs_directory_pathname = self#hostfs_directory_pathname in
-    Printf.printf "Ok, we're still alive\n"; flush_all ();
+    Log.printf "Ok, we're still alive\n"; flush_all ();
     (* Do as usual... *)
     super#gracefully_shutdown_right_now;
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Command_line.are_we_in_exam_mode then begin
       let texts_interface = Texts_interface.get_texts_interface () in
-      Printf.printf "Adding the report on %s to the texts interface\n" self#name; flush_all ();
+      Log.printf "Adding the report on %s to the texts interface\n" self#name; flush_all ();
       texts_interface#import_report 
         ~machine_or_router_name:self#name
         ~pathname:(hostfs_directory_pathname ^ "/report.html")
         ();
-      Printf.printf "Added the report on %s to the texts interface\n" self#name; flush_all ();
-      Printf.printf "Adding the history on %s to the texts interface\n" self#name; flush_all ();
+      Log.printf "Added the report on %s to the texts interface\n" self#name; flush_all ();
+      Log.printf "Adding the history on %s to the texts interface\n" self#name; flush_all ();
       texts_interface#import_history 
         ~machine_or_router_name:self#name
         ~pathname:(hostfs_directory_pathname ^ "/bash_history.text")
         ();
-      Printf.printf "Added the history on %s to the texts interface\n" self#name; flush_all ();
+      Log.printf "Added the history on %s to the texts interface\n" self#name; flush_all ();
     end);
     (* ...And destroy, so that the next time we have to re-create the process command line
        can use a new cow file (see the make_simulated_device method) *)
@@ -2256,44 +2255,44 @@ class network = fun () ->
  (** Setter *)
 
  method reset () = 
-   print_string "reset: begin\n";
-   print_string "resetting the LEDgrid manager...\n";
-   print_string "destroying all cables...\n";
+   Log.print_string "reset: begin\n";
+   Log.print_string "resetting the LEDgrid manager...\n";
+   Log.print_string "destroying all cables...\n";
    (List.iter
       (fun cable -> try cable#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       cables);
-   print_string "destroying all machines...\n";
+   Log.print_string "destroying all machines...\n";
    (List.iter
       (fun machine -> try machine#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       machines);
-   print_string "destroying all switchs, hubs and routers...\n";
+   Log.print_string "destroying all switchs, hubs and routers...\n";
    (List.iter
       (fun device -> try device#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       devices);
-   print_string "destroying all clouds...\n";
+   Log.print_string "destroying all clouds...\n";
    (List.iter
       (fun cloud -> try cloud#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       clouds);
-   print_string "destroying all gateways...\n";
+   Log.print_string "destroying all gateways...\n";
    (List.iter
       (fun gateway -> try gateway#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       gateways);
-   print_string "Synchronously wait that everything terminates...\n";
+   Log.print_string "Synchronously wait that everything terminates...\n";
    Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
 
-   print_string "Making the network graph empty...\n";
+   Log.print_string "Making the network graph empty...\n";
    machines <- [] ;
    devices  <- [] ;
    clouds   <- [] ;
    gateways <- [] ;
    cables   <- [] ;
 
-   print_string "Wait for all devices to terminate...\n"; flush_all ();
+   Log.print_string "Wait for all devices to terminate...\n"; flush_all ();
    (** Make sure that all devices have actually been terminated before going
        on: we don't want them to lose filesystem access: *)
-   print_string "All devices did terminate.\n"; flush_all ();
+   Log.print_string "All devices did terminate.\n"; flush_all ();
 
-   print_string "reset: end (success)\n";
+   Log.print_string "reset: end (success)\n";
 
  method copyFrom (net:network) = 
    self#reset ();
@@ -2345,15 +2344,15 @@ class network = fun () ->
       self#addCable x; 
 
   | Forest.NonEmpty ((nodename, _) , _ , _)
-     -> (Printf.printf "network#eval_forest_child: I can't interpret this nodename '%s'.\n" nodename) 
+     -> (Log.printf "network#eval_forest_child: I can't interpret this nodename '%s'.\n" nodename) 
         (* Forward-compatibility *)
   
   | Forest.Empty 
-     -> (Printf.printf "network#eval_forest_child: I can't interpret the empty forest.\n") 
+     -> (Log.printf "network#eval_forest_child: I can't interpret the empty forest.\n") 
         (* Forward-compatibility *)
  end
  with e  -> 
-   Printf.printf "network#eval_forest_child: something goes wrong interpreting a child (%s).\n" 
+   Log.printf "network#eval_forest_child: something goes wrong interpreting a child (%s).\n" 
    (Printexc.to_string e); () (* Forward-compatibility *)
 
  (* Destruct the x-value into a concrete xml string *)
@@ -2522,7 +2521,7 @@ class network = fun () ->
         let left_port_name, right_port_name = c#receptacle_names in
         let left_port_index = (left_endpoint#getReceptacleByName left_port_name)#index in
         let right_port_index = (right_endpoint#getReceptacleByName right_port_name)#index in
-(*         print_string ("\nLeft side: " ^ left_port_name ^ "\n Right side: "^right_port_name^"\n"); *)
+(*         Log.print_string ("\nLeft side: " ^ left_port_name ^ "\n Right side: "^right_port_name^"\n"); *)
         if left_endpoint#devkind != NotADevice then
           self#ledgrid_manager#set_port_connection_state
             ~id:(left_endpoint#id)
@@ -2595,7 +2594,7 @@ class network = fun () ->
      let left_port_name, right_port_name = c#receptacle_names in
      let left_port_index = (left_endpoint#getReceptacleByName left_port_name)#index in
      let right_port_index = (right_endpoint#getReceptacleByName right_port_name)#index in
-(*         print_string ("\nLeft side: " ^ left_port_name ^ "\n Right side: "^right_port_name^"\n"); *)
+(*         Log.print_string ("\nLeft side: " ^ left_port_name ^ "\n Right side: "^right_port_name^"\n"); *)
      (if left_endpoint#devkind != NotADevice then
        self#ledgrid_manager#set_port_connection_state
          ~id:(left_endpoint#id)
@@ -2739,33 +2738,33 @@ class network = fun () ->
 
  (** Show network topology *)
  method show = 
-   prerr_endline "========== NETWORK STATUS ===========";
+   Log.print_endline "========== NETWORK STATUS ===========";
    (* show devices *)
    let msg= try 
         (String.Fold.commacat 
         (List.map (fun d->d#name^" ("^(string_of_devkind d#devkind)^")") devices))
         with _ -> "" 
-     in prerr_endline ("Devices \r\t\t: "^msg);
+     in Log.print_endline ("Devices \r\t\t: "^msg);
    (* show machines *)
    let msg=try
         (String.Fold.commacat (List.map (fun m->m#show) machines)) 
         with _ -> ""
-   in prerr_endline ("Machines \r\t\t: "^msg);
+   in Log.print_endline ("Machines \r\t\t: "^msg);
    (* show clouds *)
    let msg=try
         (String.Fold.commacat (List.map (fun c->c#show) clouds)) 
         with _ -> ""
-   in prerr_endline ("Clouds \r\t\t: "^msg);
+   in Log.print_endline ("Clouds \r\t\t: "^msg);
    (* show gateways *)
    let msg=try
         (String.Fold.commacat (List.map (fun c->c#show) gateways)) 
         with _ -> ""
-   in prerr_endline ("Gateways \r\t\t: "^msg);
+   in Log.print_endline ("Gateways \r\t\t: "^msg);
    (* show links *)
    let msg=try
         (String.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables)) 
         with _ -> ""
-   in prerr_endline ("Cables \r\t\t: "^msg)
+   in Log.print_endline ("Cables \r\t\t: "^msg)
 
 
  (** {b Consider cable as Edge.edges} *)
@@ -2910,10 +2909,10 @@ module Xml = struct
 
 (** Save the xforest representation of the network. *)
 let save_network (net:network) (fname:string) = 
- print_string "Netmodel.Xml.save_network: begin\n";
+ Log.print_string "Netmodel.Xml.save_network: begin\n";
  Xforest.print_forest net#to_forest;
  network_marshaller#to_file net#to_forest fname;
- print_string "Netmodel.Xml.save_network: end (success)\n";;
+ Log.print_string "Netmodel.Xml.save_network: end (success)\n";;
 
 end;; (* module Netmodel.Xml *)
 

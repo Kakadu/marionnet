@@ -83,7 +83,7 @@ object(self)
     (* Ugly kludge: temporarily change the date of the state we want to duplicate,
        so that it becomes the most recent. Then startup the machine, and eventually
        reset the date fields to its correct value: *)
-(*     print_string ("\n\n+++ Starting up "^name^" with "^cow_file_name^"\n\n"); flush_all (); *)
+(*     Log.print_string ("\n\n+++ Starting up "^name^" with "^cow_file_name^"\n\n"); flush_all (); *)
 (*     self#set_row_item row_id "Timestamp" (String "9999-99-99 99:99"); *)
     self#set_row_item row_id "Timestamp" (String (Timestamp.current_timestamp_as_string ()));
     let _, startup_function = get_startup_functions () in
@@ -126,10 +126,10 @@ object(self)
 (*
     List.iter
       (fun row ->
-        Printf.printf "** Candidate most recent: %s\n"
+        Log.printf "** Candidate most recent: %s\n"
           (item_to_string (lookup_alist "Timestamp" row));
         flush_all ()); *)
-    Printf.printf "Relevant states for %s are %i\n" name (List.length relevant_states);
+    Log.printf "Relevant states for %s are %i\n" name (List.length relevant_states);
     assert ((List.length relevant_states) > 0);
     let result =
     List.fold_left
@@ -144,7 +144,7 @@ object(self)
           row)
       (List.hd relevant_states)
       ((*List.tl*) relevant_states) in
-(*    Printf.printf "The most recent state has timestamp \'%s\'\n"
+(*    Log.printf "The most recent state has timestamp \'%s\'\n"
       (item_to_string (lookup_alist "Timestamp" result)); *)
     flush_all ();
     result
@@ -360,7 +360,7 @@ let make_states_interface ~packing () =
 let set_states_directory states_directory =
   match ! the_states_directory with
     None -> begin
-      print_string ("\n\n[[[[[Setting the states directory to "^states_directory^"]]]]]\n\n");
+      Log.print_string ("\n\n[[[[[Setting the states directory to "^states_directory^"]]]]]\n\n");
       the_states_directory := Some states_directory;
       (get_states_interface ())#set_file_name (states_directory^"/states-forest");
     end
@@ -396,7 +396,7 @@ let duplicate_file ?(is_path_full=false) path_name =
          path_name
          states_directory
          name_of_the_copy)  in
-  print_string ("\n\nMaking a copy of a cow file: the command line is\n"^command_line^"\n\n");
+  Log.print_string ("\n\nMaking a copy of a cow file: the command line is\n"^command_line^"\n\n");
   try
     (match Unix.system command_line with
       (Unix.WEXITED 0) ->
@@ -409,12 +409,12 @@ let duplicate_file ?(is_path_full=false) path_name =
       "This is a serious problem"
       "The disc is probably full. A disaster is about to happen..."
       ();
-    print_string "To do: react in some reasonable way\n";
+    Log.print_string "To do: react in some reasonable way\n";
     flush_all ();
     failwith "cp failed";
   end
   | _ -> begin
-      print_string "To do: this look harmless.\n";
+      Log.print_string "To do: this look harmless.\n";
       flush_all ();
       name_of_the_copy;
   end;;
@@ -447,7 +447,7 @@ let add_row
     ~prefixed_filesystem
     ~file_name
     () =
-  print_string "Adding a row to the filesystem history model... begin\n";
+  Log.print_string "Adding a row to the filesystem history model... begin\n";
   let states_interface = get_states_interface () in
   let row =
     [ "Name", String name;
@@ -476,7 +476,7 @@ let number_of_states_with_name
    (fun row -> (lookup_alist "Name" row) = String name);;
 
 let add_device name prefixed_filesystem variant icon =
-  Printf.printf "FILESYSTEM HISTORY: adding the device %s which has variant %s\n" name variant; flush_all ();
+  Log.printf "FILESYSTEM HISTORY: adding the device %s which has variant %s\n" name variant; flush_all ();
   let states_interface = get_states_interface () in
   (* If we're using a non-clean variant then copy it so that it becomes the first cow
      file: *)
@@ -514,7 +514,7 @@ let rename_device old_name new_name =
 
 let remove_device_tree name =
   let states_interface = get_states_interface () in
-  Printf.printf "Removing the device tree for %s\n" name;
+  Log.printf "Removing the device tree for %s\n" name;
   (* Remove cow's: *)
   let rows_to_remove = 
     Forest.nodes_such_that

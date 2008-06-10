@@ -123,7 +123,7 @@ let get_unused_local_display () =
   Mutex.unlock mutex;
   Printf.sprintf ":%i" !i;;
 
-Printf.printf
+Log.printf
   "-------------------------------------\nHost X data from $DISPLAY:\n\nHost: %s\nDisplay: %s\nScreen: %s\n\n"
   host_name
   display

@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ let do_in_parallel thunks =
             try
               thunk ()
             with e -> begin
-              Printf.printf "!!!! do_in_parallel: a thunk failed (%s)\n" (Printexc.to_string e);
+              Log.printf "!!!! do_in_parallel: a thunk failed (%s)\n" (Printexc.to_string e);
               flush_all ();
             end)
           ())
@@ -39,7 +39,7 @@ let do_in_parallel thunks =
       try
         Thread.join thread;
       with e -> begin
-        Printf.printf "!!!!!!!!!!!!!!! This should not happen: join failed (%s)\n"
+        Log.printf "!!!!!!!!!!!!!!! This should not happen: join failed (%s)\n"
           (Printexc.to_string e);
         flush_all ()
       end)
@@ -73,9 +73,9 @@ class task_runner = object(self)
     ignore (Thread.create
               (fun () ->
                 while !run_again do
-                  Printf.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-                  Printf.printf "= TT I'm ready for the next task...\n"; flush_all ();
-                  Printf.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+                  Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+                  Log.printf "= TT I'm ready for the next task...\n"; flush_all ();
+                  Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
                   let name, task = queue#dequeue in
                   self#run name task;
                 done)
@@ -84,26 +84,26 @@ class task_runner = object(self)
   method run name task =
     flush_all ();
     try
-      Printf.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-      Printf.printf "+ TT Executing the task \"%s\"\n" name; flush_all ();
-      Printf.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "+ TT Executing the task \"%s\"\n" name; flush_all ();
+      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
       task ();
-      Printf.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-      Printf.printf "- TT The task \"%s\" succeeded.\n" name; flush_all ();
-      Printf.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "- TT The task \"%s\" succeeded.\n" name; flush_all ();
+      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
     with Kill_task_runner -> begin
-      Printf.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-      Printf.printf "The task runner was explicitly killed.\n"; flush_all ();
-      Printf.printf "! TT TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "The task runner was explicitly killed.\n"; flush_all ();
+      Log.printf "! TT TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
       run_again := false;
     end
     | e -> begin
-      Printf.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-      Printf.printf "WARNING: the asynchronous task \"%s\" raised an exception\n" name;
-      Printf.printf "         (%s).\n" (Printexc.to_string e);
-      Printf.printf "         THIS MAY BE SERIOUS.\n";
-      Printf.printf "         Anyway, I'm going to continue with the next task.\n";
-      Printf.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "WARNING: the asynchronous task \"%s\" raised an exception\n" name;
+      Log.printf "         (%s).\n" (Printexc.to_string e);
+      Log.printf "         THIS MAY BE SERIOUS.\n";
+      Log.printf "         Anyway, I'm going to continue with the next task.\n";
+      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
       flush_all ();
     end
 
@@ -123,9 +123,9 @@ class task_runner = object(self)
     self#schedule
       ~name:"wait until all scheduled tasks terminate"
       (fun () -> dummy_queue#enqueue ());
-    Printf.printf "Waiting for all currently enqueued tasks to terminate...\n"; flush_all ();
+    Log.printf "Waiting for all currently enqueued tasks to terminate...\n"; flush_all ();
     let () = dummy_queue#dequeue in
-    Printf.printf "...all right, we have been signaled: tasks did terminate.\n"; flush_all ();
+    Log.printf "...all right, we have been signaled: tasks did terminate.\n"; flush_all ();
 
   method schedule_parallel (names_and_thunks : (string * thunk) list) =
     let parallel_task_name =
@@ -141,17 +141,17 @@ class task_runner = object(self)
             names_and_thunks in
         List.iter
           (fun (name, thread) ->
-            Printf.printf "TT Joining \"%s\"...\n" name; flush_all ();
+            Log.printf "TT Joining \"%s\"...\n" name; flush_all ();
             (try 
               Thread.join thread;
             with e -> begin
-              Printf.printf "!!!!!!!!!!!!!!!\n!!!!!!!!!!!!\n!!!!!!!!!!!!!!!\n"; 
-              Printf.printf "!!!!!!!!!!!!!!! This should not happen: join failed (%s)\n"
+              Log.printf "!!!!!!!!!!!!!!!\n!!!!!!!!!!!!\n!!!!!!!!!!!!!!!\n"; 
+              Log.printf "!!!!!!!!!!!!!!! This should not happen: join failed (%s)\n"
                 (Printexc.to_string e);
-              Printf.printf "!!!!!!!!!!!!!!!\n!!!!!!!!!!!!\n!!!!!!!!!!!!!!!\n";
+              Log.printf "!!!!!!!!!!!!!!!\n!!!!!!!!!!!!\n!!!!!!!!!!!!!!!\n";
               flush_all ()
             end);
-            Printf.printf "TT I have joined \"%s\" with success\n" name; flush_all ();)
+            Log.printf "TT I have joined \"%s\" with success\n" name; flush_all ();)
           threads in
     self#schedule ~name:parallel_task_name parallel_task_thunk
 
@@ -210,7 +210,7 @@ let _ =
   List.iter
     (fun id ->
       let name, thunk = get_node id g in
-      Printf.printf "Executing %s\n" name;
+      Log.printf "Executing %s\n" name;
       thunk ();)
     sorted_nodes;;
 *)

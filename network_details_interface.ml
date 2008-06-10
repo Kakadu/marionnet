@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -236,14 +236,14 @@ object(self)
   (** Return all the non-reserved data of a given port, in our usual
       <name, item> alist format: *)
   method get_port_data device_name port_name =
-(*     Printf.printf "network_details: get_port_data\n"; flush_all (); *)
+(*     Log.printf "network_details: get_port_data\n"; flush_all (); *)
     let device_row_id = self#device_row_id device_name in
     let device_port_ids = self#children_of device_row_id in
     let filtered_port_data =
       List.filter
         (fun row -> lookup_alist "Name" row = String port_name)
         (List.map self#get_row device_port_ids) in
-(*     Printf.printf "get_port_data: %s %s (length is %i)\n" device_name port_name (List.length filtered_port_data); flush_all (); *)
+(*     Log.printf "get_port_data: %s %s (length is %i)\n" device_name port_name (List.length filtered_port_data); flush_all (); *)
     assert((List.length filtered_port_data) = 1);
     List.hd filtered_port_data
 
@@ -263,12 +263,12 @@ object(self)
 
   (** Return a single port attribute as an item: *)
   method get_port_attribute device_name port_name column_header =
-(*     Printf.printf "network_details: get_port_attribute\n"; flush_all (); *)
+(*     Log.printf "network_details: get_port_attribute\n"; flush_all (); *)
     item_to_string (lookup_alist column_header (self#get_port_data device_name port_name))
 
   (** Return a single port attribute as an item: *)
   method get_port_attribute_by_index device_name port_index column_header =
-(*     Printf.printf "network_details: get_port_attribute_by_index\n"; flush_all (); *)
+(*     Log.printf "network_details: get_port_attribute_by_index\n"; flush_all (); *)
     item_to_string (lookup_alist column_header (self#get_port_data_by_index device_name port_index))
 
   (** Clear the interface and set the full internal state back to its initial value: *)
@@ -414,7 +414,7 @@ object(self)
       let uneditable = item_to_bool (lookup_alist "_uneditable" row) in
       (not uneditable) or
       (List.for_all (fun (name, value) ->
-(*                        Printf.printf "[Checking the column %s]\n" name; *)
+(*                        Log.printf "[Checking the column %s]\n" name; *)
                        name = "Name" or
                        name = "Type" or
                        name = "_uneditable" or

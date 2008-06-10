@@ -1,7 +1,6 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007  Jean-Vincent Loddo
-   Copyright (C) 2007  Luca Saiu
-   Updated by Luca Saiu in 2008.
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -169,42 +168,42 @@ class globalState = fun () ->
 
   (** Handlers for relevant project directories and files. *)
   method getDir dir     = 
-    Printf.printf "getDir: calling get_pwdir\n"; flush_all ();
+    Log.printf "getDir: calling get_pwdir\n"; flush_all ();
     let result = 
       (self#get_pwdir^"/"^(self#get_prj_name)^"/"^dir^"/")
     in
-    Printf.printf "getDir: exiting with success\n"; flush_all ();
+    Log.printf "getDir: exiting with success\n"; flush_all ();
     result
 
   method tmpDir         = 
-    Printf.printf "* calling getDir 1\n"; flush_all ();
+    Log.printf "* calling getDir 1\n"; flush_all ();
     self#getDir "tmp" 
   method patchesDir     =
-    Printf.printf "* calling getDir 2\n"; flush_all ();
+    Log.printf "* calling getDir 2\n"; flush_all ();
     self#getDir "states" 
   method netmodelDir    =
-    Printf.printf "* calling getDir 3\n"; flush_all ();
+    Log.printf "* calling getDir 3\n"; flush_all ();
     self#getDir "netmodel" 
   method scriptsDir     =
-    Printf.printf "* calling getDir 4\n"; flush_all ();
+    Log.printf "* calling getDir 4\n"; flush_all ();
     self#getDir "scripts" 
   method hostfsDir      =
-    Printf.printf "* calling getDir 5\n"; flush_all ();
+    Log.printf "* calling getDir 5\n"; flush_all ();
     self#getDir "hostfs" 
   method classtestDir   =
-    Printf.printf "* calling getDir 6\n"; flush_all ();
+    Log.printf "* calling getDir 6\n"; flush_all ();
     self#getDir "classtest" 
   method dotSketchFile  =
-    Printf.printf "* calling getDir 7\n"; flush_all ();
+    Log.printf "* calling getDir 7\n"; flush_all ();
     self#tmpDir^"sketch.dot"
   method pngSketchFile  =
-    Printf.printf "* calling getDir 8\n"; flush_all ();
+    Log.printf "* calling getDir 8\n"; flush_all ();
     self#tmpDir^"sketch.png"
   method networkFile    =
-    Printf.printf "* calling getDir 9\n"; flush_all ();
+    Log.printf "* calling getDir 9\n"; flush_all ();
     self#netmodelDir^"network.xml"
   method dotoptionsFile =
-    Printf.printf "* calling getDir 10\n"; flush_all ();
+    Log.printf "* calling getDir 10\n"; flush_all ();
     self#netmodelDir^"dotoptions.marshal"
 
   (** New project which will be saved into the given filename. *)
@@ -248,7 +247,7 @@ class globalState = fun () ->
       (* Force GUI coherence. *)
       self#gui_coherence () ;
 
-      prerr_endline ("*** in new_project");
+      Log.print_endline ("*** in new_project");
      (* Refresh the network sketch *)
       self#refresh_sketch () ;
     
@@ -258,16 +257,16 @@ class globalState = fun () ->
 
   (** Close the current project. The project is lost if the user hasn't saved it. *)
   method close_project ()  = 
-    print_string ">>>>>>>>>>CLOSING THE PROJECT: BEGIN<<<<<<<<\n";
+    Log.print_string ">>>>>>>>>>CLOSING THE PROJECT: BEGIN<<<<<<<<\n";
     (* Destroy whatever the LEDgrid manager is managing: *)
     self#network#ledgrid_manager#reset;
 
     (if (app_state = NoActiveProject) then 
-       print_string ">>>>>>>>>>(THERE'S NO PROJECT TO CLOSE)<<<<<<<<\n"
+       Log.print_string ">>>>>>>>>>(THERE'S NO PROJECT TO CLOSE)<<<<<<<<\n"
      else begin
       self#network#reset ();
 
-      prerr_endline ("*** in close_project (calling update_sketch)");
+      Log.print_endline ("*** in close_project (calling update_sketch)");
      (* Update the network sketch (now empty) *)
       self#update_sketch () ; 
 
@@ -279,9 +278,9 @@ class globalState = fun () ->
 
       (* Unlink the project working directory content. *)
       Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
-      Printf.printf "** DESTROYING THE OLD WORKING DIRECTORY... BEGIN\n"; flush_all ();
+      Log.printf "** DESTROYING THE OLD WORKING DIRECTORY... BEGIN\n"; flush_all ();
       ignore (Unix.system ("rm -rf "^self#get_pwdir));
-      Printf.printf "** DESTROYING THE OLD WORKING DIRECTORY... DONE\n"; flush_all ();
+      Log.printf "** DESTROYING THE OLD WORKING DIRECTORY... DONE\n"; flush_all ();
 
       (* Unset the project working directory. *)
       self#set_pwdir None;
@@ -302,7 +301,7 @@ class globalState = fun () ->
     (Defects_interface.get_defects_interface ())#clear;
     (Texts_interface.get_texts_interface ())#reset_file_name;
     (Texts_interface.get_texts_interface ())#clear;
-    print_string ">>>>>>>>>>CLOSING THE PROJECT: END<<<<<<<<\n";
+    Log.print_string ">>>>>>>>>>CLOSING THE PROJECT: END<<<<<<<<\n";
 
 
  (** Read the pseudo-XML file containing the network definition. *)
@@ -315,7 +314,7 @@ class globalState = fun () ->
 
    (* Plan to restore the network if something goes wrong. *)
    let emergency = fun e -> 
-         Printf.printf "import_network: emergency (%s)!!!\n" (Printexc.to_string e); flush_all ();
+         Log.printf "import_network: emergency (%s)!!!\n" (Printexc.to_string e); flush_all ();
          self#network#copyFrom backup; 
          emergency () in
 
@@ -323,7 +322,7 @@ class globalState = fun () ->
    (if (Shell.regfile_readable f) 
    then try 
        Netmodel.Xml.load_network self#network f ;
-       prerr_endline ("import_network: network imported"); flush_all ();
+       Log.print_endline ("import_network: network imported"); flush_all ();
    with e -> (emergency e;  raise e) 
    else ( emergency (Failure "file not readable"); raise (Failure "state#import_network: cannot open the xml file") ));
   
@@ -394,19 +393,19 @@ class globalState = fun () ->
     let dotAction () = begin 
       (try  
      	self#dotoptions#load_from_file self#dotoptionsFile;
-        prerr_endline ("open_project: dotoptions recovered");
-       with e -> (prerr_endline ("open_project: cannot read the dotoptions file => resetting defaults"); 
+        Log.print_endline ("open_project: dotoptions recovered");
+       with e -> (Log.print_endline ("open_project: cannot read the dotoptions file => resetting defaults"); 
                    self#dotoptions#reset_defaults ())) ;
        self#dotoptions#write_gui ()
       end in
 
-    prerr_endline ("open_project: calling import_network");
+    Log.print_endline ("open_project: calling import_network");
 
     (* Second, read the xml file containing the network definition. If something goes wrong, close the project. *)
     (try
     self#import_network ~emergency:self#close_project ~dotAction self#networkFile ;
     with e -> 
-      Printf.printf "Failed with exception %s\n" (Printexc.to_string e);
+      Log.printf "Failed with exception %s\n" (Printexc.to_string e);
       flush_all ());
 
     (* Now undump data and fill all the treeviews: *)
@@ -423,7 +422,7 @@ class globalState = fun () ->
   (** Rewrite the compressed archive prj_filename with the content of the project working directory (pwdir). *)
   method save_project () =
     if not (app_state=NoActiveProject) then begin
-      print_string ">>>>>>>>>>SAVING THE PROJECT: BEGIN<<<<<<<<\n";
+      Log.print_string ">>>>>>>>>>SAVING THE PROJECT: BEGIN<<<<<<<<\n";
 (*        let progress_bar =
           Simple_dialogs.make_progress_bar_dialog
             ~title:("Saving the project into " ^ self#get_prj_filename) () in *)
@@ -451,9 +450,9 @@ class globalState = fun () ->
         (* (Re)write the .mar file *)
         let cmd = ("tar cSvzf "^(self#get_prj_filename)^" -C "^self#get_pwdir^" --exclude tmp "^(self#get_prj_name)) in
         let _ = (Unix.system cmd) in 
-        prerr_endline ("cmd=<"^cmd^">");
+        Log.print_endline ("cmd=<"^cmd^">");
 (*        Simple_dialogs.destroy_progress_bar_dialog progress_bar; *)
-        print_string ">>>>>>>>>>SAVING THE PROJECT: END<<<<<<<<\n";
+        Log.print_string ">>>>>>>>>>SAVING THE PROJECT: END<<<<<<<<\n";
       end
 
 
@@ -543,10 +542,10 @@ class globalState = fun () ->
     close_out ch;
     let command_line =
       "dot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
-    Printf.printf "The dot command line is\n%s\n" command_line; flush_all ();
+    Log.printf "The dot command line is\n%s\n" command_line; flush_all ();
     let exit_code =
       Sys.command command_line in
-    Printf.printf "dot exited with exit code %i\n" exit_code; flush_all ();
+    Log.printf "dot exited with exit code %i\n" exit_code; flush_all ();
     self#mainwin#sketch#set_file self#pngSketchFile ; 
     (if not (exit_code = 0) then
       Simple_dialogs.error
@@ -564,12 +563,12 @@ There is no need to restart the application."
     
     (* self#mainwin#sketch#set_pixbuf (Widget.Image.zoom 1.2 self#mainwin#sketch#pixbuf) ; *)
     (* Debugging *)
-    (* prerr_endline ("============= DEBUGGING ==============="); *)
-    (* prerr_endline ("*** IDENTIFY :"); *)
+    (* Log.print_endline ("============= DEBUGGING ==============="); *)
+    (* Log.print_endline ("*** IDENTIFY :"); *)
     (* Sys.command("identify "^ft) => ignore ; *)
-    (* prerr_endline ("*** RATIO :"); *)
-    (* prerr_endline self#dotoptions#ratio ; *)
-    (* prerr_endline ("==================================="); *)
+    (* Log.print_endline ("*** RATIO :"); *)
+    (* Log.print_endline self#dotoptions#ratio ; *)
+    (* Log.print_endline ("==================================="); *)
 
     self#details#rewrite ~tags:["center";"bold";"x-large"] "DOT FILE CONTENT\n\n"     ;
     self#details#append  ~tags:["monospace"] (Unix.cat fs) ;
@@ -586,7 +585,7 @@ There is no need to restart the application."
              self#network#freeReceptaclesNamesOfNode node_name Netmodel.Eth)
            node_names) in
     let free_ethernet_ports_no = List.length free_ethernet_port_names in
-(*     Printf.printf "Free Ethernet ports are now %i\n" free_ethernet_ports_no; flush_all (); *)
+(*     Log.printf "Free Ethernet ports are now %i\n" free_ethernet_ports_no; flush_all (); *)
     (if free_ethernet_ports_no < 2 then begin
       self#mainwin#imagemenuitem_CROISE_AJOUT#misc#set_sensitive false;
       self#mainwin#imagemenuitem_DROIT_AJOUT#misc#set_sensitive false;
@@ -604,7 +603,7 @@ There is no need to restart the application."
     self#dotoptions#reset_shuffler  ();
     self#dotoptions#reset_extrasize ();
     unlock_sketch ();
-    prerr_endline ("*** in update_sketch calling refresh_sketch");
+    Log.print_endline ("*** in update_sketch calling refresh_sketch");
     self#refresh_sketch (); (* this is already synchronized *)
 
   (** Update the state and force the gui coherence. 
@@ -632,10 +631,10 @@ There is no need to restart the application."
 
  (** For debugging *)
  method debugging () = 
-   prerr_endline ("st.wdir="^wdir); 
-   prerr_endline ("st.pwdir="^(try self#get_pwdir with _ ->"")); 
-   prerr_endline ("st.prj_filename="^self#get_prj_filename); 
-   prerr_endline ("st.prj_name="^self#get_prj_name)
+   Log.print_endline ("st.wdir="^wdir); 
+   Log.print_endline ("st.pwdir="^(try self#get_pwdir with _ ->"")); 
+   Log.print_endline ("st.prj_filename="^self#get_prj_filename); 
+   Log.print_endline ("st.prj_name="^self#get_prj_name)
 
  method mrPropre () = 
     if not (app_state=NoActiveProject) then raise (Failure "A project is still open, I cannot clean the wdir!")

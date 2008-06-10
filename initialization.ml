@@ -24,23 +24,6 @@ Printf.printf
   "=======================================================\n  Welcome to %s version %s\n=======================================================\n\n"
   Meta.name Meta.version;;
 
-(*
-(* Create the funny bridge we need for Ethernet plugs: *)
-Printf.printf "Setting up the bridge...\n"; flush_all ();
-let command_line =
-  Printf.sprintf
-    "%s/prepare_bridge.sh &> /dev/null"
-    Pathnames.marionnet_home_bin
-    in
-match Unix.system command_line with
-  Unix.WEXITED 0 -> begin
-    Printf.printf "Ok, the bridge was setup.\n"; flush_all ();
-  end
-| _ -> begin
-    Printf.printf "WARNING: Could not setup the bridge: Ethernet plugs won't work.\n"; flush_all ();
-  end;;
-*)
-
 (* Seed the random number generator: *)
 Random.self_init ();;
 

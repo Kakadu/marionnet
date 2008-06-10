@@ -16,7 +16,7 @@
 
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 
-Printf.printf "Setting up directory path names for Marionnet...\n";;
+Log.printf "Setting up directory path names for Marionnet...\n";;
 
 (** Return the value of the given configuration variable, if it's defined
     as a non-empty string; otherwise return the second argument: *)
@@ -59,7 +59,7 @@ let vde_prefix =
   with _ ->
     "";;
 
-Printf.printf "the VDE prefix is %s\n" vde_prefix;;
+Log.printf "the VDE prefix is %s\n" vde_prefix;;
 
 (* Enter the right directory: *)
 try

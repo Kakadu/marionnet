@@ -31,15 +31,15 @@ let update_interval = 200;; (* in milliseconds *)
 let destroy_progress_bar_dialog window =
   match !window with
     Some the_window -> begin
-      print_string "A progress bar dialog window was destroyed.\n";
+      Log.print_string "A progress bar dialog window was destroyed.\n";
       flush_all ();
       the_window#destroy ();
       window := None;
       progress_bars := remove_from_list window !progress_bars;
     end
   | None -> begin
-      print_string "A progress bar dialog window was destroyed\n";
-      print_string "*more than once*. Doing nothing more.\n";
+      Log.print_string "A progress bar dialog window was destroyed\n";
+      Log.print_string "*more than once*. Doing nothing more.\n";
       flush_all ();
     end;;
 

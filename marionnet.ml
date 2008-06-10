@@ -117,7 +117,7 @@ Filesystem_history.set_startup_functions
     node#startup);;
 
 let shutdown_or_restart_relevant_device device_name =
-  Printf.printf "Shutdown or restart \"%s\".\n" device_name;
+  Log.printf "Shutdown or restart \"%s\".\n" device_name;
   flush_all ();
   try
     (* Is the device a cable? If so we have to restart it (and do nothing if it
@@ -161,7 +161,7 @@ let texts_interface =
 (** Timeout for refresh the state_coherence *)
 (* let id = GMain.Timeout.add ~ms:1000 ~callback:(fun () -> st#state_coherence ();true) ;; *)
 
-print_string "Starting the application\n";;
+Log.print_string "Starting the application\n";;
 
 (* GMain.Main.main ();; *)
 
@@ -195,13 +195,13 @@ else
 
 (* Check that we're *not* running as root. Yes, this has been reversed
    since the last version: *)
-Printf.printf "Checking whether Marionnet is running as root...\n";;
+Log.printf "Checking whether Marionnet is running as root...\n";;
 if (Unix.getuid ()) = 0 then begin
-  Printf.printf "\n**********************************************\n";
-  Printf.printf "* Marionnet should *not* be run as root, for * \n";
-  Printf.printf "* security reasons.                          *\n";
-  Printf.printf "* Continuing anyway...                       *\n";
-  Printf.printf "**********************************************\n\n";
+  Log.printf "\n**********************************************\n";
+  Log.printf "* Marionnet should *not* be run as root, for * \n";
+  Log.printf "* security reasons.                          *\n";
+  Log.printf "* Continuing anyway...                       *\n";
+  Log.printf "**********************************************\n\n";
   Simple_dialogs.warning
     "FRENCH You should not be root!"
     "FRENCH Marionnet is running with UID 0; this is bad from a security point of view.
@@ -214,7 +214,7 @@ end;;
 (** Run system with the given argument, and raise exception in case of failure;
     return unit on success. *)
 let system_or_fail command_line =
-  Printf.printf "Executing \'%s\'...\n" command_line;
+  Log.printf "Executing \'%s\'...\n" command_line;
   flush_all ();
   match Unix.system command_line with
     Unix.WEXITED 0 ->

@@ -56,12 +56,12 @@ let ask_the_server request =
   with_mutex the_daemon_client_mutex
     (fun () ->
       try
-        Printf.printf "I am about to send %s\n" (string_of_daemon_request request);
+        Log.printf "I am about to send %s\n" (string_of_daemon_request request);
         flush_all ();
         if can_we_communicate_with_the_daemon () then begin
           let buffer = String.make message_length 'x' in
           let request_as_string = print_request request in
-          Printf.printf "The request is %s\n" (string_of_daemon_request request);
+          Log.printf "The request is %s\n" (string_of_daemon_request request);
           flush_all ();
           let sent_bytes_no = Unix.send the_daemon_client_socket request_as_string 0 message_length [] in
           (if not (sent_bytes_no == sent_bytes_no) then
@@ -71,13 +71,13 @@ let ask_the_server request =
           (if received_bytes_no < message_length then
             failwith "recv() failed, or the message is ill-formed");
           let response = parse_response buffer in
-          Printf.printf "The response is %s\n" (string_of_daemon_response response);
+          Log.printf "The response is %s\n" (string_of_daemon_response response);
           flush_all ();
           response
         end else
           (Error "the socket to the daemon is down");
       with e -> begin
-        Printf.printf "ask_the_server failed: %s\n" (Printexc.to_string e);
+        Log.printf "ask_the_server failed: %s\n" (Printexc.to_string e);
         flush_all ();
         disable_daemon_support ();
         Simple_dialogs.error
@@ -95,23 +95,23 @@ let thread_sending_keepalives_thunk () =
       (try
         Thread.delay inter_keepalive_interval;
       with e -> begin
-        Printf.printf
+        Log.printf
           "delay failed (%s). This should not be a problem.\n"
           (Printexc.to_string e);
         flush_all ();
       end);
     done;
   with e -> begin
-    Printf.printf "The keepalive-sending thread failed: %s.\n" (Printexc.to_string e);
-    Printf.printf "Bailing out.\n";
+    Log.printf "The keepalive-sending thread failed: %s.\n" (Printexc.to_string e);
+    Log.printf "Bailing out.\n";
     flush_all ();
   end;;
 
 (** This should be called *before* communicating with the daemon in any way: *)
 let initialize_daemon_client () =
-  Printf.printf "Connecting to the daemon socket...\n"; flush_all ();
+  Log.printf "Connecting to the daemon socket...\n"; flush_all ();
   Unix.connect the_daemon_client_socket (Unix.ADDR_UNIX socket_name);
-  Printf.printf "Ok, connected with success.\n"; flush_all ();;
+  Log.printf "Ok, connected with success.\n"; flush_all ();;
 
 (** Make a new thread sending keepalives to the daemon: *)
 let start_thread_sending_keepalives () =
@@ -128,16 +128,16 @@ let start_thread_sending_keepalives () =
 (*           DestroyAllMyResources *)
 (*         else *)
 (*           Make (AnyTap(42, "42.42.42.42")) in *)
-(*       Printf.printf "Request:  %s\n" (string_of_daemon_request request); *)
+(*       Log.printf "Request:  %s\n" (string_of_daemon_request request); *)
 (*       flush_all (); *)
 (*       let response = *)
 (*         ask_the_server request in *)
-(*       Printf.printf "Response: %s\n" (string_of_daemon_response response); *)
-(*       Printf.printf "\n"; *)
+(*       Log.printf "Response: %s\n" (string_of_daemon_response response); *)
+(*       Log.printf "\n"; *)
 (*       flush_all (); *)
 (*     done *)
 (*   with e -> begin *)
-(*     Printf.printf "The daemon client failed: %s\n." (Printexc.to_string e); *)
-(*     Printf.printf "Bailing out.\n"; *)
+(*     Log.printf "The daemon client failed: %s\n." (Printexc.to_string e); *)
+(*     Log.printf "Bailing out.\n"; *)
 (*     flush_all (); *)
 (*   end;; *)

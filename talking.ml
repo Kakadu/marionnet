@@ -39,8 +39,8 @@ let install_signal_handler signal =
     signal
     (Sys.Signal_handle
        (fun _ ->
-       Printf.printf "\n\n\nWe got a signal. Now we're gonna exit like a good-mannered\n";
-       Printf.printf "polite process which always calls exit(EXIT_SUCCESS).\n\n\n";
+       Log.printf "\n\n\nWe got a signal. Now we're gonna exit like a good-mannered\n";
+       Log.printf "polite process which always calls exit(EXIT_SUCCESS).\n\n\n";
          flush_all ();
          exit 0));;
 
@@ -50,10 +50,10 @@ let commit_suicide signal =
   (* try *)
   (*   (\* Be sure that every write operation is synced before committing suicide: *\) *)
   (*   flush_all (); *)
-  (*   Printf.printf "!! Sending the signal %i to the Marionnet process...\n" signal; flush_all (); *)
+  (*   Log.printf "!! Sending the signal %i to the Marionnet process...\n" signal; flush_all (); *)
   (*   Unix.kill my_pid Sys.sigkill; *)
   (* with _ -> begin *)
-  (*   Printf.printf "!! Sending the signal %i to the Marionnet process failed. Mmm. Very strange.\n" signal; *)
+  (*   Log.printf "!! Sending the signal %i to the Marionnet process failed. Mmm. Very strange.\n" signal; *)
   (*   flush_all (); *)
   (* end;; *)
 
@@ -68,7 +68,7 @@ let make_names_and_thunks st verb what_to_do_with_a_node =
                     (try
                       what_to_do_with_a_node node;
                     with e ->
-                      Printf.printf "Warning (q): \"%s %s\" raised an exception (%s)\n"
+                      Log.printf "Warning (q): \"%s %s\" raised an exception (%s)\n"
                         verb
                         node#name
                         (Printexc.to_string e));
@@ -106,7 +106,7 @@ let is_there_something_on_or_sleeping st () =
       (fun node -> node#can_gracefully_shutdown or node#can_resume)
       st#network#nodes
   in
-  print_string ("Is there something running? " ^ (if result then "yes" else "no") ^ "\n");
+  Log.print_string ("Is there something running? " ^ (if result then "yes" else "no") ^ "\n");
   result;;
 
 
@@ -594,7 +594,7 @@ let ask_for_fresh_writable_filename ~title ?(filters = allfilters) ?(help=None) 
   let valid = fun x -> 
     if (Sys.file_exists x) 
     then ((Simple_dialogs.error "Choix du nom" "Un fichier de même nom existe déjà!\n\nVous devez choisir un nouveau nom pour votre fichier." ()); false)
-    else (prerr_endline ("valid: x="^x) ; (Shell.freshname_possible x)) in
+    else (Log.print_endline ("valid: x="^x) ; (Shell.freshname_possible x)) in
 
   let result =
     ask_for_file ~title ~valid ~filters ~action:`SAVE ~gen_id:"filename" ~help in
@@ -625,7 +625,7 @@ let ask_question ?(title="QUESTION")  ?(gen_id="answer")  ?(help=None) ?(cancel=
    dialog#title#set_use_markup true; 
    ignore
      (dialog#toplevel#event#connect#delete
-        ~callback:(fun _ -> print_string "Sorry, no, you can't close the dialog. Please make a decision.\n"; true));
+        ~callback:(fun _ -> Log.print_string "Sorry, no, you can't close the dialog. Please make a decision.\n"; true));
    
    let result = (ref None) in
    let cont   = ref true in
@@ -681,8 +681,8 @@ module Talking_PROJET_NOUVEAU = struct
        let fname = cmd#filename in
        let fname =
          check_path_name_validity_and_add_extension_if_needed fname in
-       prerr_endline (myname^".react: save_current="^(string_of_bool cmd#save_current)); 
-       prerr_endline (myname^".react: filename="^fname); 
+       Log.print_endline (myname^".react: save_current="^(string_of_bool cmd#save_current)); 
+       Log.print_endline (myname^".react: filename="^fname); 
        (if (st#active_project) && (cmd#save_current) then st#save_project ());
        st#close_project () ;
        st#new_project fname ;
@@ -691,7 +691,7 @@ module Talking_PROJET_NOUVEAU = struct
      with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialogs"))
      end
  | None ->  begin
-     prerr_endline (myname^".react: NOTHING TO DO")
+     Log.print_endline (myname^".react: NOTHING TO DO")
  end
  ;;
 
@@ -744,11 +744,11 @@ module Talking_PROJET_OUVRIR = struct
      try 
        shutdown_everything st ();
        let cmd = (new usercmd r) in 
-       prerr_endline (myname^".react: save_current="^(string_of_bool cmd#save_current)); 
-       prerr_endline (myname^".react: filename="^cmd#filename); 
+       Log.print_endline (myname^".react: save_current="^(string_of_bool cmd#save_current)); 
+       Log.print_endline (myname^".react: filename="^cmd#filename); 
        if (st#active_project) && (cmd#save_current) then st#save_project (); 
        
-       prerr_endline ("*** in react open project: now call close_project");
+       Log.print_endline ("*** in react open project: now call close_project");
        st#close_project () ;
        begin
          try 
@@ -760,7 +760,7 @@ module Talking_PROJET_OUVRIR = struct
          (*  | _ -> raise (Failure (myname^".react: unexpected environnement received from dialogs")) *)
      end
  | None -> 
-     prerr_endline (myname^".react: NOTHING TO DO")
+     Log.print_endline (myname^".react: NOTHING TO DO")
  ;;
 
  (** Performs the binding with the main window *)
@@ -830,7 +830,7 @@ module Talking_PROJET_ENREGISTRER_SOUS = struct
      else begin
        try 
          let cmd = (new usercmd r) in 
-         prerr_endline (myname^".react: filename="^cmd#filename);
+         Log.print_endline (myname^".react: filename="^cmd#filename);
          begin
            try 
              st#save_project_as cmd#filename;
@@ -840,7 +840,7 @@ module Talking_PROJET_ENREGISTRER_SOUS = struct
        with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
      end
  | None -> 
-     prerr_endline (myname^".react: NOTHING TO DO")
+     Log.print_endline (myname^".react: NOTHING TO DO")
  ;;
 
  (** Performs the binding with the main window *)
@@ -883,7 +883,7 @@ module Talking_PROJET_COPIER_SOUS = struct
      else begin
        try 
          let cmd = (new usercmd r) in 
-         prerr_endline (myname^".react: filename="^cmd#filename); 
+         Log.print_endline (myname^".react: filename="^cmd#filename); 
          begin
            try 
              st#copy_project_into cmd#filename
@@ -892,7 +892,7 @@ module Talking_PROJET_COPIER_SOUS = struct
        with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
      end
  | None -> 
-     prerr_endline (myname^".react: NOTHING TO DO")
+     Log.print_endline (myname^".react: NOTHING TO DO")
  ;;
 
  (** Performs the binding with the main window *)
@@ -935,14 +935,14 @@ module Talking_PROJET_FERMER = struct
      try 
        shutdown_everything st ();
        let cmd = (new usercmd r) in 
-       prerr_endline (myname^".react: answer="^cmd#answer); 
+       Log.print_endline (myname^".react: answer="^cmd#answer); 
        if (st#active_project) && (cmd#answer="yes") then st#save_project ();
        st#close_project ();
        st#mainwin#window_MARIONNET#set_title Command_line.window_title; (* no project name *)
      with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
      end
  | None -> 
-     prerr_endline (myname^".react: NOTHING TO DO")
+     Log.print_endline (myname^".react: NOTHING TO DO")
  ;;
 
  (** Performs the binding with the main window *)
@@ -975,14 +975,14 @@ module Talking_PROJET_IMPORTER_RESEAU = struct
  let react (st:globalState) (msg: (string,string) env option) = match msg with
  | Some r -> 
      let filename =  r#get("filename") in
-     prerr_endline ("talking_PROJET_IMPORTER_RESEAU.react: filename="^filename); 
+     Log.print_endline ("talking_PROJET_IMPORTER_RESEAU.react: filename="^filename); 
      begin
        try 
          st#import_network ~dotAction:(st#dotoptions#reset_defaults) filename ;
          st#flash ~delay:6000 (utf8 ("La définition xml du réseau a été importée avec succés depuis le fichier "^filename));
        with e -> (Simple_dialogs.error "IMPORTER UNE DÉFINITION XML" ("Erreur d'importation du fichier "^filename) ()); raise e
      end
- | None -> prerr_endline ("talking_PROJET_IMPORTER_RESEAU.react: NOTHING TO DO")
+ | None -> Log.print_endline ("talking_PROJET_IMPORTER_RESEAU.react: NOTHING TO DO")
  ;;
 
  (** Performs the binding with the main window *)
@@ -1013,14 +1013,14 @@ module Talking_PROJET_EXPORTER_RESEAU = struct
  let react (st:globalState) (msg: (string,string) env option) = match msg with
  | Some r -> 
      let filename =  r#get("filename") in
-     prerr_endline ("talking_PROJET_EXPORTER_RESEAU.react: filename="^filename); 
+     Log.print_endline ("talking_PROJET_EXPORTER_RESEAU.react: filename="^filename); 
      begin
        try
          Netmodel.Xml.save_network st#network filename;
          st#flash ~delay:6000 (utf8 ("La définition xml du réseau a été exportée avec succés dans le fichier "^filename));
        with e -> (Simple_dialogs.error "EXPORTER LA DÉFINITION XML" ("Echcc durant l'exportation vers le fichier "^filename) ()); raise e
      end
- | None -> prerr_endline ("talking_PROJET_EXPORTER_RESEAU.react: NOTHING TO DO")
+ | None -> Log.print_endline ("talking_PROJET_EXPORTER_RESEAU.react: NOTHING TO DO")
  ;;
 
  (** Performs the binding with the main window *)
@@ -1051,19 +1051,19 @@ module Talking_PROJET_EXPORTER_IMAGE = struct
  | Some r -> 
      let filename =
        check_path_name_validity_and_add_extension_if_needed ~extension:"png" (r#get "filename") in
-     prerr_endline ("talking_PROJET_EXPORTER_IMAGE.react: filename="^filename); 
+     Log.print_endline ("talking_PROJET_EXPORTER_IMAGE.react: filename="^filename); 
      begin
        try
          let command = ("cp "^st#pngSketchFile^" "^filename) in
          begin
-         print_string "About to call Unix.run...\n"; flush_all ();
+         Log.print_string "About to call Unix.run...\n"; flush_all ();
          match Unix.run command with
          |  (_ , Unix.WEXITED 0) -> st#flash ~delay:6000 (utf8 ("Image du réseau exportée avec succès dans le fichier "^filename))
          |  _                    -> raise (Failure ("Echec durant l'exportation de l'image du réseau vers le fichier "^filename))
          end
        with e -> (Simple_dialogs.error "EXPORTER L'IMAGE DU RESEAU" ("Echec durant l'exportation vers le fichier "^filename) ()); raise e
      end
- | None -> prerr_endline ("talking_PROJET_EXPORTER_IMAGE.react: NOTHING TO DO")
+ | None -> Log.print_endline ("talking_PROJET_EXPORTER_IMAGE.react: NOTHING TO DO")
  ;;
 
  (** Performs the binding with the main window *)
@@ -1099,48 +1099,48 @@ module Talking_PROJET_QUITTER = struct
  end;;
 
  let quit (st:globalState) =
-   print_string ">>>>>>>>>>QUIT: BEGIN<<<<<<<<\n";
+   Log.print_string ">>>>>>>>>>QUIT: BEGIN<<<<<<<<\n";
    (* Shutdown all devices and synchronously wait until they actually terminate: *)
    shutdown_everything st ();
    Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
    st#close_project (); (* destroy the temporary project directory *)
-   prerr_endline (myname^".react: Calling mrPropre...");
+   Log.print_endline (myname^".react: Calling mrPropre...");
    st#mrPropre ();
    GMain.Main.quit (); (* Finalize the GUI *)
    
-   print_string "Killing the task runner thread...\n";
+   Log.print_string "Killing the task runner thread...\n";
    Task_runner.the_task_runner#terminate;
-   print_string "Killing the death monitor thread...\n";
+   Log.print_string "Killing the death monitor thread...\n";
    Death_monitor.stop_polling_loop ();
-   print_string "Killing the blinker thread...\n";
+   Log.print_string "Killing the blinker thread...\n";
    st#network#ledgrid_manager#kill_blinker_thread;
-   print_string "...ok, the blinker thread was killed (from talking.ml).\n";
-   print_string "Sync, then kill our process (To do: this is a very ugly kludge)\n";
+   Log.print_string "...ok, the blinker thread was killed (from talking.ml).\n";
+   Log.print_string "Sync, then kill our process (To do: this is a very ugly kludge)\n";
    flush_all ();
-   print_string "Synced.\n";
+   Log.print_string "Synced.\n";
    (* install_signal_handler Sys.sigint;
       install_signal_handler Sys.sigterm; *)
    commit_suicide Sys.sigkill; (* this always works :-) *)
-   print_string "!!! This should never be shown.\n";;
+   Log.print_string "!!! This should never be shown.\n";;
 
  (** The correspondent reaction of the application for the command given by user *)
  let react (st:globalState) (msg: (string,string) env option) = 
-   print_string ">>>>>>>>>>QUITTING: THERE SHOULD BE NOTHING BEFORE THIS<<<<<<<<\n";
+   Log.print_string ">>>>>>>>>>QUITTING: THERE SHOULD BE NOTHING BEFORE THIS<<<<<<<<\n";
    begin
      match msg with (* TO IMPLEMENT *)
      | Some r -> 
          begin           
            try 
              let cmd = (new usercmd r) in 
-             prerr_endline (myname^".react: answer="^cmd#answer);
+             Log.print_endline (myname^".react: answer="^cmd#answer);
              if (st#active_project) && (cmd#answer="yes") then
                st#save_project ();
              quit st;
            with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
          end
      | None -> begin
-         print_string ">>>>>>>>>>*NOT* QUITTING: the user chose 'cancel'<<<<<<<<\n";
-         prerr_endline (myname^".react: NOTHING TO DO")
+         Log.print_string ">>>>>>>>>>*NOT* QUITTING: the user chose 'cancel'<<<<<<<<\n";
+         Log.print_endline (myname^".react: NOTHING TO DO")
        end
    end;
 ;;
@@ -1192,13 +1192,13 @@ module Talking_OPTIONS_CWD = struct
      begin
      try 
          let cmd = (new usercmd r) in 
-         prerr_endline (myname^".react: foldername="^cmd#foldername);
+         Log.print_endline (myname^".react: foldername="^cmd#foldername);
          st#set_wdir   cmd#foldername;
      with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialogs"))
      end
  | None -> 
      begin
-       prerr_endline (myname^".react: WORKING DIRECTORY IS STILL SET TO "^st#get_wdir)
+       Log.print_endline (myname^".react: WORKING DIRECTORY IS STILL SET TO "^st#get_wdir)
      end
  ;;
 
@@ -1393,7 +1393,7 @@ module Talking_MATERIEL_SKEL = struct
      ~action:(fun x -> fun via ->
        (match ask_confirm_shutdown x () with
          Some(e) ->
-           (print_string "The answer is "; print_string (e#get "answer"); print_string "\n";
+           (Log.print_string "The answer is "; Log.print_string (e#get "answer"); Log.print_string "\n";
             if (e#get "answer") = "yes" then
               react_shutdown st x via)
 (*        | _ -> assert false)*)
@@ -1414,7 +1414,7 @@ module Talking_MATERIEL_SKEL = struct
      ~action:(fun x -> fun via ->
        (match ask_confirm_poweroff x () with
          Some(e) ->
-           (print_string "The answer is "; print_string (e#get "answer"); print_string "\n";
+           (Log.print_string "The answer is "; Log.print_string (e#get "answer"); Log.print_string "\n";
             if (e#get "answer") = "yes" then
               react_poweroff st x via)
         | _ -> ()))
@@ -1480,16 +1480,16 @@ module Talking_MATERIEL_MACHINE = struct
  | Some r -> 
      begin
        let cmd = (new usercmd r) in 
-       prerr_endline (myname^".react: name    = "^cmd#name);
-       prerr_endline (myname^".react: action  = "^cmd#action);
-       prerr_endline (myname^".react: oldname = "^cmd#oldname);
-       prerr_endline (myname^".react: memory  = "^cmd#memory);
-       prerr_endline (myname^".react: eth     = "^cmd#eth);
-       prerr_endline (myname^".react: ttyS    = "^cmd#ttyS);
-       prerr_endline (myname^".react: distrib = "^cmd#distrib);
-       prerr_endline (myname^".react: patch   = "^cmd#patch);
-       prerr_endline (myname^".react: kernel  = "^cmd#kernel);
-       prerr_endline (myname^".react: term    = "^cmd#term);
+       Log.print_endline (myname^".react: name    = "^cmd#name);
+       Log.print_endline (myname^".react: action  = "^cmd#action);
+       Log.print_endline (myname^".react: oldname = "^cmd#oldname);
+       Log.print_endline (myname^".react: memory  = "^cmd#memory);
+       Log.print_endline (myname^".react: eth     = "^cmd#eth);
+       Log.print_endline (myname^".react: ttyS    = "^cmd#ttyS);
+       Log.print_endline (myname^".react: distrib = "^cmd#distrib);
+       Log.print_endline (myname^".react: patch   = "^cmd#patch);
+       Log.print_endline (myname^".react: kernel  = "^cmd#kernel);
+       Log.print_endline (myname^".react: term    = "^cmd#term);
        let details = get_network_details_interface () in
        let defects = get_defects_interface () in
        begin
@@ -1538,7 +1538,7 @@ module Talking_MATERIEL_MACHINE = struct
          | _  -> raise (Failure (myname^".react: unexpected action"))
        end
      end
- | None -> prerr_endline (myname^".react: NOTHING TO DO")
+ | None -> Log.print_endline (myname^".react: NOTHING TO DO")
      
  ;; (* end of react_insert_update *)
 
@@ -1553,19 +1553,19 @@ module Talking_MATERIEL_MACHINE = struct
    dialog#toplevel#set_title (utf8 title);
 
    let kernel = Widget.ComboTextTree.fromList
-      ~callback:(Some prerr_endline)
+      ~callback:(Some Log.print_endline)
       ~packing:(Some (dialog#table#attach ~left:2 ~top:6 ~right:4)) 
       (MSys.kernelList ())  in
 
     let distrib = Widget.ComboTextTree.fromListWithSlave 
-      ~masterCallback:(Some prerr_endline)
+      ~masterCallback:(Some Log.print_endline)
       ~masterPacking: (Some (dialog#table#attach ~left:2 ~top:4 ~right:4)) 
       (* The user can't change filesystem and variant any more once the device
         has been created:*)
       (match update with
         None -> (MSys.machine_filesystem_list ())
       | Some m -> [m#get_distrib])
-      ~slaveCallback: (Some prerr_endline)
+      ~slaveCallback: (Some Log.print_endline)
       ~slavePacking:  (Some (dialog#table#attach ~left:2 ~top:5 ~right:4))
       (fun unprefixed_filesystem ->
         match update with
@@ -1573,7 +1573,7 @@ module Talking_MATERIEL_MACHINE = struct
             MSys.variant_list_of ("machine-" ^ unprefixed_filesystem) ()
         | Some m -> [m#get_variant])  in
     let terminal = Widget.ComboTextTree.fromList
-      ~callback:(Some prerr_endline)
+      ~callback:(Some Log.print_endline)
       ~packing:(Some (dialog#table#attach ~left:2 ~top:8 ~right:4)) 
       MSys.termList in
 
@@ -1592,11 +1592,11 @@ module Talking_MATERIEL_MACHINE = struct
 
                 (* The user cannot remove receptacles used by a cable. *)
                 let min_eth = (st#network#maxBusyReceptacleIndex m#get_name Netmodel.Eth)+1 in
-                prerr_endline (myname^".defaults: min_eth = "^(string_of_int min_eth)) ;               
+                Log.print_endline (myname^".defaults: min_eth = "^(string_of_int min_eth)) ;               
                 dialog#eth#adjustment#set_bounds ~lower:(float_of_int (max min_eth 1)) () ;
 
                 let min_ttyS = (st#network#maxBusyReceptacleIndex m#get_name Netmodel.TtyS)+1 in
-                prerr_endline (myname^".defaults: min_ttyS = "^(string_of_int min_ttyS))  ;              
+                Log.print_endline (myname^".defaults: min_ttyS = "^(string_of_int min_ttyS))  ;              
                 dialog#ttyS#adjustment#set_bounds ~lower:(float_of_int (max min_ttyS 1)) () ;
 
                 distrib#set_active_value       m#get_distrib               ;
@@ -1642,7 +1642,7 @@ module Talking_MATERIEL_MACHINE = struct
          let details = get_network_details_interface () in
          let defects = get_defects_interface () in
          if (answer="yes") then begin 
-           prerr_endline (myname^".react_elim: removing machine "^name);  
+           Log.print_endline (myname^".react_elim: removing machine "^name);  
            (st#network#delMachine name) ;
            st#update_sketch () ;
            st#update_state  () ;
@@ -1740,11 +1740,11 @@ module Talking_MATERIEL_DEVICE = struct
  | Some r -> 
      begin
        let cmd = (new usercmd r) in 
-       prerr_endline (myname^".react: name      = "^cmd#name);
-       prerr_endline (myname^".react: action    = "^cmd#action);
-       prerr_endline (myname^".react: oldname   = "^cmd#oldname);
-       prerr_endline (myname^".react: label     = "^cmd#label);
-       prerr_endline (myname^".react: eth       = "^cmd#eth);
+       Log.print_endline (myname^".react: name      = "^cmd#name);
+       Log.print_endline (myname^".react: action    = "^cmd#action);
+       Log.print_endline (myname^".react: oldname   = "^cmd#oldname);
+       Log.print_endline (myname^".react: label     = "^cmd#label);
+       Log.print_endline (myname^".react: eth       = "^cmd#eth);
        let details = get_network_details_interface () in
        let defects = get_defects_interface () in
        begin
@@ -1795,7 +1795,7 @@ module Talking_MATERIEL_DEVICE = struct
      end
  | None -> 
      begin
-       prerr_endline (myname^".react: NOTHING TO DO")
+       Log.print_endline (myname^".react: NOTHING TO DO")
      end
  ;; (* end of react_insert_update DEVICE *)
 
@@ -1834,7 +1834,7 @@ module Talking_MATERIEL_DEVICE = struct
                 (* The user cannot remove receptacles used by a cable. *)
                 let min_eth = (st#network#maxBusyReceptacleIndex h#get_name Netmodel.Eth)+1 in
                 let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
-                prerr_endline (myname^".defaults: min_eth = "^(string_of_int min_eth)) ;               
+                Log.print_endline (myname^".defaults: min_eth = "^(string_of_int min_eth)) ;               
                 dialog#eth#adjustment#set_bounds ~lower:(max min_multiple_of_4 4.0) () ;
                end
    end;
@@ -1869,7 +1869,7 @@ module Talking_MATERIEL_DEVICE = struct
          let answer = r#get("answer") in
          let name   = r#get("name")   in
          if (answer="yes") then begin 
-           prerr_endline (myname^".react_elim: removing device "^name);  
+           Log.print_endline (myname^".react_elim: removing device "^name);  
            (st#network#delDevice name) ;
            st#update_sketch ();
            st#update_state  ();
@@ -2056,14 +2056,14 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
  | Some r -> 
      begin
        let cmd = (new usercmd r) in 
-       prerr_endline (myname^".react: name         = "^cmd#name);
-       prerr_endline (myname^".react: action       = "^cmd#action);
-       prerr_endline (myname^".react: oldname      = "^cmd#oldname);
-       prerr_endline (myname^".react: label        = "^cmd#label);
-       prerr_endline (myname^".react: left_node    = "^cmd#left_node);
-       prerr_endline (myname^".react: left_recept  = "^cmd#left_recept);
-       prerr_endline (myname^".react: right_node   = "^cmd#right_node);
-       prerr_endline (myname^".react: right_recept = "^cmd#right_recept);
+       Log.print_endline (myname^".react: name         = "^cmd#name);
+       Log.print_endline (myname^".react: action       = "^cmd#action);
+       Log.print_endline (myname^".react: oldname      = "^cmd#oldname);
+       Log.print_endline (myname^".react: label        = "^cmd#label);
+       Log.print_endline (myname^".react: left_node    = "^cmd#left_node);
+       Log.print_endline (myname^".react: left_recept  = "^cmd#left_recept);
+       Log.print_endline (myname^".react: right_node   = "^cmd#right_node);
+       Log.print_endline (myname^".react: right_recept = "^cmd#right_recept);
 
        let sock1 = { Netmodel.nodename = cmd#left_node  ; Netmodel.receptname = cmd#left_recept  } in
        let sock2 = { Netmodel.nodename = cmd#right_node ; Netmodel.receptname = cmd#right_recept } in
@@ -2098,14 +2098,14 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
      end
  | None -> 
      begin
-       prerr_endline (myname^".react: NOTHING TO DO")
+       Log.print_endline (myname^".react: NOTHING TO DO")
      end
  ;; (* end of react_insert_update CABLE_RJ45 *)
 
 
  (** The dialog for CABLE_RJ45 INSERT/UPDATE. *)
  let ask_cable cablekind ~title ~(update:Netmodel.cable option) (st:globalState) () =
-(* Printf.printf "OK-Q 0\n"; flush_all ();  *)
+(* Log.printf "OK-Q 0\n"; flush_all ();  *)
    let dialog = if (cablekind=Netmodel.Direct)
                 then ((new Gui.dialog_DROIT  ()) :> dialog_CABLE_RJ45 )  
                 else ((new Gui.dialog_CROISE ()) :> dialog_CABLE_RJ45 )  
@@ -2113,7 +2113,7 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
 
    (* CABLE_RJ45 Dialog definition *)
 
-(* Printf.printf "OK-Q 1\n"; flush_all ();  *)
+(* Log.printf "OK-Q 1\n"; flush_all ();  *)
    dialog#toplevel#set_title (utf8 title);
 
    (* Slave dependent function for left and right combo: 
@@ -2124,7 +2124,7 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
          compare
          (st#network#freeReceptaclesNamesOfNode x Netmodel.Eth)) in
 
-(* Printf.printf "OK-Q 2\n"; flush_all ();  *)
+(* Log.printf "OK-Q 2\n"; flush_all ();  *)
    (* The free receptacles of the given node at the LEFT side of the cable. If we are updating
       we have to consider the old receptacle of the old nodename as available. *) 
    let get_left_recept_of = match update with
@@ -2133,7 +2133,7 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
                        then c#get_left.Netmodel.receptname::(freeReceptsOfNode x) 
                        else (freeReceptsOfNode x)) in
 
-(* Printf.printf "OK-Q 3\n"; flush_all (); *)
+(* Log.printf "OK-Q 3\n"; flush_all (); *)
    (* The free receptacles of the given node at the RIGHT side of the cable. If we are updating
       we have to consider the old receptacle of the old nodename as available. *) 
    let get_right_recept_of = match update with
@@ -2142,24 +2142,24 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
                        then c#get_right.Netmodel.receptname::(freeReceptsOfNode x) 
                        else (freeReceptsOfNode x)) in
    
-(* Printf.printf "OK-Q 4\n"; flush_all ();  *)
+(* Log.printf "OK-Q 4\n"; flush_all ();  *)
     let left = Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave 
-                  ~masterCallback:(Some prerr_endline)
+                  ~masterCallback:(Some Log.print_endline)
                   ~masterPacking:(Some (dialog#table_link#attach ~left:1 ~top:1 ~right:2))
                   st#network#getNodeNames
-                  ~slaveCallback:(Some prerr_endline)
+                  ~slaveCallback:(Some Log.print_endline)
                   ~slavePacking:(Some (dialog#table_link#attach ~left:1 ~top:2 ~right:2))
                   get_left_recept_of
-                  ~slaveSlaveCallback:(Some prerr_endline)
+                  ~slaveSlaveCallback:(Some Log.print_endline)
                   ~slaveSlavePacking:(Some (dialog#table_link#attach ~left:3 ~top:1 ~right:4))
                   (fun n1 r1 -> st#network#getNodeNames)
-                  ~slaveSlaveSlaveCallback:(Some prerr_endline)
+                  ~slaveSlaveSlaveCallback:(Some Log.print_endline)
                   ~slaveSlaveSlavePacking:(Some (dialog#table_link#attach ~left:3 ~top:2 ~right:4))
                   (fun n1 r1 n2 -> 
                      let l = (get_right_recept_of n2) in
                      if n1 = n2 then (List.substract l [r1]) else l) in
     
-(* Printf.printf "OK-Q 5\n"; flush_all ();  *)
+(* Log.printf "OK-Q 5\n"; flush_all ();  *)
     let right=left#slave#slave in
 
    (* Set defaults. If we are updating, defaults are the old values. *)
@@ -2226,7 +2226,7 @@ Les machines ont déjà l'interface de loopback pour cela.",result))) else resul
          let answer = r#get("answer") in
          let name   = r#get("name")   in
          if (answer="yes") then begin 
-          prerr_endline (myname^".react_elim: removing cable "^name);  
+          Log.print_endline (myname^".react_elim: removing cable "^name);  
           (st#network#delCable name);
           st#refresh_sketch ();
           defects#remove_cable name;
@@ -2268,11 +2268,11 @@ Les machines ont déjà l'interface de loopback pour cela.",result))) else resul
 
 (* Ugly temporary kludge to work around my laziness in using named parameters: *)
      st#mainwin#imagemenuitem_DROIT_USELESS1 st#mainwin#imagemenuitem_DROIT_USELESS1_menu
-     (fun st x () -> print_string ("This should never be printed (2)\n"))
+     (fun st x () -> Log.print_string ("This should never be printed (2)\n"))
      st#mainwin#imagemenuitem_DROIT_USELESS2 st#mainwin#imagemenuitem_DROIT_USELESS2_menu
-     (fun st x () -> print_string ("This should never be printed (3)\n"))
+     (fun st x () -> Log.print_string ("This should never be printed (3)\n"))
      st#mainwin#imagemenuitem_DROIT_USELESS3 st#mainwin#imagemenuitem_DROIT_USELESS3_menu
-     (fun st x () -> print_string ("This should never be printed (4)\n"))
+     (fun st x () -> Log.print_string ("This should never be printed (4)\n"))
 (* Here comes the 'real' binding: *)
      st#mainwin#imagemenuitem_DROIT_SUSPEND st#mainwin#imagemenuitem_DROIT_SUSPEND_menu
      (fun st name () ->
@@ -2298,11 +2298,11 @@ Les machines ont déjà l'interface de loopback pour cela.",result))) else resul
 
 (* Ugly temporary kludge to work around my laziness in using named parameters: *)
      st#mainwin#imagemenuitem_CROISE_USELESS1 st#mainwin#imagemenuitem_CROISE_USELESS1_menu
-     (fun st x () -> print_string ("This should never be printed (2)\n"))
+     (fun st x () -> Log.print_string ("This should never be printed (2)\n"))
      st#mainwin#imagemenuitem_CROISE_USELESS2 st#mainwin#imagemenuitem_CROISE_USELESS2_menu
-     (fun st x () -> print_string ("This should never be printed (3)\n"))
+     (fun st x () -> Log.print_string ("This should never be printed (3)\n"))
      st#mainwin#imagemenuitem_CROISE_USELESS3 st#mainwin#imagemenuitem_CROISE_USELESS3_menu
-     (fun st x () -> print_string ("This should never be printed (4)\n"))
+     (fun st x () -> Log.print_string ("This should never be printed (4)\n"))
 (* Here comes the 'real' binding: *)
      st#mainwin#imagemenuitem_CROISE_SUSPEND st#mainwin#imagemenuitem_CROISE_SUSPEND_menu
      (fun st name () ->
@@ -2360,14 +2360,14 @@ module Talking_MATERIEL_CABLE_NULLMODEM = struct
  | Some r -> 
      begin
        let cmd = (new usercmd r) in 
-       prerr_endline (myname^".react: name         = "^cmd#name);
-       prerr_endline (myname^".react: action       = "^cmd#action);
-       prerr_endline (myname^".react: oldname      = "^cmd#oldname);
-       prerr_endline (myname^".react: label        = "^cmd#label);
-       prerr_endline (myname^".react: left_node    = "^cmd#left_node);
-       prerr_endline (myname^".react: left_recept  = "^cmd#left_recept);
-       prerr_endline (myname^".react: right_node   = "^cmd#right_node);
-       prerr_endline (myname^".react: right_recept = "^cmd#right_recept);
+       Log.print_endline (myname^".react: name         = "^cmd#name);
+       Log.print_endline (myname^".react: action       = "^cmd#action);
+       Log.print_endline (myname^".react: oldname      = "^cmd#oldname);
+       Log.print_endline (myname^".react: label        = "^cmd#label);
+       Log.print_endline (myname^".react: left_node    = "^cmd#left_node);
+       Log.print_endline (myname^".react: left_recept  = "^cmd#left_recept);
+       Log.print_endline (myname^".react: right_node   = "^cmd#right_node);
+       Log.print_endline (myname^".react: right_recept = "^cmd#right_recept);
 
        let sock1 = { Netmodel.nodename = cmd#left_node  ; Netmodel.receptname = cmd#left_recept  } in
        let sock2 = { Netmodel.nodename = cmd#right_node ; Netmodel.receptname = cmd#right_recept } in
@@ -2395,7 +2395,7 @@ module Talking_MATERIEL_CABLE_NULLMODEM = struct
      end
  | None -> 
      begin
-       prerr_endline (myname^".react: NOTHING TO DO")
+       Log.print_endline (myname^".react: NOTHING TO DO")
      end
  ;; (* end of react_insert_update CABLE_NULLMODEM *)
 
@@ -2434,19 +2434,19 @@ module Talking_MATERIEL_CABLE_NULLMODEM = struct
                        else (freeReceptsOfNode x)) in
    
     let left = Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave 
-                  ~masterCallback:(Some prerr_endline)
+                  ~masterCallback:(Some Log.print_endline)
                   ~masterPacking:(Some (dialog#table_link#attach ~left:1 ~top:1 ~right:2))
                   (st#network#getMachineNames)
 
-                  ~slaveCallback:(Some prerr_endline)
+                  ~slaveCallback:(Some Log.print_endline)
                   ~slavePacking:(Some (dialog#table_link#attach ~left:1 ~top:2 ~right:2))
                   get_left_recept_of
 
-                  ~slaveSlaveCallback:(Some prerr_endline)
+                  ~slaveSlaveCallback:(Some Log.print_endline)
                   ~slaveSlavePacking:(Some (dialog#table_link#attach ~left:3 ~top:1 ~right:4))
                   (fun n1 r1 -> (List.substract st#network#getMachineNames [n1]))
 
-                  ~slaveSlaveSlaveCallback:(Some prerr_endline)
+                  ~slaveSlaveSlaveCallback:(Some Log.print_endline)
                   ~slaveSlaveSlavePacking:(Some (dialog#table_link#attach ~left:3 ~top:2 ~right:4))
                   (fun n1 r1 n2 -> (get_right_recept_of n2))
                      
@@ -2505,7 +2505,7 @@ module Talking_MATERIEL_CABLE_NULLMODEM = struct
          let answer = r#get("answer") in
          let name   = r#get("name")   in
          if (answer="yes") then begin 
-           prerr_endline (myname^".react_elim: removing serial cable "^name);  
+           Log.print_endline (myname^".react_elim: removing serial cable "^name);  
            (st#network#delCable name);
            st#refresh_sketch ();
            defects#remove_cable name;
@@ -2542,15 +2542,15 @@ module Talking_MATERIEL_CABLE_NULLMODEM = struct
          react_elim
 
      st#mainwin#imagemenuitem_SERIE_STARTUP st#mainwin#imagemenuitem_SERIE_STARTUP_menu
-     (fun st x () -> print_string ("react_startup: global-state >"^ x ^"<\n"))
+     (fun st x () -> Log.print_string ("react_startup: global-state >"^ x ^"<\n"))
      st#mainwin#imagemenuitem_SERIE_SHUTDOWN st#mainwin#imagemenuitem_SERIE_SHUTDOWN_menu
-     (fun st x () -> print_string ("react_shutdown: global-state >"^ x ^"<\n"))
+     (fun st x () -> Log.print_string ("react_shutdown: global-state >"^ x ^"<\n"))
      st#mainwin#imagemenuitem_SERIE_POWEROFF st#mainwin#imagemenuitem_SERIE_POWEROFF_menu
-     (fun st x () -> print_string ("react_poweroff: global-state >"^ x ^"<\n"))
+     (fun st x () -> Log.print_string ("react_poweroff: global-state >"^ x ^"<\n"))
      st#mainwin#imagemenuitem_SERIE_SUSPEND st#mainwin#imagemenuitem_SERIE_SUSPEND_menu
-     (fun st x () -> print_string ("react_suspend: global-state >"^ x ^"<\n"))
+     (fun st x () -> Log.print_string ("react_suspend: global-state >"^ x ^"<\n"))
      st#mainwin#imagemenuitem_SERIE_RESUME st#mainwin#imagemenuitem_SERIE_RESUME_menu
-     (fun st x () -> print_string ("react_resume: global-state >"^ x ^"<\n"))
+     (fun st x () -> Log.print_string ("react_resume: global-state >"^ x ^"<\n"))
 
          (fun u -> st#network#getSerialCableNames)
          st#network#getCableByName
@@ -2585,10 +2585,10 @@ module Talking_MATERIEL_NUAGE = struct
  | Some r -> 
      begin
        let cmd = (new usercmd r) in 
-       prerr_endline (myname^".react: name      = "^cmd#name);
-       prerr_endline (myname^".react: label     = "^cmd#label);
-       prerr_endline (myname^".react: action    = "^cmd#action);
-       prerr_endline (myname^".react: oldname   = "^cmd#oldname);
+       Log.print_endline (myname^".react: name      = "^cmd#name);
+       Log.print_endline (myname^".react: label     = "^cmd#label);
+       Log.print_endline (myname^".react: action    = "^cmd#action);
+       Log.print_endline (myname^".react: oldname   = "^cmd#oldname);
        let details = get_network_details_interface () in
        let defects = get_defects_interface () in
        begin
@@ -2617,7 +2617,7 @@ module Talking_MATERIEL_NUAGE = struct
      end
  | None -> 
      begin
-       prerr_endline (myname^".react: NOTHING TO DO")
+       Log.print_endline (myname^".react: NOTHING TO DO")
      end
  ;; (* end of react_insert_update NUAGE *)
 
@@ -2674,7 +2674,7 @@ module Talking_MATERIEL_NUAGE = struct
          let details = get_network_details_interface () in
          let defects = get_defects_interface () in
          if (answer="yes") then begin 
-          prerr_endline (myname^".react_elim: removing cloud "^name);  
+          Log.print_endline (myname^".react_elim: removing cloud "^name);  
           (st#network#delCloud name);
            st#refresh_sketch () ;
            (* details#remove_device name; *)
@@ -2755,10 +2755,10 @@ module Talking_MATERIEL_GWINTERNET = struct
  | Some r -> 
      begin
        let cmd = (new usercmd r) in 
-       prerr_endline (myname^".react: name      = "^cmd#name);
-       prerr_endline (myname^".react: label     = "^cmd#label);
-       prerr_endline (myname^".react: action    = "^cmd#action);
-       prerr_endline (myname^".react: oldname   = "^cmd#oldname);
+       Log.print_endline (myname^".react: name      = "^cmd#name);
+       Log.print_endline (myname^".react: label     = "^cmd#label);
+       Log.print_endline (myname^".react: action    = "^cmd#action);
+       Log.print_endline (myname^".react: oldname   = "^cmd#oldname);
        let details = get_network_details_interface () in
        let defects = get_defects_interface () in
        begin
@@ -2787,7 +2787,7 @@ module Talking_MATERIEL_GWINTERNET = struct
      end
  | None -> 
      begin
-       prerr_endline (myname^".react: NOTHING TO DO")
+       Log.print_endline (myname^".react: NOTHING TO DO")
      end
  ;; (* end of react_insert_update GWINTERNET *)
 
@@ -2848,7 +2848,7 @@ module Talking_MATERIEL_GWINTERNET = struct
          let answer = r#get("answer") in
          let name   = r#get("name")   in
          if (answer="yes") then begin 
-           prerr_endline (myname^".react_elim: removing gateway "^name);  
+           Log.print_endline (myname^".react_elim: removing gateway "^name);  
            (st#network#delGateway name); 
            st#update_sketch ();
            st#update_state  ();
@@ -3123,19 +3123,19 @@ module Talking_OTHER_STUFF = struct
    let _ =
      autogenerate_ip_addresses#connect#toggled
        ~callback:(fun () ->
-         Printf.printf "You toggled the option (IP)\n"; flush_all ();
+         Log.printf "You toggled the option (IP)\n"; flush_all ();
          Global_options.set_autogenerate_ip_addresses
            autogenerate_ip_addresses#active) in
    let _ =
      debug_mode#connect#toggled
        ~callback:(fun () ->
-         Printf.printf "You toggled the option (debug)\n"; flush_all ();
+         Log.printf "You toggled the option (debug)\n"; flush_all ();
          Global_options.set_debug_mode
            debug_mode#active) in
    let _ =
      workaround_wirefilter_problem#connect#toggled
        ~callback:(fun () ->
-         Printf.printf "You toggled the option (wf)\n"; flush_all ();
+         Log.printf "You toggled the option (wf)\n"; flush_all ();
          Global_options.set_workaround_wirefilter_problem
            workaround_wirefilter_problem#active) in
    ();;

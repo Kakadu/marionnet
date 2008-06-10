@@ -71,7 +71,7 @@ object(self)
         (match dialog#filename with
           Some result ->
             dialog#destroy ();
-            Printf.printf "* Ok: \"%s\"\n" result; flush_all ();
+            Log.printf "* Ok: \"%s\"\n" result; flush_all ();
             result
         | None -> begin
             dialog#destroy ();
@@ -79,7 +79,7 @@ object(self)
           end)
     | _ ->
         dialog#destroy ();
-        Printf.printf "* Cancel\n"; flush_all ();
+        Log.printf "* Cancel\n"; flush_all ();
         failwith "You cancelled");
 
   (** Return true iff the given file exists: *)

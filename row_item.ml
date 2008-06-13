@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,3 +31,26 @@ let item_to_bool item =
     CheckBox b -> b
   | String _ -> failwith "bool_to_string: the parameter is a string"
   | Icon _ -> failwith "bool_to_string: the parameter is an icon";;
+
+(** Return a written representation of the given item, suitable for debugging,
+    which also includes the constructor: *)
+let pretty_string_of_item =
+  function
+    | String s -> Printf.sprintf "#string<%s>" s
+    | CheckBox b -> Printf.sprintf "#checkbox<%s>" (if b then "true" else "false")
+    | Icon s -> Printf.sprintf "#icon<%s>" s;;
+
+(** Print a written representation of the given row, suitable for debugging;
+    the printed string also includes the constructor: *)
+let pretty_print_row row =
+  let rec pretty_print_row_elements_content row =
+    match row with
+    | [] ->
+        ()
+    | (name, value) :: rest -> begin
+        Printf.printf "%s=%s " name (pretty_string_of_item value);
+        pretty_print_row_elements_content rest;
+    end in
+  Printf.printf "{ ";
+  pretty_print_row_elements_content row;
+  Printf.printf "}";;

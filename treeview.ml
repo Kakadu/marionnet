@@ -564,8 +564,7 @@ object(self)
     try
       ((Hashtbl.find get_column header) :> column)
     with e -> begin
-      Log.printf "treeview: get_column: failed in looking for column \"%s\"\n" header;
-      flush_all ();
+      Log.printf "treeview: get_column: failed in looking for column \"%s\" (%s)\n" header (Printexc.to_string e); flush_all ();
       raise e; (* re-raise *)
     end
 
@@ -990,6 +989,9 @@ object(self)
             (next_identifier_and_content_forest_marshaler#from_file file_name) in
           self#set_next_identifier next_identifier;
           self#set_complete_forest complete_forest;
+          (if Log.debug_mode then
+            Forest.print_forest complete_forest pretty_print_row;
+          );
           Log.printf "Loaded the treeview %s: success\n\n" file_name; flush_all ();
         with e -> begin
           Log.printf "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e); flush_all ();

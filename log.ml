@@ -39,29 +39,30 @@ module type MyOverriddenFunctionsSignature = sig
 end;;
 
 module MyOverriddenFunctions : MyOverriddenFunctionsSignature = struct
-(** Override printf; and look at the comment above for the reason of
-    this ugly solution: *)
-let printf =
-  Obj.magic
-    (if debug_mode then
-      (* (Printf.fprintf dev_null_output_channel) *)
-      Printf.ifprintf dev_null_output_channel
+  (** Take a format string and either use it for Printf.printf, or use it
+      for a dummy printf-like function which does nothing, according to
+      whether we're in debug mode or not: *)
+  let printf format_string =
+    Obj.magic
+      (if Initialization.configuration#bool "MARIONNET_DEBUG" then
+        Printf.printf format_string
+      else
+        Printf.ifprintf dev_null_output_channel format_string);;
+
+  (** Take a function from pervasives and either return it unchanged or
+      return a noop function, according to whether we're in debug mode: *)
+  let pervasive_or_noop pervasive parameter =
+    if Initialization.configuration#bool "MARIONNET_DEBUG" then
+      pervasive parameter
     else
-      Printf.printf);;
+      ();;
 
-(** Turn a pervasives function into a noop in debug mode: x*)
-let pervasive_or_noop pervasive =
-  if debug_mode then
-    fun _ -> ()
-  else
-    pervasive;;
-
-(** Let's override some pervasives: *)
-let print_string = pervasive_or_noop Pervasives.print_string;;
-let print_int = pervasive_or_noop Pervasives.print_int;;
-let print_float = pervasive_or_noop Pervasives.print_float;;
-let print_newline = pervasive_or_noop Pervasives.print_newline;;
-let print_endline = pervasive_or_noop Pervasives.print_endline;;
+  (** Let's override some pervasives: *)
+  let print_string = pervasive_or_noop Pervasives.print_string;;
+  let print_int = pervasive_or_noop Pervasives.print_int;;
+  let print_float = pervasive_or_noop Pervasives.print_float;;
+  let print_newline = pervasive_or_noop Pervasives.print_newline;;
+  let print_endline = pervasive_or_noop Pervasives.print_endline;;
 end;;
 
 let printf = MyOverriddenFunctions.printf;;

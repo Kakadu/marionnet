@@ -121,10 +121,12 @@ let make_system_gateway_tap (tap_name : tap_name) uid bridge_name =
 (** Actaully destroy a tap at the OS level: *)
 let destroy_system_tap (tap_name : tap_name) =
   Log.printf "Destroying the tap %s...\n" tap_name;
+  let redirection =
+    if Log.debug_mode then "" else "&> /dev/null" in
   let command_line =
     Printf.sprintf
-      "while ! (ifconfig %s down && tunctl -d %s); do echo 'I can not destroy %s yet...'; sleep 1; done&"
-      tap_name tap_name tap_name in
+      "while ! (ifconfig %s down && tunctl -d %s %s); do echo 'I can not destroy %s yet %s...'; sleep 1; done&"
+      tap_name tap_name redirection tap_name redirection  in
   system_or_fail command_line;
   Log.printf "The tap %s was destroyed with success\n" tap_name;
   flush_all ();;
@@ -132,11 +134,13 @@ let destroy_system_tap (tap_name : tap_name) =
 (** Actaully destroy a gateway tap at the OS level: *)
 let destroy_system_gateway_tap (tap_name : tap_name) uid bridge_name =
   Log.printf "Destroying the gateway tap %s...\n" tap_name;
+  let redirection =
+    if Log.debug_mode then "" else "&> /dev/null" in
   let command_line =
     (* This is currently disabled. We have to decide what to do about this: *)
     Printf.sprintf
-      "ifconfig %s down && brctl delif %s %s && tunctl -d %s"
-      tap_name bridge_name tap_name tap_name in
+      "ifconfig %s down %s && brctl delif %s %s %s && tunctl -d %s %s"
+      tap_name redirection bridge_name tap_name redirection tap_name redirection in
   system_or_fail command_line;  
   Log.printf "The gateway tap %s was destroyed with success\n" tap_name;
   flush_all ();;

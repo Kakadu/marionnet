@@ -21,7 +21,7 @@ open Sys;;
 
 (** First of all print the version number. This is useful for problem reports: *)
 Printf.printf
-  "=======================================================\n  Welcome to %s version %s\n=======================================================\n\n"
+  "=======================================================\n  Welcome to %s version %s\n  Please report bugs to marionnet-dev@marionnet.org \n=======================================================\n\n"
   Meta.name Meta.version;;
 
 (* Seed the random number generator: *)

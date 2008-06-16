@@ -91,28 +91,29 @@ let system_or_fail command_line =
 
 (** Actaully make a tap at the OS level: *)
 let make_system_tap (tap_name : tap_name) uid ip_address =
-  Log.printf "Creating the tap %s...\n" tap_name;
+  Log.printf "Making the tap %s...\n" tap_name;
+  let redirection =
+    if Log.debug_mode then "" else "&> /dev/null" in
   let command_line =
     Printf.sprintf
-      "tunctl -u %i -t %s && ifconfig %s 172.23.0.254 netmask 255.255.255.255 up; route add %s %s"
-      uid tap_name tap_name ip_address tap_name in
+      "tunctl -u %i -t %s %s && ifconfig %s 172.23.0.254 netmask 255.255.255.255 up; route add %s %s"
+      uid tap_name redirection tap_name ip_address tap_name in
   system_or_fail command_line;
   Log.printf "The tap %s was created with success\n" tap_name;
   flush_all ();;
 
 (** Actaully make a gateway tap at the OS level: *)
 let make_system_gateway_tap (tap_name : tap_name) uid bridge_name =
-  Log.printf "Creating the tap %s...\n" tap_name;
+  Log.printf "Making the tap %s...\n" tap_name;
+  let redirection =
+    if Log.debug_mode then "" else "&> /dev/null" in
   let command_line =
     Printf.sprintf
-      "tunctl -u %i -t %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s"
-      (* uid *)
+      "tunctl -u %i -t %s %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s"
       uid
-      (* tunctl *)
       tap_name
-      (* ifconfig *)
-      tap_name (* ip_address netmask *)
-      (* brctl *)
+      redirection
+      tap_name
       bridge_name tap_name in
   system_or_fail command_line;
   Log.printf "The tap %s was created with success\n" tap_name;

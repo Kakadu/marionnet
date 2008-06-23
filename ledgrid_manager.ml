@@ -231,9 +231,7 @@ object (self)
 (*                     (self#id_to_name id) ^ "\n"); *)
       (self#id_to_device id)#flash port;
      with _ ->
-       (print_string "WARNING: failed in flash\n";
-        Log.print_string ("  (id is "^(string_of_int id)^",\n");
-        Log.print_string ("   port is "^(string_of_int port)^")\n")));
+       Log.printf "WARNING: failed in flashing (id: %i; port: %i)\n" id port);
     self#unlock
 
   (** Destroy all currently existing widgets and their data, so that we can start
@@ -268,20 +266,48 @@ object (self)
         let buffer = String.create maximum_message_size in
         Log.print_string ("Ok, entering the thread main loop\n");
         while true; do
+          (* ==== Beginning of the reasonable version ==== *)
+(** This commented-out version was absolutely reasonable and it worked with the old
+    patched VDE, but for some strange reason I can't understand now recvfrom() fails,
+    always receiving the correct message. The VDE code looks correct.
+    Oh, well. This functionality is not critical anyway, and even one wrong blink
+    every now and then would not be serious. Anyway, this seems to work perfectly.
+    Go figure. *)
 (*           Log.print_string ("\nWaiting for a string...\n"); *)
-          let length = 
-            try
-              let (length, _) = recvfrom socket buffer 0 maximum_message_size [] in length
-            with _ ->
-              Log.print_string "SSSSSS recvfrom was interrupted by a signal.\n"; flush_all ();
-              0 in
+          (* let length =  *)
+          (*   try *)
+          (*     let (length, _) = recvfrom socket buffer 0 maximum_message_size [] in length *)
+          (*   with Unix.Unix_error(error, string1, string2) -> begin *)
+          (*     Log.printf "SSSSSS recvfrom() failed: %s (\"%s\", \"%s\").\n" (Unix.error_message error) string1 string2; flush_all ();               *)
+          (*     let message = String.sub buffer 0 (maximum_message_size - 1) in *)
+          (*     Log.printf "SSSSSS the possibly invalid message is >%s<\n" message; *)
+          (*     0; *)
+          (*   end *)
+          (*   | e -> begin *)
+          (*     Log.printf "SSSSSS recvfrom() failed with a non-unix error: %s.\n" (Printexc.to_string e); flush_all (); *)
+          (*     0; *)
+          (*   end in *)
+          (* try *)
+          (*   let (id, port) =  *)
+          (*     Scanf.sscanf message "%i %i" (fun id port -> (id, port)) *)
+          (*   in *)
+          (*   self#flash ~id ~port (); *)
+          (* ==== End of the reasonable version ==== *)
+          (* ==== Beginning of the unreasonable version ==== *)
+          (try
+            ignore (recvfrom socket buffer 0 maximum_message_size [])
+          with _ -> ());
+          let length = try String.index buffer '\n' with _ -> 0 in
           let message = String.sub buffer 0 length in
-(*           Log.print_string ("\n*** Received: >"^message^"<\n\n"); *)
           try
-            let (id, port) = 
-              Scanf.sscanf message "%i %i" (fun id port -> (id, port))
+            let id1, port1, id2, port2 = 
+              (** This long formatted string is passed to VDE as a cable identifier. This allows us
+                  to easily understand which LEDs to work on when we receive a blinking command. *)
+              Scanf.sscanf message "((id: %i; port: %i)(id: %i; port: %i))" (fun id1 port1 id2 port2 -> (id1, port1, id2, port2))
             in
-            self#flash ~id ~port ();
+            self#flash ~id:id1 ~port:port1 ();
+            self#flash ~id:id2 ~port:port2 ();
+          (* ==== End of the unreasonable version ==== *)
           with _ ->
             try 
               let _ = 
@@ -294,7 +320,7 @@ object (self)
               Log.print_string ("!!! This should never be reached !!!\n");
               flush_all ();
             with _ ->
-              Log.print_string ("Warning: can't understand the message >" ^ message ^ "<\n");
+              Log.print_string ("Warning: can't understand the message >" ^ message ^ "<\n"); flush_all ();
         done)
       ()
   

@@ -72,6 +72,15 @@ fun program
       (Some _) ->
         raise (ProcessIsntInTheRightState "spawn")
     | None ->
+(* ----------------------- *)
+        Log.printf "The command line for %s is:\n%s " program program;
+        List.iter
+          (fun string ->
+            Log.printf "%s " string)
+          arguments;
+        Log.printf "\n";
+(* ----------------------- *)
+
         Log.print_string "About to spawn\n";
         Log.print_string (program ^ " ");
         List.iter (fun x -> Log.print_string (x ^ " ")) arguments;
@@ -443,13 +452,20 @@ object(self)
       (Pathnames.vde_prefix ^ "wirefilter")
       ((List.fold_left List.append []) (* append all the lists within the given list *)
          [ (match left_blink_command with
-             Some(c) -> [ "-L"; c ]
+             Some(c) -> [](* [ "-L"; c ] *) (* !!! old blinking support *)
            | None -> []);
            (match right_blink_command with
-             Some(c) -> [ "-R"; c ]
+             Some(c) -> [](* [ "-R"; c ] *) (* !!! old blinking support *)
            | None -> []);
            (match blinker_thread_socket_file_name with
-             Some(socket_file_name) -> [ "-S"; socket_file_name ]
+             Some socket_file_name -> (* [ "-S"; socket_file_name ] *) (* !!! old blinking support *)
+               [ "--blink"; socket_file_name;
+                 "--blinkid";
+                 "(" ^
+                 (match left_blink_command with Some s -> s | _ -> "(id: -1; port: -1)") ^
+                 "" ^
+                 (match right_blink_command with Some s -> s | _ -> "(id: -1; port: -1)") ^
+                 ")" ]
            | None -> []);
            defects_to_command_line_options
              ~rightward_loss

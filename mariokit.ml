@@ -1477,11 +1477,11 @@ object (self)
          let left_blink_command =
            match left_node#devkind with
              NotADevice -> None
-           | _ -> Some (Printf.sprintf "%i %i" left_node#id left_port_index) in
+           | _ -> Some (Printf.sprintf "(id: %i; port: %i)" left_node#id left_port_index) in
          let right_blink_command =
            match right_node#devkind with
              NotADevice -> None
-           | _ -> Some (Printf.sprintf "%i %i" right_node#id right_port_index) in
+           | _ -> Some (Printf.sprintf "(id: %i; port: %i)" right_node#id right_port_index) in
          Log.print_string ("left hublet process socket name is " ^ left_hublet_process#get_socket_name ^ "\n");
          Log.print_string ("right hublet process socket name is " ^ right_hublet_process#get_socket_name ^ "\n");
          let name = self#get_name in

@@ -28,4 +28,4 @@ let suggested_text =
 
 (** The name of the one and only router distribution, without the "router-" prefix: *)
 let router_unprefixed_filesystem =
-  "the-one-and-only";;
+  "default";;

@@ -45,6 +45,7 @@ let configuration =
                 "MARIONNET_FILESYSTEMS_PATH";
                 "MARIONNET_KERNELS_PATH";
                 "MARIONNET_VDE_PREFIX";
+                "MARIONNET_ROUTER_FILESYSTEM";
               ]
     ();;
 

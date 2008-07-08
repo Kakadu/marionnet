@@ -242,11 +242,13 @@ check_dependency
   "FRENCH You don't have a default filesystem for virtual computers";;
 
 (** Check whether we have UML router filesystems: *)
-check_dependency
+let command_line =
   (Printf.sprintf
-    "ls -l %s/router-default &> /dev/null"
-    Pathnames.marionnet_home_filesystems)
-  "FRENCH You don't have a default filesystem for virtual routers";;
+    "ls -l %s/router-%s &> /dev/null"
+    Pathnames.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in 
+check_dependency
+  command_line
+  ("FRENCH You don't have a default filesystem for virtual routers (" ^ command_line ^")");;
 
 (** Check whether we have UML kernels: *)
 check_dependency

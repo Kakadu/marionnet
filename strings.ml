@@ -1,6 +1,6 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007  Jean-Vincent Loddo
-   Copyright (C) 2007  Luca Saiu
+   Copyright (C) 2007, 2008  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -28,4 +28,12 @@ let suggested_text =
 
 (** The name of the one and only router distribution, without the "router-" prefix: *)
 let router_unprefixed_filesystem =
-  "default";;
+  try
+    let variable_value = 
+      Initialization.configuration#string "MARIONNET_ROUTER_FILESYSTEM" in
+    if variable_value = "" then
+      failwith "empty variable"
+    else
+      variable_value
+  with _ ->
+    "default";;

@@ -1,5 +1,6 @@
 # This -*- makefile -*- is part of Marionnet, a virtual network laboratory
 # Copyright (C) 2008  Luca Saiu
+# Updated in 2008 by Marco Stronati
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,8 +17,10 @@
 
 
 COMPILE_OPTIONS += -g
-DIRECTORIES_TO_INCLUDE = lablgtk2 lablglade ocamlbricks
+DIRECTORIES_TO_INCLUDE = threads lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
+
+
 OBJECTS_TO_LINK = gtkThread
 #PROGRAMS = marionnet.byte marionnet.native
 BYTE_PROGRAMS = marionnet.byte

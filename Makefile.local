@@ -17,7 +17,7 @@
 
 
 COMPILE_OPTIONS += -g
-DIRECTORIES_TO_INCLUDE = threads lablgtk2 lablglade ocamlbricks
+DIRECTORIES_TO_INCLUDE = lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 
 

@@ -975,6 +975,9 @@ end;;
           class node
  * *************************** *) 
 
+(** Machines and routers have MDI ports, switches and hubs have MDI_X a priori.
+    Currently, devices are sold with "intelligent" ports, i.e. MDI/MDI-X. *)
+type polarity = MDI | MDI_X | Intelligent ;;
 
 (** A node of the network is a container of receptacles. 
     Defects may be added after the creation, using the related method. *)
@@ -993,7 +996,7 @@ class virtual node = fun
   (** 'Static' methods (in the sense of C++/Java). Polarity is used to decide the correct
       kind of Ethernet cable needed to connect a pair of devices: the cable should be
       crossover iff both endpoints have the same polarity: *)
-  method virtual polarity : bool
+  method virtual polarity : polarity
 
   (** Constant fields (methods) *)
   
@@ -1633,7 +1636,7 @@ class device =
   inherit node ~network ~name ~label ~nodekind:Device ~devkind ~rlist:intialReceptacles () as super
 
   (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity = false
+  method polarity = if self#devkind = Router then MDI else MDI_X
 
   (** Get the full host pathname to the directory containing the guest hostfs
       filesystem: *)
@@ -1855,7 +1858,7 @@ class machine =
   inherit node ~network ~name ~label ~nodekind:Machine ~rlist:intialReceptacles () as super
 
   (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity = true
+  method polarity = MDI
 
   (** Get the full host pathname to the directory containing the guest hostfs
       filesystem: *)
@@ -2015,7 +2018,7 @@ class cloud =
   inherit node ~network ~name ~label ~nodekind:Cloud ~rlist:intialReceptacles ()
 
   (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity = false
+  method polarity = MDI_X
 
   method show = self#name
 
@@ -2073,7 +2076,7 @@ class gateway =
   inherit node ~network ~name ~label ~nodekind:Gateway ~rlist:intialReceptacles ()
 
   (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity = false
+  method polarity = MDI_X
 
   method show = (self#name^" (gateway)")
 
@@ -2657,11 +2660,11 @@ class network = fun () ->
   method would_a_cable_be_correct_between endpoint1_name endpoint2_name crossedness =
     let polarity1 = (self#getNodeByName endpoint1_name)#polarity in
     let polarity2 = (self#getNodeByName endpoint2_name)#polarity in
-    (* We need a crossover cable iff the polarity is the same: *)
-    if polarity1 = polarity2 then
-      crossedness = Crossed
-    else
-      crossedness = Direct
+    (* We need a crossover cable if the polarity is the same: *)
+    match polarity1, polarity2 with
+     | Intelligent , _      | _           , Intelligent -> true
+     | MDI_X       , MDI    | MDI         , MDI_X       -> crossedness = Direct
+     | MDI_X       , MDI_X  | MDI         , MDI         -> crossedness = Crossed
 
  (** List of machines names in the network *)
  method getMachineNames     = 

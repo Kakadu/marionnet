@@ -1542,29 +1542,6 @@ module Talking_MATERIEL_MACHINE = struct
  | None -> Log.print_endline (myname^".react: NOTHING TO DO")
      
  ;; (* end of react_insert_update *)
-    st#mainwin#imagemenuitem_MACHINE_STARTUP st#mainwin#imagemenuitem_MACHINE_STARTUP_menu
-     (fun st name () ->
-       let m = st#network#getMachineByName name in
-       m#startup)
-     st#mainwin#imagemenuitem_MACHINE_SHUTDOWN st#mainwin#imagemenuitem_MACHINE_SHUTDOWN_menu
-     (fun st name () ->
-       let m = st#network#getMachineByName name in
-       m#gracefully_shutdown)
-     st#mainwin#imagemenuitem_MACHINE_POWEROFF st#mainwin#imagemenuitem_MACHINE_POWEROFF_menu
-     (fun st name () ->
-       let m = st#network#getMachineByName name in
-       m#poweroff)
-     st#mainwin#imagemenuitem_MACHINE_SUSPEND st#mainwin#imagemenuitem_MACHINE_SUSPEND_menu
-     (fun st name () ->
-       let m = st#network#getMachineByName name in
-       m#suspend)
-     st#mainwin#imagemenuitem_MACHINE_RESUME st#mainwin#imagemenuitem_MACHINE_RESUME_menu
-     (fun st name () ->
-       let m = st#network#getMachineByName name in
-       m#resume)
-     
-     (fun u -> st#network#getMachineNames)
-     st#network#getMachineByName
 
 
  (** The dialog for MACHINE INSERT/UPDATE. *)

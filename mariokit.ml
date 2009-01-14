@@ -1192,7 +1192,7 @@ class cable =
    ~network
    ?(name="nocablename")
    ?(label="")
-   ?(cablekind=Direct)
+   ~cablekind
    ~(left :socketname)
    ~(right:socketname)
    () ->
@@ -1212,16 +1212,9 @@ object (self)
   inherit component ~network ~name ~label ()
   inherit simulated_device as super_simulated_device
 
-  val mutable cablekind = cablekind
-  method cablekind  =
-    with_mutex mutex
-      (fun () ->
-        cablekind)
-  method set_cablekind x =
-    with_mutex mutex
-      (fun () ->
-        cablekind <- x)
-  
+  val cablekind = cablekind
+  method cablekind = cablekind
+
   method dotoptions = dotoptions
 
   (** A cable may be either connected or disconnected; it's connected by default: *)
@@ -1262,7 +1255,7 @@ object (self)
         | _ ->
             assert false)
   
-  (** The list of two names of nodes (machine/device) linked by the cable *)
+  (** The li st of two names of nodes (machine/device) linked by the cable *)
   method involvedNodeNames =
     with_mutex mutex
       (fun () -> 
@@ -1328,7 +1321,7 @@ object (self)
         prefix^self#name^" ("^(string_of_cablekind self#cablekind)^")"^
         " ["^self#get_left.nodename^","^self#get_left.receptname^"] -> "^
         " ["^self#get_right.nodename^","^self#get_right.receptname^"]")
-                                                                      
+
   method to_forest = 
     with_mutex mutex
       (fun () -> 
@@ -1342,16 +1335,17 @@ object (self)
                      ("rightreceptname" ,  self#get_right.receptname) ;
                    ]))
 
-  (** A cable has just attributes (no childs) in this version. *)
+  (** A cable has just attributes (no childs) in this version. The attribute "kind" cannot be set, 
+      must be considered as a constant field of the class. *)
   method eval_forest_attribute =
     function
       | ("name"            , x ) -> self#set_name  x 
       | ("label"           , x ) -> self#set_label x 
-      | ("kind"            , x ) -> self#set_cablekind (cablekind_of_string x)
       | ("leftnodename"    , x ) -> self#get_left.nodename    <- x ;
       | ("leftreceptname"  , x ) -> self#get_left.receptname  <- x ;
       | ("rightnodename"   , x ) -> self#get_right.nodename   <- x ;
       | ("rightreceptname" , x ) -> self#get_right.receptname <- x ;
+      | ("kind"            , x ) -> () (* Constant field: cannot be set. *)
           
     (** Access method *)
     method is_connected =
@@ -2337,9 +2331,11 @@ class network = fun () ->
       let lr = List.assoc "leftreceptname"  attrs in
       let rn = List.assoc "rightnodename"   attrs in
       let rr = List.assoc "rightreceptname" attrs in
+      let ck = List.assoc "kind"            attrs in
       let left  = { nodename=ln; receptname=lr }  in
       let right = { nodename=rn; receptname=rr }  in
-      let x = new cable ~network:self ~left ~right () in
+      let cablekind = cablekind_of_string ck      in
+      let x = new cable ~cablekind ~network:self ~left ~right () in
       x#from_forest ("cable", attrs) childs ;
       self#addCable x; 
 

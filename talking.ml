@@ -573,19 +573,20 @@ let does_directory_support_sparse_files pathname =
     false;;
 
 (** The edialog asking for an existing and writable directory. *)
-let ask_for_existing_writable_folder_pathname_supporting_sparse_files ~title ?(help=None) =
+let ask_for_existing_writable_folder_pathname_supporting_sparse_files ~title ?(help=None) () =
   let valid = fun pathname -> 
     if (not (Sys.file_exists pathname)) or
        (not (Shell.dir_comfortable pathname)) or
-       (not (does_directory_support_sparse_files pathname)) then begin
-      Simple_dialogs.error 
-         "Répertoire inexploitable"
-         "Vous devez choisir un répertoire existant, modifiable et résidant sur un système de fichiers supportant les fichiers 'sparse' (ext2, ext3, reiserfs, NTFS, ...)"
-         ();
-      false;
-    end else
-      true in
-  ask_for_file ~title ~valid ~filters:[] ~action:`SELECT_FOLDER ~gen_id:"foldername" ~help;;
+       (not (does_directory_support_sparse_files pathname)) then 
+        begin
+         Simple_dialogs.error 
+          "Répertoire inexploitable"
+          "Vous devez choisir un répertoire existant, modifiable et résidant sur un système de fichiers supportant les fichiers 'sparse' (ext2, ext3, reiserfs, NTFS, ...)"
+          ();
+         false;
+        end 
+    else true
+  in ask_for_file ~title ~valid ~filters:[] ~action:`SELECT_FOLDER ~gen_id:"foldername" ~help () ;;
 
 
 (** The edialog asking for a fresh and writable filename. *)
@@ -601,14 +602,14 @@ let ask_for_fresh_writable_filename ~title ?(filters = allfilters) ?(help=None) 
   result;;
 
 (** The edialog asking for an existing filename. *)
-let ask_for_existing_filename ~title ?(filters = allfilters) ?(help=None) =
+let ask_for_existing_filename ~title ?(filters = allfilters) ?(help=None) () =
 
   let valid = fun x -> 
     if not (Sys.file_exists x) 
     then ((Simple_dialogs.error "Choix du fichier" "Le fichier n'existe pas!\nVous devez choisir un nom de fichier existant." ()); false)
     else (Shell.regfile_modifiable x) in
 
-  ask_for_file ~title ~valid ~filters ~action:`OPEN ~gen_id:"filename" ~help 
+  ask_for_file ~title ~valid ~filters ~action:`OPEN ~gen_id:"filename" ~help ()
 ;;
 
 (** Generic constructor for question dialogs. *)
@@ -710,7 +711,7 @@ module Talking_PROJET_NOUVEAU = struct
        ~help:(Some Msg.help_nom_pour_le_projet) () in
    let result =
      st#mainwin#imgitem_PROJET_NOUVEAU#connect#activate 
-       ~callback:(fun via -> react st ((EDialog.sequence [confirm; ask_filename]) via))
+       ~callback:(fun () -> react st ((EDialog.sequence [confirm; ask_filename]) ()))
    in
    result
   ;;
@@ -1541,6 +1542,29 @@ module Talking_MATERIEL_MACHINE = struct
  | None -> Log.print_endline (myname^".react: NOTHING TO DO")
      
  ;; (* end of react_insert_update *)
+    st#mainwin#imagemenuitem_MACHINE_STARTUP st#mainwin#imagemenuitem_MACHINE_STARTUP_menu
+     (fun st name () ->
+       let m = st#network#getMachineByName name in
+       m#startup)
+     st#mainwin#imagemenuitem_MACHINE_SHUTDOWN st#mainwin#imagemenuitem_MACHINE_SHUTDOWN_menu
+     (fun st name () ->
+       let m = st#network#getMachineByName name in
+       m#gracefully_shutdown)
+     st#mainwin#imagemenuitem_MACHINE_POWEROFF st#mainwin#imagemenuitem_MACHINE_POWEROFF_menu
+     (fun st name () ->
+       let m = st#network#getMachineByName name in
+       m#poweroff)
+     st#mainwin#imagemenuitem_MACHINE_SUSPEND st#mainwin#imagemenuitem_MACHINE_SUSPEND_menu
+     (fun st name () ->
+       let m = st#network#getMachineByName name in
+       m#suspend)
+     st#mainwin#imagemenuitem_MACHINE_RESUME st#mainwin#imagemenuitem_MACHINE_RESUME_menu
+     (fun st name () ->
+       let m = st#network#getMachineByName name in
+       m#resume)
+     
+     (fun u -> st#network#getMachineNames)
+     st#network#getMachineByName
 
 
  (** The dialog for MACHINE INSERT/UPDATE. *)

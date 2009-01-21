@@ -86,6 +86,9 @@ gui.ml: share/gui.glade.patched
 #	@(cd share; $(GLADE2ML) -embed gui.glade.patched > ../$@)
 	@(cd share; $(GLADE2ML) gui.glade.patched > ../$@)
 
+gui-help: gui.ml
+	ocamlc -i -I +lablgtk2 lablgtk.cma gui.ml | grep -v "val" | grep -v "[0-9]"
+
 # Clean all the automatically-generated sources:
 clean-local:
 	@(rm -f VERSION BUILD-TIME version.ml; \

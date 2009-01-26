@@ -25,7 +25,7 @@ let utf8 x = x;; (* We currently don't use this. It works better :-) *)
 (** Generic constructor for message dialog *)
 let message win_title msg_title msg_content img_file () = 
   let d=new Gui.dialog_MESSAGE () in
-  let _ = d#closebutton#connect#clicked ~callback:(d#toplevel#destroy) in
+  let _ = d#closebutton_MESSAGE#connect#clicked ~callback:(d#toplevel#destroy) in
   d#toplevel#set_icon (Some Icon.icon_pixbuf);
   d#toplevel#set_title (utf8 win_title);
 (*  d#title#set_text     ("<b>"^(utf8 (String.uppercase msg_title))^"</b>");*)
@@ -68,8 +68,8 @@ let confirm_dialog
   dialog#toplevel#set_icon (Some Icon.icon_pixbuf);
   dialog#toplevel#set_title (utf8 "Confirmation");
 (*  dialog#title#set_text     (utf8 (String.uppercase question));*)
-  dialog#title#set_text     (utf8 question);
-  dialog#title#set_use_markup true; 
+  dialog#title_QUESTION#set_text     (utf8 question);
+  dialog#title_QUESTION#set_use_markup true; 
   ignore
     (dialog#toplevel#event#connect#delete
        ~callback:(fun _ ->

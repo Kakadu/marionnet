@@ -57,7 +57,7 @@ let set_sensitive (win:Gui.window_MARIONNET) app_state =
              win#imgitem_PROJET_FERMER#coerce#misc ;
              win#imgitem_PROJET_IMPORTER#coerce#misc ;
              win#imagemenuitem_PROJET_EXPORTER#coerce#misc;
-             win#menuitem_DEBUG#coerce#misc ] in
+           ] in
  
   let l2 = [ win#hbuttonbox_BAS#coerce#misc ]     in
   let l3 = [ win#imgitem_OPTION_CWD#coerce#misc ] in
@@ -94,7 +94,6 @@ class globalState = fun () ->
   let     _      = net#set_dotoptions dotoptions         in
 
   let statusbar_ctx = win#statusbar#new_context "global" in
-  let dets = new Widget.textview ~view:win#details ()    in 
 
   object (self)
   
@@ -107,8 +106,6 @@ class globalState = fun () ->
   (** Access methods for the dot options, used for drawing the virtual network. *)
   method dotoptions = dotoptions
 
-  method details = dets
- 
   (** Show something on statusbar. *)
   method flash ?(delay:int=2000) (msg:string) = statusbar_ctx#flash ~delay msg
 
@@ -560,19 +557,10 @@ There is no need to restart the application."
            command_line
            exit_code)
         ());
-    
-    (* self#mainwin#sketch#set_pixbuf (Widget.Image.zoom 1.2 self#mainwin#sketch#pixbuf) ; *)
-    (* Debugging *)
-    (* Log.print_endline ("============= DEBUGGING ==============="); *)
-    (* Log.print_endline ("*** IDENTIFY :"); *)
-    (* Sys.command("identify "^ft) => ignore ; *)
-    (* Log.print_endline ("*** RATIO :"); *)
-    (* Log.print_endline self#dotoptions#ratio ; *)
-    (* Log.print_endline ("==================================="); *)
 
-    self#details#rewrite ~tags:["center";"bold";"x-large"] "DOT FILE CONTENT\n\n"     ;
-    self#details#append  ~tags:["monospace"] (Unix.cat fs) ;
-    unlock_sketch ();
+    unlock_sketch ()
+
+
 
   (** Forbid cable additions if there are not enough free ports; explicitly enable
       them if free ports are enough: *)

@@ -74,20 +74,19 @@ Talking_PROJET_AIDE_APROPOS.bind    st ;;
 (** Bindings for MACHINE *)
 
 Talking_MATERIEL_MACHINE.bind                               st   ;;
-Talking_MATERIEL_DEVICE.bind  Mariokit.Netmodel.Hub         st   ;;
-Talking_MATERIEL_DEVICE.bind  Mariokit.Netmodel.Switch      st   ;;
-Talking_MATERIEL_DEVICE.bind  Mariokit.Netmodel.Router      st   ;;
+Talking_MATERIEL_HUB.bind                                   st   ;;
+Talking_MATERIEL_SWITCH.bind                                st   ;;
+Talking_MATERIEL_ROUTER.bind                                st   ;;
 
 Talking_MATERIEL_CABLE_RJ45.bind  Mariokit.Netmodel.Direct  st   ;;
 Talking_MATERIEL_CABLE_RJ45.bind  Mariokit.Netmodel.Crossed st   ;;
-Talking_MATERIEL_CABLE_NULLMODEM.bind                       st   ;;
-Talking_MATERIEL_NUAGE.bind                                 st   ;;
-Talking_MATERIEL_GWINTERNET.bind                            st   ;;
+Talking_MATERIEL_CLOUD.bind                                 st   ;;
+Talking_MATERIEL_SOCKET.bind                                st   ;;
 
 Talking_ADJUSTMENT.bind                                     st   ;;
 
 (* Debugging *)
-let _ = st#mainwin#imgitem_DEBUG_TESTER_SCRIPTS#connect#activate ~callback:(fun _ ->st#network#show);;
+(*let _ = st#mainwin#imgitem_DEBUG_TESTER_SCRIPTS#connect#activate ~callback:(fun _ ->st#network#show);;*)
 (*let _ = st#mainwin#imgitem_DEBUG_TESTER_SCRIPTS#connect#activate ~callback:(fun _ ->prerr_endline (st#network#dotTrad st#dotoptions));;
 *)
 (*

@@ -530,7 +530,7 @@ let ask_for_file
   if (help=None) then () else dialog#add_button_stock `HELP `HELP ; 
   dialog#add_button_stock `CANCEL `CANCEL ;
   dialog#add_button_stock `OK `OK;
-  dialog#set_current_folder (Initialization.cwd_at_startup_time);
+  ignore (dialog#set_current_folder (Initialization.cwd_at_startup_time));
 
   if (action=`SELECT_FOLDER)        then (try (dialog#add_shortcut_folder "/tmp") with _ -> ());
   if (action=`OPEN or action=`SAVE) then (List.iter (fun x -> dialog#add_filter (fun_filter_of x)) filters); 
@@ -622,8 +622,8 @@ let ask_question ?(title="QUESTION")  ?(gen_id="answer")  ?(help=None) ?(cancel=
 
    dialog#toplevel#set_title (utf8 title);
 (*   dialog#title#set_text     (utf8 (String.uppercase question));*)
-   dialog#title#set_text     (utf8 question);
-   dialog#title#set_use_markup true; 
+   dialog#title_QUESTION#set_text     (utf8 question);
+   dialog#title_QUESTION#set_use_markup true; 
    ignore
      (dialog#toplevel#event#connect#delete
         ~callback:(fun _ -> Log.print_string "Sorry, no, you can't close the dialog. Please make a decision.\n"; true));
@@ -1231,7 +1231,7 @@ module Talking_PROJET_AIDE_APROPOS = struct
 
    let expect_ok () = 
      (let dial = (new Gui.dialog_A_PROPOS ()) in
-      let _ = dial#closebutton#connect#clicked ~callback:(dial#toplevel#destroy) in ()) in
+      let _ = dial#closebutton_A_PROPOS#connect#clicked ~callback:(dial#toplevel#destroy) in ()) in
      
      let _ = st#mainwin#imgitem_AIDE_APROPOS#connect#activate ~callback:(fun via -> expect_ok via)
      in ()
@@ -1710,157 +1710,32 @@ end;; (* Talking_MATERIEL_MACHINE *)
 
 
 (* **************************************** *
-      Module Talking_MATERIEL_DEVICE
+    Module Talking_MATERIEL_DEVICE_COMMON
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the _MATERIEL_DEVICE functionnalities *)
-module Talking_MATERIEL_DEVICE = struct         
+(** Common definitions for hub/switch/router further modules. *)
+module Talking_MATERIEL_DEVICE_COMMON = struct
  
-  type dialog_DEVICE  = 
-    <  name         : GEdit.entry            ;
-       label        : GEdit.entry            ;
-       eth          : GEdit.spin_button      ;
-       toplevel     : GWindow.dialog_any  >
-  ;;
-
- (** The name of this module (for debugging purposes) *)
- let  myname = "talking_MATERIEL_DEVICE" ;;
-
- (** The class for INSERT/UPDATE user command (deliver by the ask_device dialog)  *)
- class usercmd = fun (r: (string,string) env) -> object 
+ (** This class converts an environment resulting from the INSERT/UPDATE dialog (ask_hub/ask_switch/ask_router) into an object. *)
+ class usercmd = fun (r: (string,string) env) -> object (self)
    method name      : string = r#get("name")
    method action    : string = r#get("action")
    method oldname   : string = r#get("oldname")
    method label     : string = r#get("label")
-   method eth       : string = r#get("eth")
+   method eth       : string = r#get("eth") (* this name may be changed in 'ports' *)
+   method log ~header = 
+     begin
+       Log.print_endline (header^"name      = "^self#name);
+       Log.print_endline (header^"action    = "^self#action);
+       Log.print_endline (header^"oldname   = "^self#oldname);
+       Log.print_endline (header^"label     = "^self#label);
+       Log.print_endline (header^"eth       = "^self#eth)
+     end
+
  end;; (* end of class usercmd *)
 
- (** The reaction for DEVICE INSERT/UPDATE user command. *)
- let react_insert_update devkind (st:globalState) (msg: (string,string) env option) = match msg with
- | Some r -> 
-     begin
-       let cmd = (new usercmd r) in 
-       Log.print_endline (myname^".react: name      = "^cmd#name);
-       Log.print_endline (myname^".react: action    = "^cmd#action);
-       Log.print_endline (myname^".react: oldname   = "^cmd#oldname);
-       Log.print_endline (myname^".react: label     = "^cmd#label);
-       Log.print_endline (myname^".react: eth       = "^cmd#eth);
-       let details = get_network_details_interface () in
-       let defects = get_defects_interface () in
-       begin
-         match cmd#action with 
-         | "add"    -> 
-             (match devkind with
-               Netmodel.Router ->
-                 (* Ok, add the router: *)
-                 details#add_device cmd#name "router" (int_of_string cmd#eth);
-             | _ ->
-                 ());
-             defects#add_device cmd#name (Netmodel.string_of_devkind devkind) (int_of_string cmd#eth);
-             let d = (new Netmodel.device ~network:st#network ~name:cmd#name ~label:cmd#label 
-                            ~devkind
-                            ~variant:(if Netmodel.is_there_a_router_variant () then
-                                        "default"
-                                      else
-                                        Strings.no_variant_text)
-                            (int_of_string cmd#eth) ()) in 
-             d#resolve_variant; (* don't store the variant as a symlink *)
-             st#network#addDevice d;
-             st#update_cable_sensitivity ();
-             st#update_sketch ();
-             st#update_state  ();
-             st#update_cable_sensitivity ();
-         | "update" -> 
-             let d = st#network#getDeviceByName cmd#oldname in
-             d#destroy;
-             let connected_ports = st#network#ledgrid_manager#get_connected_ports ~id:(d#id) () in
-             st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
-             st#network#changeNodeName cmd#oldname cmd#name  ;
-             d#set_label    cmd#label                   ;
-             d#set_eth_number ~prefix:"port"  (int_of_string cmd#eth)  ;
-             st#refresh_sketch () ;
-             st#network#make_device_ledgrid d;
-             Filesystem_history.rename_device cmd#oldname cmd#name;
-             (match devkind with
-               Netmodel.Router ->
-                 details#rename_device cmd#oldname cmd#name;
-                 details#update_ports_no cmd#name (int_of_string cmd#eth);
-             | _ ->
-                 ());
-             defects#rename_device cmd#oldname cmd#name;
-             defects#update_ports_no cmd#name (int_of_string cmd#eth);
-             st#update_cable_sensitivity ();
-         | _  -> raise (Failure (myname^".react: unexpected action"))
-       end
-     end
- | None -> 
-     begin
-       Log.print_endline (myname^".react: NOTHING TO DO")
-     end
- ;; (* end of react_insert_update DEVICE *)
-
-
- (** The dialog for DEVICE INSERT/UPDATE. *)
- let ask_device devkind ~title ~(update:Netmodel.device option) (st:globalState) () =
  
-   let dialog =
-     if (devkind=Netmodel.Hub) then
-       ((new Gui.dialog_HUB    ()) :> dialog_DEVICE )  
-     else if (devkind=Netmodel.Switch) then
-       ((new Gui.dialog_SWITCH ()) :> dialog_DEVICE )
-     else if (devkind=Netmodel.Router) then
-       ((new Gui.dialog_ROUTER ()) :> dialog_DEVICE )
-     else
-       assert false
-   in 
-
-   (* DEVICE Dialog definition *)
-
-   dialog#toplevel#set_title (utf8 title);
-
-   (* Set defaults. If we are updating, defaults are the old values. *)
-   begin
-   match update with
-   | None   -> let prefix = (match devkind with 
-                | Netmodel.Hub -> "H" | Netmodel.Switch -> "S" | Netmodel.Router -> "R" 
-                | _ -> assert false) in
-               dialog#name#set_text (st#network#suggestedName prefix); 
-               dialog#name#misc#grab_focus () 
-   | Some h -> begin
-                dialog#name#set_text                  h#get_name                  ;
-                dialog#label#set_text                 h#get_label                 ;
-                dialog#eth#set_value                  (float_of_int h#get_eth_number);
-
-                (* The user cannot remove receptacles used by a cable. *)
-                let min_eth = (st#network#maxBusyReceptacleIndex h#get_name Netmodel.Eth)+1 in
-                let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
-                Log.print_endline (myname^".defaults: min_eth = "^(string_of_int min_eth)) ;               
-                dialog#eth#adjustment#set_bounds ~lower:(max min_multiple_of_4 4.0) () ;
-               end
-   end;
-
-  
-   (* DEVICE Dialog parser *)
-   let scan_dialog () = 
-     begin
-     let n     = dialog#name#text                                                        in
-     let (c,o) = match update with None -> ("add","") | Some h -> ("update",h#name)      in
-     let l     = dialog#label#text                                                       in
-     let eth   = (string_of_int dialog#eth#value_as_int)                                 in
-
-     if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  else
-
-            mkenv [("name",n)  ; ("action",c)   ; ("oldname",o)      ; ("label",l)        ; ("eth",eth);]
-     end in
-
-   (* Call the Dialog loop *)
-   Talking_MATERIEL_SKEL.dialog_loop ~help:(Some (Msg.help_device_insert_update devkind)) dialog scan_dialog st
-
- ;; (* end of DEVICE INSERT/UPDATE dialog *)
-
-
- (** The reaction for DEVICE ELIMINATE user command. *)
+ (** The reaction for hub/switch/router ELIMINATE user command. *)
  let react_elim (st:globalState) (msg: (string,string) env option) = 
    match msg with
    | Some r -> 
@@ -1870,7 +1745,7 @@ module Talking_MATERIEL_DEVICE = struct
          let answer = r#get("answer") in
          let name   = r#get("name")   in
          if (answer="yes") then begin 
-           Log.print_endline (myname^".react_elim: removing device "^name);  
+           Log.print_endline ("Talking_MATERIEL_DEVICE_COMMON.react_elim: removing device "^name);  
            (st#network#delDevice name) ;
            st#update_sketch ();
            st#update_state  ();
@@ -1896,19 +1771,112 @@ module Talking_MATERIEL_DEVICE = struct
        ~cancel:false 
  ;; (* end of ask_confirm_device_elim *)
 
+end;; (* Talking_MATERIEL_DEVICE_COMMON *)
+
+
+(* **************************************** *
+      Module Talking_MATERIEL_HUB
+ * **************************************** *)
+
+(** Edialog construction, binding with the main window and associated reaction for hub *)
+module Talking_MATERIEL_HUB = struct
+
+ include Talking_MATERIEL_DEVICE_COMMON ;;
+ 
+ (** The name of this module (for debugging purposes) *)
+ let  myname = "talking_MATERIEL_HUB" ;;
+
+ (** The reaction for hub INSERT/UPDATE user command. *)
+ let react_insert_update (st:globalState) (msg: (string,string) env option) = match msg with
+ | None   -> Log.print_endline (myname^".react_insert_update: NOTHING TO DO")
+ | Some r -> 
+     begin
+       let cmd = (new usercmd r) in 
+       cmd#log ~header:(myname^".react_insert_update: ");
+       let details = get_network_details_interface () in
+       let defects = get_defects_interface () in
+       begin
+         match cmd#action with 
+         | "add"    -> 
+             defects#add_device cmd#name "hub" (int_of_string cmd#eth); 
+	     let d = (new Netmodel.device ~network:st#network ~name:cmd#name ~label:cmd#label 
+                            ~devkind:Netmodel.Hub
+                            ~variant:Strings.no_variant_text
+                            (int_of_string cmd#eth) ()) in 
+             d#resolve_variant; (* don't store the variant as a symlink *)
+             st#network#addDevice d;
+             st#update_cable_sensitivity ();
+             st#update_sketch ();
+             st#update_state  ();
+             st#update_cable_sensitivity ();
+         | "update" -> 
+             let d = st#network#getDeviceByName cmd#oldname in
+             d#destroy;
+             let connected_ports = st#network#ledgrid_manager#get_connected_ports ~id:(d#id) () in
+             st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
+             st#network#changeNodeName cmd#oldname cmd#name  ;
+             d#set_label    cmd#label                   ;
+             d#set_eth_number ~prefix:"port"  (int_of_string cmd#eth)  ;
+             st#refresh_sketch () ;
+             st#network#make_device_ledgrid d;
+             Filesystem_history.rename_device cmd#oldname cmd#name;
+             defects#rename_device cmd#oldname cmd#name;
+             defects#update_ports_no cmd#name (int_of_string cmd#eth);
+             st#update_cable_sensitivity ();
+         | _  -> raise (Failure (myname^".react_insert_update: unexpected action"))
+       end
+     end
+ ;; 
+
+ (** The dialog for hub INSERT/UPDATE. *)
+ let ask_hub ~title ~(update:Netmodel.device option) (st:globalState) () =
+
+   let dialog = new Gui.dialog_HUB () in
+   (* Hub dialog tuning. *)
+   dialog#toplevel#set_title (utf8 title);
+   (* Set defaults. If we are updating, defaults are the old values. *)
+   begin
+   match update with
+   | None   -> let prefix = "H" in
+               dialog#hub_name#set_text (st#network#suggestedName prefix); 
+               dialog#hub_name#misc#grab_focus () 
+   | Some h -> begin
+                dialog#hub_name #set_text    h#get_name                  ;
+                dialog#hub_label#set_text    h#get_label                 ;
+                dialog#hub_ports#set_value  (float_of_int h#get_eth_number);
+                (* The user cannot remove receptacles used by a cable. *)
+                let min_eth = (st#network#maxBusyReceptacleIndex h#get_name Netmodel.Eth)+1 in
+                let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
+                Log.print_endline (myname^".defaults: min_eth = "^(string_of_int min_eth)) ;
+                dialog#hub_ports#adjustment#set_bounds ~lower:(max min_multiple_of_4 4.0) () ;
+               end
+   end;
+  
+   (* Hub dialog parser *)
+   let scan_dialog () = 
+     begin
+     let n     = dialog#hub_name #text                                                   in
+     let l     = dialog#hub_label#text                                                   in
+     let (c,o) = match update with None -> ("add","") | Some h -> ("update",h#name)      in
+     let eth   = (string_of_int dialog#hub_ports#value_as_int)                           in
+
+     if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  
+     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     end in
+
+   (* Call the Dialog loop *)
+   Talking_MATERIEL_SKEL.dialog_loop ~help:(Some (Msg.help_device_insert_update Netmodel.Hub)) dialog scan_dialog st
+
+ ;; (* end of hub INSERT/UPDATE dialog *)
+
 
  (** DEVICE bindings with the main window *)
- let bind devkind (st:globalState) =
-   
-   match devkind with
-
-   | Netmodel.Hub -> 
-
+ let bind (st:globalState) =
        Talking_MATERIEL_SKEL.bind st
          st#mainwin#imagemenuitem_HUB_AJOUT "HUB AJOUT"
          st#mainwin#imagemenuitem_HUB_MODIF st#mainwin#imagemenuitem_HUB_MODIF_menu "HUB PROPRIÉTÉS"
-         (ask_device Netmodel.Hub) 
-         (react_insert_update Netmodel.Hub)
+         (ask_hub) 
+         (react_insert_update)
          st#mainwin#imagemenuitem_HUB_ELIM  st#mainwin#imagemenuitem_HUB_ELIM_menu  "HUB SUPPRIMER"
          (ask_confirm_device_elim Netmodel.Hub)
          react_elim
@@ -1936,14 +1904,115 @@ module Talking_MATERIEL_DEVICE = struct
 
          (fun u -> st#network#getHubNames)
          st#network#getDeviceByName
+ ;;
 
-   | Netmodel.Switch -> 
 
+end;; (* Talking_MATERIEL_HUB *)
+
+
+
+(* **************************************** *
+      Module Talking_MATERIEL_SWITCH
+ * **************************************** *)
+
+(** Edialog construction, binding with the main window and associated reaction for switch. *)
+module Talking_MATERIEL_SWITCH = struct
+
+ include Talking_MATERIEL_DEVICE_COMMON ;;
+ 
+ (** The name of this module (for debugging purposes) *)
+ let  myname = "talking_MATERIEL_SWITCH" ;;
+
+ (** The reaction for switch INSERT/UPDATE user command. *)
+ let react_insert_update (st:globalState) (msg: (string,string) env option) = match msg with
+ | None   -> Log.print_endline (myname^".react_insert_update: NOTHING TO DO")
+ | Some r -> 
+     begin
+       let cmd = (new usercmd r) in 
+       cmd#log ~header:(myname^".react_insert_update: ");
+       let details = get_network_details_interface () in
+       let defects = get_defects_interface () in
+       begin
+         match cmd#action with 
+         | "add"    -> 
+             defects#add_device cmd#name "switch" (int_of_string cmd#eth); 
+	     let d = (new Netmodel.device ~network:st#network ~name:cmd#name ~label:cmd#label 
+                            ~devkind:Netmodel.Switch
+                            ~variant:Strings.no_variant_text
+                            (int_of_string cmd#eth) ()) in 
+             d#resolve_variant; (* don't store the variant as a symlink *)
+             st#network#addDevice d;
+             st#update_cable_sensitivity ();
+             st#update_sketch ();
+             st#update_state  ();
+             st#update_cable_sensitivity ();
+         | "update" -> 
+             let d = st#network#getDeviceByName cmd#oldname in
+             d#destroy;
+             let connected_ports = st#network#ledgrid_manager#get_connected_ports ~id:(d#id) () in
+             st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
+             st#network#changeNodeName cmd#oldname cmd#name  ;
+             d#set_label    cmd#label                   ;
+             d#set_eth_number ~prefix:"port"  (int_of_string cmd#eth)  ;
+             st#refresh_sketch () ;
+             st#network#make_device_ledgrid d;
+             Filesystem_history.rename_device cmd#oldname cmd#name;
+             defects#rename_device cmd#oldname cmd#name;
+             defects#update_ports_no cmd#name (int_of_string cmd#eth);
+             st#update_cable_sensitivity ();
+         | _  -> raise (Failure (myname^".react_insert_update: unexpected action"))
+       end
+     end
+ ;; 
+
+ (** The dialog for switch INSERT/UPDATE. *)
+ let ask_switch ~title ~(update:Netmodel.device option) (st:globalState) () =
+ 
+   let dialog = new Gui.dialog_SWITCH () in
+   (* Switch dialog tuning. *)
+   dialog#toplevel#set_title (utf8 title);
+   (* Set defaults. If we are updating, defaults are the old values. *)
+   begin
+   match update with
+   | None   -> let prefix = "S" in
+               dialog#switch_name#set_text (st#network#suggestedName prefix); 
+               dialog#switch_name#misc#grab_focus () 
+   | Some h -> begin
+                dialog#switch_name #set_text   h#get_name                  ;
+                dialog#switch_label#set_text   h#get_label                 ;
+                dialog#switch_ports#set_value (float_of_int h#get_eth_number);
+                (* The user cannot remove receptacles used by a cable. *)
+                let min_eth = (st#network#maxBusyReceptacleIndex h#get_name Netmodel.Eth)+1 in
+                let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
+                Log.print_endline (myname^".defaults: min_eth = "^(string_of_int min_eth)) ;
+                dialog#switch_ports#adjustment#set_bounds ~lower:(max min_multiple_of_4 4.0) () ;
+               end
+   end;
+
+   (* Switch dialog parser *)
+   let scan_dialog () = 
+     begin
+     let n     = dialog#switch_name#text                                                 in
+     let (c,o) = match update with None -> ("add","") | Some h -> ("update",h#name)      in
+     let l     = dialog#switch_label#text                                                in
+     let eth   = (string_of_int dialog#switch_ports#value_as_int)                        in
+     if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  
+     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     end in
+
+   (* Call the Dialog loop *)
+   Talking_MATERIEL_SKEL.dialog_loop ~help:(Some (Msg.help_device_insert_update Netmodel.Switch)) dialog scan_dialog st
+
+ ;; (* end of DEVICE INSERT/UPDATE dialog *)
+
+
+ (** DEVICE bindings with the main window *)
+ let bind (st:globalState) =
        Talking_MATERIEL_SKEL.bind st
          st#mainwin#imagemenuitem_SWITCH_AJOUT "SWITCH AJOUT"
          st#mainwin#imagemenuitem_SWITCH_MODIF st#mainwin#imagemenuitem_SWITCH_MODIF_menu "SWITCH PROPRIÉTÉS"
-         (ask_device Netmodel.Switch) 
-         (react_insert_update Netmodel.Switch)
+         (ask_switch) 
+         (react_insert_update)
          st#mainwin#imagemenuitem_SWITCH_ELIM  st#mainwin#imagemenuitem_SWITCH_ELIM_menu  "SWITCH SUPPRIMER"
          (ask_confirm_device_elim Netmodel.Switch)
          react_elim
@@ -1971,14 +2040,121 @@ module Talking_MATERIEL_DEVICE = struct
 
          (fun u -> st#network#getSwitchNames)
          st#network#getDeviceByName
+ ;;
 
-   | Netmodel.Router -> 
 
+end;; (* Talking_MATERIEL_SWITCH *)
+
+
+(* **************************************** *
+      Module Talking_MATERIEL_ROUTER
+ * **************************************** *)
+
+(** Edialog construction, binding with the main window and associated reaction for router. *)
+module Talking_MATERIEL_ROUTER = struct
+ 
+ include Talking_MATERIEL_DEVICE_COMMON ;;
+
+ (** The name of this module (for debugging purposes) *)
+ let  myname = "talking_MATERIEL_ROUTER" ;;
+
+ (** The reaction for router INSERT/UPDATE user command. *)
+ let react_insert_update (st:globalState) (msg: (string,string) env option) = match msg with
+ | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
+ | Some r -> 
+     begin
+       let cmd = (new usercmd r) in 
+       cmd#log ~header:(myname^".react_insert_update: ");
+       let details = get_network_details_interface () in
+       let defects = get_defects_interface () in
+       begin
+         match cmd#action with 
+         | "add"    -> 
+             details#add_device cmd#name "router" (int_of_string cmd#eth);
+             defects#add_device cmd#name "router" (int_of_string cmd#eth);
+             let d = (new Netmodel.device ~network:st#network ~name:cmd#name ~label:cmd#label 
+                            ~devkind:Netmodel.Router
+                            ~variant:(if Netmodel.is_there_a_router_variant () then "default"
+                                      else Strings.no_variant_text)
+                            (int_of_string cmd#eth) ()) in 
+             d#resolve_variant; (* don't store the variant as a symlink *)
+             st#network#addDevice d;
+             st#update_cable_sensitivity ();
+             st#update_sketch ();
+             st#update_state  ();
+             st#update_cable_sensitivity ();
+         | "update" -> 
+             let d = st#network#getDeviceByName cmd#oldname in
+             d#destroy;
+             let connected_ports = st#network#ledgrid_manager#get_connected_ports ~id:(d#id) () in
+             st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
+             st#network#changeNodeName cmd#oldname cmd#name  ;
+             d#set_label    cmd#label                   ;
+             d#set_eth_number ~prefix:"port"  (int_of_string cmd#eth)  ;
+             st#refresh_sketch () ;
+             st#network#make_device_ledgrid d;
+             Filesystem_history.rename_device cmd#oldname cmd#name;
+             details#rename_device cmd#oldname cmd#name;
+             details#update_ports_no cmd#name (int_of_string cmd#eth);
+             defects#rename_device cmd#oldname cmd#name;
+             defects#update_ports_no cmd#name (int_of_string cmd#eth);
+             st#update_cable_sensitivity ();
+         | _  -> raise (Failure (myname^".react: unexpected action"))
+       end
+     end
+ ;; (* end of react_insert_update DEVICE *)
+
+
+ (** The dialog for router INSERT/UPDATE. *)
+ let ask_router ~title ~(update:Netmodel.device option) (st:globalState) () =
+ 
+   let dialog = new Gui.dialog_ROUTER () in 
+   (* Router dialog tuning. *)
+   dialog#toplevel#set_title (utf8 title);
+   (* Set defaults. If we are updating, defaults are the old values. *)
+   begin
+   match update with
+   | None   -> let prefix = "R" in
+               dialog#router_name#set_text (st#network#suggestedName prefix); 
+               dialog#router_name#misc#grab_focus () 
+   | Some h -> begin
+                dialog#router_name #set_text   h#get_name                  ;
+                dialog#router_label#set_text   h#get_label                 ;
+                dialog#router_ports#set_value (float_of_int h#get_eth_number);
+                (* The user cannot remove receptacles used by a cable. *)
+                let min_eth = (st#network#maxBusyReceptacleIndex h#get_name Netmodel.Eth)+1 in
+                let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
+                Log.print_endline (myname^".defaults: min_eth = "^(string_of_int min_eth)) ;
+                dialog#router_ports#adjustment#set_bounds ~lower:(max min_multiple_of_4 4.0) () ;
+               end
+   end;
+
+  
+   (* router dialog parser *)
+   let scan_dialog () = 
+     begin
+     let n     = dialog#router_name #text                                                in
+     let l     = dialog#router_label#text                                                in
+     let (c,o) = match update with None -> ("add","") | Some h -> ("update",h#name)      in
+     let eth   = (string_of_int dialog#router_ports#value_as_int)                        in
+
+     if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  
+     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     end in
+
+   (* Call the Dialog loop *)
+   Talking_MATERIEL_SKEL.dialog_loop ~help:(Some (Msg.help_device_insert_update Netmodel.Router)) dialog scan_dialog st
+
+ ;; (* end of router INSERT/UPDATE dialog *)
+
+
+ (** DEVICE bindings with the main window *)
+ let bind (st:globalState) =
        Talking_MATERIEL_SKEL.bind st
          st#mainwin#imagemenuitem_ROUTER_AJOUT "ROUTEUR AJOUT"
          st#mainwin#imagemenuitem_ROUTER_MODIF st#mainwin#imagemenuitem_ROUTER_MODIF_menu "ROUTEUR PROPRIÉTÉS"
-         (ask_device Netmodel.Router) 
-         (react_insert_update Netmodel.Router)
+         (ask_router) 
+         (react_insert_update)
          st#mainwin#imagemenuitem_ROUTER_ELIM  st#mainwin#imagemenuitem_ROUTER_ELIM_menu  "ROUTEUR SUPPRIMER"
          (ask_confirm_device_elim Netmodel.Router)
          react_elim
@@ -2006,42 +2182,26 @@ module Talking_MATERIEL_DEVICE = struct
 
          (fun u -> st#network#getRouterNames)
          st#network#getDeviceByName
-
-   |  _ -> ()
-
  ;;
 
 
-end;; (* Talking_MATERIEL_DEVICE *)
-
-
-
-
-
+end;; (* Talking_MATERIEL_ROUTER *)
 
 
 (* **************************************** *
       Module Talking_MATERIEL_CABLE_RJ45
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the MATERIEL_\{DROIT,CROISE\} functionnalities *)
-module Talking_MATERIEL_CABLE_RJ45 = struct         
+(** Edialog construction, binding with the main window and associated reaction for RJ45 cables. *)
+module Talking_MATERIEL_CABLE_RJ45 = struct 
 
   open Netmodel;;
  
-  type dialog_CABLE_RJ45  = 
-    <  name         : GEdit.entry            ;
-       label        : GEdit.entry            ;
-       table_link   : GPack.table            ;
-       toplevel     : GWindow.dialog_any     >
-  ;;
-
  (** The name of this module (for debugging purposes) *)
  let  myname = "talking_MATERIEL_CABLE_RJ45" ;;
 
  (** The class for INSERT/UPDATE user command (deliver by the ask_device dialog)  *)
- class usercmd = fun (r: (string,string) env) -> object 
+ class usercmd = fun (r: (string,string) env) -> object (self)
    method name         : string = r#get("name")
    method action       : string = r#get("action")
    method oldname      : string = r#get("oldname")
@@ -2050,6 +2210,18 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
    method right_node   : string = r#get("right_node")
    method left_recept  : string = r#get("left_recept")
    method right_recept : string = r#get("right_recept")
+   method log ~header = 
+     begin
+       Log.print_endline (header^"name         = "^self#name);
+       Log.print_endline (header^"action       = "^self#action);
+       Log.print_endline (header^"oldname      = "^self#oldname);
+       Log.print_endline (header^"label        = "^self#label);
+       Log.print_endline (header^"left_node    = "^self#left_node);
+       Log.print_endline (header^"left_recept  = "^self#left_recept);
+       Log.print_endline (header^"right_node   = "^self#right_node);
+       Log.print_endline (header^"right_recept = "^self#right_recept)
+     end
+
  end;; (* end of class usercmd *)
 
  (** The reaction for CABLE_RJ45 INSERT/UPDATE user command. *)
@@ -2057,14 +2229,7 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
  | Some r -> 
      begin
        let cmd = (new usercmd r) in 
-       Log.print_endline (myname^".react: name         = "^cmd#name);
-       Log.print_endline (myname^".react: action       = "^cmd#action);
-       Log.print_endline (myname^".react: oldname      = "^cmd#oldname);
-       Log.print_endline (myname^".react: label        = "^cmd#label);
-       Log.print_endline (myname^".react: left_node    = "^cmd#left_node);
-       Log.print_endline (myname^".react: left_recept  = "^cmd#left_recept);
-       Log.print_endline (myname^".react: right_node   = "^cmd#right_node);
-       Log.print_endline (myname^".react: right_recept = "^cmd#right_recept);
+       cmd#log ~header:(myname^".react_insert_update: ");
 
        let sock1 = { Netmodel.nodename = cmd#left_node  ; Netmodel.receptname = cmd#left_recept  } in
        let sock2 = { Netmodel.nodename = cmd#right_node ; Netmodel.receptname = cmd#right_recept } in
@@ -2106,16 +2271,29 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
 
  (** The dialog for CABLE_RJ45 INSERT/UPDATE. *)
  let ask_cable cablekind ~title ~(update:Netmodel.cable option) (st:globalState) () =
-(* Log.printf "OK-Q 0\n"; flush_all ();  *)
-   let dialog = if (cablekind=Netmodel.Direct)
-                then ((new Gui.dialog_DROIT  ()) :> dialog_CABLE_RJ45 )  
-                else ((new Gui.dialog_CROISE ()) :> dialog_CABLE_RJ45 )  
-                in 
 
-   (* CABLE_RJ45 Dialog definition *)
-
-(* Log.printf "OK-Q 1\n"; flush_all ();  *)
+   let dialog = new Gui.dialog_CABLE_RJ45 () in
+   (* CABLE_RJ45 dialog tuning *)
    dialog#toplevel#set_title (utf8 title);
+   let tooltips = GData.tooltips () in
+   dialog#toplevel#connect#destroy ~callback:(fun _ -> tooltips #destroy ());
+
+   (match cablekind with
+   | Netmodel.Direct ->
+       tooltips#set_tip dialog#cable_name_tooltip#coerce ~text:"Le nom du câble droit. Ce nom doit être unique dans le réseau virtuel. Suggestion : D1, D2, ... ";
+       tooltips#set_tip dialog#cable_label_tooltip#coerce ~text:"L'étiquette à ajouter au dessin du câble droit."
+
+   | Netmodel.Crossed->
+       (* The cable dialog is defined with glade using a poor man technique of layers. *)	
+       dialog#image_cable_crossed_dialog     #misc#show ();
+       dialog#image_cable_crossed_dialog_link#misc#show ();
+       dialog#image_cable_direct_dialog      #misc#hide ();
+       dialog#image_cable_direct_dialog_link #misc#hide ();
+       tooltips#set_tip dialog#cable_name_tooltip#coerce ~text:"Le nom du cable croisé. Ce nom doit être unique dans le réseau virtuel. Suggestion : C1, C2, ... ";
+       tooltips#set_tip dialog#cable_label_tooltip#coerce ~text:"L'étiquette à ajouter au dessin du câble croisé. Il est conseillé d'utiliser comme étiquette l'adresse IP du réseau que vous voulez réaliser avec (par exemple \"192.168.1.0/24\"). "
+
+   | _ -> assert false
+   );
 
    (* Slave dependent function for left and right combo: 
       if we are updating we must consider current receptacles as availables! *)
@@ -2125,7 +2303,6 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
          compare
          (st#network#freeReceptaclesNamesOfNode x Netmodel.Eth)) in
 
-(* Log.printf "OK-Q 2\n"; flush_all ();  *)
    (* The free receptacles of the given node at the LEFT side of the cable. If we are updating
       we have to consider the old receptacle of the old nodename as available. *) 
    let get_left_recept_of = match update with
@@ -2134,7 +2311,6 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
                        then c#get_left.Netmodel.receptname::(freeReceptsOfNode x) 
                        else (freeReceptsOfNode x)) in
 
-(* Log.printf "OK-Q 3\n"; flush_all (); *)
    (* The free receptacles of the given node at the RIGHT side of the cable. If we are updating
       we have to consider the old receptacle of the old nodename as available. *) 
    let get_right_recept_of = match update with
@@ -2143,24 +2319,22 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
                        then c#get_right.Netmodel.receptname::(freeReceptsOfNode x) 
                        else (freeReceptsOfNode x)) in
    
-(* Log.printf "OK-Q 4\n"; flush_all ();  *)
     let left = Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave 
                   ~masterCallback:(Some Log.print_endline)
-                  ~masterPacking:(Some (dialog#table_link#attach ~left:1 ~top:1 ~right:2))
+                  ~masterPacking:(Some (dialog#cable_endpoints#attach ~left:1 ~top:1 ~right:2))
                   st#network#getNodeNames
                   ~slaveCallback:(Some Log.print_endline)
-                  ~slavePacking:(Some (dialog#table_link#attach ~left:1 ~top:2 ~right:2))
+                  ~slavePacking:(Some (dialog#cable_endpoints#attach ~left:1 ~top:2 ~right:2))
                   get_left_recept_of
                   ~slaveSlaveCallback:(Some Log.print_endline)
-                  ~slaveSlavePacking:(Some (dialog#table_link#attach ~left:3 ~top:1 ~right:4))
+                  ~slaveSlavePacking:(Some (dialog#cable_endpoints#attach ~left:3 ~top:1 ~right:4))
                   (fun n1 r1 -> st#network#getNodeNames)
                   ~slaveSlaveSlaveCallback:(Some Log.print_endline)
-                  ~slaveSlaveSlavePacking:(Some (dialog#table_link#attach ~left:3 ~top:2 ~right:4))
+                  ~slaveSlaveSlavePacking:(Some (dialog#cable_endpoints#attach ~left:3 ~top:2 ~right:4))
                   (fun n1 r1 n2 -> 
                      let l = (get_right_recept_of n2) in
                      if n1 = n2 then (List.substract l [r1]) else l) in
     
-(* Log.printf "OK-Q 5\n"; flush_all ();  *)
     let right=left#slave#slave in
 
    (* Set defaults. If we are updating, defaults are the old values. *)
@@ -2168,12 +2342,11 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
    match update with
    | None   -> 
                let prefix = if (cablekind=Netmodel.Direct) then "d" else "c" in
-               dialog#name#set_text (st#network#suggestedName prefix); 
-               dialog#name#misc#grab_focus () 
+               dialog#cable_name#set_text (st#network#suggestedName prefix); 
+               dialog#cable_name#misc#grab_focus () 
    | Some c -> begin
-                dialog#name#set_text              c#get_name                      ;
-                dialog#label#set_text             c#get_label                     ;
-
+                dialog#cable_name#set_text        c#get_name                      ;
+                dialog#cable_label#set_text       c#get_label                     ;
                 left#set_active_value             c#get_left.Netmodel.nodename    ;
                 left#slave#set_active_value       c#get_left.Netmodel.receptname  ; 
                 right#set_active_value            c#get_right.Netmodel.nodename   ;
@@ -2184,10 +2357,9 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
    (* CABLE_RJ45 Dialog parser *)
    let scan_dialog () = 
      begin
-     let n     = dialog#name#text                                                        in
+     let n     = dialog#cable_name #text                                                 in
+     let l     = dialog#cable_label#text                                                 in
      let (c,o) = match update with None -> ("add","") | Some x -> ("update",x#name)      in
-     let l     = dialog#label#text                                                       in
-
      let ln    = left#selected                                                           in
      let lr    = left#slave#selected                                                     in
      let rn    = right#selected                                                          in
@@ -2329,249 +2501,15 @@ end;; (* Talking_MATERIEL_CABLE_RJ45 *)
 
 
 
-
-
-
-
 (* **************************************** *
-      Module Talking_MATERIEL_CABLE_NULLMODEM
+      Module Talking_MATERIEL_CLOUD
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the MATERIEL_\{DROIT,CROISE\} functionnalities *)
-module Talking_MATERIEL_CABLE_NULLMODEM = struct         
+(** Edialog construction, binding with the main window and associated reaction for clouds. *)
+module Talking_MATERIEL_CLOUD = struct         
  
  (** The name of this module (for debugging purposes) *)
- let  myname = "talking_MATERIEL_CABLE_NULLMODEM" ;;
-
- (** The class for INSERT/UPDATE user command (deliver by the ask_device dialog)  *)
- class usercmd = fun (r: (string,string) env) -> object 
-   method name         : string = r#get("name")
-   method action       : string = r#get("action")
-   method oldname      : string = r#get("oldname")
-   method label        : string = r#get("label")
-   method left_node    : string = r#get("left_node")
-   method right_node   : string = r#get("right_node")
-   method left_recept  : string = r#get("left_recept")
-   method right_recept : string = r#get("right_recept")
- end;; (* end of class usercmd *)
-
- (** The reaction for CABLE_NULLMODEM INSERT/UPDATE user command. *)
- let react_insert_update (st:globalState) (msg: (string,string) env option) = match msg with
- | Some r -> 
-     begin
-       let cmd = (new usercmd r) in 
-       Log.print_endline (myname^".react: name         = "^cmd#name);
-       Log.print_endline (myname^".react: action       = "^cmd#action);
-       Log.print_endline (myname^".react: oldname      = "^cmd#oldname);
-       Log.print_endline (myname^".react: label        = "^cmd#label);
-       Log.print_endline (myname^".react: left_node    = "^cmd#left_node);
-       Log.print_endline (myname^".react: left_recept  = "^cmd#left_recept);
-       Log.print_endline (myname^".react: right_node   = "^cmd#right_node);
-       Log.print_endline (myname^".react: right_recept = "^cmd#right_recept);
-
-       let sock1 = { Netmodel.nodename = cmd#left_node  ; Netmodel.receptname = cmd#left_recept  } in
-       let sock2 = { Netmodel.nodename = cmd#right_node ; Netmodel.receptname = cmd#right_recept } in
-       let defects = get_defects_interface () in
-       begin
-         match cmd#action with 
-         | "add"    -> 
-             let c = (new Netmodel.cable ~network:st#network ~name:cmd#name ~label:cmd#label ~cablekind:Netmodel.NullModem ~left:sock1 ~right:sock2 ()) in 
-             (* To do: uncomment this if we ever implement defects in serial cables: *)
-             (* defects#add_cable cmd#name "nullmodem"; *)
-             st#network#addCable c;
-             st#refresh_sketch () ;
-             st#update_cable_sensitivity ();
-         | "update" -> 
-             let c = st#network#getCableByName cmd#oldname in
-             c#set_name     cmd#name  ;
-             c#set_label    cmd#label ;
-             c#set_left     sock1     ;
-             c#set_right    sock2     ;
-             st#refresh_sketch () ;
-             st#update_cable_sensitivity ();
-             ()
-         | _  -> raise (Failure (myname^".react: unexpected action"))
-       end
-     end
- | None -> 
-     begin
-       Log.print_endline (myname^".react: NOTHING TO DO")
-     end
- ;; (* end of react_insert_update CABLE_NULLMODEM *)
-
-
- (** The dialog for CABLE_NULLMODEM INSERT/UPDATE. *)
- let ask_cable ~title ~(update:Netmodel.cable option) (st:globalState) () =
- 
-   let dialog = new Gui.dialog_SERIE () in 
-
-   (* CABLE_NULLMODEM Dialog definition *)
-
-   dialog#toplevel#set_title (utf8 title);
-
-   (* Slave dependent function for left and right combo: 
-      if we are updating we must consider current receptacles as availables! *)
-   let freeReceptsOfNode =
-     (fun x->
-       List.sort
-         compare
-         (st#network#freeReceptaclesNamesOfNode x Netmodel.TtyS)) in
-
-   (* The free receptacles of the given node at the LEFT side of the cable. If we are updating
-      we have to consider the old receptacle of the old nodename as available. *) 
-   let get_left_recept_of = match update with
-   | None   -> freeReceptsOfNode
-   | Some c -> (fun x->if   (x = c#get_left.Netmodel.nodename)
-                       then c#get_left.Netmodel.receptname::(freeReceptsOfNode x) 
-                       else (freeReceptsOfNode x)) in
-
-   (* The free receptacles of the given node at the RIGHT side of the cable. If we are updating
-      we have to consider the old receptacle of the old nodename as available. *) 
-   let get_right_recept_of = match update with
-   | None   -> freeReceptsOfNode
-   | Some c -> (fun x->if   (x = c#get_right.Netmodel.nodename)
-                       then c#get_right.Netmodel.receptname::(freeReceptsOfNode x) 
-                       else (freeReceptsOfNode x)) in
-   
-    let left = Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave 
-                  ~masterCallback:(Some Log.print_endline)
-                  ~masterPacking:(Some (dialog#table_link#attach ~left:1 ~top:1 ~right:2))
-                  (st#network#getMachineNames)
-
-                  ~slaveCallback:(Some Log.print_endline)
-                  ~slavePacking:(Some (dialog#table_link#attach ~left:1 ~top:2 ~right:2))
-                  get_left_recept_of
-
-                  ~slaveSlaveCallback:(Some Log.print_endline)
-                  ~slaveSlavePacking:(Some (dialog#table_link#attach ~left:3 ~top:1 ~right:4))
-                  (fun n1 r1 -> (List.substract st#network#getMachineNames [n1]))
-
-                  ~slaveSlaveSlaveCallback:(Some Log.print_endline)
-                  ~slaveSlaveSlavePacking:(Some (dialog#table_link#attach ~left:3 ~top:2 ~right:4))
-                  (fun n1 r1 n2 -> (get_right_recept_of n2))
-                     
-    in
-    
-    let right=left#slave#slave in
-
-   (* Set defaults. If we are updating, defaults are the old values. *)
-   begin
-   match update with
-   | None   -> dialog#name#set_text (st#network#suggestedName "s"); 
-               dialog#name#misc#grab_focus () 
-   | Some c -> begin
-                dialog#name#set_text              c#get_name                      ;
-                dialog#label#set_text             c#get_label                     ;
-
-                left#set_active_value             c#get_left.Netmodel.nodename    ;
-                left#slave#set_active_value       c#get_left.Netmodel.receptname  ; 
-                right#set_active_value            c#get_right.Netmodel.nodename   ;
-                right#slave#set_active_value      c#get_right.Netmodel.receptname ; 
-               end
-   end;
-
-  
-   (* CABLE_NULLMODEM Dialog parser *)
-   let scan_dialog () = 
-     begin
-     let n     = dialog#name#text                                                        in
-     let (c,o) = match update with None -> ("add","") | Some x -> ("update",x#name)      in
-     let l     = dialog#label#text                                                       in
-
-     let ln    = left#selected                                                           in
-     let lr    = left#slave#selected                                                     in
-     let rn    = right#selected                                                          in
-     let rr    = right#slave#selected                                                    in
-
-     if (not (Str.wellFormedName n)) or (ln="") or (lr="") or (rn="") or (rr="") then raise EDialog.IncompleteDialog  else
-
-     let result = mkenv [("name",n)       ; ("action",c)         ; ("oldname",o)      ; ("label",l) ;   
-                         ("left_node",ln) ; ("left_recept",lr)   ; ("right_node",rn)  ; ("right_recept",rr) ] in result
-
-     end in
-
-   (* Call the Dialog loop *)
-   Talking_MATERIEL_SKEL.dialog_loop ~help:None dialog scan_dialog st
-
- ;; (* end of CABLE_NULLMODEM INSERT/UPDATE dialog *)
-
-
- (** The reaction for CABLE_NULLMODEM ELIMINATE user command. *)
- let react_elim (st:globalState) (msg: (string,string) env option) = 
-   match msg with
-   | Some r -> 
-       let defects = get_defects_interface () in
-       begin (* TO IMPLEMENT *)
-         let answer = r#get("answer") in
-         let name   = r#get("name")   in
-         if (answer="yes") then begin 
-           Log.print_endline (myname^".react_elim: removing serial cable "^name);  
-           (st#network#delCable name);
-           st#refresh_sketch ();
-           defects#remove_cable name;
-           st#update_cable_sensitivity ();
-         end
-         else ()
-       end 
-   |  None -> raise (Failure "CABLE_NULLMODEM react_elim")
-
- ;; (* end of react_elim *)
-
- (** The dialog for CABLE_NULLMODEM ELIMINATE. *)
- let ask_confirm_cable_elim x = 
-   let what = (Netmodel.string_of_cablekind Netmodel.NullModem) in
-   EDialog.ask_question 
-       ~gen_id:"answer"  
-       ~title:"ELIMINER" 
-       ~question:("Vous confirmez l'élimination du cable "^x^" ("^what^" cable) ?")
-       ~help:None
-       ~cancel:false 
- ;; (* end of ask_confirm_cable_elim *)
-
-
- (** CABLE_NULLMODEM bindings with the main window *)
- let bind (st:globalState) =
-   
-       Talking_MATERIEL_SKEL.bind st
-         st#mainwin#imagemenuitem_SERIE_AJOUT "CABLE SERIE AJOUT"
-         st#mainwin#imagemenuitem_SERIE_MODIF st#mainwin#imagemenuitem_SERIE_MODIF_menu "CABLE SERIE PROPRIÉTÉS"
-         ask_cable 
-         react_insert_update
-         st#mainwin#imagemenuitem_SERIE_ELIM  st#mainwin#imagemenuitem_SERIE_ELIM_menu  "CABLE SERIE SUPPRIMER"
-         ask_confirm_cable_elim
-         react_elim
-
-     st#mainwin#imagemenuitem_SERIE_STARTUP st#mainwin#imagemenuitem_SERIE_STARTUP_menu
-     (fun st x () -> Log.print_string ("react_startup: global-state >"^ x ^"<\n"))
-     st#mainwin#imagemenuitem_SERIE_SHUTDOWN st#mainwin#imagemenuitem_SERIE_SHUTDOWN_menu
-     (fun st x () -> Log.print_string ("react_shutdown: global-state >"^ x ^"<\n"))
-     st#mainwin#imagemenuitem_SERIE_POWEROFF st#mainwin#imagemenuitem_SERIE_POWEROFF_menu
-     (fun st x () -> Log.print_string ("react_poweroff: global-state >"^ x ^"<\n"))
-     st#mainwin#imagemenuitem_SERIE_SUSPEND st#mainwin#imagemenuitem_SERIE_SUSPEND_menu
-     (fun st x () -> Log.print_string ("react_suspend: global-state >"^ x ^"<\n"))
-     st#mainwin#imagemenuitem_SERIE_RESUME st#mainwin#imagemenuitem_SERIE_RESUME_menu
-     (fun st x () -> Log.print_string ("react_resume: global-state >"^ x ^"<\n"))
-
-         (fun u -> st#network#getSerialCableNames)
-         st#network#getCableByName
-
- ;;
-
-
-end;; (* Talking_MATERIEL_CABLE_NULLMODEM *)
-
-
-(* **************************************** *
-      Module Talking_MATERIEL_NUAGE
- * **************************************** *)
-
-(** Edialog construction, binding with the main window and associated reaction for
-   the _MATERIEL_NUAGE functionnalities *)
-module Talking_MATERIEL_NUAGE = struct         
- 
- (** The name of this module (for debugging purposes) *)
- let  myname = "talking_MATERIEL_NUAGE" ;;
+ let  myname = "talking_MATERIEL_CLOUD" ;;
 
  (** The class for INSERT/UPDATE user command (deliver by the ask_cloud dialog)  *)
  class usercmd = fun (r: (string,string) env) -> object (self)
@@ -2579,23 +2517,26 @@ module Talking_MATERIEL_NUAGE = struct
    method label     : string = r#get("label")
    method action    : string = r#get("action")
    method oldname   : string = r#get("oldname")
+   method log ~header = 
+     begin
+       Log.print_endline (header^"name      = "^self#name);
+       Log.print_endline (header^"label     = "^self#label);
+       Log.print_endline (header^"action    = "^self#action);
+       Log.print_endline (header^"oldname   = "^self#oldname);
+     end
  end;; (* end of class usercmd *)
 
- (** The reaction for NUAGE INSERT/UPDATE user command. *)
+ (** The reaction for cloud INSERT/UPDATE user command. *)
  let react_insert_update (st:globalState) (msg: (string,string) env option) = match msg with
  | Some r -> 
      begin
-       let cmd = (new usercmd r) in 
-       Log.print_endline (myname^".react: name      = "^cmd#name);
-       Log.print_endline (myname^".react: label     = "^cmd#label);
-       Log.print_endline (myname^".react: action    = "^cmd#action);
-       Log.print_endline (myname^".react: oldname   = "^cmd#oldname);
+       let cmd = (new usercmd r) in
+       cmd#log ~header:(myname^".react_insert_update: ");
        let details = get_network_details_interface () in
        let defects = get_defects_interface () in
        begin
          match cmd#action with 
          | "add"    -> 
-(*              details#add_device cmd#name "cloud" 2; *)
              defects#add_device ~defective_by_default:true cmd#name "cloud" 2;
              let c = (new Netmodel.cloud ~network:st#network ~name:cmd#name ~label:cmd#label ()) in 
              st#network#addCloud c;
@@ -2609,7 +2550,6 @@ module Talking_MATERIEL_NUAGE = struct
              st#refresh_sketch () ;
              st#update_state  ();
              c#destroy;
-(*              details#rename_device cmd#oldname cmd#name; *)
              defects#rename_device cmd#oldname cmd#name;
              st#update_cable_sensitivity ();
              ()
@@ -2620,37 +2560,33 @@ module Talking_MATERIEL_NUAGE = struct
      begin
        Log.print_endline (myname^".react: NOTHING TO DO")
      end
- ;; (* end of react_insert_update NUAGE *)
+ ;; (* end of react_insert_update *)
 
 
- (** The dialog for NUAGE INSERT/UPDATE. *)
+ (** The dialog for cloud INSERT/UPDATE. *)
  let ask_cloud ~title ~(update:Netmodel.cloud option) (st:globalState) () =
  
-   let dialog = new Gui.dialog_NUAGE ()  in 
+   let dialog = new Gui.dialog_CLOUD ()  in 
 
-   (* NUAGE Dialog definition *)
-
+   (* Cloud dialog tuning *)
    dialog#toplevel#set_title (utf8 title);
-
-   (* Visibility of gw2 and gw3 *)
-
    (* Set defaults. If we are updating, defaults are the old values. *)
    begin
    match update with
-   | None   -> dialog#name#set_text (st#network#suggestedName "N"); 
-               dialog#name#misc#grab_focus () 
+   | None   -> dialog#cloud_name#set_text (st#network#suggestedName "N"); 
+               dialog#cloud_name#misc#grab_focus () 
    | Some c -> begin
-                dialog#name#set_text  c#get_name  ;
-                dialog#label#set_text c#get_label ;
+                dialog#cloud_name#set_text  c#get_name  ;
+                dialog#cloud_label#set_text c#get_label ;
                end
    end;
 
   
-   (* NUAGE Dialog parser *)
+   (* Cloud dialog parser *)
    let scan_dialog () = 
      begin
-     let n     = dialog#name#text                                                        in
-     let l     = dialog#label#text                                                       in
+     let n     = dialog#cloud_name#text                                                  in
+     let l     = dialog#cloud_label#text                                                 in
      let (c,o) = match update with None -> ("add","") | Some c -> ("update",c#name)      in
 
      if not (Str.wellFormedName n) then
@@ -2665,7 +2601,7 @@ module Talking_MATERIEL_NUAGE = struct
  ;; (* end of NUAGE INSERT/UPDATE dialog *)
 
 
- (** The reaction for NUAGE ELIMINATE user command. *)
+ (** The reaction for cloud ELIMINATE user command. *)
  let react_elim (st:globalState) (msg: (string,string) env option) = 
    match msg with
    | Some r -> 
@@ -2684,11 +2620,11 @@ module Talking_MATERIEL_NUAGE = struct
          end
          else ()
        end 
-   |  None -> raise (Failure "CLOUD react_elim")
+   |  None -> raise (Failure (myname^".react_elim"))
 
  ;; (* end of react_elim *)
 
- (** The dialog for NUAGE ELIMINATE. *)
+ (** The dialog for cloud ELIMINATE. *)
  let ask_confirm_cloud_elim x = 
    EDialog.ask_question 
        ~gen_id:"answer"  
@@ -2727,21 +2663,19 @@ module Talking_MATERIEL_NUAGE = struct
  ;;
 
 
-end;; (* Talking_MATERIEL_NUAGE *)
-
+end;; (* Talking_MATERIEL_CLOUD *)
 
 
 
 (* **************************************** *
-      Module Talking_MATERIEL_GWINTERNET
+       Module Talking_MATERIEL_SOCKET
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the _MATERIEL_GWINTERNET functionnalities *)
-module Talking_MATERIEL_GWINTERNET = struct         
+(** Edialog construction, binding with the main window and associated reaction for socket. *)
+module Talking_MATERIEL_SOCKET = struct         
  
  (** The name of this module (for debugging purposes) *)
- let  myname = "talking_MATERIEL_GWINTERNET" ;;
+ let  myname = "talking_MATERIEL_SOCKET" ;;
 
  (** The class for INSERT/UPDATE user command (deliver by the ask_gateway dialog)  *)
  class usercmd = fun (r: (string,string) env) -> object (self)
@@ -2749,23 +2683,28 @@ module Talking_MATERIEL_GWINTERNET = struct
    method label     : string = r#get("label")
    method action    : string = r#get("action")
    method oldname   : string = r#get("oldname")
+   method log ~header = 
+     begin
+       Log.print_endline (header^"name      = "^self#name);
+       Log.print_endline (header^"label     = "^self#label);
+       Log.print_endline (header^"action    = "^self#action);
+       Log.print_endline (header^"oldname   = "^self#oldname);
+     end
+
  end;; (* end of class usercmd *)
 
- (** The reaction for GWINTERNET INSERT/UPDATE user command. *)
+ (** The reaction for socket INSERT/UPDATE user command. *)
  let react_insert_update (st:globalState) (msg: (string,string) env option) = match msg with
+ | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
  | Some r -> 
      begin
-       let cmd = (new usercmd r) in 
-       Log.print_endline (myname^".react: name      = "^cmd#name);
-       Log.print_endline (myname^".react: label     = "^cmd#label);
-       Log.print_endline (myname^".react: action    = "^cmd#action);
-       Log.print_endline (myname^".react: oldname   = "^cmd#oldname);
+       let cmd = (new usercmd r) in
+       cmd#log ~header:(myname^".react_insert_update: ");
        let details = get_network_details_interface () in
        let defects = get_defects_interface () in
        begin
          match cmd#action with 
          | "add"    -> 
-(*              details#add_device cmd#name "gateway" 1; *)
              defects#add_device cmd#name "gateway" 1;
              let g = (new Netmodel.gateway ~network:st#network ~name:cmd#name ~label:cmd#label ()) in 
              st#network#addGateway g;
@@ -2779,56 +2718,49 @@ module Talking_MATERIEL_GWINTERNET = struct
              st#refresh_sketch () ;
              st#update_state  ();
              g#destroy;
-(*              details#rename_device cmd#oldname cmd#name; *)
              defects#rename_device cmd#oldname cmd#name;
              st#update_cable_sensitivity ();
              ()
          | _  -> raise (Failure (myname^".react: unexpected action"))
        end
      end
- | None -> 
-     begin
-       Log.print_endline (myname^".react: NOTHING TO DO")
-     end
  ;; (* end of react_insert_update GWINTERNET *)
 
 
- (** The dialog for GWINTERNET INSERT/UPDATE. *)
+ (** The dialog for socket INSERT/UPDATE. *)
  let ask_gateway ~title ~(update:Netmodel.gateway option) (st:globalState) () =
  
-   let dialog = new Gui.dialog_GWINTERNET ()  in 
+   let dialog = new Gui.dialog_SOCKET ()  in 
 
-   (* GWINTERNET Dialog definition *)
-
+   (* Socket dialog tuning *)
    dialog#toplevel#set_title (utf8 title);
-
    (* Set defaults. If we are updating, defaults are the old values. *)
    begin
    match update with
-   | None   -> dialog#name#set_text (st#network#suggestedName "E"); (* E stands for extern *) 
-               dialog#name#misc#grab_focus () 
+   | None   -> dialog#socket_name#set_text (st#network#suggestedName "E"); (* E stands for extern *) 
+               dialog#socket_name#misc#grab_focus () 
    | Some c -> begin
-                dialog#name#set_text  c#get_name  ;
-                dialog#label#set_text c#get_label ;
+                dialog#socket_name#set_text  c#get_name  ;
+                dialog#socket_label#set_text c#get_label ;
                end
    end;
 
   
-   (* GWINTERNET Dialog parser *)
+   (* Socket dialog parser *)
    let scan_dialog () = 
      begin
-     let n     = dialog#name#text                                                        in
-     let l     = dialog#label#text                                                       in
-     let (c,o) = match update with None -> ("add","") | Some c -> ("update",c#name)      in
+     let n     = dialog#socket_name#text                                               in
+     let l     = dialog#socket_label#text                                              in
+     let (c,o) = match update with None -> ("add","") | Some c -> ("update",c#name)    in
 
-     let ip_1 = string_of_float dialog#ip_1#value                                      in
-     let ip_2 = string_of_float dialog#ip_2#value                                      in
-     let ip_3 = string_of_float dialog#ip_3#value                                      in
-     let ip_4 = string_of_float dialog#ip_4#value                                      in
-     let nm   = string_of_float dialog#nm#value                                        in
+     (* The following informations are currently unused (the socket leads to a bridge) *)	
+     let ip_1 = string_of_float dialog#socket_ip_a   #value                            in
+     let ip_2 = string_of_float dialog#socket_ip_b   #value                            in
+     let ip_3 = string_of_float dialog#socket_ip_c   #value                            in
+     let ip_4 = string_of_float dialog#socket_ip_d   #value                            in
+     let nm   = string_of_float dialog#socket_ip_netmask#value                         in
 
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  else
-
             mkenv [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ;    
                    ("ip_1",ip_1); ("ip_2",ip_2); ("ip_3",ip_3);  ("ip_4",ip_4); ("nm",nm) ]   
      end in
@@ -2836,34 +2768,33 @@ module Talking_MATERIEL_GWINTERNET = struct
    (* Call the Dialog loop *)
    Talking_MATERIEL_SKEL.dialog_loop ~help:(Some Msg.help_socket_insert_update) dialog scan_dialog st
 
- ;; (* end of GWINTERNET INSERT/UPDATE dialog *)
+ ;; (* end of socket INSERT/UPDATE dialog *)
 
 
- (** The reaction for GWINTERNET ELIMINATE user command. *)
+ (** The reaction for socket ELIMINATE user command. *)
  let react_elim (st:globalState) (msg: (string,string) env option) = 
    match msg with
    | Some r -> 
        let details = get_network_details_interface () in
        let defects = get_defects_interface () in
-       begin (* TO IMPLEMENT *)
+       begin
          let answer = r#get("answer") in
          let name   = r#get("name")   in
          if (answer="yes") then begin 
-           Log.print_endline (myname^".react_elim: removing gateway "^name);  
+           Log.print_endline (myname^".react_elim: removing socket "^name);  
            (st#network#delGateway name); 
            st#update_sketch ();
            st#update_state  ();
-(*            details#remove_device name; *)
            defects#remove_device name;
            st#update_cable_sensitivity ();
          end
          else ()
        end 
-   |  None -> raise (Failure "GWINTERNET react_elim")
+   |  None -> raise (Failure (myname^".react_elim"))
 
  ;; (* end of react_elim *)
 
- (** The dialog for GWINTERNET ELIMINATE. *)
+ (** The dialog for socket ELIMINATE. *)
  let ask_confirm_gateway_elim x = 
    EDialog.ask_question 
        ~gen_id:"answer"  
@@ -2874,15 +2805,15 @@ module Talking_MATERIEL_GWINTERNET = struct
  ;; (* end of ask_confirm_gateway_elim *)
 
 
- (** GWINTERNET bindings with the main window *)
+ (** Socket bindings with the main window *)
  let bind (st:globalState) =
    
        Talking_MATERIEL_SKEL.bind st
-         st#mainwin#imagemenuitem_GWINTERNET_AJOUT "PRISE INTERNET AJOUT"
-         st#mainwin#imagemenuitem_GWINTERNET_MODIF st#mainwin#imagemenuitem_GWINTERNET_MODIF_menu "PRISE INTERNET PROPRIÉTÉS"
+         st#mainwin#imagemenuitem_GWINTERNET_AJOUT "PRISE AJOUT"
+         st#mainwin#imagemenuitem_GWINTERNET_MODIF st#mainwin#imagemenuitem_GWINTERNET_MODIF_menu "PRISE PROPRIÉTÉS"
          ask_gateway 
          react_insert_update
-         st#mainwin#imagemenuitem_GWINTERNET_ELIM  st#mainwin#imagemenuitem_GWINTERNET_ELIM_menu "PRISE INTERNET SUPPRIMER"
+         st#mainwin#imagemenuitem_GWINTERNET_ELIM  st#mainwin#imagemenuitem_GWINTERNET_ELIM_menu "PRISE SUPPRIMER"
          ask_confirm_gateway_elim
          react_elim
 
@@ -2912,7 +2843,7 @@ module Talking_MATERIEL_GWINTERNET = struct
  ;;
 
 
-end;; (* Talking_MATERIEL_GWINTERNET *)
+end;; (* Talking_MATERIEL_SOCKET *)
 
 
 

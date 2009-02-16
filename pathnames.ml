@@ -20,7 +20,7 @@ Log.printf "Setting up directory path names for Marionnet...\n";;
 
 (** Return the value of the given configuration variable, if it's defined
     as a non-empty string; otherwise return the second argument: *)
-let configuration_variable_or variable_name default_value =
+let configuration_variable_or_ variable_name default_value =
   let fallback_value =
     default_value ^ "/" in
   try
@@ -29,9 +29,14 @@ let configuration_variable_or variable_name default_value =
     if variable_value = "" then
       default_value ^ "/"
     else
-      fallback_value
+      variable_value ^ "/"
   with Not_found ->
     fallback_value;;
+
+let configuration_variable_or variable_name default_value =
+  let result = configuration_variable_or_ variable_name default_value in 
+  Log.printf "\n %s (%s) = %s\n\n" variable_name default_value result;
+  result;;
 
 let marionnet_home =
   configuration_variable_or

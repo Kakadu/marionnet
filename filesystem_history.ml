@@ -211,7 +211,7 @@ object(self)
     let new_variant_pathname = variants_path ^ "/" ^ variant_name in
     let command_line =
       Printf.sprintf
-        "(mkdir '%s' &> /dev/null || true); (test ! -f '%s/%s' || cp --sparse=always '%s/%s' '%s')"
+        "(mkdir -p '%s' && test -f '%s/%s' && cp --sparse=always '%s/%s' '%s')"
         variants_path
         cow_path cow_name
         cow_path cow_name
@@ -231,7 +231,10 @@ object(self)
         ());
       Simple_dialogs.error
         "Échec"
-        ("La variante n'a pu être exportée dans le fichier \"" ^ new_variant_pathname ^ "\".") 
+        ("La variante n'a pu être exportée dans le fichier \"" ^ new_variant_pathname ^ "\"." ^ 
+         "\n\nPlusieurs raisons sont possible:\n - vous n'avez pas le droit décrire dans ce répertoire\n" ^ 
+         " - la machine na jamais été démarrée\n - vous avez pas selectionné le disque de la machine mais\n" ^ 
+         "   la machine elle même (déroulez donc l'arborescence).") 
         ()
     end)
 

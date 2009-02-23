@@ -38,7 +38,6 @@ Marionnet-daemon
 Message_passing
 Meta
 Network_details_interface
-Pathnames
 Print_forest_frontend
 Print_treeview
 Progress_bar

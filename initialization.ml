@@ -15,14 +15,15 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
-(* open PreludeExtra.Prelude;; (\* We want synchronous terminal output *\) *)
+open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Unix;;
 open Sys;;
 
 (** First of all print the version number. This is useful for problem reports: *)
-Printf.printf
-  "=======================================================\n  Welcome to %s version %s\n  Please report bugs to marionnet-dev@marionnet.org \n=======================================================\n\n"
-  Meta.name Meta.version;;
+Printf.printf "=======================================================\n" ;;
+Printf.printf " Welcome to %s version %s\n" Meta.name Meta.version;; 
+Printf.printf " Please report bugs to marionnet-dev@marionnet.org \n" ;;
+Printf.printf "=======================================================\n\n" ;;
 
 (* Seed the random number generator: *)
 Random.self_init ();;
@@ -41,6 +42,7 @@ let configuration =
                 "MARIONNET_HTML_READER";
                 "MARIONNET_TEXT_EDITOR";
                 (* *Optional* configuration variables: *)
+				"MARIONNET_TERMINAL";
                 "MARIONNET_PREFIX";
                 "MARIONNET_FILESYSTEMS_PATH";
                 "MARIONNET_KERNELS_PATH";
@@ -52,3 +54,75 @@ let configuration =
 (** Remember the cwd directory at startup time: *)
 let cwd_at_startup_time =
   Unix.getcwd ();;
+
+(* We can not use Log.printf here because Initialization is a top file 
+   use by Log (and  others), do that creates circular dependencies *)
+Printf.printf "Setting up directory path names for Marionnet...\n";; 
+
+(** Return the value of the given configuration variable, if it's defined as 
+    a non-empty string; otherwise return the second argument, third argument
+    gives the type of variable in order to add a slash if it is a pathname *)
+let configuration_variable_or_ variable_name default_value var_type =
+  let fallback_value = 
+    if var_type = "type_path" then
+      default_value ^ "/" 
+    else
+      default_value in
+  try
+    let variable_value =
+      configuration#string variable_name in
+    if var_type = "type_path" then
+      (if variable_value = "" then
+        default_value ^ "/"
+      else
+        variable_value ^ "/")
+    else
+      (if variable_value = "" then
+        default_value
+      else
+        variable_value)
+  with Not_found ->
+    fallback_value;;
+
+(** Wrapper of configuration_variable_or_ function, display values 
+    of a given variable during its initialization *) 
+let configuration_variable_or variable_name default_value var_type =
+  let result = configuration_variable_or_ variable_name default_value var_type in
+  Printf.printf "\n %s (%s) = %s\n" variable_name default_value result;
+  result;;
+
+(* Here we initialze some variables with user or default value *)
+let marionnet_home =
+  configuration_variable_or
+    "MARIONNET_PREFIX" 
+    (Meta.prefix ^ "/share/" ^ Meta.name) 
+    "type_path";;
+let marionnet_home_filesystems =
+  configuration_variable_or
+    "MARIONNET_FILESYSTEMS_PATH"
+    (marionnet_home^"/filesystems/") 
+    "type_path" ;;
+let marionnet_home_kernels =
+  configuration_variable_or
+    "MARIONNET_KERNELS_PATH"
+    (marionnet_home^"/kernels/") 
+    "type_path";;
+(* The prefix to prepend to VDE executables; this allows us to install
+    patched versions in an easy way, before our changes are integrated
+    into VDE's mainline... *)
+let vde_prefix =
+  configuration_variable_or
+    "MARIONNET_VDE_PREFIX"
+    "" 
+    "type_other";;
+let marionnet_home_images =
+  marionnet_home^"/images/";;
+let marionnet_home_bin =
+  marionnet_home^"/bin/";;
+
+(* Enter the right directory: *)
+try
+  Unix.chdir marionnet_home;
+with _ ->
+  failwith ("Could not enter the directory (" ^ marionnet_home ^ ")");;
+

@@ -37,7 +37,7 @@ let handle_click window _ =
 
 let splash_image =
   GDraw.pixmap_from_xpm
-    ~file:(Pathnames.marionnet_home_images^"splash.xpm")
+    ~file:(Initialization.marionnet_home_images^"splash.xpm")
     ();;
 
 let splash =

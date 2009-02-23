@@ -293,7 +293,7 @@ let _ =
   (try Unix.unlink socket_name with _ -> ()) in
 object(self)
   inherit process
-      (Pathnames.vde_prefix ^ "vde_switch")
+      (Initialization.vde_prefix ^ "vde_switch")
       (List.append
          (match tap_name with
            None ->
@@ -449,7 +449,7 @@ class ethernet_cable_process =
       () ->
 object(self)
   inherit process
-      (Pathnames.vde_prefix ^ "wirefilter")
+      (Initialization.vde_prefix ^ "wirefilter")
       ((List.fold_left List.append []) (* append all the lists within the given list *)
          [ (match left_blink_command with
              Some(c) -> [](* [ "-L"; c ] *) (* !!! old blinking support *)

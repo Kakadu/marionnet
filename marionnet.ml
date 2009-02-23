@@ -237,14 +237,14 @@ let check_dependency command_line error_message =
 check_dependency
   (Printf.sprintf
     "ls -l %s/machine-default &> /dev/null"
-    Pathnames.marionnet_home_filesystems)
+    Initialization.marionnet_home_filesystems)
   "FRENCH You don't have a default filesystem for virtual computers";;
 
 (** Check whether we have UML router filesystems: *)
 let command_line =
   (Printf.sprintf
     "ls -l %s/router-%s &> /dev/null"
-    Pathnames.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in 
+    Initialization.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in 
 check_dependency
   command_line
   ("FRENCH You don't have a default filesystem for virtual routers (" ^ command_line ^")");;
@@ -253,12 +253,12 @@ check_dependency
 check_dependency
   (Printf.sprintf
     "ls -l %s/linux-default &> /dev/null"
-    Pathnames.marionnet_home_kernels)
+    Initialization.marionnet_home_kernels)
   "FRENCH You don't have a default UML kernel";;
 
 (** Check whether we have (our patched) VDE: *)
 check_dependency
-  ("which `basename " ^ Pathnames.vde_prefix ^ "vde_switch` &> /dev/null")
+  ("which `basename " ^ Initialization.vde_prefix ^ "vde_switch` &> /dev/null")
   "FRENCH You don't have VDE";;
 
 (** Check whether we have Graphviz: *)

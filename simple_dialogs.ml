@@ -16,7 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
-open Pathnames;;
+open Initialization;;
 
 (** Convert ocaml (ISO-8859-1) string in UTF-8 format *)
 (* let utf8 x = Glib.Convert.convert x "UTF-8" "ISO-8859-1";;  *)

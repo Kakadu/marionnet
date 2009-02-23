@@ -16,7 +16,7 @@
 
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Treeview;;
-open Pathnames;;
+open Initialization;;
 open ListExtra;;
 open UnixExtra;;
 open Sugar;;

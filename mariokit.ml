@@ -79,10 +79,10 @@ module MSys = struct
  
  let x_policies_as_strings = List.map string_of_x_policy x_policies;;
 
- let marionnet_home             = Pathnames.marionnet_home ;;
- let marionnet_home_filesystems = Pathnames.marionnet_home_filesystems ;;
- let marionnet_home_kernels     = Pathnames.marionnet_home_kernels ;;
- let marionnet_home_images      = Pathnames.marionnet_home_images ;;
+ let marionnet_home             = Initialization.marionnet_home ;;
+ let marionnet_home_filesystems = Initialization.marionnet_home_filesystems ;;
+ let marionnet_home_kernels     = Initialization.marionnet_home_kernels ;;
+ let marionnet_home_images      = Initialization.marionnet_home_images ;;
  
  let machine_prefix = "machine-" ;;
  let router_prefix  = "router-"  ;;
@@ -163,7 +163,7 @@ module MSys = struct
  (** Correct the name of a program resource (not a project resource!) 
      according to the install directory of the application *)
  let whereis filename kind = match kind with         (* TO IMPLEMENT *)
- | Icon   -> Pathnames.marionnet_home^"/images/"^filename
+ | Icon   -> Initialization.marionnet_home^"/images/"^filename
  |  _     -> filename
  ;;
 end;;
@@ -1167,7 +1167,7 @@ class virtual node = fun
     try (* Let's support this on *every* device; it's simpler... *)
       let variant = self#get_variant in
       (try
-        let marionnet_home_filesystems = Pathnames.marionnet_home_filesystems in
+        let marionnet_home_filesystems = Initialization.marionnet_home_filesystems in
         let prefixed_filesystem = "machine-" ^ self#get_distrib in
         let variant_pathname =
           marionnet_home_filesystems ^ "/" ^ prefixed_filesystem ^ "_variants/" ^ variant in

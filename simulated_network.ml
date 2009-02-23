@@ -719,7 +719,7 @@ class uml_process =
        "root=98:0";
        "hostfs="^hostfs_pathname;
        "hostname="^umid;
-(*        "xterm=myxterm,-T,-e"; *)
+       "xterm="^Initialization.marionnet_terminal;
        (* Ghost interface configuration. The IP address is relative to a *host* tap: *)
        (* "eth42=tuntap,,"^(random_ghost_mac_address ())^",172.23.0.254"; *)
        "eth42=tuntap,"^tap_name^","^(random_ghost_mac_address ())^",172.23.0.254";

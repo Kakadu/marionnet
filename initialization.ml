@@ -115,6 +115,12 @@ let vde_prefix =
     "MARIONNET_VDE_PREFIX"
     "" 
     "type_other";;
+(* What is terminal that Marionnet must use to lanch a virtual host *)
+let marionnet_terminal =
+  configuration_variable_or
+    "MARIONNET_TERMINAL"
+    "xterm,-T,-e"
+    "type_other";;
 let marionnet_home_images =
   marionnet_home^"/images/";;
 let marionnet_home_bin =

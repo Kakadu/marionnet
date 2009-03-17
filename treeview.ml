@@ -1,5 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
-   Copyright (C) 2007, 2008  Luca Saiu
+   Copyright (C) 2007, 2008, 2009  Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ let is_bound_in_alist name alist =
     failwith ("is_bound_in_alist: "^(string_of_int filtered_alist_length)^" matches");;
 
 (** This succeeds also when name is not bound in alist *)
-let remove_from_alist name alist =
+(*let remove_from_alist name alist =
   let alist_length = List.length alist in
   let filtered_alist = List.filter (fun (name_, value) -> not (name = name_)) alist in
   let filtered_alist_length = List.length filtered_alist in
@@ -82,7 +82,15 @@ let remove_from_alist name alist =
   if removed_elements_no <= 1 then
     filtered_alist
   else
-    failwith ("remove_from_alist: "^name^" was bound "^(string_of_int removed_elements_no)^"times");;
+    failwith ("remove_from_alist: "^name^" was bound "^(string_of_int removed_elements_no)^"times");;*)
+let rec remove_from_alist name alist =
+  match alist with
+  | [] ->
+      []
+  | (a_name, a_value) :: rest when a_name = name ->
+      rest
+  | pair :: rest ->
+      pair :: (remove_from_alist name rest);;
 
 (** This succeeds also when name is not bound in alist *)
 let bind_or_replace_in_alist name value alist =
@@ -144,7 +152,7 @@ object(self)
 (*   method virtual gtree_column : 'a. 'a GTree.column *)
   method virtual append_to_view : GTree.view -> unit
   method virtual get : string -> row_item
-  method virtual set : ?ignore_constraints:bool -> string -> row_item -> unit
+  method virtual set : ?initialize:bool -> ?row_iter:Gtk.tree_iter -> ?ignore_constraints:bool -> string -> row_item -> unit
 
   val gtree_view_column = ref None
 
@@ -205,18 +213,21 @@ fun ~treeview
     let store = (treeview#store :> GTree.tree_store) in
     String(store#get ~row:tree_iter ~column:self#gtree_column)
 
-  method set ?(ignore_constraints=false) row_id item =
-    begin
-      if not (self#header = "_id") then begin
-        let current_row = treeview#get_complete_row row_id in
-        let new_row = bind_or_replace_in_alist self#header item current_row in
-        (if not ignore_constraints then
-          treeview#check_constraints new_row);
-        (* Ok, if we arrived here then no constraint is violated by the update. *)
-        treeview#set_row row_id new_row;
-      end;
-    end;
-    let tree_iter = treeview#id_to_iter row_id in
+  method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id item =
+    (if not (self#header = "_id") then
+       (if not initialize then begin
+          let current_row =
+            treeview#get_complete_row row_id in
+          let new_row = bind_or_replace_in_alist self#header item current_row in
+            (if not ignore_constraints then
+               treeview#check_constraints new_row);
+            (* Ok, if we arrived here then no constraint is violated by the update. *)
+            treeview#set_row row_id new_row;
+        end));
+    let tree_iter =
+      match row_iter with
+        | None -> treeview#id_to_iter row_id
+        | Some row_iter -> row_iter in
     let store = (treeview#store :> GTree.tree_store) in
     match item with
       String s ->
@@ -339,14 +350,19 @@ fun ~treeview
     let store = (treeview#store :> GTree.tree_store) in
     CheckBox(store#get ~row:tree_iter ~column:self#gtree_column)
 
-  method set ?(ignore_constraints=false) row_id (item : row_item) =
-    let current_row = treeview#get_complete_row row_id in
-    let new_row = bind_or_replace_in_alist self#header item current_row in
-    (if not ignore_constraints then
-      treeview#check_constraints new_row);
-    (* Ok, if we arrived here then no constraint is violated by the update. *)
-    treeview#set_row row_id new_row;
-    let tree_iter = treeview#id_to_iter row_id in
+  method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id (item : row_item) =
+    (if not initialize then begin
+       let current_row = treeview#get_complete_row row_id in
+       let new_row = bind_or_replace_in_alist self#header item current_row in
+         (if not ignore_constraints then
+            treeview#check_constraints new_row);
+         (* Ok, if we arrived here then no constraint is violated by the update. *)
+         treeview#set_row row_id new_row;
+    end);
+    let tree_iter =
+      match row_iter with
+        | None -> treeview#id_to_iter row_id
+        | Some row_iter -> row_iter in
     let store = (treeview#store :> GTree.tree_store) in
     match item with
       CheckBox value ->
@@ -483,14 +499,19 @@ object(self)
     let store = (treeview#store :> GTree.tree_store) in
     Icon(store#get ~row:tree_iter ~column:self#gtree_column)
 
-  method set ?(ignore_constraints=false) row_id (item : row_item) =
-    let current_row = treeview#get_complete_row row_id in
-    let new_row = bind_or_replace_in_alist self#header item current_row in
-    (if not ignore_constraints then
-      treeview#check_constraints new_row);
-    (* Ok, if we arrived here then no constraint is violated by the update. *)
-    treeview#set_row row_id new_row;
-    let tree_iter = treeview#id_to_iter row_id in
+  method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id (item : row_item) =
+    (if not initialize then begin
+       let current_row = treeview#get_complete_row row_id in
+       let new_row = bind_or_replace_in_alist self#header item current_row in
+         (if not ignore_constraints then
+            treeview#check_constraints new_row);
+         (* Ok, if we arrived here then no constraint is violated by the update. *)
+         treeview#set_row row_id new_row;
+    end);
+    let tree_iter =
+      match row_iter with
+        | None -> treeview#id_to_iter row_id
+        | Some row_iter -> row_iter in
     let store = (treeview#store :> GTree.tree_store) in
     match item with
       Icon name ->
@@ -821,6 +842,40 @@ object(self)
       self#check_constraints complete_row);
     complete_row
 
+  method private forest_to_id_forest (forest : row forest) =
+    match forest with
+    | Empty ->
+        Empty
+    | NonEmpty(row, subtrees, rest) ->
+        let id = (match lookup_alist "_id" row with
+                    String row_id -> row_id
+                   | _ -> assert false) in
+        NonEmpty(id,
+                 self#forest_to_id_forest subtrees,
+                 self#forest_to_id_forest rest)
+
+  method private forest_to_row_list ~call_complete_row (forest : row forest) =
+    match forest with
+    | Empty ->
+        []
+    | NonEmpty(row, subtrees, rest) ->
+        let id = (match lookup_alist "_id" row with
+                    String row_id -> row_id
+                   | _ -> assert false) in
+        let row = if call_complete_row then
+                    self#complete_row ~ignore_constraints:true row
+                  else
+                    row in
+        (* Make the row *start* with the id: *)
+        let row = ("_id", (String id)) :: (remove_from_alist "_id" row) in
+        (id, row) ::
+        (self#forest_to_row_list ~call_complete_row subtrees) @
+        (self#forest_to_row_list ~call_complete_row rest)
+
+  method private forest_to_id_forest_and_line_list ~call_complete_row forest =
+    (self#forest_to_id_forest forest),
+    (self#forest_to_row_list ~call_complete_row forest)
+
   method private add_complete_row_with_no_checking ?parent_row_id (row:row) =
     (* Add defaults for unspecified fields: *)
     let row = self#complete_row ~ignore_constraints:true row in
@@ -847,7 +902,6 @@ object(self)
         row_id Empty
         !id_forest;
 (*     print_forest !id_forest Log.print_string; *)
-    flush_all ();
     (* Update the hash table, adding the complete row: *)
     Hashtbl.add id_to_row row_id row;
     let new_row_iter = store#append ?parent:parent_iter_option () in
@@ -932,22 +986,49 @@ object(self)
         forest)
 
   (** Completely clear the state, and set it to the given complete forest. *)
-  method private set_complete_forest (forest : row forest) =
+  method private set_complete_forest (new_forest : row forest) =
+    (* Clear our structures and Gtk structures: *)
     self#clear;
-    iter
-      (fun row parent ->
-        (* Log.printf "OK-Ba (%s)\n" (item_to_string (lookup_alist "_id" row)); flush_all (); *)
-        ignore
-          (self#add_complete_row_with_no_checking
-             ?parent_row_id:(match parent with
-                               None -> None
-                             | Some parent_row ->
-                                 (match lookup_alist "_id" parent_row with
-                                    String value -> Some value
-                                  | _ -> assert false))
-             row);
-        (* Log.printf "OK-Bb\n"; flush_all () *))
-      forest
+    (* Compute our new structures: *)
+    let new_id_forest, new_row_list =
+      self#forest_to_id_forest_and_line_list ~call_complete_row:true new_forest in
+    (* Set the new id forest: *)
+    id_forest := new_id_forest;
+    (* Fill the hash table with our new rows: *)
+    List.iter
+      (fun (row_id, row) ->
+        Hashtbl.add id_to_row row_id row)
+      new_row_list;
+    (* Fill Gtk structures, so that the interface shows our new forest: *)
+    let store = self#store in
+    Forest.iter
+      (fun row_id parent ->
+        (* Find the correct Gtk place "where to attach" the new line: *)
+        let parent_iter_option =
+          (match parent with
+             None ->
+               None
+           | (Some parent_row_id) ->
+               Some(self#id_to_iter parent_row_id)) in
+        let new_row_iter = store#append ?parent:parent_iter_option () in
+        (* Set all fields in the row with id row_id (note that the row is complete, hence
+           there's no need to worry about unspecified columns now): *)
+        let row = Hashtbl.find id_to_row row_id in
+        let id_column = self#get_column "_id" in
+        store#set ~row:new_row_iter ~column:id_column#gtree_column row_id;
+        List.iter
+          (fun (column_header, datum) ->
+            try
+              let column = self#get_column column_header in
+              (if not (column_header = "_id") then
+                 column#set row_id ~initialize:true ~row_iter:new_row_iter ~ignore_constraints:true datum);
+            with e -> begin
+              Log.printf "  - WARNING: error (I guess the problem is an unknown column) %s (%s)\n"
+                         column_header
+                         (Printexc.to_string e); flush_all ();
+            end)
+          row;)
+      new_id_forest;
 
   (** Return true iff the given row is currently expanded *)
   method is_row_expanded row_id =
@@ -983,16 +1064,13 @@ object(self)
       (fun () ->
         self#clear;
         let file_name = self#file_name in (* this failwiths if no filename was set *)
-        Log.printf "\nLoading the treeview %s: begin\n" file_name; flush_all ();
         try
           let next_identifier, complete_forest = 
             (next_identifier_and_content_forest_marshaler#from_file file_name) in
           self#set_next_identifier next_identifier;
           self#set_complete_forest complete_forest;
           (if Log.debug_mode then
-            Forest.print_forest complete_forest pretty_print_row;
-          );
-          Log.printf "Loaded the treeview %s: success\n\n" file_name; flush_all ();
+            Forest.print_forest complete_forest pretty_print_row);
         with e -> begin
           Log.printf "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e); flush_all ();
         end);

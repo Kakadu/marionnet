@@ -541,7 +541,7 @@ let ask_for_file
   | `OK -> (match dialog#filename with
               | None   -> () 
               | Some fname -> if (valid fname) then 
-                              begin cont := false; result := (Some (mkenv [(gen_id,fname)])) end
+                              begin cont := false; result := (Some (make [(gen_id,fname)])) end
               )
   | `HELP -> (match help with 
               | Some f -> f ();
@@ -632,8 +632,8 @@ let ask_question ?(title="QUESTION")  ?(gen_id="answer")  ?(help=None) ?(cancel=
    let cont   = ref true in
    while (!cont = true) do  
      match dialog#toplevel#run () with
-     | `YES  -> begin cont := false; result := (Some (mkenv [(gen_id,"yes")])) end
-     | `NO   -> begin cont := false; result := (Some (mkenv [(gen_id,"no" )])) end
+     | `YES  -> begin cont := false; result := (Some (make [(gen_id,"yes")])) end
+     | `NO   -> begin cont := false; result := (Some (make [(gen_id,"no" )])) end
      | `HELP -> (match help with 
                  | Some f -> f ();
                  | None -> ()
@@ -704,7 +704,7 @@ module Talking_PROJET_NOUVEAU = struct
        ~question:"Voulez-vous enregistrer le projet courant ?"
        ~help:None
        ~cancel:true 
-       () else (Some (mkenv [("save_current","no")])) in
+       () else (Some (make [("save_current","no")])) in
    let ask_filename () = EDialog.ask_for_fresh_writable_filename 
        ~title:"NOM DU NOUVEAU PROJET" 
        ~filters:[EDialog.MAR;EDialog.ALL] 
@@ -773,7 +773,7 @@ module Talking_PROJET_OUVRIR = struct
        ~question:"Voulez-vous enregistrer le projet courant ?"
        ~help:None
        ~cancel:true 
-       () else (Some (mkenv [("save_current","no")])) in
+       () else (Some (make [("save_current","no")])) in
 
    let ask_filename () = EDialog.ask_for_existing_filename 
        ~title:"OUVRIR UN PROJET MARIONNET EXISTANT" 
@@ -1160,7 +1160,7 @@ module Talking_PROJET_QUITTER = struct
                  if (st#active_project) then
                    react st ((EDialog.compose [confirm x]) via)
                  else
-                   react st (Some (mkenv [("answer","no")]))) in
+                   react st (Some (make [("answer","no")]))) in
    let _ = st#mainwin#imgitem_PROJET_QUITTER#connect#activate ~callback:(cb true) in
    let _ = st#mainwin#toplevel#connect#destroy ~callback:(cb false) in 
    ()
@@ -1365,7 +1365,7 @@ module Talking_MATERIEL_SKEL = struct
 
     (* ELIM *)
     let ask_confirm_elim_name x = 
-      EDialog.compose [ (fun u -> Some (mkenv [("name",x)])) ; ask_confirm_elim x ] in
+      EDialog.compose [ (fun u -> Some (make [("name",x)])) ; ask_confirm_elim x ] in
     Widget.DynamicSubmenu.make 
      ~submenu:elim_menu
      ~menu:elim
@@ -1404,7 +1404,7 @@ module Talking_MATERIEL_SKEL = struct
 
     (* POWEROFF *)
     let ask_confirm_poweroff x =
-      EDialog.compose [ (fun u -> Some (mkenv [("name",x)])) ; ask_confirm_poweroff x ] in
+      EDialog.compose [ (fun u -> Some (make [("name",x)])) ; ask_confirm_poweroff x ] in
     Widget.DynamicSubmenu.make 
      ~submenu:poweroff_menu
      ~menu:poweroff
@@ -1623,7 +1623,7 @@ module Talking_MATERIEL_MACHINE = struct
 
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  else
 
-            mkenv [("name",n) ; ("action",c)  ; ("oldname",o) ; ("memory",m) ; ("eth",e) ;  
+            make [("name",n) ; ("action",c)  ; ("oldname",o) ; ("memory",m) ; ("eth",e) ;  
               ("ttyS",s) ; ("distrib",d) ; ("patch",p)   ; ("kernel",k) ; ("term",t)  ]
      end in
 
@@ -1861,7 +1861,7 @@ module Talking_MATERIEL_HUB = struct
      let eth   = (string_of_int dialog#hub_ports#value_as_int)                           in
 
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  
-     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     else make [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
      end in
 
    (* Call the Dialog loop *)
@@ -1997,7 +1997,7 @@ module Talking_MATERIEL_SWITCH = struct
      let l     = dialog#switch_label#text                                                in
      let eth   = (string_of_int dialog#switch_ports#value_as_int)                        in
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  
-     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     else make [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
      end in
 
    (* Call the Dialog loop *)
@@ -2139,7 +2139,7 @@ module Talking_MATERIEL_ROUTER = struct
      let eth   = (string_of_int dialog#router_ports#value_as_int)                        in
 
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  
-     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     else make [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
      end in
 
    (* Call the Dialog loop *)
@@ -2372,7 +2372,7 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
                     ("Connexion erronée", 
                      "Le cable ne peut pas être branché au même endroit des deux côtés!"))) else
 
-     let result = mkenv [("name",n)       ; ("action",c)         ; ("oldname",o)      ; ("label",l) ;   
+     let result = make [("name",n)       ; ("action",c)         ; ("oldname",o)      ; ("label",l) ;   
                          ("left_node",ln) ; ("left_recept",lr)   ; ("right_node",rn)  ; ("right_recept",rr)]
      in
 
@@ -2592,7 +2592,7 @@ module Talking_MATERIEL_CLOUD = struct
      if not (Str.wellFormedName n) then
        raise EDialog.IncompleteDialog
      else
-       mkenv [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ; ]
+       make [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ; ]
      end in
 
    (* Call the Dialog loop *)
@@ -2761,7 +2761,7 @@ module Talking_MATERIEL_SOCKET = struct
      let nm   = string_of_float dialog#socket_ip_netmask#value                         in
 
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  else
-            mkenv [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ;    
+            make [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ;    
                    ("ip_1",ip_1); ("ip_2",ip_2); ("ip_3",ip_3);  ("ip_4",ip_4); ("nm",nm) ]   
      end in
 

@@ -27,7 +27,7 @@ module Toolbar = struct
   let item = GButton.tool_item () in
   let menubar = GMenu.menu_bar ~border_width:0 ~width:0 ~height:60 ~packing:(item#add) () in
   let image_menu_item =
-    let image = GMisc.image ~xalign:0.5 ~yalign:0.5 ~xpad:0 ~ypad:0 ~file:(Pathnames.marionnet_home_images^filename) () in
+    let image = GMisc.image ~xalign:0.5 ~yalign:0.5 ~xpad:0 ~ypad:0 ~file:(Initialization.marionnet_home_images^filename) () in
     GMenu.image_menu_item ~label:"" ~image ~packing:menubar#add () in
   (* The call to insert_widget generates a GTK warning "Mixing deprecated and non-deprecated GtkToolbar API is not allowed".
      We consider it harmless. *)

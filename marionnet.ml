@@ -201,10 +201,10 @@ let () = begin
  let command_line =
   (Printf.sprintf
     "ls -l %s/router-%s &> /dev/null"
-    Pathnames.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in 
-check_dependency
-  command_line
-  ("FRENCH You don't have a default filesystem for virtual routers (" ^ command_line ^")")
+    Initialization.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in
+  check_dependency
+   command_line
+   ("FRENCH You don't have a default filesystem for virtual routers (" ^ command_line ^")")
   end
 
 (** Check whether we have UML kernels: *)

@@ -66,6 +66,7 @@ object(self)
          ~name:"Textes (PDF, PostScript, DVI, HTML, text)"
          ~patterns:["*.pdf"; "*.ps"; "*.dvi"; "*.text"; "*.txt"; "*.html"; "*.htm"; "README"; "LISEZMOI"]
          ());
+    dialog#set_default_response `OK;
     (match dialog#run () with
       `OK ->
         (match dialog#filename with

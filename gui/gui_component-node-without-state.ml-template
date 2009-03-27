@@ -1,0 +1,82 @@
+(** Gui completion for the MACHINE component. *)
+
+(* Shortcuts *)
+type env  = string Environment.string_env
+let mkenv = Environment.make_string_env
+
+module Make_menus (State : sig val st:State.globalState end) = struct
+
+  open State
+
+  module Toolbar_entry = struct
+   let imagefile = <<FILL-HERE>> (* Ex: "ico.hub.palette.png" *)
+   let tooltip   = <<FILL-HERE>> (* Ex: "Répéteur (hub)" *)
+  end
+
+  module Add = struct
+    let key      = <<FILL-HERE>> (* Ex: Some GdkKeysyms._M *)
+    let dialog   = <<FILL-HERE>> (* Ex: let module M = Gui_dialog_MACHINE.Make (State) in M.dialog ~title:"Machine ajout" ~update:None *)
+    let reaction r = <<FILL-HERE>>
+  end
+
+  module Properties = struct
+
+    let dynlist = <<FILL-HERE>>
+    let dialog =
+     fun name -> <<FILL-HERE>> (* Ex:
+                 let m = (st#network#getMachineByName name) in
+                 let title = "Machine propriétés" in
+                 let module M = Gui_dialog_MACHINE.Make (State) in M.dialog ~title:(title^" "^name) ~update:(Some m) *)
+
+    let reaction r = <<FILL-HERE>>
+  end
+
+  module Remove = struct
+
+    let dynlist     = <<FILL-HERE>>
+    let dialog name = <<FILL-HERE>> (* Ex:
+                   Talking.EDialog.ask_question ~help:None ~cancel:false
+                   ~enrich:(mkenv [("name",name)])
+                   ~gen_id:"answer"
+                   ~title:"Supprimer"
+                   ~question:("Confirmez-vous la suppression de "^name^"\net de tous le cables éventuellement branchés à cette machine ?") *)
+
+    let reaction r = <<FILL-HERE>>
+
+  end
+
+  module Startup = struct
+
+    let dynlist    = <<FILL-HERE>>
+    let dialog     = <<FILL-HERE>>
+    let reaction r = <<FILL-HERE>>
+
+  end
+
+  module Stop = struct
+
+    let dynlist    = <<FILL-HERE>>
+    let dialog     = <<FILL-HERE>>
+    let reaction r = <<FILL-HERE>>
+  end
+
+  module Suspend = struct
+
+    let dynlist    = <<FILL-HERE>>
+    let dialog     = <<FILL-HERE>>
+    let reaction r = <<FILL-HERE>>
+
+  end
+
+  module Resume = struct
+
+    let dynlist    = <<FILL-HERE>>
+    let dialog     = <<FILL-HERE>>
+    let reaction r = <<FILL-HERE>>
+
+  end
+
+ module Create_entries_for_MY_COMPONENT =
+  Gui_toolbar_COMPONENTS_layouts.Layout_for_network_node (State) (Toolbar_entry) (Add) (Properties) (Remove) (Startup) (Stop) (Suspend) (Resume)
+
+end

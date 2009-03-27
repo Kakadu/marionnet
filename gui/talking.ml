@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-(** All dialogs are implemented here. This module provide the capability for user to talk with the application. 
+(** All dialogs are implemented here. This module provide the capability for user to talk with the application.
     Specifically, the name "Talking" stands here for "Talking with user". *)
 
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
@@ -33,6 +33,9 @@ open State;;
 open Simulated_network;;
 open Network_details_interface;;
 open Defects_interface;;
+
+(* Shortcuts *)
+let mkenv = Environment.make_string_env ;;
 
 let install_signal_handler signal =
   Sys.set_signal
@@ -101,7 +104,7 @@ let poweroff_everything st () =
 
 (** Return true iff there is some node on or sleeping *)
 let is_there_something_on_or_sleeping st () =
-  let result = 
+  let result =
     List.exists
       (fun node -> node#can_gracefully_shutdown or node#can_resume)
       st#network#nodes
@@ -121,10 +124,10 @@ module Msg = struct
  (** I moved some stuff into simple_dialogs.ml. It's useful for lots of other
      modules, not only for talking. --L. *)
 
- (** Specific help constructors*) 
+ (** Specific help constructors*)
 
  (** Why you have to choose a folder to work *)
- let help_repertoire_de_travail = 
+ let help_repertoire_de_travail =
    let title = "CHOISIR UN RÉPERTOIRE DE TRAVAIL" in
    let msg   = "Marionnet utilise un répertoire au choix \
 pour chaque séance de travail. Tous les fichiers créés par Marionnet dans le répertoire de travail seront effacés \
@@ -132,7 +135,7 @@ pour chaque séance de travail. Tous les fichiers créés par Marionnet dans le 
 Si le logiciel est executé à partir du DVD Marionnet, il est conseillé d'utiliser un répertoire persistant \
 (dans /mnt/hd*) pour ne pas occuper la memoire vive inutilement." in help title msg ;;
 
-let help_machine_insert_update = 
+let help_machine_insert_update =
    let title = "AJOUTER OU MODIFIER UNE MACHINE VIRTUELLE" in
    let msg   = "\
 Dans cette fenêtre de dialogue vous pouvez définir le nom de \
@@ -161,7 +164,7 @@ propres variantes en exportant n'importe quel état de machine virtuelle dans l'
 - Noyau : la version du noyau Linux, à choisir parmi les disponibles dans le \
 répertoire /usr/marionnet/kernels
 
-SECTION 'UML' : 
+SECTION 'UML' :
 
 - Terminal : les choix possibles sont ici 'X HOST' et 'X NEST'; le premier \
 choix permet de lancer des applications graphiques à partir d'un terminal textuel \
@@ -172,7 +175,7 @@ des gestionnaire de fenêtres et de bureaux indépendants.\
 " in help title msg ;;
 
 
- let help_hub_insert_update = 
+ let help_hub_insert_update =
    let title = "AJOUTER OU MODIFIER UN RÉPÉTEUR (HUB)" in
    let msg   = "\
 Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
@@ -189,7 +192,7 @@ pas être inutilement grand, le nombre de processus nécessaires à l'émulation
 composant étant proportionnel au nombre de ses ports.
 " in help title msg ;;
 
- let help_switch_insert_update = 
+ let help_switch_insert_update =
    let title = "AJOUTER OU MODIFIER UN COMMUTATEUR (SWITCH)" in
    let msg   = "\
 Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
@@ -206,7 +209,7 @@ pas être inutilement grand, le nombre de processus nécessaires à l'émulation
 composant étant proportionnel au nombre de ses ports.
 " in help title msg ;;
 
- let help_router_insert_update = 
+ let help_router_insert_update =
    let title = "AJOUTER OU MODIFIER UN ROUTEUR" in
    let msg   = "\
 Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
@@ -246,7 +249,7 @@ Mot de passe : zebra\
   | _ -> ignore
  ;;
 
- let help_cable_direct_insert_update = 
+ let help_cable_direct_insert_update =
    let title = "AJOUTER OU MODIFIER UN CABLE DROIT" in
    let msg   = "\
 Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
@@ -266,7 +269,7 @@ deux machines); la possibilité de définir un cablage incorrect \
 n'est pas lié à des raisons techniques mais porte un intérêt \
 exclusivement pédagogique." in help title msg ;;
 
- let help_cable_crossed_insert_update = 
+ let help_cable_crossover_insert_update =
    let title = "AJOUTER OU MODIFIER UN CABLE CROISÉ" in
    let msg   = "\
 Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
@@ -287,12 +290,12 @@ n'est pas lié à des raisons techniques mais porte un intérêt \
 exclusivement pédagogique." in help title msg ;;
 
  let help_cable_insert_update = function
-  | Netmodel.Direct  -> help_cable_direct_insert_update
-  | Netmodel.Crossed -> help_cable_crossed_insert_update
+  | Netmodel.Direct    -> help_cable_direct_insert_update
+  | Netmodel.Crossover -> help_cable_crossover_insert_update
   | _ -> ignore
  ;;
 
- let help_cloud_insert_update = 
+ let help_cloud_insert_update =
    let title = "AJOUTER OU MODIFIER UN NUAGE" in
    let msg   = "\
 Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
@@ -304,13 +307,13 @@ Une fois le nuage défini, utilisez l'onglet 'Anomalies' pour régler les retard
 les pertes de trames et les autres anomalies que vous souhaitez provoquer entre les deux \
 extrémités du nuage." in help title msg ;;
 
- let help_socket_insert_update = 
+ let help_socket_insert_update =
    let title = "AJOUTER OU MODIFIER UNE PRISE ETHERNET" in
    let msg   = "\
 Dans cette fenêtre de dialogue vous pouvez définir le nom d'une \
 prise Ethernet. Ce composant permet de relier le réseau virtuel avec \
 un réseau Ethernet (réel) duquel fait partie le système hôte, c'est-à-dire \
-le système GNU/Linux qui exécute l'ensemble des composants virtuels. 
+le système GNU/Linux qui exécute l'ensemble des composants virtuels.
 
 Le réseau réel est choisi de la façon suivante:
 
@@ -332,12 +335,12 @@ les machines virtuelles, par une simple séquence de commandes:
 
 $ dhclient eth0
 $ apt-get install mon-programme-fétiche
- 
+
 La prise permet aussi de travailler en groupe dans une salle réseau \
 en faisant communiquer des instances de Marionnet s'exécutant \
 sur différents postes." in help title msg ;;
 
- let error_saving_while_something_up = 
+ let error_saving_while_something_up =
   Simple_dialogs.error
    "Sauvegarde"
   "Le projet ne peut être enregistré maintenant. \
@@ -346,7 +349,7 @@ S'il vous plaît arrêtez-les avant d'enregistrer."
  ;;
 
  (** Why you have to choose a name for your project *)
- let help_nom_pour_le_projet = 
+ let help_nom_pour_le_projet =
    let title = "CHOISIR UN NOM POUR LE PROJET" in
    let msg   = "Marionnet regroupe tous les fichiers concernant un même projet dans un fichier dont l'extension \
 standard est .mar. Il s'agit en réalité d'un fichier de type tar compressé (gzip) qui peut donc être ouvert \
@@ -366,7 +369,7 @@ let check_pathname_validity pathname =
     no extension; if the argument has the corret extension then just return it; it it's
     otherwise valid but has no extension then return the argument with the extension
     appended; if it's invalid or has a wrong extension then show an appropriate
-    error message and raise an exception. 
+    error message and raise an exception.
     This function is thought as a 'filter' thru which user-supplied filenames should
     be always sent before use. The optional argument extension should be a string with
     *no* dot *)
@@ -378,11 +381,11 @@ let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path
       check_pathname_validity directory
     with _ -> begin
       Simple_dialogs.error
-        "Nom de répertoire incorrect" 
+        "Nom de répertoire incorrect"
         ((Printf.sprintf "Le nom \"%s\" n'est pas un nom de répertoire valide." directory)^
          "\n\nLes noms de répertoires peuvent contenir seulement des lettres, chiffres, tirets et tirets bas.")
         ();
-      failwith "the given directory name is invalid";      
+      failwith "the given directory name is invalid";
     end in
   let path_name = Filename.basename path_name in
   let check_chopped_basename_validity chopped_basename =
@@ -390,7 +393,7 @@ let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path
       chopped_basename
     else begin
       Simple_dialogs.error
-        "Nom de fichier incorrect" 
+        "Nom de fichier incorrect"
         ((Printf.sprintf "Le nom \"%s\" n'est pas un nom de fichier valide." chopped_basename)^
          "\n\nUn nom de fichier valide doit commencer par une lettre et peut contenir des lettres, chiffres, tirets et tirets bas.")
         ();
@@ -428,7 +431,7 @@ let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path
 
 
 (* **************************************** *
-              Module EDialog 
+              Module EDialog
  * **************************************** *)
 
 
@@ -437,28 +440,28 @@ let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path
 module EDialog = struct
 
 (** An edialog is a dialog which returns an env as result if succeed *)
-type edialog = unit -> (((string,string) env) option) ;;
+type edialog = unit -> ((string string_env) option) ;;
 
 (** Dialog related exceptions. *)
 exception BadDialog     of string * string;;
-exception StrangeDialog of string * string * ((string,string) env);;
+exception StrangeDialog of string * string * (string string_env);;
 exception IncompleteDialog;;
 
 (** The (and) composition of edialogs is again an env option *)
 let rec compose (dl:edialog list) () : ((('a,'b) env) option) =
   match dl with
-  | []  -> raise (Failure "EDialog.compose") 
+  | []  -> raise (Failure "EDialog.compose")
   | [d] -> d ()
   | d::l -> (match d () with
              | None   -> None
-             | Some r -> (match (compose l ()) with 
+             | Some r -> (match (compose l ()) with
                           | None   -> None
                           | Some z -> (Some (r#updatedBy z))
                           )
              )
 ;;
 
-(** Alias for edialog composition *) 
+(** Alias for edialog composition *)
 let sequence = compose;;
 
 (** Auxiliary functions for file/folder chooser dialogs *)
@@ -510,45 +513,48 @@ let fun_filter_of = function
 
 (** The edialog asking for file or folder. It returns a simple environment with an unique identifier
     [gen_id] bound to the selected name *)
-let ask_for_file 
+let ask_for_file
 
-    ?(title="FILE SELECTION") 
-    ?(valid:(string->bool)=(fun x->true)) 
-    ?(filters = allfilters) 
-    ?(action=`OPEN) 
-    ?(gen_id="filename") 
-    ?(help=None)() 
+    ?(enrich=mkenv [])
+    ?(title="FILE SELECTION")
+    ?(valid:(string->bool)=(fun x->true))
+    ?(filters = allfilters)
+    ?(action=`OPEN)
+    ?(gen_id="filename")
+    ?(help=None)()
     =
 
-  let dialog = GWindow.file_chooser_dialog 
+  let dialog = GWindow.file_chooser_dialog
       ~icon:Icon.icon_pixbuf
-      ~action:action 
+      ~action:action
       ~title:(utf8 title)
       ~modal:true () in
 
   dialog#unselect_all ;
-  if (help=None) then () else dialog#add_button_stock `HELP `HELP ; 
+  if (help=None) then () else dialog#add_button_stock `HELP `HELP ;
   dialog#add_button_stock `CANCEL `CANCEL ;
   dialog#add_button_stock `OK `OK;
   ignore (dialog#set_current_folder (Initialization.cwd_at_startup_time));
 
+  dialog#set_default_response `OK;
+
   if (action=`SELECT_FOLDER)        then (try (dialog#add_shortcut_folder "/tmp") with _ -> ());
-  if (action=`OPEN or action=`SAVE) then (List.iter (fun x -> dialog#add_filter (fun_filter_of x)) filters); 
+  if (action=`OPEN or action=`SAVE) then (List.iter (fun x -> dialog#add_filter (fun_filter_of x)) filters);
   let result = (ref None) in
   let cont   = ref true in
-  while (!cont = true) do  
+  while (!cont = true) do
   begin match dialog#run () with
   | `OK -> (match dialog#filename with
               | None   -> () 
               | Some fname -> if (valid fname) then 
-                              begin cont := false; result := (Some (make [(gen_id,fname)])) end
+                              begin cont := false; result := (Some (mkenv [(gen_id,fname)])) end
               )
-  | `HELP -> (match help with 
+  | `HELP -> (match help with
               | Some f -> f ();
               | None -> ()
              )
   |  _ -> cont := false
-  end 
+  end
   done;
 
   dialog#destroy ();
@@ -573,67 +579,77 @@ let does_directory_support_sparse_files pathname =
     false;;
 
 (** The edialog asking for an existing and writable directory. *)
-let ask_for_existing_writable_folder_pathname_supporting_sparse_files ~title ?(help=None) () =
-  let valid = fun pathname -> 
+let ask_for_existing_writable_folder_pathname_supporting_sparse_files
+ ?(enrich=mkenv [])
+ ?(help=None)
+ ~title
+ () =
+  let valid = fun pathname ->
     if (not (Sys.file_exists pathname)) or
        (not (Shell.dir_comfortable pathname)) or
-       (not (does_directory_support_sparse_files pathname)) then 
+       (not (does_directory_support_sparse_files pathname)) then
         begin
-         Simple_dialogs.error 
+         Simple_dialogs.error
           "Répertoire inexploitable"
           "Vous devez choisir un répertoire existant, modifiable et résidant sur un système de fichiers supportant les fichiers 'sparse' (ext2, ext3, reiserfs, NTFS, ...)"
           ();
          false;
-        end 
+        end
     else true
-  in ask_for_file ~title ~valid ~filters:[] ~action:`SELECT_FOLDER ~gen_id:"foldername" ~help () ;;
+  in ask_for_file ~enrich ~title ~valid ~filters:[] ~action:`SELECT_FOLDER ~gen_id:"foldername" ~help () ;;
 
 
 (** The edialog asking for a fresh and writable filename. *)
-let ask_for_fresh_writable_filename ~title ?(filters = allfilters) ?(help=None) =
+let ask_for_fresh_writable_filename
+ ?(enrich=mkenv [])
+ ~title
+ ?(filters = allfilters)
+ ?(help=None) =
 
-  let valid = fun x -> 
-    if (Sys.file_exists x) 
+  let valid = fun x ->
+    if (Sys.file_exists x)
     then ((Simple_dialogs.error "Choix du nom" "Un fichier de même nom existe déjà!\n\nVous devez choisir un nouveau nom pour votre fichier." ()); false)
     else (Log.print_endline ("valid: x="^x) ; (Shell.freshname_possible x)) in
 
   let result =
-    ask_for_file ~title ~valid ~filters ~action:`SAVE ~gen_id:"filename" ~help in
+    ask_for_file ~enrich ~title ~valid ~filters ~action:`SAVE ~gen_id:"filename" ~help in
   result;;
 
 (** The edialog asking for an existing filename. *)
-let ask_for_existing_filename ~title ?(filters = allfilters) ?(help=None) () =
+let ask_for_existing_filename ?(enrich=mkenv []) ~title ?(filters = allfilters) ?(help=None) () =
 
-  let valid = fun x -> 
-    if not (Sys.file_exists x) 
+  let valid = fun x ->
+    if not (Sys.file_exists x)
     then ((Simple_dialogs.error "Choix du fichier" "Le fichier n'existe pas!\nVous devez choisir un nom de fichier existant." ()); false)
     else (Shell.regfile_modifiable x) in
 
-  ask_for_file ~title ~valid ~filters ~action:`OPEN ~gen_id:"filename" ~help ()
+  ask_for_file ~enrich ~title ~valid ~filters ~action:`OPEN ~gen_id:"filename" ~help ()
 ;;
 
-(** Generic constructor for question dialogs. *)
-let ask_question ?(title="QUESTION")  ?(gen_id="answer")  ?(help=None) ?(cancel=false) ~(question:string)  () =
- 
-   let dialog=new Gui.dialog_QUESTION () in 
+(** Generic constructor for question dialogs.
+    With the 'enrich' optional parameter the dialog can enrich a given environnement. Otherwise
+    it creates a new one. *)
+let ask_question ?(enrich=mkenv []) ?(title="QUESTION") ?(gen_id="answer")  ?(help=None) ?(cancel=false) ~(question:string)  () =
 
-   if (help=None)    then () else dialog#toplevel#add_button_stock `HELP   `HELP ; 
-   if (cancel=false) then () else dialog#toplevel#add_button_stock `CANCEL `CANCEL ; 
+   let dialog=new Gui.dialog_QUESTION () in
+
+   if (help=None)    then () else dialog#toplevel#add_button_stock `HELP   `HELP ;
+   if (cancel=false) then () else dialog#toplevel#add_button_stock `CANCEL `CANCEL ;
 
    dialog#toplevel#set_title (utf8 title);
 (*   dialog#title#set_text     (utf8 (String.uppercase question));*)
    dialog#title_QUESTION#set_text     (utf8 question);
-   dialog#title_QUESTION#set_use_markup true; 
+   dialog#title_QUESTION#set_use_markup true;
    ignore
      (dialog#toplevel#event#connect#delete
         ~callback:(fun _ -> Log.print_string "Sorry, no, you can't close the dialog. Please make a decision.\n"; true));
-   
+
    let result = (ref None) in
    let cont   = ref true in
-   while (!cont = true) do  
+   while (!cont = true) do
      match dialog#toplevel#run () with
-     | `YES  -> begin cont := false; result := (Some (make [(gen_id,"yes")])) end
-     | `NO   -> begin cont := false; result := (Some (make [(gen_id,"no" )])) end
+     | `YES  -> begin cont := false; result := (Some (mkenv [(gen_id,"yes")])) end
+     | `NO   -> begin cont := false; result := (Some (mkenv [(gen_id,"no" )])) end
      | `HELP -> (match help with 
                  | Some f -> f ();
                  | None -> ()
@@ -647,412 +663,302 @@ let ask_question ?(title="QUESTION")  ?(gen_id="answer")  ?(help=None) ?(cancel=
    done;
    dialog#toplevel#destroy ();
    !result
-   
+
 ;;
- 
+
 
 end;; (* EDialog *)
 
 
 (* **************************************** *
-        Module Talking_PROJET_NOUVEAU
+        Module Talking_PROJECT_NEW
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_NOUVEAU functionnality *)
-module Talking_PROJET_NOUVEAU = struct         
- 
+module Talking_PROJECT_NEW = struct
+
  (** The name of this module (for debugging purposes) *)
- let  myname = "talking_PROJET_NOUVEAU" ;;
+ let  myname = "talking_PROJECT_NEW" ;;
 
  (** The type of command provided by user by this graphical dialog *)
- class usercmd = fun (r: (string,string) env) -> object 
+ class usercmd = fun (r: (string,string) env) -> object (self)
    method filename     : string = r#get "filename"
    method save_current : bool   = (r#get("save_current") = "yes")
+   method log ~header =
+     begin
+       Log.print_endline (header^"filename      = "^self#filename);
+       Log.print_endline (header^"save_current  = "^(string_of_bool self#save_current));
+     end
  end;;
 
  (** The correspondent reaction of the application for the command given by user *)
  let react (st:globalState) (msg: (string,string) env option) =
-   match msg with (* TO IMPLEMENT *)
- | Some r -> 
+   match msg with
+   | None -> Log.print_endline (myname^".react: NOTHING TO DO")
+   | Some r ->
      begin
-     try 
+     try
        shutdown_everything st ();
        let cmd = (new usercmd r) in
-       let fname = cmd#filename in
-       let fname =
-         check_path_name_validity_and_add_extension_if_needed fname in
-       Log.print_endline (myname^".react: save_current="^(string_of_bool cmd#save_current)); 
-       Log.print_endline (myname^".react: filename="^fname); 
+       cmd#log ~header:(myname^".react: ");
+       let fname = check_path_name_validity_and_add_extension_if_needed cmd#filename in
+       Log.print_endline (myname^".react: fname="^fname);
        (if (st#active_project) && (cmd#save_current) then st#save_project ());
        st#close_project () ;
        st#new_project fname ;
-       st#mainwin#window_MARIONNET#set_title
-         (Command_line.window_title ^ " - " ^ fname);
+       st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ fname);
      with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialogs"))
      end
- | None ->  begin
-     Log.print_endline (myname^".react: NOTHING TO DO")
- end
  ;;
 
- (** Performs the binding with the main window *)
- let bind (st:globalState) =
-   let confirm () = if st#active_project then EDialog.ask_question 
+ let callback (st:globalState) =
+   let confirm () = if st#active_project then EDialog.ask_question
        ~gen_id:"save_current"
-       ~title:"FERMER" 
+       ~title:"FERMER"
        ~question:"Voulez-vous enregistrer le projet courant ?"
        ~help:None
-       ~cancel:true 
+       ~cancel:true
        () else (Some (make [("save_current","no")])) in
-   let ask_filename () = EDialog.ask_for_fresh_writable_filename 
-       ~title:"NOM DU NOUVEAU PROJET" 
-       ~filters:[EDialog.MAR;EDialog.ALL] 
+   let ask_filename () = EDialog.ask_for_fresh_writable_filename
+       ~title:"NOM DU NOUVEAU PROJET"
+       ~filters:[EDialog.MAR;EDialog.ALL]
        ~help:(Some Msg.help_nom_pour_le_projet) () in
-   let result =
-     st#mainwin#imgitem_PROJET_NOUVEAU#connect#activate 
-       ~callback:(fun () -> react st ((EDialog.sequence [confirm; ask_filename]) ()))
-   in
-   result
+
+   fun () -> react st ((EDialog.sequence [confirm; ask_filename]) ())
   ;;
 
-end;; (* Talking_PROJET_NOUVEAU *)
+end;; (* Talking_PROJECT_NEW *)
 
 
 
 
 (* **************************************** *
-        Module Talking_PROJET_OUVRIR
+        Module Talking_PROJET_OPEN
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_OUVRIR functionnality *)
-module Talking_PROJET_OUVRIR = struct         
- 
+module Talking_PROJECT_OPEN = struct
+
  (** The name of this module (for debugging purposes) *)
- let  myname = "talking_PROJET_OUVRIR" ;;
+ let  myname = "talking_PROJECT_OPEN" ;;
 
  (** The type of command provided by user by this graphical dialog *)
- class usercmd = fun (r: (string,string) env) -> object 
-   method filename     : string =  r#get("filename")
-   method save_current : bool   = (r#get("save_current") = "yes")
- end;;
+ class usercmd = Talking_PROJECT_NEW.usercmd ;;
 
  (** The correspondent reaction of the application for the command given by user *)
  let react (st:globalState) (msg: (string,string) env option) = match msg with
- | Some r -> 
+ | None   ->  Log.print_endline (myname^".react: NOTHING TO DO")
+ | Some r ->
      begin
-     try 
+     try
        shutdown_everything st ();
-       let cmd = (new usercmd r) in 
-       Log.print_endline (myname^".react: save_current="^(string_of_bool cmd#save_current)); 
-       Log.print_endline (myname^".react: filename="^cmd#filename); 
-       if (st#active_project) && (cmd#save_current) then st#save_project (); 
-       
+       let cmd = (new usercmd r) in
+       cmd#log ~header:(myname^".react: ");
+       if (st#active_project) && (cmd#save_current) then st#save_project ();
        Log.print_endline ("*** in react open project: now call close_project");
        st#close_project () ;
        begin
-         try 
+         try
            st#open_project cmd#filename;
            st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ cmd#filename);
          with e -> (Simple_dialogs.error "OUVRIR UN PROJET" ("Erreur en ouvrant le fichier "^cmd#filename) ()); raise e
        end;
-     with e -> raise e 
-         (*  | _ -> raise (Failure (myname^".react: unexpected environnement received from dialogs")) *)
+     with e -> raise e
      end
- | None -> 
-     Log.print_endline (myname^".react: NOTHING TO DO")
  ;;
 
  (** Performs the binding with the main window *)
- let bind (st:globalState) =
+ let callback (st:globalState) =
 
-   let confirm () = if st#active_project then EDialog.ask_question 
+   let confirm () = if st#active_project then EDialog.ask_question
        ~gen_id:"save_current"
-       ~title:"FERMER" 
+       ~title:"FERMER"
        ~question:"Voulez-vous enregistrer le projet courant ?"
        ~help:None
-       ~cancel:true 
+       ~cancel:true
        () else (Some (make [("save_current","no")])) in
 
-   let ask_filename () = EDialog.ask_for_existing_filename 
-       ~title:"OUVRIR UN PROJET MARIONNET EXISTANT" 
-       ~filters:[EDialog.MAR;EDialog.ALL] 
+   let ask_filename () = EDialog.ask_for_existing_filename
+       ~title:"OUVRIR UN PROJET MARIONNET EXISTANT"
+       ~filters:[EDialog.MAR;EDialog.ALL]
        ~help:(Some Msg.help_nom_pour_le_projet) () in
 
-   st#mainwin#imgitem_PROJET_OUVRIR#connect#activate 
-     ~callback:(fun via -> react st ((EDialog.sequence [confirm; ask_filename]) via) )
+   fun token -> react st ((EDialog.sequence [confirm; ask_filename]) token)
   ;;
 
-end;; (* Talking_PROJET_OUVRIR *)
+end;; (* Talking_PROJET_OPEN *)
 
 
 
 (* **************************************** *
-      Module Talking_PROJET_ENREGISTRER
+      Module Talking_PROJECT_SAVE
  * **************************************** *)
 
+module Talking_PROJECT_SAVE = struct
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_ENREGISTRER functionnality *)
-module Talking_PROJET_ENREGISTRER = struct         
-
- (** Performs the binding with the main window *)
- let bind (st:globalState) =
-   st#mainwin#imgitem_PROJET_ENREGISTRER#connect#activate
-     ~callback:(fun () -> if is_there_something_on_or_sleeping st () then 
-                            Msg.error_saving_while_something_up ()
-                          else
-                            st#save_project ());;
+ let callback (st:globalState) () =
+   if is_there_something_on_or_sleeping st ()
+	then Msg.error_saving_while_something_up ()
+        else st#save_project ();;
 end;;
 
 
 (* **************************************** *
-    Module Talking_PROJET_ENREGISTRER_SOUS
+    Module Talking_PROJET_SAVE_AS
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_ENREGISTRER_SOUS functionnality *)
-module Talking_PROJET_ENREGISTRER_SOUS = struct         
- 
+module Talking_PROJECT_SAVE_AS = struct
+
  (** The name of this module (for debugging purposes) *)
- let  myname = "talking_PROJET_ENREGISTRER_SOUS" ;;
+ let  myname = "talking_PROJECT_SAVE_AS" ;;
 
  (** The type of command provided by user by this graphical dialog *)
- class usercmd = fun (r: (string,string) env) -> object 
-   method filename   : string =
-     check_path_name_validity_and_add_extension_if_needed (r#get "filename")
+ class usercmd = fun (r: (string,string) env) -> object (self)
+   method filename : string = check_path_name_validity_and_add_extension_if_needed (r#get "filename")
+   method log ~header = Log.print_endline (header^"filename = "^self#filename);
  end;;
 
  (** The correspondent reaction of the application for the command given by user *)
  let react (st:globalState) (msg: (string,string) env option) = match msg with (* TO IMPLEMENT *)
- | Some r -> 
+ | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
+ | Some r ->
      if is_there_something_on_or_sleeping st () then Msg.error_saving_while_something_up ()
      else begin
-       try 
-         let cmd = (new usercmd r) in 
-         Log.print_endline (myname^".react: filename="^cmd#filename);
+       try
+         let cmd = (new usercmd r) in
+         cmd#log ~header:(myname^".react: ");
          begin
-           try 
+           try
              st#save_project_as cmd#filename;
              st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ cmd#filename);
-           with _ -> (Simple_dialogs.error "PROJET ENREGISTRER SOUS" ("Échéc de la sauvegarde du project "^cmd#filename) ()) 
+           with _ -> (Simple_dialogs.error "PROJET ENREGISTRER SOUS" ("Échéc de la sauvegarde du project "^cmd#filename) ())
          end
        with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
      end
- | None -> 
-     Log.print_endline (myname^".react: NOTHING TO DO")
  ;;
 
- (** Performs the binding with the main window *)
- let bind (st:globalState) =
- 
-   let ask_filename () = EDialog.ask_for_fresh_writable_filename 
-       ~title:"ENREGISTRER SOUS" 
-       ~filters:[EDialog.MAR;EDialog.ALL] 
+
+ let callback (st:globalState) =
+
+   let ask_filename () = EDialog.ask_for_fresh_writable_filename
+       ~title:"ENREGISTRER SOUS"
+       ~filters:[EDialog.MAR;EDialog.ALL]
        ~help:(Some Msg.help_nom_pour_le_projet) () in
 
-   st#mainwin#imgitem_PROJET_ENREGISTRER_SOUS#connect#activate 
-     ~callback:(fun via -> react st ((EDialog.compose [ask_filename]) via) )
+   fun token -> react st ((EDialog.compose [ask_filename]) token)
    ;;
 
-end;; (* Talking_PROJET_ENREGISTRER_SOUS *)
+end;; (* Talking_PROJECT_SAVE_AS *)
 
 
 
 (* **************************************** *
-    Module Talking_PROJET_COPIER_SOUS
+    Module Talking_PROJET_COPY_INTO
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_COPIER_SOUS functionnality *)
-module Talking_PROJET_COPIER_SOUS = struct         
- 
+module Talking_PROJECT_COPY_INTO = struct
+
  (** The name of this module (for debugging purposes) *)
- let  myname = "talking_PROJET_COPIER_SOUS" ;;
+ let  myname = "talking_PROJECT_COPY_INTO" ;;
 
  (** The type of command provided by user by this graphical dialog *)
- class usercmd = fun (r: (string,string) env) -> object 
-   method filename   : string =
-     check_path_name_validity_and_add_extension_if_needed (r#get "filename")
- end;;
+ class usercmd = Talking_PROJECT_SAVE_AS.usercmd ;;
 
  (** The correspondent reaction of the application for the command given by user *)
  let react (st:globalState) (msg: (string,string) env option) = match msg with (* TO IMPLEMENT *)
- | Some r -> 
+ | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
+ | Some r ->
      if is_there_something_on_or_sleeping st () then Msg.error_saving_while_something_up ()
      else begin
-       try 
-         let cmd = (new usercmd r) in 
-         Log.print_endline (myname^".react: filename="^cmd#filename); 
+       try
+         let cmd = (new usercmd r) in
+         cmd#log ~header:(myname^".react: ");
          begin
-           try 
+           try
              st#copy_project_into cmd#filename
-           with _ -> (Simple_dialogs.error "PROJECT COPY INTO" ("Error copying the project into "^cmd#filename) ()) 
+           with _ -> (Simple_dialogs.error "PROJECT COPY INTO" ("Error copying the project into "^cmd#filename) ())
          end
        with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
      end
- | None -> 
-     Log.print_endline (myname^".react: NOTHING TO DO")
  ;;
 
- (** Performs the binding with the main window *)
- let bind (st:globalState) =
- 
-   let ask_filename () = EDialog.ask_for_fresh_writable_filename 
-       ~title:"COPIER SOUS" 
-       ~filters:[EDialog.MAR;EDialog.ALL] 
+
+ let callback (st:globalState) =
+
+   let ask_filename () = EDialog.ask_for_fresh_writable_filename
+       ~title:"COPIER SOUS"
+       ~filters:[EDialog.MAR;EDialog.ALL]
        ~help:(Some Msg.help_nom_pour_le_projet) () in
 
-   st#mainwin#imgitem_PROJET_COPIER_SOUS#connect#activate 
-     ~callback:(fun via -> react st ((EDialog.compose [ask_filename]) via) )
-   ;;
+   fun token -> react st ((EDialog.compose [ask_filename]) token)
+ ;;
 
-end;; (* Talking_PROJET_COPIER_SOUS *)
+end;; (* Talking_PROJET_COPY_INTO *)
 
 
 
 (* **************************************** *
-        Module Talking_PROJET_FERMER
+        Module Talking_PROJECT_CLOSE
  * **************************************** *)
 
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_FERMER functionnality *)
-module Talking_PROJET_FERMER = struct         
+module Talking_PROJECT_CLOSE = struct
 
  (** The name of this module (for debugging purposes) *)
- let  myname = "talking_PROJET_FERMER" ;;
+ let  myname = "talking_PROJECT_CLOSE" ;;
 
  (** The type of command provided by user by this graphical dialog *)
- class usercmd = fun (r: (string,string) env) -> object 
+ class usercmd = fun (r: (string,string) env) -> object (self)
    method answer  : string = r#get("answer")
+   method log ~header = Log.print_endline (header^"answer = "^self#answer)
  end;;
 
  (** The correspondent reaction of the application for the command given by user *)
- let react (st:globalState) (msg: (string,string) env option) = match msg with (* TO IMPLEMENT *)
- | Some r -> 
+ let react (st:globalState) (msg: (string,string) env option) = match msg with
+ | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
+ | Some r ->
      begin
-     try 
+     try
        shutdown_everything st ();
-       let cmd = (new usercmd r) in 
-       Log.print_endline (myname^".react: answer="^cmd#answer); 
+       let cmd = (new usercmd r) in
+       cmd#log ~header:(myname^".react: ");
        if (st#active_project) && (cmd#answer="yes") then st#save_project ();
        st#close_project ();
        st#mainwin#window_MARIONNET#set_title Command_line.window_title; (* no project name *)
      with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
      end
- | None -> 
-     Log.print_endline (myname^".react: NOTHING TO DO")
  ;;
 
- (** Performs the binding with the main window *)
- let bind (st:globalState) =
- 
-   let confirm () = EDialog.ask_question 
-       ~title:"FERMER" 
+
+ let callback (st:globalState) =
+
+   let confirm () = EDialog.ask_question
+       ~title:"FERMER"
        ~question:"Voulez-vous enregistrer le projet courant ?"
        ~help:None
-       ~cancel:true 
+       ~cancel:true
        () in
 
-   st#mainwin#imgitem_PROJET_FERMER#connect#activate 
-     ~callback:(fun via -> react st ((EDialog.compose [confirm]) via))
-
+   fun token -> react st ((EDialog.compose [confirm]) token)
  ;;
 
-end;; (* Talking_PROJET_FERMER *)
+end;; (* Talking_PROJECT_CLOSE *)
 
 
 (* **************************************** *
-    Module Talking_PROJET_IMPORTER_RESEAU
+    Module Talking_PROJECT_EXPORT_NETWORK_IMAGE
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_IMPORTER_RESEAU functionnality *)
-module Talking_PROJET_IMPORTER_RESEAU = struct         
- 
+module Talking_PROJECT_EXPORT_NETWORK_IMAGE = struct
+
+ (** The name of this module (for debugging purposes) *)
+ let  myname = "Talking_PROJECT_EXPORT_NETWORK_IMAGE" ;;
+
  (** The correspondent reaction of the application for the command given by user *)
  let react (st:globalState) (msg: (string,string) env option) = match msg with
- | Some r -> 
-     let filename =  r#get("filename") in
-     Log.print_endline ("talking_PROJET_IMPORTER_RESEAU.react: filename="^filename); 
-     begin
-       try 
-         st#import_network ~dotAction:(st#dotoptions#reset_defaults) filename ;
-         st#flash ~delay:6000 (utf8 ("La définition xml du réseau a été importée avec succés depuis le fichier "^filename));
-       with e -> (Simple_dialogs.error "IMPORTER UNE DÉFINITION XML" ("Erreur d'importation du fichier "^filename) ()); raise e
-     end
- | None -> Log.print_endline ("talking_PROJET_IMPORTER_RESEAU.react: NOTHING TO DO")
- ;;
-
- (** Performs the binding with the main window *)
- let bind (st:globalState) =
-
-   let ask_filename () = EDialog.ask_for_existing_filename 
-       ~title:"IMPORTER UNE DÉFINITION XML DU RESEAU" 
-       ~filters:[EDialog.XML;EDialog.ALL] 
-       ~help:None () in
-
-   st#mainwin#imgitem_PROJET_IMPORTER_RESEAU#connect#activate 
-     ~callback:(fun via -> react st ((EDialog.sequence [ask_filename]) via) )
-  ;;
-
-end;; (* Talking_PROJET_IMPORTER_RESEAU *)
-
-
-
-(* **************************************** *
-    Module Talking_PROJET_EXPORTER_RESEAU
- * **************************************** *)
-
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_EXPORTER_RESEAU functionnality *)
-module Talking_PROJET_EXPORTER_RESEAU = struct         
- 
- (** The correspondent reaction of the application for the command given by user *)
- let react (st:globalState) (msg: (string,string) env option) = match msg with
- | Some r -> 
-     let filename =  r#get("filename") in
-     Log.print_endline ("talking_PROJET_EXPORTER_RESEAU.react: filename="^filename); 
-     begin
-       try
-         Netmodel.Xml.save_network st#network filename;
-         st#flash ~delay:6000 (utf8 ("La définition xml du réseau a été exportée avec succés dans le fichier "^filename));
-       with e -> (Simple_dialogs.error "EXPORTER LA DÉFINITION XML" ("Echcc durant l'exportation vers le fichier "^filename) ()); raise e
-     end
- | None -> Log.print_endline ("talking_PROJET_EXPORTER_RESEAU.react: NOTHING TO DO")
- ;;
-
- (** Performs the binding with the main window *)
- let bind (st:globalState) =
-
-   let ask_filename () = EDialog.ask_for_fresh_writable_filename 
-       ~title:"EXPORTER LA DÉFINITION XML DU RESEAU" 
-       ~filters:[EDialog.XML;EDialog.ALL] 
-       ~help:None () in
-
-   st#mainwin#imgitem_PROJET_EXPORTER_RESEAU#connect#activate 
-     ~callback:(fun via -> react st ((EDialog.sequence [ask_filename]) via) )
-  ;;
-
-end;; (* Talking_PROJET_EXPORTER_RESEAU *)
-
-
-(* **************************************** *
-    Module Talking_PROJET_EXPORTER_IMAGE
- * **************************************** *)
-
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_EXPORTER_IMAGE functionnality *)
-module Talking_PROJET_EXPORTER_IMAGE = struct         
- 
- (** The correspondent reaction of the application for the command given by user *)
- let react (st:globalState) (msg: (string,string) env option) = match msg with
- | Some r -> 
+ | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
+ | Some r ->
      let filename =
        check_path_name_validity_and_add_extension_if_needed ~extension:"png" (r#get "filename") in
-     Log.print_endline ("talking_PROJET_EXPORTER_IMAGE.react: filename="^filename); 
+     Log.print_endline ("talking_PROJET_EXPORTER_IMAGE.react: filename="^filename);
      begin
        try
          let command = ("cp "^st#pngSketchFile^" "^filename) in
@@ -1064,38 +970,34 @@ module Talking_PROJET_EXPORTER_IMAGE = struct
          end
        with e -> (Simple_dialogs.error "EXPORTER L'IMAGE DU RESEAU" ("Echec durant l'exportation vers le fichier "^filename) ()); raise e
      end
- | None -> Log.print_endline ("talking_PROJET_EXPORTER_IMAGE.react: NOTHING TO DO")
  ;;
 
  (** Performs the binding with the main window *)
- let bind (st:globalState) =
+ let callback (st:globalState) =
 
-   let ask_filename () = EDialog.ask_for_fresh_writable_filename 
-       ~title:"EXPORTER L'IMAGE DU RESEAU" 
-       ~filters:[EDialog.PNG;EDialog.ALL] 
+   let ask_filename () = EDialog.ask_for_fresh_writable_filename
+       ~title:"EXPORTER L'IMAGE DU RESEAU"
+       ~filters:[EDialog.PNG;EDialog.ALL]
        ~help:None () in
 
-   st#mainwin#imgitem_PROJET_EXPORTER_IMAGE#connect#activate 
-     ~callback:(fun via -> react st ((EDialog.sequence [ask_filename]) via) )
+   fun token -> react st ((EDialog.sequence [ask_filename]) token)
   ;;
 
-end;; (* Talking_PROJET_EXPORTER_IMAGE *)
+end;; (* Talking_PROJECT_EXPORT_NETWORK_IMAGE *)
 
 
 (* **************************************** *
-        Module Talking_PROJET_QUITTER
+        Module Talking_PROJECT_QUIT
  * **************************************** *)
 
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_QUITTER functionnality *)
-module Talking_PROJET_QUITTER = struct         
+module Talking_PROJECT_QUIT = struct
 
  (** The name of this module (for debugging purposes) *)
- let  myname = "talking_PROJET_QUITTER" ;;
+ let  myname = "talking_PROJECT_QUIT" ;;
 
  (** The type of command provided by user by this graphical dialog *)
- class usercmd = fun (r: (string,string) env) -> object 
+ class usercmd = fun (r: (string,string) env) -> object
    method answer  : string = r#get("answer")
  end;;
 
@@ -1108,7 +1010,7 @@ module Talking_PROJET_QUITTER = struct
    Log.print_endline (myname^".react: Calling mrPropre...");
    st#mrPropre ();
    GMain.Main.quit (); (* Finalize the GUI *)
-   
+
    Log.print_string "Killing the task runner thread...\n";
    Task_runner.the_task_runner#terminate;
    Log.print_string "Killing the death monitor thread...\n";
@@ -1125,14 +1027,14 @@ module Talking_PROJET_QUITTER = struct
    Log.print_string "!!! This should never be shown.\n";;
 
  (** The correspondent reaction of the application for the command given by user *)
- let react (st:globalState) (msg: (string,string) env option) = 
+ let react (st:globalState) (msg: (string,string) env option) =
    Log.print_string ">>>>>>>>>>QUITTING: THERE SHOULD BE NOTHING BEFORE THIS<<<<<<<<\n";
    begin
-     match msg with (* TO IMPLEMENT *)
-     | Some r -> 
-         begin           
-           try 
-             let cmd = (new usercmd r) in 
+     match msg with
+     | Some r ->
+         begin
+           try
+             let cmd = (new usercmd r) in
              Log.print_endline (myname^".react: answer="^cmd#answer);
              if (st#active_project) && (cmd#answer="yes") then
                st#save_project ();
@@ -1144,13 +1046,11 @@ module Talking_PROJET_QUITTER = struct
          Log.print_endline (myname^".react: NOTHING TO DO")
        end
    end;
-;;
+ ;;
 
- (** Performs the binding with the main window *)
- let bind (st:globalState) =
- 
-   let confirm user_can_cancel () = EDialog.ask_question 
-       ~title:"QUITTER" 
+ let make_callback (st:globalState) ~user_can_cancel =
+  let confirm () = EDialog.ask_question
+       ~title:"QUITTER"
        ~question:"Voulez-vous enregistrer\nle projet courant avant de quitter ?"
        ~help:None
        ~cancel:user_can_cancel
@@ -1160,14 +1060,15 @@ module Talking_PROJET_QUITTER = struct
                  if (st#active_project) then
                    react st ((EDialog.compose [confirm x]) via)
                  else
-                   react st (Some (make [("answer","no")]))) in
+                   react st (Some (mkenv [("answer","no")]))) in
    let _ = st#mainwin#imgitem_PROJET_QUITTER#connect#activate ~callback:(cb true) in
    let _ = st#mainwin#toplevel#connect#destroy ~callback:(cb false) in 
    ()
 
+ let callback (st:globalState) = make_callback st ~user_can_cancel:true
  ;;
 
-end;; (* Talking_PROJET_QUITTER *)
+end;; (* Talking_PROJECT_QUIT *)
 
 
 
@@ -1175,137 +1076,37 @@ end;; (* Talking_PROJET_QUITTER *)
       Module Talking_OPTIONS_CWD
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the OPTION_WORKING_DIR functionnality *)
-module Talking_OPTIONS_CWD = struct         
- 
+module Talking_OPTIONS_CWD = struct
+
  (** The name of this module (for debugging purposes) *)
  let  myname = "talking_OPTION_CWD" ;;
 
  (** The type of command provided by user by this graphical dialog *)
- class usercmd = fun (r: (string,string) env) -> object 
+ class usercmd = fun (r: (string,string) env) -> object
    method foldername : string = r#get("foldername")
  end;;
 
  (** The correspondent reaction of the application for the command given by user *)
  let react (st:globalState) (msg: (string,string) env option) = match msg with
- | Some r -> 
+ | None   -> Log.print_endline (myname^".react: WORKING DIRECTORY IS STILL SET TO "^st#get_wdir)
+ | Some r ->
      begin
-     try 
-         let cmd = (new usercmd r) in 
+     try
+         let cmd = (new usercmd r) in
          Log.print_endline (myname^".react: foldername="^cmd#foldername);
-         st#set_wdir   cmd#foldername;
+         st#set_wdir cmd#foldername;
      with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialogs"))
-     end
- | None -> 
-     begin
-       Log.print_endline (myname^".react: WORKING DIRECTORY IS STILL SET TO "^st#get_wdir)
      end
  ;;
 
  (** Performs the binding with the main window *)
- let bind (st:globalState) =
+ let callback (st:globalState) =
 
-   let ask_foldername () = EDialog.ask_for_existing_writable_folder_pathname_supporting_sparse_files 
+   let ask_foldername () = EDialog.ask_for_existing_writable_folder_pathname_supporting_sparse_files
        ~title:"CHOISIR UN RÉPERTOIRE DE TRAVAIL"
        ~help:(Some Msg.help_repertoire_de_travail) () in
 
-   st#mainwin#imgitem_OPTION_CWD#connect#activate 
-     ~callback:(fun via -> react st ((EDialog.compose [ask_foldername]) via))
-
-  ;;
-
-end;; (* Talking_OPTION_CWD *)
-
-
-(* **************************************** *
-        Module Talking_AIDE_APROPOS
- * **************************************** *)
-
-(** Edialog construction, binding with the main window and associated reaction for
-   the PROJET_AIDE_APROPOS functionnality *)
-module Talking_PROJET_AIDE_APROPOS = struct         
-
- (** Performs the binding with the main window *)
- let bind (st:globalState) =
-
-   let expect_ok () = 
-     (let dial = (new Gui.dialog_A_PROPOS ()) in
-      let _ = dial#closebutton_A_PROPOS#connect#clicked ~callback:(dial#toplevel#destroy) in ()) in
-     
-     let _ = st#mainwin#imgitem_AIDE_APROPOS#connect#activate ~callback:(fun via -> expect_ok via)
-     in ()
- ;;
-   
-end;; (* Talking_PROJET_AIDE_APROPOS *)
-
-
-
-
-(* **************************************** *
-      Module Talking_MATERIEL_SKEL
- * **************************************** *)
-
-
-(** Some generic tools for further Talking_MATERIEL_* modules. *)
-module Talking_MATERIEL_SKEL = struct         
-
- (* Generic dialog loop for INSERT/UPDATE (machine/hub/switch/router etc). 
-    The inserted or updated name must be unique in the network. *)
- let dialog_loop ?(help=None) dialog (scan_dialog:unit->(string,string) env) (st:State.globalState) = 
-
-   let result = (ref None) in
-   let cont   =  ref true  in
-   while (!cont = true) do  
-     begin match dialog#toplevel#run () with
-     | `OK   -> begin 
-                 try 
-                 let r = scan_dialog () in
-
-                 let (action,name,oldname) = (r#get("action"),r#get("name"),r#get("oldname")) in
-
-                 (* OK only if the name is not already used in the network (and not empty). *)
-                 if ((action="add")    && (st#network#nameExists name)) or
-                    ((action="update") && (not (name=oldname)) && (st#network#nameExists name))
-
-                 then 
-                   (Simple_dialogs.error "Choix du nom" 
-                              ("Le nom '"^name^"' est déja réservé dans le réseau virtuel. "^
-                               "Les noms des composants du réseau virtuel doivent être uniques.") ())
-
-                 else 
-                   (result := Some r ; cont := false)
-                 
-                 with 
-                 | EDialog.IncompleteDialog -> cont := true
-                 | (EDialog.BadDialog     (title,msg))   -> (Simple_dialogs.error   title   msg ()) 
-                 | (EDialog.StrangeDialog (title,msg,r)) -> (*(Msg.warning title msg ()); *)
-                       begin
-                       match EDialog.ask_question ~gen_id:"answer" ~title:"CONFIRMER" 
-                       ~question:(msg^"\nVous confirmez cette connexion ?") ~help:None ~cancel:false ()
-                       with
-                       | Some e -> if (e#get("answer")="yes") 
-                                   then (result := Some r ; cont := false) 
-                                   else cont := true
-                       | None   -> (*raise (Failure "Unexpected result of dialog ask_question")*)
-				   cont := true (* Consider as the answer "no" *)
-                       end
-                end
-
-     | `HELP -> (match help with 
-                 | Some f -> f ();
-                 | None -> ()
-                 )
-
-     |  _    -> result := None ; cont := false 
-
-     end 
-   done;
-
-   (* Close the dialog and return its result. *)
-   dialog#toplevel#destroy ();
-   !result
-
+   fun token -> react st ((EDialog.compose [ask_foldername]) token)
   ;;
 
  (** The dialog for SHUTDOWN. *)
@@ -1365,7 +1166,7 @@ module Talking_MATERIEL_SKEL = struct
 
     (* ELIM *)
     let ask_confirm_elim_name x = 
-      EDialog.compose [ (fun u -> Some (make [("name",x)])) ; ask_confirm_elim x ] in
+      EDialog.compose [ (fun u -> Some (mkenv [("name",x)])) ; ask_confirm_elim x ] in
     Widget.DynamicSubmenu.make 
      ~submenu:elim_menu
      ~menu:elim
@@ -1404,7 +1205,7 @@ module Talking_MATERIEL_SKEL = struct
 
     (* POWEROFF *)
     let ask_confirm_poweroff x =
-      EDialog.compose [ (fun u -> Some (make [("name",x)])) ; ask_confirm_poweroff x ] in
+      EDialog.compose [ (fun u -> Some (mkenv [("name",x)])) ; ask_confirm_poweroff x ] in
     Widget.DynamicSubmenu.make 
      ~submenu:poweroff_menu
      ~menu:poweroff
@@ -1623,7 +1424,7 @@ module Talking_MATERIEL_MACHINE = struct
 
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  else
 
-            make [("name",n) ; ("action",c)  ; ("oldname",o) ; ("memory",m) ; ("eth",e) ;  
+            mkenv [("name",n) ; ("action",c)  ; ("oldname",o) ; ("memory",m) ; ("eth",e) ;  
               ("ttyS",s) ; ("distrib",d) ; ("patch",p)   ; ("kernel",k) ; ("term",t)  ]
      end in
 
@@ -1775,7 +1576,7 @@ end;; (* Talking_MATERIEL_DEVICE_COMMON *)
 
 
 (* **************************************** *
-      Module Talking_MATERIEL_HUB
+        Module Talking_HELP_A_PROPOS
  * **************************************** *)
 
 (** Edialog construction, binding with the main window and associated reaction for hub *)
@@ -1861,7 +1662,7 @@ module Talking_MATERIEL_HUB = struct
      let eth   = (string_of_int dialog#hub_ports#value_as_int)                           in
 
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  
-     else make [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
      end in
 
    (* Call the Dialog loop *)
@@ -1902,18 +1703,7 @@ module Talking_MATERIEL_HUB = struct
        let m = st#network#getDeviceByName name in
        m#resume)
 
-         (fun u -> st#network#getHubNames)
-         st#network#getDeviceByName
- ;;
-
-
-end;; (* Talking_MATERIEL_HUB *)
-
-
-
-(* **************************************** *
-      Module Talking_MATERIEL_SWITCH
- * **************************************** *)
+module Talking_HELP_A_PROPOS = struct
 
 (** Edialog construction, binding with the main window and associated reaction for switch. *)
 module Talking_MATERIEL_SWITCH = struct
@@ -1997,7 +1787,7 @@ module Talking_MATERIEL_SWITCH = struct
      let l     = dialog#switch_label#text                                                in
      let eth   = (string_of_int dialog#switch_ports#value_as_int)                        in
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  
-     else make [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
      end in
 
    (* Call the Dialog loop *)
@@ -2139,7 +1929,7 @@ module Talking_MATERIEL_ROUTER = struct
      let eth   = (string_of_int dialog#router_ports#value_as_int)                        in
 
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  
-     else make [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
      end in
 
    (* Call the Dialog loop *)
@@ -2372,7 +2162,7 @@ module Talking_MATERIEL_CABLE_RJ45 = struct
                     ("Connexion erronée", 
                      "Le cable ne peut pas être branché au même endroit des deux côtés!"))) else
 
-     let result = make [("name",n)       ; ("action",c)         ; ("oldname",o)      ; ("label",l) ;   
+     let result = mkenv [("name",n)       ; ("action",c)         ; ("oldname",o)      ; ("label",l) ;   
                          ("left_node",ln) ; ("left_recept",lr)   ; ("right_node",rn)  ; ("right_recept",rr)]
      in
 
@@ -2592,7 +2382,7 @@ module Talking_MATERIEL_CLOUD = struct
      if not (Str.wellFormedName n) then
        raise EDialog.IncompleteDialog
      else
-       make [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ; ]
+       mkenv [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ; ]
      end in
 
    (* Call the Dialog loop *)
@@ -2761,7 +2551,7 @@ module Talking_MATERIEL_SOCKET = struct
      let nm   = string_of_float dialog#socket_ip_netmask#value                         in
 
      if not (Str.wellFormedName n) then raise EDialog.IncompleteDialog  else
-            make [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ;    
+            mkenv [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ;    
                    ("ip_1",ip_1); ("ip_2",ip_2); ("ip_3",ip_3);  ("ip_4",ip_4); ("nm",nm) ]   
      end in
 
@@ -2842,173 +2632,21 @@ module Talking_MATERIEL_SOCKET = struct
          st#network#getGatewayByName
  ;;
 
-
-end;; (* Talking_MATERIEL_SOCKET *)
-
-
-
-
-(* **************************************** *
-      Module Talking_ADJUSTMENT
- * **************************************** *)
-
-(** Edialog construction, binding with the main window and associated reaction for
-   the ADJUSTMENT functionnalities *)
-module Talking_ADJUSTMENT = struct         
-
- (** Binding function *)
- let bind (st:globalState) =
- 
-  let (win,opt,net) = (st#mainwin, st#dotoptions, st#network) in 
-
-  (** Reaction for the iconsize adjustment *)
-  let iconsize_react () = if opt#are_gui_callbacks_disable then () else
-     begin
-     let size = opt#read_gui_iconsize () in
-     st#flash ~delay:4000 (utf8 ("Taille des icones fixée à la valeur "^size^" (default=large)"));     
-     st#refresh_sketch () ;
-     ()
-     end in
-
-  (** Reaction for the shuffle adjustment *)
-  let shuffle_react () =
-     begin
-      opt#set_shuffler (List.shuffleIndexes (net#nodes));
-      let namelist = net#getNodeNames => ( (List.permute opt#get_shuffler) || String.Text.to_string ) in
-      st#flash ~delay:4000 (utf8 ("Icones réagencées de façon aléatoire : "^namelist));     
-      st#refresh_sketch () ;
-      ()
-      end in
-
-  (** Reaction for the unshuffle adjustment *)
-  let unshuffle_react () =
-     begin
-      opt#reset_shuffler ();
-      let namelist = (net#getNodeNames => String.Text.to_string) in 
-      st#flash ~delay:4000 (utf8 ("Icones dans l'agencement prédéfini : "^namelist));     
-      st#refresh_sketch () ;
-      ()
-      end in
-
-  (** Reaction for the rankdir adjustments *)
-  let rankdir_react x () =
-     begin
-      let old = st#dotoptions#rankdir in
-      st#dotoptions#set_rankdir x; 
-      let msg = match x with 
-      | "TB" -> "Tracer les arcs du haut vers le bas (default)" 
-      | "LR" -> "Tracer les arcs de la gauche vers la droite" 
-      | _    -> "Not valid Rankdir" in 
-      st#flash ~delay:4000 (utf8 msg);     
-      if x<>old then st#refresh_sketch () ;
-      ()
-      end in
-
-  (** Reaction for the nodesep adjustment *)
-  let nodesep_react () = if opt#are_gui_callbacks_disable then () else
-     begin
-      let y = opt#read_gui_nodesep () in
-      st#flash (utf8 ("Taille minimale des arcs (distance entre noeuds) fixées à la valeur "^
-                     (string_of_float y)^" (default=0.5)"));     
-      st#refresh_sketch () ;
-      ()
-     end in
-
-  (** Reaction for the labeldistance adjustment *)
-  let labeldistance_react () = if opt#are_gui_callbacks_disable then () else
-     begin
-      let y = opt#read_gui_labeldistance () in
-      st#flash (utf8 ("Distance entre sommets et étiquettes fixée à la valeur "^
-                     (string_of_float y)^" (default=1.6)"));     
-      st#refresh_sketch () ;
-      ()
-     end in
-
-  (** Reaction for the extrasize_x adjustment *)
-  let extrasize_react () = if opt#are_gui_callbacks_disable then () else
-     begin
-      let x = () => (opt#read_gui_extrasize || int_of_float || string_of_int) in
-      st#flash (utf8 ("Taille du canevas fixée à +"^x^
-                      "% de la valeur suffisante à contenir le graphe (default=0%)"));     
-      st#refresh_sketch () ;
-      ()
-     end in
-
-
-  (** Reaction for a rotate adjustment *)
-  let rotate_react (st:globalState) x () = 
-     begin
-      st#network#invertedCableToggle x ;
-      st#flash (utf8 ("Cable "^x^" (re)inversé"));     
-      st#refresh_sketch () ;
-      ()
-     end in
-
-
-  (* Binding iconsize adjustment *)
-  win#adj_iconsize#connect#value_changed        iconsize_react       => ignore ;
-  win#adj_shuffle#connect#clicked               shuffle_react        => ignore ;
-  win#adj_unshuffle#connect#clicked             unshuffle_react      => ignore ;
-  win#adj_rankdir_TB#connect#clicked           (rankdir_react "TB")  => ignore ;
-  win#adj_rankdir_LR#connect#clicked           (rankdir_react "LR")  => ignore ;
-  win#adj_nodesep#connect#value_changed         nodesep_react        => ignore ;
-  win#adj_labeldistance#connect#value_changed   labeldistance_react  => ignore ;
-  win#adj_extrasize#connect#value_changed       extrasize_react      => ignore ;
-
-
- (** Generic binding for rotate menus. *)
- let bind_rotate_menu (st:globalState) what what_menu react_rotate getElementNames =
-
-    let set_active cname = (List.mem cname st#network#invertedCables) in
-   
-    (Widget.DynamicSubmenu.make ~set_active  ~submenu:what_menu  ~menu:what  ~dynList:getElementNames
-                               ~action:(fun x ->fun via -> react_rotate st x via) ()) ;   ()  in 
-
-
- (* Binding for DROIT *)
- bind_rotate_menu st 
-     st#mainwin#imagemenuitem_ROTATE_DROIT 
-     st#mainwin#imagemenuitem_ROTATE_DROIT_menu 
-     rotate_react 
-     (fun u -> st#network#getDirectCableNames) ;
-
- (* Binding for CROISE *)
- bind_rotate_menu st 
-     st#mainwin#imagemenuitem_ROTATE_CROISE 
-     st#mainwin#imagemenuitem_ROTATE_CROISE_menu 
-     rotate_react
-     (fun u -> st#network#getCrossedCableNames) ;
-
- (* Binding for SERIE *)
- bind_rotate_menu st 
-     st#mainwin#imagemenuitem_ROTATE_SERIE
-     st#mainwin#imagemenuitem_ROTATE_SERIE_menu 
-     rotate_react
-     (fun u -> st#network#getSerialCableNames) ;
-
-  ()
-
- ;; (* end of Talking_ADJUSTMENT.bind *)
-
-
-end;; (* Talking_ADJUSTMENT *)
-
+end;; (* Talking_HELP_A_PROPOS *)
 
 
 (* **************************************** *
       Module Talking_BOTTOM_BUTTONS
  * **************************************** *)
 
-(** Edialog construction, binding with the main window and associated reaction for
-   the BOTTOM_BUTTONS functionnalities *)
-module Talking_BOTTOM_BUTTONS = struct         
+module Talking_BASE_BUTTONS = struct
  (** Binding function *)
  let bind (st:globalState) =
- 
-  let (win,opt,net) = (st#mainwin, st#dotoptions, st#network) in 
-  ignore (win#startup_everything#connect#clicked
+
+  let (win,opt,net) = (st#mainwin, st#dotoptions, st#network) in
+  ignore (win#button_BASE_STARTUP_EVERYTHING#connect#clicked
     ~callback:(fun () -> startup_everything st ()));
-  ignore (win#shutdown_everything#connect#clicked
+  ignore (win#button_BASE_SHUTDOWN_EVERYTHING#connect#clicked
     ~callback:(fun () ->
       match Simple_dialogs.confirm_dialog
           ~question:"Etes-vous sûr de vouloir arrêter\ntous les composants en exécution ?"
@@ -3017,7 +2655,7 @@ module Talking_BOTTOM_BUTTONS = struct
       | Some false -> ()
 (*      | None -> assert false));*)
       | None -> ()));
-  ignore (win#poweroff_everything#connect#clicked
+  ignore (win#button_BASE_POWEROFF_EVERYTHING#connect#clicked
     ~callback:(fun () ->
       match Simple_dialogs.confirm_dialog
           ~question:("Etes-vous sûr de vouloir débrancher le courant\nà tous les composants en exécution (power off) ?\n\n"^
@@ -3027,48 +2665,5 @@ module Talking_BOTTOM_BUTTONS = struct
       | Some false -> ()
 (*      | None -> assert false));;*)
       | None -> () ));;
-end;; (* Talking_BOTTOM_BUTTONS *)
+end;; (* Talking_BASE_BUTTONS *)
 
-(* **************************************** *
-           Module Talking_OTHER_STUFF
- * **************************************** *)
-
-module Talking_OTHER_STUFF = struct
- (** Binding function *)
- let bind (st:globalState) =
-   let (win,opt,net) = (st#mainwin, st#dotoptions, st#network) in 
-   let autogenerate_ip_addresses =
-     win#imgitem_autogenerate_ip_addresses in
-   let debug_mode =
-     win#imgitem_debug_mode in
-   let workaround_wirefilter_problem =
-     win#imgitem_workaround_wirefilter_problem in
-   (* Also set the default here, so that we don't have to make the Glade interface
-      coherent with the defaults in Global_options: *)
-   autogenerate_ip_addresses#set_active
-     Global_options.autogenerate_ip_addresses_default;
-   debug_mode#set_active
-     Global_options.debug_mode_default;
-   workaround_wirefilter_problem#set_active
-     Global_options.workaround_wirefilter_problem_default;
-   (* Here come the actual bindings: *)
-   let _ =
-     autogenerate_ip_addresses#connect#toggled
-       ~callback:(fun () ->
-         Log.printf "You toggled the option (IP)\n"; flush_all ();
-         Global_options.set_autogenerate_ip_addresses
-           autogenerate_ip_addresses#active) in
-   let _ =
-     debug_mode#connect#toggled
-       ~callback:(fun () ->
-         Log.printf "You toggled the option (debug)\n"; flush_all ();
-         Global_options.set_debug_mode
-           debug_mode#active) in
-   let _ =
-     workaround_wirefilter_problem#connect#toggled
-       ~callback:(fun () ->
-         Log.printf "You toggled the option (wf)\n"; flush_all ();
-         Global_options.set_workaround_wirefilter_problem
-           workaround_wirefilter_problem#active) in
-   ();;
-end;; (* Talking_OTHER_STUFF *)

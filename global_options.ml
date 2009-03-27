@@ -16,7 +16,6 @@
 
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Recursive_mutex;;
-
 let mutex = create ();;
 
 (** Here we only use one mutex; let's not specify it every time: *)
@@ -32,13 +31,13 @@ let debug_mode =
 let set_debug_mode value =
   with_mutex
     (fun () ->
-      Log.printf "'Debug mode' now has value %b\n" value; flush_all ();
+(*      Log.printf "'Debug mode' now has value %b\n" value; flush_all ();*)
       debug_mode := value);;
 let get_debug_mode () =
   with_mutex
     (fun () ->
       let result = !debug_mode in
-      Log.printf "Are we in debug mode? %s\n" (if result then "YES" else "NO"); flush_all ();
+(*      Log.printf "Are we in debug mode? %s\n" (if result then "YES" else "NO"); flush_all ();*)
       result);;
 
 (** Automatically generate IP addresses: *)
@@ -50,7 +49,7 @@ let autogenerate_ip_addresses =
 let set_autogenerate_ip_addresses value =
   with_mutex
     (fun () ->
-      Log.printf "'Autogenerate IP addresses' now has value %b\n" value; flush_all ();
+(*      Log.printf "'Autogenerate IP addresses' now has value %b\n" value; flush_all ();*)
       autogenerate_ip_addresses := value);;
 let get_autogenerate_ip_addresses () =
   with_mutex
@@ -65,7 +64,7 @@ let workaround_wirefilter_problem =
 let set_workaround_wirefilter_problem value =
   with_mutex
     (fun () ->
-      Log.printf "'Work-around the wirefilter problem' now has value %b\n" value; flush_all ();
+(*      Log.printf "'Work-around the wirefilter problem' now has value %b\n" value; flush_all ();*)
       workaround_wirefilter_problem := value);;
 let get_workaround_wirefilter_problem () =
   with_mutex
@@ -89,18 +88,18 @@ let keyboard_layout =
     default_layout;;
 
 (** Project working directory: *)
-let project_working_directory_default =
+let project_working_directory_default : string option =
   None;;
-let project_working_directory =
+let project_working_directory = 
   ref project_working_directory_default;;
 let set_project_working_directory value =
   with_mutex
     (fun () ->
-      Log.printf "'Project working directory' now has value %s\n"
+(*      Log.printf "'Project working directory' now has value %s\n"
         (match value with
         | None -> "(none)"
         | Some value -> value);
-      flush_all ();
+      flush_all ();*)
       project_working_directory := value);;
 let get_project_working_directory () =
   with_mutex

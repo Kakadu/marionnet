@@ -89,10 +89,10 @@ object(self)
     flush_all ();
 *)
   method add_cable cable_name cable_type left_endpoint_name right_endpoint_name =
-    let cable_type = 
+    let cable_type =
       match cable_type with
       | "direct"     -> "straight-cable"
-      | "crossed"    -> "crossover-cable"
+      | "crossover"  -> "crossover-cable"
       | "nullmodem"  -> assert false
       | _ -> assert false in 
     let cable_row_id =

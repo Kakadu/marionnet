@@ -95,7 +95,7 @@ let with_mutex mutex thunk =
     result
   with e -> begin
     unlock mutex;
-    Log.printf
+    Printf.printf
       "with_mutex: exception %s raised in critical section.\n  Unlocking and re-raising.\n"
       (Printexc.to_string e);
     raise e;

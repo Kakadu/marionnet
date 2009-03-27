@@ -17,8 +17,8 @@
 
 (** Are we in debug mode? We can check this once and for all, as this
     setting can't be changed at runtime: *)
-let debug_mode =
-  Initialization.configuration#bool "MARIONNET_DEBUG";;
+(*let debug_mode () = Global_options.get_debug_mode () ;;*)
+(*  Initialization.configuration#bool "MARIONNET_DEBUG";;*)
 
 (** This is useful to suppress logs in non-debugging mode: we simply
     print to /dev/null instead of /dev/stdout: *)
@@ -44,7 +44,7 @@ module MyOverriddenFunctions : MyOverriddenFunctionsSignature = struct
       whether we're in debug mode or not: *)
   let printf format_string =
     Obj.magic
-      (if Initialization.configuration#bool "MARIONNET_DEBUG" then
+      (if Global_options.get_debug_mode () then
         Printf.printf format_string
       else
         Printf.ifprintf dev_null_output_channel format_string);;
@@ -52,7 +52,7 @@ module MyOverriddenFunctions : MyOverriddenFunctionsSignature = struct
   (** Take a function from pervasives and either return it unchanged or
       return a noop function, according to whether we're in debug mode: *)
   let pervasive_or_noop pervasive parameter =
-    if Initialization.configuration#bool "MARIONNET_DEBUG" then
+    if Global_options.get_debug_mode () then
       pervasive parameter
     else
       ();;

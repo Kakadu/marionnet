@@ -20,83 +20,33 @@
     bindings between widgets of the main window and dialogs are created, and
     finally the GTK main loop is launched. *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
-open StdLabels;;
-open Gui;;
+open PreludeExtra.Prelude (* We want synchronous terminal output *)
+open StdLabels
+open Gui
 
-open Environment;;
-open State;;
-open Talking;;
-open Filesystem_history;;
-open Network_details_interface;;
-open Defects_interface;;
-open Texts_interface;;
+open State
+open Talking
+open Filesystem_history
+open Network_details_interface
+open Defects_interface
+open Texts_interface
 
-Random.self_init ();;
+let () = Random.self_init ()
 
-(** The global state containing the main window (st#mainwin) and all relevant dynamic 
+(** The global state containing the main window (st#mainwin) and all relevant dynamic
     attributes of the application *)
-let st = new globalState () ;;
+let st = new globalState () 
 
 (** Add a global thunk allowing to invoke the sketch refresh method, visible from many
     modules: *)
-Mariokit.set_refresh_sketch_thunk
-  (fun () -> st#refresh_sketch ());;
+let () = Mariokit.set_refresh_sketch_thunk (fun () -> st#refresh_sketch ())
+let () = st#gui_coherence ()
 
-st#gui_coherence ();;
+module State     = struct let st = st end
 
-(* ***************************************** *
-         Bindings for MENU's entries 
- * ***************************************** *)
-
-(** Bindings for menu PROJET *)
-Talking_PROJET_NOUVEAU.bind          st ;;
-Talking_PROJET_OUVRIR.bind           st ;;
-Talking_PROJET_FERMER.bind           st ;;
-Talking_PROJET_IMPORTER_RESEAU.bind  st ;;
-Talking_PROJET_EXPORTER_RESEAU.bind  st ;;
-Talking_PROJET_EXPORTER_IMAGE.bind    st ;;
-Talking_PROJET_QUITTER.bind          st ;;
-Talking_PROJET_ENREGISTRER.bind      st ;;
-Talking_PROJET_ENREGISTRER_SOUS.bind st ;;
-Talking_PROJET_COPIER_SOUS.bind      st ;;
-
-(** Bindings for menu OPTIONS *)
-Talking_OPTIONS_CWD.bind    st ;;
-
-(** Bindings for menu AIDE *)
-Talking_PROJET_AIDE_APROPOS.bind    st ;;
-
-(* ***************************************** *
-       Bindings for MATERIEL's entries 
- * ***************************************** *)
-
-(** Bindings for MACHINE *)
-
-Talking_MATERIEL_MACHINE.bind                               st   ;;
-Talking_MATERIEL_HUB.bind                                   st   ;;
-Talking_MATERIEL_SWITCH.bind                                st   ;;
-Talking_MATERIEL_ROUTER.bind                                st   ;;
-
-Talking_MATERIEL_CABLE_RJ45.bind  Mariokit.Netmodel.Direct  st   ;;
-Talking_MATERIEL_CABLE_RJ45.bind  Mariokit.Netmodel.Crossed st   ;;
-Talking_MATERIEL_CLOUD.bind                                 st   ;;
-Talking_MATERIEL_SOCKET.bind                                st   ;;
-
-Talking_ADJUSTMENT.bind                                     st   ;;
-
-(* Debugging *)
-(*let _ = st#mainwin#imgitem_DEBUG_TESTER_SCRIPTS#connect#activate ~callback:(fun _ ->st#network#show);;*)
-(*let _ = st#mainwin#imgitem_DEBUG_TESTER_SCRIPTS#connect#activate ~callback:(fun _ ->prerr_endline (st#network#dotTrad st#dotoptions));;
-*)
-(*
-let _ = st#mainwin#imgitem_DEBUG_TESTER_SCRIPTS#connect#activate ~callback:(fun _ ->prerr_endline (st#network#xml));;
-*)
-(* ***************************************** *
-            Other 'global' bindings 
- * ***************************************** *)
-Talking_BOTTOM_BUTTONS.bind st   ;;
-Talking_OTHER_STUFF.bind st   ;;
+(* Complete the main menu *)
+module Created_window_MARIONNET   = Gui_window_MARIONNET.   Make (State)
+module Created_toolbar_COMPONENTS = Gui_toolbar_COMPONENTS. Make (State)
 
 (* ***************************************** *
             Make the treeview widgets
@@ -105,15 +55,16 @@ Talking_OTHER_STUFF.bind st   ;;
 let filesystem_history_interface =
   Filesystem_history.make_states_interface
     ~packing:(st#mainwin#filesystem_history_viewport#add)
-    ();;
+    ()
+
 (** See the comment in states_interface.ml for why we need this ugly kludge: *)
-Filesystem_history.set_startup_functions
+let () = Filesystem_history.set_startup_functions
   (fun name ->
     let node = st#network#getNodeByName name in
     node#can_startup)
   (fun name ->
     let node = st#network#getNodeByName name in
-    node#startup);;
+    node#startup)
 
 let shutdown_or_restart_relevant_device device_name =
   Log.printf "Shutdown or restart \"%s\".\n" device_name;
@@ -131,25 +82,28 @@ let shutdown_or_restart_relevant_device device_name =
        and hublets are restarted: *)
     let d = st#network#getNodeByName device_name in
     d#destroy;
-  end;;
+  end
 
 (** Make the network details interface: *)
 let network_details_interface =
   make_network_details_interface
     ~packing:(st#mainwin#network_details_viewport#add)
     ~after_user_edit_callback:shutdown_or_restart_relevant_device
-    ();;
+    ()
+
 (** Make the defects interface: *)
 let defects_interface =
   make_defects_interface
     ~packing:(st#mainwin#defects_viewport#add)
     ~after_user_edit_callback:shutdown_or_restart_relevant_device
-    ();;
+    ()
+
 (** Make the texts interface: *)
 let texts_interface =
   make_texts_interface
     ~packing:(st#mainwin#texts_viewport#add)
-    ();;
+    ()
+
 (* ***************************************** *
                    M A I N
  * ***************************************** *)
@@ -160,14 +114,14 @@ let texts_interface =
 (** Timeout for refresh the state_coherence *)
 (* let id = GMain.Timeout.add ~ms:1000 ~callback:(fun () -> st#state_coherence ();true) ;; *)
 
-Log.print_string "Starting the application\n";;
+let () = Log.print_string "Starting the application\n"
 
 (* GMain.Main.main ();; *)
 
 (* let () = ignore (GtkMain.Main.init ());; *)
 (* let guiThread = GtkThread.start () in (\* start GUI thread *\)  *)
 (* Thread.join guiThread;; *)
-
+let () = 
 (try
   Daemon_client.initialize_daemon_client ();
   Daemon_client.start_thread_sending_keepalives ();
@@ -179,22 +133,23 @@ with e -> begin
        "FRENCH Connecting to the Marionnet daemon failed (%s); Marionnet will work, but some features (graphics on virtual machines and host sockets) won't be available."
        (Printexc.to_string e))
     ();
-end);;
+end)
 
 (** Show the splash: *)
-Splash.show_splash (* ~timeout:15000 *) ();;
+let () = Splash.show_splash (* ~timeout:15000 *) ()
 
 (** Choose a reasonable working directory: *)
-(if Shell.dir_comfortable "/tmp" then
+let () = (if Shell.dir_comfortable "/tmp" then
   st#set_wdir "/tmp"
 else if Shell.dir_comfortable "~/tmp" then
   st#set_wdir "~/tmp"
 else
-  failwith "Please create either /tmp or your home directory on some reasonable modern filesystem supporting sparse files");;
+  failwith "Please create either /tmp or your home directory on some reasonable modern filesystem supporting sparse files")
 
 (* Check that we're *not* running as root. Yes, this has been reversed
    since the last version: *)
-Log.printf "Checking whether Marionnet is running as root...\n";;
+let () = begin
+Log.printf "Checking whether Marionnet is running as root...\n";
 if (Unix.getuid ()) = 0 then begin
   Log.printf "\n**********************************************\n";
   Log.printf "* Marionnet should *not* be run as root, for * \n";
@@ -207,7 +162,8 @@ if (Unix.getuid ()) = 0 then begin
 [To do: write a longer, cleaner message...]
 Continuing anyway."
     ();
-end;;
+end
+end
 
 (* To do: move this into UnixExtra or something like that: *)
 (** Run system with the given argument, and raise exception in case of failure;
@@ -221,7 +177,7 @@ let system_or_fail command_line =
   | Unix.WEXITED n ->
       failwith (Printf.sprintf "Unix.system: the process exited with %i" n)
   | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
-      failwith "Unix.system: the process was signaled or stopped";;
+      failwith "Unix.system: the process was signaled or stopped"
 
 (** Make sure that the user installed all the needed software: *)
 let check_dependency command_line error_message =
@@ -231,44 +187,56 @@ let check_dependency command_line error_message =
     Simple_dialogs.error
       "FRENCH Unsatisfied dependency"
       (error_message ^ "\nFRENCH Continuing anyway, but *some important features will be missing*.")
-      ();;
+      ()
 
 (** Check whether we have UML computer filesystems: *)
-check_dependency
+let () = check_dependency
   (Printf.sprintf
     "ls -l %s/machine-default &> /dev/null"
     Initialization.marionnet_home_filesystems)
-  "FRENCH You don't have a default filesystem for virtual computers";;
+  "FRENCH You don't have a default filesystem for virtual computers"
 
 (** Check whether we have UML router filesystems: *)
-let command_line =
+let () = begin
+ let command_line =
   (Printf.sprintf
     "ls -l %s/router-%s &> /dev/null"
-    Initialization.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in 
+    Pathnames.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in 
 check_dependency
   command_line
-  ("FRENCH You don't have a default filesystem for virtual routers (" ^ command_line ^")");;
+  ("FRENCH You don't have a default filesystem for virtual routers (" ^ command_line ^")")
+  end
 
 (** Check whether we have UML kernels: *)
-check_dependency
+let () = check_dependency
   (Printf.sprintf
     "ls -l %s/linux-default &> /dev/null"
     Initialization.marionnet_home_kernels)
-  "FRENCH You don't have a default UML kernel";;
+  "FRENCH You don't have a default UML kernel"
 
 (** Check whether we have (our patched) VDE: *)
-check_dependency
+let () = check_dependency
   ("which `basename " ^ Initialization.vde_prefix ^ "vde_switch` &> /dev/null")
-  "FRENCH You don't have VDE";;
+  "FRENCH You don't have VDE"
 
 (** Check whether we have Graphviz: *)
-check_dependency
+let () = check_dependency
   "which dot &> /dev/null"
-  "FRENCH You don't have Graphviz";;
+  "FRENCH You don't have Graphviz"
+
+let () = begin
 
 (** Set the main window icon (which may be the exam icon...), and the window title: *)
-st#mainwin#toplevel#set_icon (Some Icon.icon_pixbuf);;
-st#mainwin#window_MARIONNET#set_title Command_line.window_title;;
+st#mainwin#toplevel#set_icon (Some Icon.icon_pixbuf);
+st#mainwin#window_MARIONNET#set_title Command_line.window_title;
+
+(*st#mainwin#window_MARIONNET#event#connect#key_press
+    ~callback:(fun ev -> (Printf.eprintf "Marionnet: Key pressed: %s\n" (GdkEvent.Key.string ev)); (flush stderr); true);*)
+
+st#add_sensitive_when_Active   st#mainwin#notebook_CENTRAL#coerce;
+st#add_sensitive_when_Runnable st#mainwin#hbuttonbox_BASE#coerce ;
+st#gui_coherence ();
 
 (** Enter the GTK+ main loop: *)
-GtkThread.main ();;
+GtkThread.main ()
+end

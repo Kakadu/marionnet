@@ -22,11 +22,7 @@ module Make (State : sig val st:State.globalState end) = struct
 open State
 let w = st#mainwin
 
-(* Window 'x' button *)
-let _ = w#toplevel#connect#destroy
-         ~callback:(Talking.Talking_PROJECT_QUIT.make_callback st ~user_can_cancel:false)
-
- (* Labels in main window *)
+(* Labels in main window *)
 let () = begin
  w#label_VIRTUAL_NETWORK#set_text "Réseau virtuel";
  w#label_TAB_DOCUMENTS#set_text   "Documents du projet"

@@ -38,6 +38,9 @@ let lock_sketch () =
 let unlock_sketch () =
   Mutex.unlock sketch_mutex;;
 
+let commit_suicide signal =
+  raise Exit;;
+
 (** Model for the global state of the application.
     The sensitive or visible properties of some widgets depend on this value.*)
 type application_state =
@@ -669,6 +672,28 @@ There is no need to restart the application."
   end
 
  (* End of functions moved from talking.ml *)
+
+ method quit () =
+   Log.print_string ">>>>>>>>>>QUIT: BEGIN<<<<<<<<\n";
+   (* Shutdown all devices and synchronously wait until they actually terminate: *)
+   self#shutdown_everything ();
+   Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
+   self#close_project (); (* destroy the temporary project directory *)
+   Log.print_endline ("globalState#quit: .react: Calling mrPropre...");
+   self#mrPropre ();
+   GMain.Main.quit (); (* Finalize the GUI *)
+   Log.print_string "Killing the task runner thread...\n";
+   Task_runner.the_task_runner#terminate;
+   Log.print_string "Killing the death monitor thread...\n";
+   Death_monitor.stop_polling_loop ();
+   Log.print_string "Killing the blinker thread...\n";
+   self#network#ledgrid_manager#kill_blinker_thread;
+   Log.print_string "...ok, the blinker thread was killed (from talking.ml).\n";
+   Log.print_string "Sync, then kill our process (To do: this is a very ugly kludge)\n";
+   flush_all ();
+   Log.print_string "Synced.\n";
+   commit_suicide Sys.sigkill; (* this always works :-) *)
+   Log.print_string "!!! This should never be shown.\n";;
 
  method mrPropre () =
     if not (app_state=NoActiveProject) then raise (Failure "A project is still open, I cannot clean the wdir!")

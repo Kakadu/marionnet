@@ -37,9 +37,6 @@ open Defects_interface;;
 (* Shortcuts *)
 let mkenv = Environment.make_string_env ;;
 
-let commit_suicide signal =
-  raise Exit;;
-
 (* **************************************** *
               Module MSG
  * **************************************** *)
@@ -911,85 +908,3 @@ module Talking_PROJECT_EXPORT_NETWORK_IMAGE = struct
   ;;
 
 end;; (* Talking_PROJECT_EXPORT_NETWORK_IMAGE *)
-
-
-(* **************************************** *
-        Module Talking_PROJECT_QUIT
- * **************************************** *)
-
-
-module Talking_PROJECT_QUIT = struct
-
- (** The name of this module (for debugging purposes) *)
- let  myname = "talking_PROJECT_QUIT" ;;
-
- (** The type of command provided by user by this graphical dialog *)
- class usercmd = fun (r: (string,string) env) -> object
-   method answer  : string = r#get("answer")
- end;;
-
- let quit (st:globalState) =
-   Log.print_string ">>>>>>>>>>QUIT: BEGIN<<<<<<<<\n";
-   (* Shutdown all devices and synchronously wait until they actually terminate: *)
-   st#shutdown_everything ();
-   Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
-   st#close_project (); (* destroy the temporary project directory *)
-   Log.print_endline (myname^".react: Calling mrPropre...");
-   st#mrPropre ();
-   GMain.Main.quit (); (* Finalize the GUI *)
-
-   Log.print_string "Killing the task runner thread...\n";
-   Task_runner.the_task_runner#terminate;
-   Log.print_string "Killing the death monitor thread...\n";
-   Death_monitor.stop_polling_loop ();
-   Log.print_string "Killing the blinker thread...\n";
-   st#network#ledgrid_manager#kill_blinker_thread;
-   Log.print_string "...ok, the blinker thread was killed (from talking.ml).\n";
-   Log.print_string "Sync, then kill our process (To do: this is a very ugly kludge)\n";
-   flush_all ();
-   Log.print_string "Synced.\n";
-   (* install_signal_handler Sys.sigint;
-      install_signal_handler Sys.sigterm; *)
-   commit_suicide Sys.sigkill; (* this always works :-) *)
-   Log.print_string "!!! This should never be shown.\n";;
-
- (** The correspondent reaction of the application for the command given by user *)
- let react (st:globalState) (msg: (string,string) env option) =
-   Log.print_string ">>>>>>>>>>QUITTING: THERE SHOULD BE NOTHING BEFORE THIS<<<<<<<<\n";
-   begin
-     match msg with
-     | Some r ->
-         begin
-           try
-             let cmd = (new usercmd r) in
-             Log.print_endline (myname^".react: answer="^cmd#answer);
-             if (st#active_project) && (cmd#answer="yes") then
-               st#save_project ();
-             quit st;
-           with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
-         end
-     | None -> begin
-         Log.print_string ">>>>>>>>>>*NOT* QUITTING: the user chose 'cancel'<<<<<<<<\n";
-         Log.print_endline (myname^".react: NOTHING TO DO")
-       end
-   end;
- ;;
-
- let make_callback (st:globalState) ~user_can_cancel =
-  let confirm () = EDialog.ask_question
-       ~title:"QUITTER"
-       ~question:"Voulez-vous enregistrer\nle projet courant avant de quitter ?"
-       ~help:None
-       ~cancel:user_can_cancel
-       ()
-   in
-    fun token ->
-       if (st#active_project)
-        then react st ((EDialog.compose [confirm]) token)
-        else react st (Some (mkenv [("answer","no")]))
- ;;
-
- let callback (st:globalState) = make_callback st ~user_can_cancel:true
- ;;
-
-end;; (* Talking_PROJECT_QUIT *)

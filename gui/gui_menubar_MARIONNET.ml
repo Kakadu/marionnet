@@ -46,7 +46,29 @@ let project_close   = add_stock_item "Fermer"           ~stock:`CLOSE   ~key:_W 
 let separator       = project#add_separator ()
 
 let project_export  = add_stock_item "Exporter image"   ~stock:`CONVERT         ~callback:(Talking_PROJECT_EXPORT_NETWORK_IMAGE.callback st) ()
-let project_quit    = add_stock_item "Quitter"          ~stock:`QUIT    ~key:_Q ~callback:(Talking_PROJECT_QUIT.callback st)                 ()
+
+module Created_entry_project_quit = Menu_factory.Make_entry
+ (struct
+   let text  = "Quitter"
+   let stock = `QUIT
+   let key   = (Some _Q)
+   let dialog () =
+    if (st#active_project = false)
+     then (Some (mkenv [("answer","no")]))
+     else Talking.EDialog.ask_question ~help:None ~cancel:true
+           ~title:"QUITTER"
+           ~question:"Voulez-vous enregistrer\nle projet courant avant de quitter ?"
+           ()
+   let reaction r =
+    let () = if (st#active_project) && ((r#get "answer") = "yes")
+      then st#save_project ()
+      else ()
+    in st#quit ()
+
+  end) (F)
+let project_quit = Created_entry_project_quit.item
+
+(*let project_quit    = add_stock_item "Quitter"          ~stock:`QUIT    ~key:_Q ~callback:(Talking_PROJECT_QUIT.callback st)                 ()*)
 
 (* Menu "Options" *)
 
@@ -64,8 +86,6 @@ module Created_entry_options_cwd = Menu_factory.Make_entry
    let reaction r = st#set_wdir (r#get "foldername")
   end) (F)
 let options_cwd = Created_entry_options_cwd.item
-
-(*let options_cwd     = add_stock_item "Changer le répertoire de travail" ~stock:`DIRECTORY ~callback:(Talking_OPTIONS_CWD.callback st) ()*)
 
 let options_autogenerate_ip_addresses =
  add_check_item "Auto-génération des adresses IP"

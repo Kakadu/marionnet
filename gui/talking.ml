@@ -37,81 +37,8 @@ open Defects_interface;;
 (* Shortcuts *)
 let mkenv = Environment.make_string_env ;;
 
-let install_signal_handler signal =
-  Sys.set_signal
-    signal
-    (Sys.Signal_handle
-       (fun _ ->
-       Log.printf "\n\n\nWe got a signal. Now we're gonna exit like a good-mannered\n";
-       Log.printf "polite process which always calls exit(EXIT_SUCCESS).\n\n\n";
-         flush_all ();
-         exit 0));;
-
 let commit_suicide signal =
   raise Exit;;
-  (* let my_pid = Unix.getpid () in *)
-  (* try *)
-  (*   (\* Be sure that every write operation is synced before committing suicide: *\) *)
-  (*   flush_all (); *)
-  (*   Log.printf "!! Sending the signal %i to the Marionnet process...\n" signal; flush_all (); *)
-  (*   Unix.kill my_pid Sys.sigkill; *)
-  (* with _ -> begin *)
-  (*   Log.printf "!! Sending the signal %i to the Marionnet process failed. Mmm. Very strange.\n" signal; *)
-  (*   flush_all (); *)
-  (* end;; *)
-
-let make_names_and_thunks st verb what_to_do_with_a_node =
-  List.map
-    (fun node -> (verb ^ " " ^ node#get_name,
-                  fun () ->
-                    let progress_bar =
-                      make_progress_bar_dialog
-                        ~title:(verb ^ " " ^ node#get_name)
-                        ~text_on_bar:"Patientez s'il vous plaît..." () in
-                    (try
-                      what_to_do_with_a_node node;
-                    with e ->
-                      Log.printf "Warning (q): \"%s %s\" raised an exception (%s)\n"
-                        verb
-                        node#name
-                        (Printexc.to_string e));
-                    flush_all ();
-                    destroy_progress_bar_dialog progress_bar))
-    st#network#nodes;;
-
-let do_something_with_every_node_in_sequence st verb what_to_do_with_a_node =
-  List.iter
-    (fun (name, thunk) ->
-        Task_runner.the_task_runner#schedule ~name thunk)
-    (make_names_and_thunks st verb what_to_do_with_a_node);;
-
-let do_something_with_every_node_in_parallel st verb what_to_do_with_a_node =
-  Task_runner.the_task_runner#schedule_parallel
-    (make_names_and_thunks st verb what_to_do_with_a_node);;
-
-let startup_everything st () =
-  do_something_with_every_node_in_sequence
-    st "Startup"
-    (fun node -> node#startup_right_now);;
-let shutdown_everything st () =
-  do_something_with_every_node_in_parallel
-    st "Shut down"
-    (fun node -> node#gracefully_shutdown_right_now);;
-let poweroff_everything st () =
-  do_something_with_every_node_in_sequence
-    st "Power-off"
-    (fun node -> node#poweroff_right_now);;
-
-(** Return true iff there is some node on or sleeping *)
-let is_there_something_on_or_sleeping st () =
-  let result =
-    List.exists
-      (fun node -> node#can_gracefully_shutdown or node#can_resume)
-      st#network#nodes
-  in
-  Log.print_string ("Is there something running? " ^ (if result then "yes" else "no") ^ "\n");
-  result;;
-
 
 (* **************************************** *
               Module MSG
@@ -697,7 +624,7 @@ module Talking_PROJECT_NEW = struct
    | Some r ->
      begin
      try
-       shutdown_everything st ();
+       st#shutdown_everything ();
        let cmd = (new usercmd r) in
        cmd#log ~header:(myname^".react: ");
        let fname = check_path_name_validity_and_add_extension_if_needed cmd#filename in
@@ -749,7 +676,7 @@ module Talking_PROJECT_OPEN = struct
  | Some r ->
      begin
      try
-       shutdown_everything st ();
+       st#shutdown_everything ();
        let cmd = (new usercmd r) in
        cmd#log ~header:(myname^".react: ");
        if (st#active_project) && (cmd#save_current) then st#save_project ();
@@ -795,7 +722,7 @@ end;; (* Talking_PROJET_OPEN *)
 module Talking_PROJECT_SAVE = struct
 
  let callback (st:globalState) () =
-   if is_there_something_on_or_sleeping st ()
+   if st#is_there_something_on_or_sleeping ()
 	then Msg.error_saving_while_something_up ()
         else st#save_project ();;
 end;;
@@ -820,7 +747,7 @@ module Talking_PROJECT_SAVE_AS = struct
  let react (st:globalState) (msg: (string,string) env option) = match msg with (* TO IMPLEMENT *)
  | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
  | Some r ->
-     if is_there_something_on_or_sleeping st () then Msg.error_saving_while_something_up ()
+     if st#is_there_something_on_or_sleeping () then Msg.error_saving_while_something_up ()
      else begin
        try
          let cmd = (new usercmd r) in
@@ -866,7 +793,7 @@ module Talking_PROJECT_COPY_INTO = struct
  let react (st:globalState) (msg: (string,string) env option) = match msg with (* TO IMPLEMENT *)
  | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
  | Some r ->
-     if is_there_something_on_or_sleeping st () then Msg.error_saving_while_something_up ()
+     if st#is_there_something_on_or_sleeping () then Msg.error_saving_while_something_up ()
      else begin
        try
          let cmd = (new usercmd r) in
@@ -917,7 +844,7 @@ module Talking_PROJECT_CLOSE = struct
  | Some r ->
      begin
      try
-       shutdown_everything st ();
+       st#shutdown_everything ();
        let cmd = (new usercmd r) in
        cmd#log ~header:(myname^".react: ");
        if (st#active_project) && (cmd#answer="yes") then st#save_project ();
@@ -1004,7 +931,7 @@ module Talking_PROJECT_QUIT = struct
  let quit (st:globalState) =
    Log.print_string ">>>>>>>>>>QUIT: BEGIN<<<<<<<<\n";
    (* Shutdown all devices and synchronously wait until they actually terminate: *)
-   shutdown_everything st ();
+   st#shutdown_everything ();
    Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
    st#close_project (); (* destroy the temporary project directory *)
    Log.print_endline (myname^".react: Calling mrPropre...");
@@ -1124,37 +1051,4 @@ module Talking_HELP_A_PROPOS = struct
  ;;
 
 end;; (* Talking_HELP_A_PROPOS *)
-
-
-(* **************************************** *
-      Module Talking_BOTTOM_BUTTONS
- * **************************************** *)
-
-module Talking_BASE_BUTTONS = struct
- (** Binding function *)
- let bind (st:globalState) =
-
-  let (win,opt,net) = (st#mainwin, st#dotoptions, st#network) in
-  ignore (win#button_BASE_STARTUP_EVERYTHING#connect#clicked
-    ~callback:(fun () -> startup_everything st ()));
-  ignore (win#button_BASE_SHUTDOWN_EVERYTHING#connect#clicked
-    ~callback:(fun () ->
-      match Simple_dialogs.confirm_dialog
-          ~question:"Etes-vous sûr de vouloir arrêter\ntous les composants en exécution ?"
-          () with
-        Some true -> shutdown_everything st ()
-      | Some false -> ()
-(*      | None -> assert false));*)
-      | None -> ()));
-  ignore (win#button_BASE_POWEROFF_EVERYTHING#connect#clicked
-    ~callback:(fun () ->
-      match Simple_dialogs.confirm_dialog
-          ~question:("Etes-vous sûr de vouloir débrancher le courant\nà tous les composants en exécution (power off) ?\n\n"^
-                     "Il est aussi possible de les arrêter gracieusement (shutdown)...")
-          () with
-        Some true -> poweroff_everything st ()
-      | Some false -> ()
-(*      | None -> assert false));;*)
-      | None -> () ));;
-end;; (* Talking_BASE_BUTTONS *)
 

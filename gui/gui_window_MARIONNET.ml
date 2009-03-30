@@ -102,6 +102,31 @@ let () =
   set w#button_BASE_SHUTDOWN_EVERYTHING#coerce ~text:"Éteindre proprement tous les éléments du réseau (shutdown)"
  end
 
-let () = Talking.Talking_BASE_BUTTONS.bind st
+(* Connections *)
+let () =
+
+  let _ = w#button_BASE_STARTUP_EVERYTHING#connect#clicked ~callback:(fun () -> st#startup_everything ()) in
+
+  let _ = w#button_BASE_SHUTDOWN_EVERYTHING#connect#clicked
+    ~callback:(fun () ->
+      match Simple_dialogs.confirm_dialog
+          ~question:"Etes-vous sûr de vouloir arrêter\ntous les composants en exécution ?"
+          () with
+        Some true  -> st#shutdown_everything ()
+      | Some false -> ()
+      | None -> ()) in
+
+  let _ = w#button_BASE_POWEROFF_EVERYTHING#connect#clicked
+    ~callback:(fun () ->
+      match Simple_dialogs.confirm_dialog
+          ~question:("Etes-vous sûr de vouloir débrancher le courant\nà tous les composants en exécution (power off) ?\n\n"^
+                     "Il est aussi possible de les arrêter gracieusement (shutdown)...")
+          () with
+        Some true -> st#poweroff_everything ()
+      | Some false -> ()
+      | None -> () )
+
+  in ()
+
 
 end

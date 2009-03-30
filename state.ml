@@ -616,6 +616,60 @@ There is no need to restart the application."
    Log.print_endline ("st.prj_filename="^self#get_prj_filename);
    Log.print_endline ("st.prj_name="^self#get_prj_name)
 
+ (* Begin of methods moved from talking.ml *)
+ method make_names_and_thunks verb what_to_do_with_a_node =
+  List.map
+    (fun node -> (verb ^ " " ^ node#get_name,
+                  fun () ->
+                    let progress_bar =
+                      Simple_dialogs.make_progress_bar_dialog
+                        ~title:(verb ^ " " ^ node#get_name)
+                        ~text_on_bar:"Patientez s'il vous plaît..." () in
+                    (try
+                      what_to_do_with_a_node node;
+                    with e ->
+                      Log.printf "Warning (q): \"%s %s\" raised an exception (%s)\n"
+                        verb
+                        node#name
+                        (Printexc.to_string e));
+                    flush_all ();
+                    Simple_dialogs.destroy_progress_bar_dialog progress_bar))
+    self#network#nodes
+
+ method do_something_with_every_node_in_sequence verb what_to_do_with_a_node =
+  List.iter
+    (fun (name, thunk) -> Task_runner.the_task_runner#schedule ~name thunk)
+    (self#make_names_and_thunks verb what_to_do_with_a_node)
+
+ method do_something_with_every_node_in_parallel verb what_to_do_with_a_node =
+  Task_runner.the_task_runner#schedule_parallel
+    (self#make_names_and_thunks verb what_to_do_with_a_node);;
+
+ method startup_everything () =
+  self#do_something_with_every_node_in_sequence
+    "Startup" (fun node -> node#startup_right_now)
+
+ method shutdown_everything () =
+  self#do_something_with_every_node_in_parallel
+    "Shut down" (fun node -> node#gracefully_shutdown_right_now)
+
+ method poweroff_everything () =
+  self#do_something_with_every_node_in_sequence
+    "Power-off"
+    (fun node -> node#poweroff_right_now)
+
+(** Return true iff there is some node on or sleeping *)
+ method is_there_something_on_or_sleeping () =
+  let result = List.exists
+                (fun node -> node#can_gracefully_shutdown or node#can_resume)
+                self#network#nodes
+  in begin
+  Log.print_string ("Is there something running? " ^ (if result then "yes" else "no") ^ "\n");
+  result
+  end
+
+ (* End of functions moved from talking.ml *)
+
  method mrPropre () =
     if not (app_state=NoActiveProject) then raise (Failure "A project is still open, I cannot clean the wdir!")
     begin

@@ -27,10 +27,11 @@ module Make (State:sig val st:State.globalState end) = struct
 open State
 
 (* Create the factory linked to the menubar. *)
-include Menu_factory.Make (struct
+module F = Menu_factory.Make (struct
   let parent = Menu_factory.Menubar st#mainwin#menubar_MARIONNET
   let window = st#mainwin#window_MARIONNET
 end)
+include F
 
 (* Menu "Project" *)
 
@@ -50,7 +51,21 @@ let project_quit    = add_stock_item "Quitter"          ~stock:`QUIT    ~key:_Q 
 (* Menu "Options" *)
 
 let options         = add_menu "_Options"
-let options_cwd     = add_stock_item "Changer le répertoire de travail" ~stock:`DIRECTORY ~callback:(Talking_OPTIONS_CWD.callback st) ()
+
+module Created_entry_options_cwd = Menu_factory.Make_entry
+ (struct
+   let text  = "Changer le répertoire de travail"
+   let stock = `DIRECTORY
+   let key   = None
+   let dialog () =
+    Talking.EDialog.ask_for_existing_writable_folder_pathname_supporting_sparse_files
+       ~title:"Choisir un répertoire de travail"
+       ~help:(Some Msg.help_repertoire_de_travail) ()
+   let reaction r = st#set_wdir (r#get "foldername")
+  end) (F)
+let options_cwd = Created_entry_options_cwd.item
+
+(*let options_cwd     = add_stock_item "Changer le répertoire de travail" ~stock:`DIRECTORY ~callback:(Talking_OPTIONS_CWD.callback st) ()*)
 
 let options_autogenerate_ip_addresses =
  add_check_item "Auto-génération des adresses IP"

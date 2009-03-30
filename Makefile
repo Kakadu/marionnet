@@ -309,9 +309,11 @@ install-programs: programs install-programs-local
 	  if echo " $(ROOT_NATIVE_PROGRAMS) $(ROOT_BYTE_PROGRAMS) " | grep -q " $$basename "; then \
 	    echo "Installing "`basename $$file`" as a \"root program\" into $$prefix/sbin..."; \
 	    cp -a $$file $$prefix/sbin/; \
+	    chmod +x $$prefix/sbin/$$basename; \
 	  else \
 	    echo "Installing "`basename $$file`" into $$prefix/bin..."; \
 	    cp -a $$file $$prefix/bin/; \
+	    chmod +x $$prefix/bin/$$basename; \
 	  fi; \
 	done) && \
 	echo 'Program installation was successful.'

@@ -1035,20 +1035,3 @@ module Talking_OPTIONS_CWD = struct
 
 end;; (* Talking_OPTIONS_CWD *)
 
-
-(* **************************************** *
-        Module Talking_HELP_A_PROPOS
- * **************************************** *)
-
-
-module Talking_HELP_A_PROPOS = struct
-
- (** Performs the binding with the main window *)
- let callback (st:globalState) () =
-   let dial = new Gui.dialog_A_PROPOS () in
-   let _ = dial#closebutton_A_PROPOS#connect#clicked ~callback:(dial#toplevel#destroy)
-   in ()
- ;;
-
-end;; (* Talking_HELP_A_PROPOS *)
-

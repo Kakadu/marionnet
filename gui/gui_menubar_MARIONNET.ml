@@ -18,7 +18,10 @@
 (** Gui completion for the menubar_MARIONNET widget defined with glade. *)
 
 open Talking (* to be deleted *)
+
+(* Shortcuts *)
 module Unix = UnixExtra.Unix
+let mkenv = Environment.make_string_env ;;
 
 open GdkKeysyms
 open GtkStock
@@ -38,7 +41,47 @@ include F
 
 let project         = add_menu "_Project"
 let project_new     = add_stock_item "Nouveau"          ~stock:`NEW     ~key:_N ~callback:(Talking_PROJECT_NEW.callback st)       ()
-let project_open    = add_stock_item "Ouvrir"           ~stock:`OPEN    ~key:_O ~callback:(Talking_PROJECT_OPEN.callback st)      ()
+
+(*let project_open    = add_stock_item "Ouvrir"           ~stock:`OPEN    ~key:_O ~callback:(Talking_PROJECT_OPEN.callback st)      ()*)
+
+module Created_entry_project_open = Menu_factory.Make_entry
+ (struct
+   let text  = "Ouvrir"
+   let stock = `OPEN
+   let key   = (Some _O)
+
+   let dialog =
+     let d1 () =
+       if st#active_project
+        then EDialog.ask_question ~help:None ~cancel:true
+              ~gen_id:"save_current"
+              ~title:"Fermer"
+              ~question:"Voulez-vous enregistrer le projet courant ?" ()
+        else (Some (mkenv [("save_current","no")]))
+     in
+     let d2 () =
+            EDialog.ask_for_existing_filename
+             ~title:"Ouvrir un projet marionnet existant"
+             ~filters:[EDialog.MAR;EDialog.ALL]
+             ~help:(Some Msg.help_nom_pour_le_projet) ()
+     in
+     (EDialog.sequence [d1; d2])
+
+   let reaction r =
+     begin
+       st#shutdown_everything ();
+       let () = if (st#active_project) && ((r#get "save_current")="yes") then st#save_project () else () in
+       st#close_project () ;
+       let filename = (r#get "filename") in
+       try
+        st#open_project filename;
+        st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ filename);
+       with e -> ((Simple_dialogs.error "Ouvrir un projet" ("Échéc d'ouverture du fichier "^filename) ()); raise e)
+     end
+
+  end) (F)
+let project_open = Created_entry_project_open.item
+
 
 let project_save =
   add_stock_item "Enregistrer"

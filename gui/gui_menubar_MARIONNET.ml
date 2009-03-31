@@ -17,7 +17,8 @@
 
 (** Gui completion for the menubar_MARIONNET widget defined with glade. *)
 
-open Talking
+open Talking (* to be deleted *)
+module Unix = UnixExtra.Unix
 
 open GdkKeysyms
 open GtkStock
@@ -45,7 +46,32 @@ let project_close   = add_stock_item "Fermer"           ~stock:`CLOSE   ~key:_W 
 
 let separator       = project#add_separator ()
 
-let project_export  = add_stock_item "Exporter image"   ~stock:`CONVERT         ~callback:(Talking_PROJECT_EXPORT_NETWORK_IMAGE.callback st) ()
+module Created_entry_project_export = Menu_factory.Make_entry
+ (struct
+   let text  = "Exporter image"
+   let stock = `CONVERT
+   let key   = None
+
+   let dialog () =
+     EDialog.ask_for_fresh_writable_filename
+       ~title:"Exporter l'image du reseau"
+       ~filters:[EDialog.PNG;EDialog.ALL]
+       ~help:None ()
+
+   let reaction r =
+     let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"png" (r#get "filename") in
+     let command  = ("cp "^st#pngSketchFile^" "^filename) in
+     let () =  Log.print_string "About to call Unix.run...\n"; flush_all () in
+     try
+      (match Unix.run command with
+      |  (_ , Unix.WEXITED 0) -> st#flash ~delay:6000 ("Image du réseau exportée avec succès dans le fichier "^filename)
+      |  _                    -> raise (Failure ("Echec durant l'exportation de l'image du réseau vers le fichier "^filename))
+      )
+     with e -> ((Simple_dialogs.error "Exporter l'image du reseau" ("Échec durant l'exportation vers le fichier "^filename) ()); raise e)
+
+  end) (F)
+let project_export = Created_entry_project_export.item
+
 
 module Created_entry_project_quit = Menu_factory.Make_entry
  (struct
@@ -67,8 +93,6 @@ module Created_entry_project_quit = Menu_factory.Make_entry
 
   end) (F)
 let project_quit = Created_entry_project_quit.item
-
-(*let project_quit    = add_stock_item "Quitter"          ~stock:`QUIT    ~key:_Q ~callback:(Talking_PROJECT_QUIT.callback st)                 ()*)
 
 (* Menu "Options" *)
 

@@ -774,7 +774,7 @@ end;; (* Talking_PROJECT_SAVE_AS *)
 
 
 
-(* **************************************** *
+(*(* **************************************** *
     Module Talking_PROJET_COPY_INTO
  * **************************************** *)
 
@@ -816,4 +816,4 @@ module Talking_PROJECT_COPY_INTO = struct
  ;;
 
 end;; (* Talking_PROJET_COPY_INTO *)
-
+*)

@@ -37,12 +37,52 @@ module F = Menu_factory.Make (struct
 end)
 include F
 
-(* Menu "Project" *)
+(* **************************************** *
+                Menu "Project"
+ * **************************************** *)
 
 let project         = add_menu "_Project"
-let project_new     = add_stock_item "Nouveau"          ~stock:`NEW     ~key:_N ~callback:(Talking_PROJECT_NEW.callback st)       ()
 
-(*let project_open    = add_stock_item "Ouvrir"           ~stock:`OPEN    ~key:_O ~callback:(Talking_PROJECT_OPEN.callback st)      ()*)
+module Common_dialogs = struct
+
+ (* Dialog used both for "New" and "Open" *)
+ let save_current () =
+   if st#active_project
+    then EDialog.ask_question ~help:None ~cancel:true
+          ~gen_id:"save_current"
+          ~title:"Fermer"
+          ~question:"Voulez-vous enregistrer le projet courant ?" ()
+    else (Some (mkenv [("save_current","no")]))
+
+end
+
+module Created_entry_project_new = Menu_factory.Make_entry
+ (struct
+   let text  = "Nouveau"
+   let stock = `NEW
+   let key   = (Some _N)
+
+   let dialog =
+     let filename () =
+       EDialog.ask_for_fresh_writable_filename
+         ~title:"Nom du nouveau projet"
+         ~filters:[EDialog.MAR;EDialog.ALL]
+         ~help:(Some Msg.help_nom_pour_le_projet) ()
+     in
+     (EDialog.sequence [Common_dialogs.save_current; filename])
+
+   let reaction r = begin
+     st#shutdown_everything ();
+     let filename = check_path_name_validity_and_add_extension_if_needed (r#get "filename") in
+     let () = if (st#active_project) && ((r#get "save_current") = "yes") then st#save_project () else () in
+     st#close_project () ;
+     st#new_project filename ;
+     st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ filename);
+     end
+
+  end) (F)
+let project_new = Created_entry_project_new.item
+
 
 module Created_entry_project_open = Menu_factory.Make_entry
  (struct
@@ -51,21 +91,13 @@ module Created_entry_project_open = Menu_factory.Make_entry
    let key   = (Some _O)
 
    let dialog =
-     let d1 () =
-       if st#active_project
-        then EDialog.ask_question ~help:None ~cancel:true
-              ~gen_id:"save_current"
-              ~title:"Fermer"
-              ~question:"Voulez-vous enregistrer le projet courant ?" ()
-        else (Some (mkenv [("save_current","no")]))
+     let filename_dialog () =
+       EDialog.ask_for_existing_filename
+         ~title:"Ouvrir un projet marionnet existant"
+         ~filters:[EDialog.MAR;EDialog.ALL]
+         ~help:(Some Msg.help_nom_pour_le_projet) ()
      in
-     let d2 () =
-            EDialog.ask_for_existing_filename
-             ~title:"Ouvrir un projet marionnet existant"
-             ~filters:[EDialog.MAR;EDialog.ALL]
-             ~help:(Some Msg.help_nom_pour_le_projet) ()
-     in
-     (EDialog.sequence [d1; d2])
+     (EDialog.sequence [Common_dialogs.save_current; filename_dialog])
 
    let reaction r =
      begin
@@ -138,6 +170,7 @@ module Created_entry_project_copy_to = Menu_factory.Make_entry
   end) (F)
 let project_copy_to = Created_entry_project_copy_to.item
 
+
 module Created_entry_project_close = Menu_factory.Make_entry
  (struct
    let text  = "Fermer"
@@ -163,6 +196,7 @@ let project_close = Created_entry_project_close.item
 
 
 let separator       = project#add_separator ()
+
 
 module Created_entry_project_export = Menu_factory.Make_entry
  (struct
@@ -212,7 +246,10 @@ module Created_entry_project_quit = Menu_factory.Make_entry
   end) (F)
 let project_quit = Created_entry_project_quit.item
 
-(* Menu "Options" *)
+
+(* **************************************** *
+                Menu "Options"
+ * **************************************** *)
 
 let options         = add_menu "_Options"
 
@@ -258,7 +295,9 @@ let workaround_wirefilter_problem      =
 
 let () = workaround_wirefilter_problem#coerce#misc#hide ()
 
-(* Menu "Help" *)
+(* **************************************** *
+                Menu "Help"
+ * **************************************** *)
 
 let help         = add_menu "_Aide"
 let help_apropos =
@@ -268,7 +307,10 @@ let help_apropos =
    let _ = dialog#closebutton_A_PROPOS#connect#clicked ~callback:(dialog#toplevel#destroy) in ()
  in add_stock_item "À propos" ~stock:`ABOUT ~callback ()
 
-(* Sensitiveness *)
+
+(* **************************************** *
+                Sensitiveness
+ * **************************************** *)
 
 let () = List.iter (* when Active *)
           (fun w -> st#add_sensitive_when_Active w#coerce)

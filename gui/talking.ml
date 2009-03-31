@@ -495,12 +495,10 @@ let does_directory_support_sparse_files pathname =
         "marionnet-can-directory-host-sparse-files '%s'"
         (check_pathname_validity pathname) in
     match Unix.system command_line with
-      Unix.WEXITED 0 ->
-        true
-    | Unix.WEXITED _ | _ ->
-        false
-  with _ ->
-    false;;
+    | Unix.WEXITED 0     -> true
+    | Unix.WEXITED _ | _ -> false
+  with _ -> false
+;;
 
 (** The edialog asking for an existing and writable directory. *)
 let ask_for_existing_writable_folder_pathname_supporting_sparse_files
@@ -724,96 +722,3 @@ module Talking_PROJECT_SAVE = struct
         else st#save_project ();;
 end;;
 
-
-(* **************************************** *
-    Module Talking_PROJET_SAVE_AS
- * **************************************** *)
-
-module Talking_PROJECT_SAVE_AS = struct
-
- (** The name of this module (for debugging purposes) *)
- let  myname = "talking_PROJECT_SAVE_AS" ;;
-
- (** The type of command provided by user by this graphical dialog *)
- class usercmd = fun (r: (string,string) env) -> object (self)
-   method filename : string = check_path_name_validity_and_add_extension_if_needed (r#get "filename")
-   method log ~header = Log.print_endline (header^"filename = "^self#filename);
- end;;
-
- (** The correspondent reaction of the application for the command given by user *)
- let react (st:globalState) (msg: (string,string) env option) = match msg with (* TO IMPLEMENT *)
- | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
- | Some r ->
-     if st#is_there_something_on_or_sleeping () then Msg.error_saving_while_something_up ()
-     else begin
-       try
-         let cmd = (new usercmd r) in
-         cmd#log ~header:(myname^".react: ");
-         begin
-           try
-             st#save_project_as cmd#filename;
-             st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ cmd#filename);
-           with _ -> (Simple_dialogs.error "PROJET ENREGISTRER SOUS" ("Échéc de la sauvegarde du project "^cmd#filename) ())
-         end
-       with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
-     end
- ;;
-
-
- let callback (st:globalState) =
-
-   let ask_filename () = EDialog.ask_for_fresh_writable_filename
-       ~title:"ENREGISTRER SOUS"
-       ~filters:[EDialog.MAR;EDialog.ALL]
-       ~help:(Some Msg.help_nom_pour_le_projet) () in
-
-   fun token -> react st ((EDialog.compose [ask_filename]) token)
-   ;;
-
-end;; (* Talking_PROJECT_SAVE_AS *)
-
-
-
-(*(* **************************************** *
-    Module Talking_PROJET_COPY_INTO
- * **************************************** *)
-
-module Talking_PROJECT_COPY_INTO = struct
-
- (** The name of this module (for debugging purposes) *)
- let  myname = "talking_PROJECT_COPY_INTO" ;;
-
- (** The type of command provided by user by this graphical dialog *)
- class usercmd = Talking_PROJECT_SAVE_AS.usercmd ;;
-
- (** The correspondent reaction of the application for the command given by user *)
- let react (st:globalState) (msg: (string,string) env option) = match msg with (* TO IMPLEMENT *)
- | None   -> Log.print_endline (myname^".react: NOTHING TO DO")
- | Some r ->
-     if st#is_there_something_on_or_sleeping () then Msg.error_saving_while_something_up ()
-     else begin
-       try
-         let cmd = (new usercmd r) in
-         cmd#log ~header:(myname^".react: ");
-         begin
-           try
-             st#copy_project_into cmd#filename
-           with _ -> (Simple_dialogs.error "PROJECT COPY INTO" ("Error copying the project into "^cmd#filename) ())
-         end
-       with | _ -> raise (Failure (myname^".react: unexpected environnement received from dialog"))
-     end
- ;;
-
-
- let callback (st:globalState) =
-
-   let ask_filename () = EDialog.ask_for_fresh_writable_filename
-       ~title:"COPIER SOUS"
-       ~filters:[EDialog.MAR;EDialog.ALL]
-       ~help:(Some Msg.help_nom_pour_le_projet) () in
-
-   fun token -> react st ((EDialog.compose [ask_filename]) token)
- ;;
-
-end;; (* Talking_PROJET_COPY_INTO *)
-*)

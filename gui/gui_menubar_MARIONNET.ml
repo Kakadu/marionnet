@@ -40,7 +40,30 @@ let project         = add_menu "_Project"
 let project_new     = add_stock_item "Nouveau"          ~stock:`NEW     ~key:_N ~callback:(Talking_PROJECT_NEW.callback st)       ()
 let project_open    = add_stock_item "Ouvrir"           ~stock:`OPEN    ~key:_O ~callback:(Talking_PROJECT_OPEN.callback st)      ()
 let project_save    = add_stock_item "Enregistrer"      ~stock:`SAVE            ~callback:(Talking_PROJECT_SAVE.callback st)      ()
-let project_save_as = add_stock_item "Enregistrer sous" ~stock:`SAVE_AS         ~callback:(Talking_PROJECT_SAVE_AS.callback st)   ()
+
+module Created_entry_project_save_as = Menu_factory.Make_entry
+ (struct
+   let text  = "Enregistrer sous"
+   let stock = `SAVE_AS
+   let key   = None
+
+   let dialog () =
+     EDialog.ask_for_fresh_writable_filename
+       ~title:"Enregistrer sous"
+       ~filters:[EDialog.MAR;EDialog.ALL]
+       ~help:(Some Msg.help_nom_pour_le_projet) ()
+
+   let reaction r =
+     if st#is_there_something_on_or_sleeping () then Msg.error_saving_while_something_up () else
+     let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
+     try
+      st#save_project_as filename;
+      st#mainwin#window_MARIONNET#set_title (Command_line.window_title^" - "^filename);
+     with _ -> (Simple_dialogs.error "Projet enregistrer sous" ("Échéc de la sauvegarde du project vers "^filename) ())
+
+  end) (F)
+let project_save_as = Created_entry_project_save_as.item
+
 
 module Created_entry_project_copy_to = Menu_factory.Make_entry
  (struct
@@ -59,7 +82,7 @@ module Created_entry_project_copy_to = Menu_factory.Make_entry
      let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
        st#copy_project_into filename
-     with _ -> (Simple_dialogs.error "Projet copier sous" ("Erreur pendant la copie vers "^filename) ())
+     with _ -> (Simple_dialogs.error "Projet copier sous" ("Échéc de la copie vers "^filename) ())
 
   end) (F)
 let project_copy_to = Created_entry_project_copy_to.item

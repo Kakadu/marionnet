@@ -42,7 +42,31 @@ let project_open    = add_stock_item "Ouvrir"           ~stock:`OPEN    ~key:_O 
 let project_save    = add_stock_item "Enregistrer"      ~stock:`SAVE            ~callback:(Talking_PROJECT_SAVE.callback st)      ()
 let project_save_as = add_stock_item "Enregistrer sous" ~stock:`SAVE_AS         ~callback:(Talking_PROJECT_SAVE_AS.callback st)   ()
 let project_copy_to = add_stock_item "Copier sous"      ~stock:`SAVE_AS         ~callback:(Talking_PROJECT_COPY_INTO.callback st) ()
-let project_close   = add_stock_item "Fermer"           ~stock:`CLOSE   ~key:_W ~callback:(Talking_PROJECT_CLOSE.callback st)     ()
+
+module Created_entry_project_close = Menu_factory.Make_entry
+ (struct
+   let text  = "Fermer"
+   let stock = `CLOSE
+   let key   = (Some _W)
+
+   let dialog () = 
+     EDialog.ask_question ~help:None ~cancel:true
+       ~title:"Fermer"
+       ~question:"Voulez-vous enregistrer le projet courant ?"
+       ()
+
+   let reaction r = begin
+    st#shutdown_everything ();
+    let () = if (st#active_project) && ((r#get "answer") = "yes")
+              then st#save_project ()
+              else () in
+    st#close_project ();
+    st#mainwin#window_MARIONNET#set_title Command_line.window_title; (* no project name *)
+    end
+
+  end) (F)
+let project_close = Created_entry_project_close.item
+
 
 let separator       = project#add_separator ()
 
@@ -52,7 +76,7 @@ module Created_entry_project_export = Menu_factory.Make_entry
    let stock = `CONVERT
    let key   = None
 
-   let dialog () =
+   let dialog () = 
      EDialog.ask_for_fresh_writable_filename
        ~title:"Exporter l'image du reseau"
        ~filters:[EDialog.PNG;EDialog.ALL]

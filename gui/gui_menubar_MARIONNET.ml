@@ -39,7 +39,15 @@ include F
 let project         = add_menu "_Project"
 let project_new     = add_stock_item "Nouveau"          ~stock:`NEW     ~key:_N ~callback:(Talking_PROJECT_NEW.callback st)       ()
 let project_open    = add_stock_item "Ouvrir"           ~stock:`OPEN    ~key:_O ~callback:(Talking_PROJECT_OPEN.callback st)      ()
-let project_save    = add_stock_item "Enregistrer"      ~stock:`SAVE            ~callback:(Talking_PROJECT_SAVE.callback st)      ()
+
+let project_save =
+  add_stock_item "Enregistrer"
+    ~stock:`SAVE
+    ~callback:(fun () ->
+      if st#is_there_something_on_or_sleeping ()
+	then Msg.error_saving_while_something_up ()
+        else st#save_project ())
+    ()
 
 module Created_entry_project_save_as = Menu_factory.Make_entry
  (struct

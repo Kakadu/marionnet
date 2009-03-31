@@ -709,16 +709,3 @@ module Talking_PROJECT_OPEN = struct
 end;; (* Talking_PROJET_OPEN *)
 
 
-
-(* **************************************** *
-      Module Talking_PROJECT_SAVE
- * **************************************** *)
-
-module Talking_PROJECT_SAVE = struct
-
- let callback (st:globalState) () =
-   if st#is_there_something_on_or_sleeping ()
-	then Msg.error_saving_while_something_up ()
-        else st#save_project ();;
-end;;
-

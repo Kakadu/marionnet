@@ -20,6 +20,7 @@
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Sugar;;
 open ListExtra;;
+open StringExtra;;
 open UnixExtra;;
 open SysExtra;;
 
@@ -417,39 +418,58 @@ class globalState = fun () ->
 
   (** Rewrite the compressed archive prj_filename with the content of the project working directory (pwdir). *)
   method save_project () =
-    if not (app_state=NoActiveProject) then begin
-      Log.print_string ">>>>>>>>>>SAVING THE PROJECT: BEGIN<<<<<<<<\n";
-(*        let progress_bar =
-          Simple_dialogs.make_progress_bar_dialog
-            ~title:("Saving the project into " ^ self#get_prj_filename) () in *)
-(*         To do: Jean, che faccio con questo marshalling che era
-           gia` commentato via?
-           Quasi sicuramente nulla, visto che il salvataggio e` qua sotto,
-           e l'ho gia` aggiustato... *)
-        (* Marshal the network * )
-         let s = Marshal.to_string st#network [Marshal.Closures] in
-         let _ = Unix.put self#networkFile s                    in
-         *)
 
-        (* Write the network xml file *)
-        Netmodel.Xml.save_network self#network self#networkFile ;
-        (* Save also dotoptions for drawing image. *)
-        self#dotoptions#save_to_file self#dotoptionsFile;
+    if (app_state <> NoActiveProject) then begin
+    Log.print_string ">>>>>>>>>>SAVING THE PROJECT: BEGIN<<<<<<<<\n";
 
-        (* Save treeviews (just to play it safe, because treeview files should be automatically)
-           re-written at every update): *)
-        Filesystem_history.save_states ();
-        (Network_details_interface.get_network_details_interface ())#save;
-        (Defects_interface.get_defects_interface ())#save;
-        (Texts_interface.get_texts_interface ())#save;
+    (* Progress bar periodic callback. *)
+    let fill =
+      (* disk usage (in kb) with the unix command *)
+      let du x = match Unix.run ~trace:true ("du -sk "^x) with
+       | kb, (Unix.WEXITED 0) -> (try Some (float_of_string (List.hd (String.split ~d:'\t' kb))) with _ -> None)
+       | _,_                  -> None
+      in
+      (* disk usage (in kb) with the unix library *)
+      let du_file_in_kb x = try Some (float_of_int ((Unix.stat x).Unix.st_size / 1024)) with _ -> None in
+      let round x = float_of_string (Printf.sprintf "%.2f" (if x<1. then x else 1.)) (* workaround strange lablgtk behaviour *) in
+      match (du self#get_pwdir) with
+      | Some kb_flatten ->
+         fun () -> (match du_file_in_kb self#get_prj_filename with
+                    | Some kb_compressed -> round (0.05 +. (kb_compressed *. 8.) /. kb_flatten)
+                    | None -> 0.5)
+      | None -> fun () -> 0.5
+    in
 
-        (* (Re)write the .mar file *)
-        let cmd = ("tar cSvzf "^(self#get_prj_filename)^" -C "^self#get_pwdir^" --exclude tmp "^(self#get_prj_name)) in
-        let _ = (Unix.system cmd) in
-        Log.print_endline ("cmd=<"^cmd^">");
-(*        Simple_dialogs.destroy_progress_bar_dialog progress_bar; *)
-        Log.print_string ">>>>>>>>>>SAVING THE PROJECT: END<<<<<<<<\n";
-      end
+    let window =
+      Progress_bar.make_progress_bar_dialog
+       ~modal:true
+       ~title:("Marionnet")
+       ~kind:(Progress_bar.Fill fill)
+       ~text_on_label:("<big><b>Sauvegarde</b></big>")
+       ~text_on_sub_label:("<tt><small>"^self#get_prj_filename^"</small></tt>")
+       ()
+    in
+
+    (* Write the network xml file *)
+    Netmodel.Xml.save_network self#network self#networkFile ;
+
+    (* Save also dotoptions for drawing image. *)
+    self#dotoptions#save_to_file self#dotoptionsFile;
+
+    (* Save treeviews (just to play it safe, because treeview files should be automatically)
+       re-written at every update): *)
+    Filesystem_history.save_states ();
+    (Network_details_interface.get_network_details_interface ())#save;
+    (Defects_interface.get_defects_interface ())#save;
+    (Texts_interface.get_texts_interface ())#save;
+
+    (* (Re)write the .mar file *)
+    let cmd = ("tar -cSvzf "^(self#get_prj_filename)^" -C "^self#get_pwdir^" --exclude tmp "^(self#get_prj_name)) in
+    let _ = Task_runner.the_task_runner#schedule (fun () -> ignore (Unix.system cmd)) in
+    let _ = Task_runner.the_task_runner#schedule (fun () -> Progress_bar.destroy_progress_bar_dialog window) in
+
+    Log.print_string ">>>>>>>>>>SAVING THE PROJECT: END<<<<<<<<\n";
+  end
 
 
   (** Update the project filename to the given string, and save: *)

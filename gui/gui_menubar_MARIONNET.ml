@@ -21,7 +21,11 @@ open Talking (* to be deleted *)
 
 (* Shortcuts *)
 module Unix = UnixExtra.Unix
-let mkenv = Environment.make_string_env ;;
+module EDialog = Talking.EDialog
+module Msg = Talking.Msg
+let mkenv = Environment.make_string_env
+let check_path_name_validity_and_add_extension_if_needed =
+  Talking.check_path_name_validity_and_add_extension_if_needed
 
 open GdkKeysyms
 open GtkStock

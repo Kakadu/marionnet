@@ -26,7 +26,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
     <property name="default_width">750</property>
     <property name="default_height">690</property>
     <property name="icon">marionnet-launcher.png</property>
-    <property name="deletable">False</property>
     <child>
       <widget class="GtkVBox" id="vbox1">
         <property name="visible">True</property>
@@ -937,17 +936,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                     <property name="n_rows">2</property>
                     <property name="n_columns">1</property>
                     <child>
-                      <widget class="GtkLabel" id="label_dialog_MACHINE_name">
-                        <property name="height_request">40</property>
-                        <property name="visible">True</property>
-                        <property name="yalign">1</property>
-                        <property name="label" translatable="yes">---Nom---</property>
-                      </widget>
-                      <packing>
-                        <property name="y_options"></property>
-                      </packing>
-                    </child>
-                    <child>
                       <widget class="GtkEntry" id="name">
                         <property name="width_request">120</property>
                         <property name="visible">True</property>
@@ -959,6 +947,17 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
                         <property name="x_options"></property>
+                        <property name="y_options"></property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label_dialog_MACHINE_name">
+                        <property name="height_request">40</property>
+                        <property name="visible">True</property>
+                        <property name="yalign">1</property>
+                        <property name="label" translatable="yes">---Nom---</property>
+                      </widget>
+                      <packing>
                         <property name="y_options"></property>
                       </packing>
                     </child>
@@ -1019,191 +1018,103 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                   <placeholder/>
                 </child>
                 <child>
-                  <widget class="GtkImage" id="image_dialog_MACHINE_hardware">
-                    <property name="visible">True</property>
-                    <property name="xpad">10</property>
-                    <property name="ypad">5</property>
-                    <property name="pixbuf">ico.hardware-gray.small.png</property>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label_dialog_MACHINE_terminal">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">5</property>
-                    <property name="label" translatable="yes">---Terminal---</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">8</property>
-                    <property name="bottom_attach">9</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label_dialog_MACHINE_kernel">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">5</property>
-                    <property name="label" translatable="yes">---Noyau---</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">6</property>
-                    <property name="bottom_attach">7</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label_dialog_MACHINE_variant">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">5</property>
-                    <property name="label" translatable="yes">---Variante---</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">5</property>
-                    <property name="bottom_attach">6</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label_dialog_MACHINE_distrib">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">5</property>
-                    <property name="label" translatable="yes">---Distribution---</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">4</property>
-                    <property name="bottom_attach">5</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label_dialog_MACHINE_memory">
+                  <widget class="GtkLabel" id="label_dialog_MACHINE_ethnum">
+                    <property name="width_request">60</property>
                     <property name="visible">True</property>
                     <property name="xalign">0</property>
                     <property name="yalign">1</property>
-                    <property name="label" translatable="yes">---Mémoire&lt;tt&gt;
-(Mb)&lt;/tt&gt;---</property>
+                    <property name="label" translatable="yes">---Cartes
+Ethernet---</property>
+                    <property name="justify">GTK_JUSTIFY_CENTER</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">3</property>
+                    <property name="right_attach">4</property>
+                    <property name="top_attach">1</property>
+                    <property name="bottom_attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label201">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="label" translatable="yes">&lt;span foreground="gray" weight="ultrabold" size="larger"&gt;UML&lt;/span&gt;</property>
                     <property name="use_markup">True</property>
                     <property name="justify">GTK_JUSTIFY_CENTER</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">2</property>
-                    <property name="right_attach">3</property>
-                    <property name="top_attach">1</property>
-                    <property name="bottom_attach">2</property>
-                    <property name="x_padding">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkDrawingArea" id="drawingarea1">
-                    <property name="visible">True</property>
-                  </widget>
-                  <packing>
-                    <property name="top_attach">1</property>
-                    <property name="bottom_attach">2</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkDrawingArea" id="drawingarea2">
-                    <property name="visible">True</property>
-                  </widget>
-                  <packing>
-                    <property name="top_attach">2</property>
-                    <property name="bottom_attach">3</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkDrawingArea" id="drawingarea3">
-                    <property name="visible">True</property>
-                  </widget>
-                  <packing>
-                    <property name="top_attach">4</property>
-                    <property name="bottom_attach">5</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkDrawingArea" id="drawingarea4">
-                    <property name="visible">True</property>
-                  </widget>
-                  <packing>
-                    <property name="top_attach">5</property>
-                    <property name="bottom_attach">6</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkDrawingArea" id="drawingarea5">
-                    <property name="visible">True</property>
-                  </widget>
-                  <packing>
-                    <property name="top_attach">6</property>
-                    <property name="bottom_attach">7</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkHSeparator" id="hseparator60">
-                    <property name="visible">True</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">2</property>
-                    <property name="right_attach">4</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkHSeparator" id="hseparator61">
-                    <property name="visible">True</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">2</property>
-                    <property name="right_attach">4</property>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
                     <property name="top_attach">7</property>
                     <property name="bottom_attach">8</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkDrawingArea" id="drawingarea6">
+                  <widget class="GtkLabel" id="label200">
                     <property name="visible">True</property>
+                    <property name="xpad">5</property>
+                    <property name="label" translatable="yes">&lt;span foreground="gray" weight="ultrabold" size="larger"&gt;Software&lt;/span&gt;</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
                   </widget>
                   <packing>
-                    <property name="top_attach">8</property>
-                    <property name="bottom_attach">9</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">3</property>
+                    <property name="bottom_attach">4</property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkHSeparator" id="hseparator59">
+                  <widget class="GtkLabel" id="label199">
                     <property name="visible">True</property>
+                    <property name="label" translatable="yes">&lt;span foreground="gray" weight="ultrabold" size="larger"&gt;Hardware&lt;/span&gt;</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkImage" id="image_dialog_MACHINE_uml">
+                    <property name="visible">True</property>
+                    <property name="xpad">10</property>
+                    <property name="ypad">5</property>
+                    <property name="pixbuf">ico.uml-gray.small.png</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">7</property>
+                    <property name="bottom_attach">8</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkImage" id="image_dialog_MACHINE_software">
+                    <property name="visible">True</property>
+                    <property name="xpad">10</property>
+                    <property name="ypad">5</property>
+                    <property name="pixbuf">ico.software-gray.small.png</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">3</property>
+                    <property name="bottom_attach">4</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkSpinButton" id="memory">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="xalign">1</property>
+                    <property name="adjustment">48 8 256 4 4 10</property>
+                    <property name="climb_rate">1</property>
+                    <property name="snap_to_ticks">True</property>
                   </widget>
                   <packing>
                     <property name="left_attach">2</property>
-                    <property name="right_attach">4</property>
-                    <property name="top_attach">3</property>
-                    <property name="bottom_attach">4</property>
-                    <property name="x_options"></property>
+                    <property name="right_attach">3</property>
+                    <property name="top_attach">2</property>
+                    <property name="bottom_attach">3</property>
+                    <property name="x_options">GTK_EXPAND</property>
                     <property name="y_options"></property>
                   </packing>
                 </child>
@@ -1226,105 +1137,193 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkSpinButton" id="memory">
+                  <widget class="GtkHSeparator" id="hseparator59">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="xalign">1</property>
-                    <property name="adjustment">48 8 256 4 4 10</property>
-                    <property name="climb_rate">1</property>
-                    <property name="snap_to_ticks">True</property>
                   </widget>
                   <packing>
                     <property name="left_attach">2</property>
-                    <property name="right_attach">3</property>
-                    <property name="top_attach">2</property>
-                    <property name="bottom_attach">3</property>
-                    <property name="x_options">GTK_EXPAND</property>
+                    <property name="right_attach">4</property>
+                    <property name="top_attach">3</property>
+                    <property name="bottom_attach">4</property>
+                    <property name="x_options"></property>
                     <property name="y_options"></property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkImage" id="image_dialog_MACHINE_software">
+                  <widget class="GtkDrawingArea" id="drawingarea6">
                     <property name="visible">True</property>
-                    <property name="xpad">10</property>
-                    <property name="ypad">5</property>
-                    <property name="pixbuf">ico.software-gray.small.png</property>
                   </widget>
                   <packing>
-                    <property name="top_attach">3</property>
-                    <property name="bottom_attach">4</property>
+                    <property name="top_attach">8</property>
+                    <property name="bottom_attach">9</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkImage" id="image_dialog_MACHINE_uml">
+                  <widget class="GtkHSeparator" id="hseparator61">
                     <property name="visible">True</property>
-                    <property name="xpad">10</property>
-                    <property name="ypad">5</property>
-                    <property name="pixbuf">ico.uml-gray.small.png</property>
                   </widget>
                   <packing>
+                    <property name="left_attach">2</property>
+                    <property name="right_attach">4</property>
                     <property name="top_attach">7</property>
                     <property name="bottom_attach">8</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label199">
+                  <widget class="GtkHSeparator" id="hseparator60">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">&lt;span foreground="gray" weight="ultrabold" size="larger"&gt;Hardware&lt;/span&gt;</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
+                    <property name="left_attach">2</property>
+                    <property name="right_attach">4</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label200">
+                  <widget class="GtkDrawingArea" id="drawingarea5">
                     <property name="visible">True</property>
-                    <property name="xpad">5</property>
-                    <property name="label" translatable="yes">&lt;span foreground="gray" weight="ultrabold" size="larger"&gt;Software&lt;/span&gt;</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">3</property>
-                    <property name="bottom_attach">4</property>
+                    <property name="top_attach">6</property>
+                    <property name="bottom_attach">7</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label201">
+                  <widget class="GtkDrawingArea" id="drawingarea4">
                     <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="label" translatable="yes">&lt;span foreground="gray" weight="ultrabold" size="larger"&gt;UML&lt;/span&gt;</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_CENTER</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                    <property name="top_attach">7</property>
-                    <property name="bottom_attach">8</property>
+                    <property name="top_attach">5</property>
+                    <property name="bottom_attach">6</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label_dialog_MACHINE_ethnum">
-                    <property name="width_request">60</property>
+                  <widget class="GtkDrawingArea" id="drawingarea3">
+                    <property name="visible">True</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">4</property>
+                    <property name="bottom_attach">5</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkDrawingArea" id="drawingarea2">
+                    <property name="visible">True</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">2</property>
+                    <property name="bottom_attach">3</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkDrawingArea" id="drawingarea1">
+                    <property name="visible">True</property>
+                  </widget>
+                  <packing>
+                    <property name="top_attach">1</property>
+                    <property name="bottom_attach">2</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label_dialog_MACHINE_memory">
                     <property name="visible">True</property>
                     <property name="xalign">0</property>
                     <property name="yalign">1</property>
-                    <property name="label" translatable="yes">---Cartes
-Ethernet---</property>
+                    <property name="label" translatable="yes">---Mémoire&lt;tt&gt;
+(Mb)&lt;/tt&gt;---</property>
+                    <property name="use_markup">True</property>
                     <property name="justify">GTK_JUSTIFY_CENTER</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">3</property>
-                    <property name="right_attach">4</property>
+                    <property name="left_attach">2</property>
+                    <property name="right_attach">3</property>
                     <property name="top_attach">1</property>
                     <property name="bottom_attach">2</property>
+                    <property name="x_padding">3</property>
                   </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label_dialog_MACHINE_distrib">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">5</property>
+                    <property name="label" translatable="yes">---Distribution---</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">4</property>
+                    <property name="bottom_attach">5</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label_dialog_MACHINE_variant">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">5</property>
+                    <property name="label" translatable="yes">---Variante---</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">5</property>
+                    <property name="bottom_attach">6</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label_dialog_MACHINE_kernel">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">5</property>
+                    <property name="label" translatable="yes">---Noyau---</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">6</property>
+                    <property name="bottom_attach">7</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label_dialog_MACHINE_terminal">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">5</property>
+                    <property name="label" translatable="yes">---Terminal---</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
+                    <property name="top_attach">8</property>
+                    <property name="bottom_attach">9</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkImage" id="image_dialog_MACHINE_hardware">
+                    <property name="visible">True</property>
+                    <property name="xpad">10</property>
+                    <property name="ypad">5</property>
+                    <property name="pixbuf">ico.hardware-gray.small.png</property>
+                  </widget>
                 </child>
               </widget>
               <packing>
@@ -1768,8 +1767,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="label">gtk-no</property>
                 <property name="use_stock">True</property>
                 <property name="response_id">-9</property>
-                <accelerator key="N" modifiers="" signal="clicked"/>
                 <accelerator key="n" modifiers="" signal="clicked"/>
+                <accelerator key="N" modifiers="" signal="clicked"/>
               </widget>
             </child>
             <child>
@@ -1780,8 +1779,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="label">gtk-yes</property>
                 <property name="use_stock">True</property>
                 <property name="response_id">-8</property>
-                <accelerator key="Y" modifiers="" signal="clicked"/>
                 <accelerator key="y" modifiers="" signal="clicked"/>
+                <accelerator key="Y" modifiers="" signal="clicked"/>
               </widget>
               <packing>
                 <property name="position">1</property>
@@ -1833,22 +1832,17 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="n_rows">4</property>
                     <property name="n_columns">1</property>
                     <child>
-                      <widget class="GtkLabel" id="label_dialog_HUB_label">
+                      <widget class="GtkEntry" id="hub_label">
+                        <property name="width_request">130</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">
----Étiquette---</property>
-                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                        <property name="can_focus">True</property>
+                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
+                        <property name="top_attach">3</property>
+                        <property name="bottom_attach">4</property>
+                        <property name="y_options"></property>
                       </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkLabel" id="label_dialog_HUB_name">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">---Nom---</property>
-                      </widget>
                     </child>
                     <child>
                       <widget class="GtkEntry" id="hub_name">
@@ -1866,16 +1860,21 @@ Version QQVERSIONQQ, QQDATEQQ
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkEntry" id="hub_label">
-                        <property name="width_request">130</property>
+                      <widget class="GtkLabel" id="label_dialog_HUB_name">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
+                        <property name="label" translatable="yes">---Nom---</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label_dialog_HUB_label">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">
+---Étiquette---</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
-                        <property name="y_options"></property>
+                        <property name="top_attach">2</property>
+                        <property name="bottom_attach">3</property>
                       </packing>
                     </child>
                   </widget>
@@ -1906,6 +1905,20 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="column_spacing">25</property>
                 <property name="row_spacing">5</property>
                 <child>
+                  <widget class="GtkLabel" id="label_dialog_HUB_ports">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">5</property>
+                    <property name="ypad">10</property>
+                    <property name="label" translatable="yes">---Nb de Ports---</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="x_options">GTK_EXPAND</property>
+                  </packing>
+                </child>
+                <child>
                   <widget class="GtkSpinButton" id="hub_ports">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -1917,20 +1930,6 @@ Version QQVERSIONQQ, QQDATEQQ
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="right_attach">2</property>
-                    <property name="x_options">GTK_EXPAND</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label_dialog_HUB_ports">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">5</property>
-                    <property name="ypad">10</property>
-                    <property name="label" translatable="yes">---Nb de Ports---</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
-                  </widget>
-                  <packing>
                     <property name="x_options">GTK_EXPAND</property>
                   </packing>
                 </child>
@@ -2036,22 +2035,17 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="n_rows">4</property>
                     <property name="n_columns">1</property>
                     <child>
-                      <widget class="GtkLabel" id="label_dialog_SWITCH_label">
+                      <widget class="GtkEntry" id="switch_label">
+                        <property name="width_request">130</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">
----Étiquette----</property>
-                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                        <property name="can_focus">True</property>
+                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
+                        <property name="top_attach">3</property>
+                        <property name="bottom_attach">4</property>
+                        <property name="y_options"></property>
                       </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkLabel" id="label_dialog_SWITCH_name">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">---Nom---</property>
-                      </widget>
                     </child>
                     <child>
                       <widget class="GtkEntry" id="switch_name">
@@ -2069,16 +2063,21 @@ Version QQVERSIONQQ, QQDATEQQ
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkEntry" id="switch_label">
-                        <property name="width_request">130</property>
+                      <widget class="GtkLabel" id="label_dialog_SWITCH_name">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
+                        <property name="label" translatable="yes">---Nom---</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label_dialog_SWITCH_label">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">
+---Étiquette----</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
-                        <property name="y_options"></property>
+                        <property name="top_attach">2</property>
+                        <property name="bottom_attach">3</property>
                       </packing>
                     </child>
                   </widget>
@@ -2108,6 +2107,20 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="column_spacing">25</property>
                 <property name="row_spacing">5</property>
                 <child>
+                  <widget class="GtkLabel" id="label_dialog_SWITCH_ports">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">5</property>
+                    <property name="ypad">10</property>
+                    <property name="label" translatable="yes">---Nb de Ports---</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="x_options">GTK_EXPAND</property>
+                  </packing>
+                </child>
+                <child>
                   <widget class="GtkSpinButton" id="switch_ports">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -2119,20 +2132,6 @@ Version QQVERSIONQQ, QQDATEQQ
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="right_attach">2</property>
-                    <property name="x_options">GTK_EXPAND</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label_dialog_SWITCH_ports">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">5</property>
-                    <property name="ypad">10</property>
-                    <property name="label" translatable="yes">---Nb de Ports---</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
-                  </widget>
-                  <packing>
                     <property name="x_options">GTK_EXPAND</property>
                   </packing>
                 </child>
@@ -2226,6 +2225,12 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="n_rows">2</property>
                     <property name="n_columns">1</property>
                     <child>
+                      <widget class="GtkImage" id="image_dialog_CABLE_direct">
+                        <property name="visible">True</property>
+                        <property name="pixbuf">ico.cable.direct.dialog.png</property>
+                      </widget>
+                    </child>
+                    <child>
                       <widget class="GtkImage" id="image_dialog_CABLE_crossover">
                         <property name="pixbuf">ico.cable.crossed.dialog.png</property>
                       </widget>
@@ -2233,12 +2238,6 @@ Version QQVERSIONQQ, QQDATEQQ
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
                       </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkImage" id="image_dialog_CABLE_direct">
-                        <property name="visible">True</property>
-                        <property name="pixbuf">ico.cable.direct.dialog.png</property>
-                      </widget>
                     </child>
                   </widget>
                 </child>
@@ -2249,23 +2248,18 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="n_rows">4</property>
                     <property name="n_columns">1</property>
                     <child>
-                      <widget class="GtkLabel" id="label_dialog_CABLE_label">
+                      <widget class="GtkEntry" id="cable_name">
+                        <property name="width_request">80</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">
----Étiquette---</property>
-                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                        <property name="can_focus">True</property>
+                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
+                        <property name="top_attach">1</property>
+                        <property name="bottom_attach">2</property>
+                        <property name="x_options"></property>
+                        <property name="y_options"></property>
                       </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkLabel" id="label_dialog_CABLE_name">
-                        <property name="visible">True</property>
-                        <property name="yalign">1</property>
-                        <property name="label" translatable="yes">---Nom---</property>
-                      </widget>
                     </child>
                     <child>
                       <widget class="GtkEntry" id="cable_label">
@@ -2282,17 +2276,22 @@ Version QQVERSIONQQ, QQDATEQQ
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkEntry" id="cable_name">
-                        <property name="width_request">80</property>
+                      <widget class="GtkLabel" id="label_dialog_CABLE_name">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
+                        <property name="yalign">1</property>
+                        <property name="label" translatable="yes">---Nom---</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label_dialog_CABLE_label">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">
+---Étiquette---</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">2</property>
-                        <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="top_attach">2</property>
+                        <property name="bottom_attach">3</property>
                       </packing>
                     </child>
                   </widget>
@@ -2337,70 +2336,17 @@ Version QQVERSIONQQ, QQDATEQQ
                   <placeholder/>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label_dialog_CABLE_col_from">
+                  <widget class="GtkLabel" id="label_dialog_CABLE_col_to">
                     <property name="visible">True</property>
                     <property name="xpad">5</property>
                     <property name="ypad">10</property>
-                    <property name="label" translatable="yes">---De---</property>
+                    <property name="label" translatable="yes">---Vers---</property>
                     <property name="use_markup">True</property>
                     <property name="justify">GTK_JUSTIFY_RIGHT</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkTable" id="table3">
-                    <property name="visible">True</property>
-                    <property name="n_rows">2</property>
-                    <property name="n_columns">1</property>
-                    <child>
-                      <widget class="GtkImage" id="image_dialog_CABLE_direct_link">
-                        <property name="visible">True</property>
-                        <property name="pixbuf">ico.cable.direct.dialog.link.png</property>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkImage" id="image_dialog_CABLE_crossover_link">
-                        <property name="pixbuf">ico.cable.crossed.dialog.link.png</property>
-                      </widget>
-                      <packing>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">2</property>
-                      </packing>
-                    </child>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">2</property>
-                    <property name="right_attach">3</property>
-                    <property name="top_attach">1</property>
-                    <property name="bottom_attach">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkImage" id="image451">
-                    <property name="visible">True</property>
-                    <property name="stock">gtk-go-forward</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">2</property>
-                    <property name="right_attach">3</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label_dialog_CABLE_row_port">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">5</property>
-                    <property name="ypad">10</property>
-                    <property name="label" translatable="yes">---Port---</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
-                  </widget>
-                  <packing>
-                    <property name="top_attach">2</property>
-                    <property name="bottom_attach">3</property>
+                    <property name="left_attach">3</property>
+                    <property name="right_attach">4</property>
                   </packing>
                 </child>
                 <child>
@@ -2419,17 +2365,70 @@ Version QQVERSIONQQ, QQDATEQQ
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label_dialog_CABLE_col_to">
+                  <widget class="GtkLabel" id="label_dialog_CABLE_row_port">
                     <property name="visible">True</property>
+                    <property name="xalign">0</property>
                     <property name="xpad">5</property>
                     <property name="ypad">10</property>
-                    <property name="label" translatable="yes">---Vers---</property>
+                    <property name="label" translatable="yes">---Port---</property>
                     <property name="use_markup">True</property>
                     <property name="justify">GTK_JUSTIFY_RIGHT</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">3</property>
-                    <property name="right_attach">4</property>
+                    <property name="top_attach">2</property>
+                    <property name="bottom_attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkImage" id="image451">
+                    <property name="visible">True</property>
+                    <property name="stock">gtk-go-forward</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="right_attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkTable" id="table3">
+                    <property name="visible">True</property>
+                    <property name="n_rows">2</property>
+                    <property name="n_columns">1</property>
+                    <child>
+                      <widget class="GtkImage" id="image_dialog_CABLE_crossover_link">
+                        <property name="pixbuf">ico.cable.crossed.dialog.link.png</property>
+                      </widget>
+                      <packing>
+                        <property name="top_attach">1</property>
+                        <property name="bottom_attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkImage" id="image_dialog_CABLE_direct_link">
+                        <property name="visible">True</property>
+                        <property name="pixbuf">ico.cable.direct.dialog.link.png</property>
+                      </widget>
+                    </child>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="right_attach">3</property>
+                    <property name="top_attach">1</property>
+                    <property name="bottom_attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label_dialog_CABLE_col_from">
+                    <property name="visible">True</property>
+                    <property name="xpad">5</property>
+                    <property name="ypad">10</property>
+                    <property name="label" translatable="yes">---De---</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
                   </packing>
                 </child>
               </widget>
@@ -2533,22 +2532,17 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="n_rows">4</property>
                     <property name="n_columns">1</property>
                     <child>
-                      <widget class="GtkLabel" id="label_dialog_ROUTER_label">
+                      <widget class="GtkEntry" id="router_label">
+                        <property name="width_request">130</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">
----Étiquette---</property>
-                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                        <property name="can_focus">True</property>
+                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
+                        <property name="top_attach">3</property>
+                        <property name="bottom_attach">4</property>
+                        <property name="y_options"></property>
                       </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkLabel" id="label_dialog_ROUTER_name">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">---Nom---</property>
-                      </widget>
                     </child>
                     <child>
                       <widget class="GtkEntry" id="router_name">
@@ -2566,16 +2560,21 @@ Version QQVERSIONQQ, QQDATEQQ
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkEntry" id="router_label">
-                        <property name="width_request">130</property>
+                      <widget class="GtkLabel" id="label_dialog_ROUTER_name">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
+                        <property name="label" translatable="yes">---Nom---</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label_dialog_ROUTER_label">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">
+---Étiquette---</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
-                        <property name="y_options"></property>
+                        <property name="top_attach">2</property>
+                        <property name="bottom_attach">3</property>
                       </packing>
                     </child>
                   </widget>
@@ -2606,6 +2605,20 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="column_spacing">25</property>
                 <property name="row_spacing">5</property>
                 <child>
+                  <widget class="GtkLabel" id="label_dialog_ROUTER_ports">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">5</property>
+                    <property name="ypad">10</property>
+                    <property name="label" translatable="yes">---Nb de Ports---</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="x_options">GTK_EXPAND</property>
+                  </packing>
+                </child>
+                <child>
                   <widget class="GtkSpinButton" id="router_ports">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -2617,20 +2630,6 @@ Version QQVERSIONQQ, QQDATEQQ
                   <packing>
                     <property name="left_attach">1</property>
                     <property name="right_attach">2</property>
-                    <property name="x_options">GTK_EXPAND</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label_dialog_ROUTER_ports">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">5</property>
-                    <property name="ypad">10</property>
-                    <property name="label" translatable="yes">---Nb de Ports---</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
-                  </widget>
-                  <packing>
                     <property name="x_options">GTK_EXPAND</property>
                   </packing>
                 </child>
@@ -2654,112 +2653,32 @@ Version QQVERSIONQQ, QQDATEQQ
             <property name="n_rows">1</property>
             <property name="n_columns">10</property>
             <child>
-              <widget class="GtkSpinButton" id="router_ip_netmask">
+              <widget class="GtkLabel" id="label_dialog_ROUTER_ip_port0">
+                <property name="width_request">90</property>
+                <property name="visible">True</property>
+                <property name="xalign">0</property>
+                <property name="xpad">5</property>
+                <property name="ypad">10</property>
+                <property name="label" translatable="yes">---IP port0---</property>
+                <property name="use_markup">True</property>
+                <property name="justify">GTK_JUSTIFY_RIGHT</property>
+              </widget>
+              <packing>
+                <property name="x_options">GTK_EXPAND</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkSpinButton" id="router_ip_a">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="xalign">1</property>
-                <property name="adjustment">24 0 31 1 8 10</property>
+                <property name="adjustment">192 1 254 1 1 10</property>
                 <property name="climb_rate">1</property>
                 <property name="numeric">True</property>
               </widget>
               <packing>
-                <property name="left_attach">9</property>
-                <property name="right_attach">10</property>
-                <property name="y_options"></property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkLabel" id="label14675">
-                <property name="visible">True</property>
-                <property name="xalign">0</property>
-                <property name="yalign">1</property>
-                <property name="label" translatable="yes">&lt;big&gt; / &lt;/big&gt;</property>
-                <property name="use_markup">True</property>
-                <property name="justify">GTK_JUSTIFY_CENTER</property>
-              </widget>
-              <packing>
-                <property name="left_attach">8</property>
-                <property name="right_attach">9</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkLabel" id="label14674">
-                <property name="visible">True</property>
-                <property name="xalign">0</property>
-                <property name="yalign">1</property>
-                <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
-                <property name="use_markup">True</property>
-                <property name="justify">GTK_JUSTIFY_CENTER</property>
-              </widget>
-              <packing>
-                <property name="left_attach">6</property>
-                <property name="right_attach">7</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkLabel" id="label14673">
-                <property name="visible">True</property>
-                <property name="xalign">0</property>
-                <property name="yalign">1</property>
-                <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
-                <property name="use_markup">True</property>
-                <property name="justify">GTK_JUSTIFY_CENTER</property>
-              </widget>
-              <packing>
-                <property name="left_attach">4</property>
-                <property name="right_attach">5</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkLabel" id="label14672">
-                <property name="visible">True</property>
-                <property name="xalign">0</property>
-                <property name="yalign">1</property>
-                <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
-                <property name="use_markup">True</property>
-                <property name="justify">GTK_JUSTIFY_CENTER</property>
-              </widget>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="right_attach">3</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkSpinButton" id="router_ip_d">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="xalign">1</property>
-                <property name="adjustment">254 1 254 1 1 10</property>
-                <property name="climb_rate">1</property>
-                <property name="numeric">True</property>
-              </widget>
-              <packing>
-                <property name="left_attach">7</property>
-                <property name="right_attach">8</property>
-                <property name="x_options"></property>
-                <property name="y_options"></property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkSpinButton" id="router_ip_c">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="xalign">1</property>
-                <property name="adjustment">1 0 255 1 1 10</property>
-                <property name="climb_rate">1</property>
-                <property name="numeric">True</property>
-              </widget>
-              <packing>
-                <property name="left_attach">5</property>
-                <property name="right_attach">6</property>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
@@ -2781,34 +2700,114 @@ Version QQVERSIONQQ, QQDATEQQ
               </packing>
             </child>
             <child>
-              <widget class="GtkSpinButton" id="router_ip_a">
+              <widget class="GtkSpinButton" id="router_ip_c">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="xalign">1</property>
-                <property name="adjustment">192 1 254 1 1 10</property>
+                <property name="adjustment">1 0 255 1 1 10</property>
                 <property name="climb_rate">1</property>
                 <property name="numeric">True</property>
               </widget>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
+                <property name="left_attach">5</property>
+                <property name="right_attach">6</property>
                 <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="label_dialog_ROUTER_ip_port0">
-                <property name="width_request">90</property>
+              <widget class="GtkSpinButton" id="router_ip_d">
                 <property name="visible">True</property>
-                <property name="xalign">0</property>
-                <property name="xpad">5</property>
-                <property name="ypad">10</property>
-                <property name="label" translatable="yes">---IP port0---</property>
-                <property name="use_markup">True</property>
-                <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                <property name="can_focus">True</property>
+                <property name="xalign">1</property>
+                <property name="adjustment">254 1 254 1 1 10</property>
+                <property name="climb_rate">1</property>
+                <property name="numeric">True</property>
               </widget>
               <packing>
-                <property name="x_options">GTK_EXPAND</property>
+                <property name="left_attach">7</property>
+                <property name="right_attach">8</property>
+                <property name="x_options"></property>
+                <property name="y_options"></property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label14672">
+                <property name="visible">True</property>
+                <property name="xalign">0</property>
+                <property name="yalign">1</property>
+                <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
+                <property name="use_markup">True</property>
+                <property name="justify">GTK_JUSTIFY_CENTER</property>
+              </widget>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="right_attach">3</property>
+                <property name="x_options"></property>
+                <property name="y_options"></property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label14673">
+                <property name="visible">True</property>
+                <property name="xalign">0</property>
+                <property name="yalign">1</property>
+                <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
+                <property name="use_markup">True</property>
+                <property name="justify">GTK_JUSTIFY_CENTER</property>
+              </widget>
+              <packing>
+                <property name="left_attach">4</property>
+                <property name="right_attach">5</property>
+                <property name="x_options"></property>
+                <property name="y_options"></property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label14674">
+                <property name="visible">True</property>
+                <property name="xalign">0</property>
+                <property name="yalign">1</property>
+                <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
+                <property name="use_markup">True</property>
+                <property name="justify">GTK_JUSTIFY_CENTER</property>
+              </widget>
+              <packing>
+                <property name="left_attach">6</property>
+                <property name="right_attach">7</property>
+                <property name="x_options"></property>
+                <property name="y_options"></property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label14675">
+                <property name="visible">True</property>
+                <property name="xalign">0</property>
+                <property name="yalign">1</property>
+                <property name="label" translatable="yes">&lt;big&gt; / &lt;/big&gt;</property>
+                <property name="use_markup">True</property>
+                <property name="justify">GTK_JUSTIFY_CENTER</property>
+              </widget>
+              <packing>
+                <property name="left_attach">8</property>
+                <property name="right_attach">9</property>
+                <property name="x_options"></property>
+                <property name="y_options"></property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkSpinButton" id="router_ip_netmask">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="xalign">1</property>
+                <property name="adjustment">24 0 31 1 8 10</property>
+                <property name="climb_rate">1</property>
+                <property name="numeric">True</property>
+              </widget>
+              <packing>
+                <property name="left_attach">9</property>
+                <property name="right_attach">10</property>
+                <property name="y_options"></property>
               </packing>
             </child>
           </widget>
@@ -2904,22 +2903,17 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="n_rows">4</property>
                     <property name="n_columns">1</property>
                     <child>
-                      <widget class="GtkLabel" id="label_dialog_CLOUD_label">
+                      <widget class="GtkEntry" id="cloud_label">
+                        <property name="width_request">130</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">
----Étiquette---</property>
-                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                        <property name="can_focus">True</property>
+                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
+                        <property name="top_attach">3</property>
+                        <property name="bottom_attach">4</property>
+                        <property name="y_options"></property>
                       </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkLabel" id="label_dialog_CLOUD_name">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">---Nom---</property>
-                      </widget>
                     </child>
                     <child>
                       <widget class="GtkEntry" id="cloud_name">
@@ -2937,16 +2931,21 @@ Version QQVERSIONQQ, QQDATEQQ
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkEntry" id="cloud_label">
-                        <property name="width_request">130</property>
+                      <widget class="GtkLabel" id="label_dialog_CLOUD_name">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
+                        <property name="label" translatable="yes">---Nom---</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label_dialog_CLOUD_label">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">
+---Étiquette---</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
-                        <property name="y_options"></property>
+                        <property name="top_attach">2</property>
+                        <property name="bottom_attach">3</property>
                       </packing>
                     </child>
                   </widget>
@@ -3052,22 +3051,17 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="n_rows">4</property>
                     <property name="n_columns">1</property>
                     <child>
-                      <widget class="GtkLabel" id="label_dialog_SOCKET_label">
+                      <widget class="GtkEntry" id="socket_label">
+                        <property name="width_request">130</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">
----Étiquette---</property>
-                        <property name="justify">GTK_JUSTIFY_CENTER</property>
+                        <property name="can_focus">True</property>
+                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
+                        <property name="top_attach">3</property>
+                        <property name="bottom_attach">4</property>
+                        <property name="y_options"></property>
                       </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkLabel" id="label_dialog_SOCKET_name">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">---Nom---</property>
-                      </widget>
                     </child>
                     <child>
                       <widget class="GtkEntry" id="socket_name">
@@ -3085,16 +3079,21 @@ Version QQVERSIONQQ, QQDATEQQ
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkEntry" id="socket_label">
-                        <property name="width_request">130</property>
+                      <widget class="GtkLabel" id="label_dialog_SOCKET_name">
                         <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
+                        <property name="label" translatable="yes">---Nom---</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label_dialog_SOCKET_label">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">
+---Étiquette---</property>
+                        <property name="justify">GTK_JUSTIFY_CENTER</property>
                       </widget>
                       <packing>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
-                        <property name="y_options"></property>
+                        <property name="top_attach">2</property>
+                        <property name="bottom_attach">3</property>
                       </packing>
                     </child>
                   </widget>
@@ -3120,112 +3119,32 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="n_rows">1</property>
                 <property name="n_columns">10</property>
                 <child>
-                  <widget class="GtkSpinButton" id="socket_ip_netmask">
+                  <widget class="GtkLabel" id="label_dialog_SOCKET_ip">
+                    <property name="width_request">90</property>
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="xpad">5</property>
+                    <property name="ypad">10</property>
+                    <property name="label" translatable="yes">---IP port0---</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                  </widget>
+                  <packing>
+                    <property name="x_options">GTK_EXPAND</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkSpinButton" id="socket_ip_a">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">1</property>
-                    <property name="adjustment">24 0 31 1 8 10</property>
+                    <property name="adjustment">192 1 254 1 1 10</property>
                     <property name="climb_rate">1</property>
                     <property name="numeric">True</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">9</property>
-                    <property name="right_attach">10</property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label1">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="yalign">1</property>
-                    <property name="label" translatable="yes">&lt;big&gt; / &lt;/big&gt;</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_CENTER</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">8</property>
-                    <property name="right_attach">9</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label4">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="yalign">1</property>
-                    <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_CENTER</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">6</property>
-                    <property name="right_attach">7</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label5">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="yalign">1</property>
-                    <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_CENTER</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">4</property>
-                    <property name="right_attach">5</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label6">
-                    <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="yalign">1</property>
-                    <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_CENTER</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">2</property>
-                    <property name="right_attach">3</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkSpinButton" id="socket_ip_d">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="xalign">1</property>
-                    <property name="adjustment">254 1 254 1 1 10</property>
-                    <property name="climb_rate">1</property>
-                    <property name="numeric">True</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">7</property>
-                    <property name="right_attach">8</property>
-                    <property name="x_options"></property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkSpinButton" id="socket_ip_c">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="xalign">1</property>
-                    <property name="adjustment">1 0 255 1 1 10</property>
-                    <property name="climb_rate">1</property>
-                    <property name="numeric">True</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">5</property>
-                    <property name="right_attach">6</property>
+                    <property name="left_attach">1</property>
+                    <property name="right_attach">2</property>
                     <property name="x_options"></property>
                     <property name="y_options"></property>
                   </packing>
@@ -3247,34 +3166,114 @@ Version QQVERSIONQQ, QQDATEQQ
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkSpinButton" id="socket_ip_a">
+                  <widget class="GtkSpinButton" id="socket_ip_c">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">1</property>
-                    <property name="adjustment">192 1 254 1 1 10</property>
+                    <property name="adjustment">1 0 255 1 1 10</property>
                     <property name="climb_rate">1</property>
                     <property name="numeric">True</property>
                   </widget>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="right_attach">2</property>
+                    <property name="left_attach">5</property>
+                    <property name="right_attach">6</property>
                     <property name="x_options"></property>
                     <property name="y_options"></property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label_dialog_SOCKET_ip">
-                    <property name="width_request">90</property>
+                  <widget class="GtkSpinButton" id="socket_ip_d">
                     <property name="visible">True</property>
-                    <property name="xalign">0</property>
-                    <property name="xpad">5</property>
-                    <property name="ypad">10</property>
-                    <property name="label" translatable="yes">---IP port0---</property>
-                    <property name="use_markup">True</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                    <property name="can_focus">True</property>
+                    <property name="xalign">1</property>
+                    <property name="adjustment">254 1 254 1 1 10</property>
+                    <property name="climb_rate">1</property>
+                    <property name="numeric">True</property>
                   </widget>
                   <packing>
-                    <property name="x_options">GTK_EXPAND</property>
+                    <property name="left_attach">7</property>
+                    <property name="right_attach">8</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label6">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="yalign">1</property>
+                    <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_CENTER</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="right_attach">3</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label5">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="yalign">1</property>
+                    <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_CENTER</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">4</property>
+                    <property name="right_attach">5</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label4">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="yalign">1</property>
+                    <property name="label" translatable="yes">&lt;b&gt; . &lt;/b&gt;</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_CENTER</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">6</property>
+                    <property name="right_attach">7</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkLabel" id="label1">
+                    <property name="visible">True</property>
+                    <property name="xalign">0</property>
+                    <property name="yalign">1</property>
+                    <property name="label" translatable="yes">&lt;big&gt; / &lt;/big&gt;</property>
+                    <property name="use_markup">True</property>
+                    <property name="justify">GTK_JUSTIFY_CENTER</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">8</property>
+                    <property name="right_attach">9</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkSpinButton" id="socket_ip_netmask">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="xalign">1</property>
+                    <property name="adjustment">24 0 31 1 8 10</property>
+                    <property name="climb_rate">1</property>
+                    <property name="numeric">True</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">9</property>
+                    <property name="right_attach">10</property>
+                    <property name="y_options"></property>
                   </packing>
                 </child>
               </widget>

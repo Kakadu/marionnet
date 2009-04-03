@@ -120,7 +120,11 @@ let () =
           () with
         Some true -> st#poweroff_everything ()
       | Some false -> ()
-      | None -> () )
+      | None -> () ) in
+
+  let _ =
+    let callback = (fun _ -> Created_menubar_MARIONNET.Created_entry_project_quit.callback (); true) in
+    w#toplevel#event#connect#delete ~callback
 
   in ()
 

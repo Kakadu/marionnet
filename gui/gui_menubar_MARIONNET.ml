@@ -78,10 +78,18 @@ module Created_entry_project_new = Menu_factory.Make_entry
    let reaction r = begin
      st#shutdown_everything ();
      let filename = check_path_name_validity_and_add_extension_if_needed (r#get "filename") in
-     let () = if (st#active_project) && ((r#get "save_current") = "yes") then st#save_project () else () in
-     st#close_project () ;
-     st#new_project filename ;
-     st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ filename);
+     let actions () =
+       begin
+       st#close_project () ;
+       st#new_project filename ;
+       st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ filename);
+       end in
+     if (st#active_project) && ((r#get "save_current") = "yes")
+      then
+       (st#save_project ();
+        Task_runner.the_task_runner#schedule actions)
+      else
+       (actions ())
      end
 
   end) (F)
@@ -105,14 +113,21 @@ module Created_entry_project_open = Menu_factory.Make_entry
 
    let reaction r =
      begin
-       st#shutdown_everything ();
-       let () = if (st#active_project) && ((r#get "save_current")="yes") then st#save_project () else () in
-       st#close_project () ;
-       let filename = (r#get "filename") in
-       try
-        st#open_project filename;
-        st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ filename);
-       with e -> ((Simple_dialogs.error "Ouvrir un projet" ("Échéc d'ouverture du fichier "^filename) ()); raise e)
+      st#shutdown_everything ();
+      let filename = (r#get "filename") in
+      let actions () = begin
+         st#close_project () ;
+         try
+          st#open_project filename;
+          st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ filename);
+         with e -> ((Simple_dialogs.error "Ouvrir un projet" ("Échéc d'ouverture du fichier "^filename) ()); raise e)
+        end in
+      if (st#active_project) && ((r#get "save_current")="yes")
+      then
+       (st#save_project ();
+        Task_runner.the_task_runner#schedule actions)
+      else
+       (actions ())
      end
 
   end) (F)

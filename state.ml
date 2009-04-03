@@ -515,9 +515,12 @@ class globalState = fun () ->
         (* Save the project *)
         self#save_project ();
 
-        (* Reset names to their old values: *)
-        self#change_prj_name original_prj_name;
-        prj_filename <- original_filename;
+        (* Reset names ensuring synchronisation *)
+        Task_runner.the_task_runner#schedule
+          (fun () -> 
+           (* Reset names to their old values: *)
+           self#change_prj_name original_prj_name;
+           prj_filename <- original_filename);
 
         (* Debugging. *)
         self#debugging () ;

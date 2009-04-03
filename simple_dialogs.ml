@@ -28,10 +28,9 @@ let message win_title msg_title msg_content img_file () =
   let _ = d#closebutton_MESSAGE#connect#clicked ~callback:(d#toplevel#destroy) in
   d#toplevel#set_icon (Some Icon.icon_pixbuf);
   d#toplevel#set_title (utf8 win_title);
-(*  d#title#set_text     ("<b>"^(utf8 (String.uppercase msg_title))^"</b>");*)
-  d#title#set_text     ("<b>"^(utf8 msg_title)^"</b>");
   d#title#set_use_markup true; 
-  d#content#set_text (utf8 msg_content);
+  d#title#set_text     ("<b>"^msg_title^"</b>");
+  d#content#set_text msg_content;
   d#image#set_file (marionnet_home_images ^ img_file);
   ()
 ;;

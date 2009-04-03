@@ -558,9 +558,8 @@ let ask_question ?(enrich=mkenv []) ?(title="QUESTION") ?(gen_id="answer")  ?(he
    if (help=None)    then () else dialog#toplevel#add_button_stock `HELP   `HELP ;
    if (cancel=false) then () else dialog#toplevel#add_button_stock `CANCEL `CANCEL ;
 
-   dialog#toplevel#set_title (utf8 title);
-(*   dialog#title#set_text     (utf8 (String.uppercase question));*)
-   dialog#title_QUESTION#set_text     (utf8 question);
+   dialog#toplevel#set_title title;
+   dialog#title_QUESTION#set_text question;
    dialog#title_QUESTION#set_use_markup true;
    ignore
      (dialog#toplevel#event#connect#delete

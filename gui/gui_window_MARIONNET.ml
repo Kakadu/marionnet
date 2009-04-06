@@ -24,8 +24,8 @@ let w = st#mainwin
 
 (* Labels in main window *)
 let () = begin
- w#label_VIRTUAL_NETWORK#set_text "Réseau virtuel";
- w#label_TAB_DOCUMENTS#set_text   "Documents du projet"
+ w#label_VIRTUAL_NETWORK#set_label "Réseau virtuel";
+ w#label_TAB_DOCUMENTS#set_label   "Documents du projet"
 end
 
 (* ***************************************** *

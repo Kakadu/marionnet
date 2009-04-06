@@ -51,7 +51,7 @@ module Make (State:sig val st:State.globalState end) = struct
    | None   -> dialog#socket_name#set_text (st#network#suggestedName "E"); (* E stands for extern *)
                dialog#socket_name#misc#grab_focus ()
    | Some c -> dialog#socket_name#set_text  c#get_name  ;
-               dialog#socket_label#set_text c#get_label 
+               dialog#socket_label#set_text c#get_label
    );
 
    (* Socket dialog parser *)

@@ -559,8 +559,8 @@ let ask_question ?(enrich=mkenv []) ?(title="QUESTION") ?(gen_id="answer")  ?(he
    if (cancel=false) then () else dialog#toplevel#add_button_stock `CANCEL `CANCEL ;
 
    dialog#toplevel#set_title title;
-   dialog#title_QUESTION#set_text question;
    dialog#title_QUESTION#set_use_markup true;
+   dialog#title_QUESTION#set_label question;
    ignore
      (dialog#toplevel#event#connect#delete
         ~callback:(fun _ -> Log.print_string "Sorry, no, you can't close the dialog. Please make a decision.\n"; true));

@@ -29,8 +29,8 @@ let message win_title msg_title msg_content img_file () =
   d#toplevel#set_icon (Some Icon.icon_pixbuf);
   d#toplevel#set_title (utf8 win_title);
   d#title#set_use_markup true; 
-  d#title#set_text     ("<b>"^msg_title^"</b>");
-  d#content#set_text msg_content;
+  d#title#set_label     ("<b>"^msg_title^"</b>");
+  d#content#set_label msg_content;
   d#image#set_file (marionnet_home_images ^ img_file);
   ()
 ;;
@@ -66,9 +66,8 @@ let confirm_dialog
   let dialog = new Gui.dialog_QUESTION () in 
   dialog#toplevel#set_icon (Some Icon.icon_pixbuf);
   dialog#toplevel#set_title (utf8 "Confirmation");
-(*  dialog#title#set_text     (utf8 (String.uppercase question));*)
-  dialog#title_QUESTION#set_text     (utf8 question);
   dialog#title_QUESTION#set_use_markup true; 
+  dialog#title_QUESTION#set_label question;
   ignore
     (dialog#toplevel#event#connect#delete
        ~callback:(fun _ ->

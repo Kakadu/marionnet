@@ -180,10 +180,9 @@ and
      end
   in
   let loops = loop 0 in
-  match loops with
-   | 0 -> Performed false
-   | _ -> let () = List.iter (fun (x:reactive) -> ignore x#stabilize) self#sink_list in
-          Performed true
+  let sink_results = List.map (fun (x:reactive) -> x#stabilize) self#sink_list in
+  let result = (loops > 0) || (List.exists ((=)(Performed true)) sink_results) in
+  (Performed result)
 
  initializer
   current_system := Some (self :> system)

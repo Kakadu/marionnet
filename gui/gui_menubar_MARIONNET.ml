@@ -17,8 +17,6 @@
 
 (** Gui completion for the menubar_MARIONNET widget defined with glade. *)
 
-open Talking (* to be deleted *)
-
 (* Shortcuts *)
 module Unix = UnixExtra.Unix
 module EDialog = Talking.EDialog
@@ -82,7 +80,6 @@ module Created_entry_project_new = Menu_factory.Make_entry
        begin
        st#close_project () ;
        st#new_project filename ;
-       st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ filename);
        end in
      if (st#active_project) && ((r#get "save_current") = "yes")
       then
@@ -119,7 +116,6 @@ module Created_entry_project_open = Menu_factory.Make_entry
          st#close_project () ;
          try
           st#open_project filename;
-          st#mainwin#window_MARIONNET#set_title (Command_line.window_title ^ " - " ^ filename);
          with e -> ((Simple_dialogs.error "Ouvrir un projet" ("Échéc d'ouverture du fichier "^filename) ()); raise e)
         end in
       if (st#active_project) && ((r#get "save_current")="yes")
@@ -160,7 +156,6 @@ module Created_entry_project_save_as = Menu_factory.Make_entry
      let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
       st#save_project_as filename;
-      st#mainwin#window_MARIONNET#set_title (Command_line.window_title^" - "^filename);
      with _ -> (Simple_dialogs.error "Projet enregistrer sous" ("Échéc de la sauvegarde du project vers "^filename) ())
 
   end) (F)
@@ -207,7 +202,6 @@ module Created_entry_project_close = Menu_factory.Make_entry
               then st#save_project ()
               else () in
     st#close_project ();
-    st#mainwin#window_MARIONNET#set_title Command_line.window_title; (* no project name *)
     end
 
   end) (F)

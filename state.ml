@@ -52,8 +52,6 @@ type application_state =
 
 type filename = string;;
 
-(*let () = Chip.initialize ();;*)
-
 (** The class modelling the global state of the application. *)
 class globalState = fun () ->
   let win        = new Gui.window_MARIONNET ()           in
@@ -118,13 +116,14 @@ class globalState = fun () ->
    )
  
   (** The project filename. *)
-  val mutable prj_filename : string option = None
+  val prj_filename = Chip.wref None
+  method prj_filename = prj_filename
 
   (** The project name. *)
   val mutable prj_name : string option = None
 
   (** Get the project filename. *)
-  method get_prj_filename = match prj_filename with | Some x -> x | None -> ""
+  method get_prj_filename = match prj_filename#get with | Some x -> x | None -> ""
 
   (** Get the project name. *)
   method get_prj_name     = match prj_name with | Some x -> x | None -> ""
@@ -213,7 +212,7 @@ class globalState = fun () ->
       self#network#reset () ;
 
       (* Set the project filename *)
-      prj_filename <- (Some x) ;
+      prj_filename#set (Some x) ;
 
       (* Set the project name using the basename of filename whitout extension. *)
       prj_name     <-  Some (self#default_prj_name ()) ;
@@ -270,7 +269,7 @@ class globalState = fun () ->
       self#update_sketch () ;
 
       (* Unset the project filename. *)
-      prj_filename <- None ;
+      prj_filename#set None ;
 
       (* Unset the project name. *)
       prj_name     <- None ;
@@ -348,7 +347,7 @@ class globalState = fun () ->
     self#close_project ();
 
     (* Set the project filename *)
-    prj_filename <- (Some x) ;
+    prj_filename#set (Some x) ;
 
     (* Set the project working directory to a random name in the wdir. *)
     let working_directory = Unix.temp_dir ~parent:wdir ~prefix:marionnet_working_directory_prefix ~suffix:".dir" () in
@@ -479,14 +478,13 @@ class globalState = fun () ->
     if not (app_state=NoActiveProject) then
       try
       begin
-        let old_prj_name = self#get_prj_name in (* To do: Jean, what's this for? *)
         let new_prj_name = (self#default_prj_name ~arg:(Some x) ()) in
 
         (* Set the project name *)
         self#change_prj_name new_prj_name;
 
         (* Set the project filename *)
-        prj_filename <- (Some x) ;
+        prj_filename#set (Some x) ;
 
         (* Save the project *)
         self#save_project ();
@@ -507,12 +505,12 @@ class globalState = fun () ->
       try
       begin
         let original_prj_name = self#get_prj_name in
-        let original_filename = prj_filename in
+        let original_filename = prj_filename#get in
         let temporary_prj_name = (self#default_prj_name ~arg:(Some x) ()) in
 
         (* Temporarily update names...: *)
         self#change_prj_name temporary_prj_name;
-        prj_filename <- (Some x) ;
+        prj_filename#set (Some x) ;
 
         (* Save the project *)
         self#save_project ();
@@ -522,7 +520,7 @@ class globalState = fun () ->
           (fun () -> 
            (* Reset names to their old values: *)
            self#change_prj_name original_prj_name;
-           prj_filename <- original_filename);
+           prj_filename#set original_filename);
 
         (* Debugging. *)
         self#debugging () ;

@@ -119,3 +119,6 @@ gui-help: gui.ml
 clean-local:
 	@(rm -f VERSION BUILD-TIME version.ml; \
 	rm -f share/gui.glade.patched gui.ml)
+
+edit:
+	test -n $$EDITOR && $$EDITOR Makefile.local $$(find . gui chip -maxdepth 1 -name "*.ml" -o -name "*.mli") &

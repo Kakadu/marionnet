@@ -66,6 +66,18 @@ chip distributor : (x:int list,s) -> (y1,y2,y3:int list,y4) =
   if s then (x,y2,x,x) else (y1,x,x,x)
 ;;
 
+chip tata : (x:int list) -> () =
+  let () = self#get in ()
+;;
+
+chip titi : () -> (z:float, w:int) =
+   fun x -> (x *. 3.14, int_of_float x)
+;;
+
+let w9 = wref 6.28 ;;
+let t = new titi ~z:w9 ~w:w1 () ;;
+t#emit 9.887 ;;
+
 (*let w8 = wref true ;;
 let s = new distributor ~x:w1 ~s:w8 ~y1:w7 ~y2:w6 () ;;*)
 

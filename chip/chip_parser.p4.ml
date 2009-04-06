@@ -74,7 +74,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
     str_item: FIRST
       [ [ "chip"; class_name = LIDENT; user_parameters = LIST0 [ x=patt -> x];  ":" ;
 
-          input_ports  = [ "(" ; l = LIST1 [ x = port_ident -> x] SEP ","; ")" -> l ];
+          input_ports  = [ "(" ; l = LIST0 [ x = port_ident -> x] SEP ","; ")" -> l ];
 
           output_ports = [ "->"; "("; l = LIST0 [ x = port_ident -> x] SEP "," ; ")"; "=" -> l
                          | "->"; "unit"; "=" -> []
@@ -83,10 +83,18 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           e = expr ->
 
           (* Port names (inputs + outputs) *)
+          let is_source = (input_ports = []) in
           let inputs  = List.map fst input_ports  in
           let outputs = List.map fst output_ports in
           let port_names = List.append inputs outputs in
-          (check_unicity port_names);
+          let () = check_unicity port_names in
+
+          let ancestor = match input_ports, output_ports with
+            | [],[] ->  failwith "Autistic chips not allowed!"
+            | [], _ -> "source"
+            | _ ,[] -> "sink"
+            | _ ,_  -> "relay"
+          in
 
           (* Support functions and values *)
 
@@ -111,7 +119,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           in
 
           (* Inherit section *)
-          let inherit_section = [ <:class_str_item< inherit chip ~name system >> ]      in
+          let inherit_section =  [ <:class_str_item< inherit $lid:ancestor$ ~name system >> ] in
 
           (* Tool for creating a pattern depending on the length of a list of identifiers
              encoded by strings. If the list is empty, the pattern () is built. If the list is
@@ -140,7 +148,8 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           (* Firmware section *)
 
           let domains =
-            let mill = fun (x,ot) -> match ot with None -> Ast.TyLab(_loc,x,<:ctyp< _ >>) | Some t -> Ast.TyLab(_loc,x,t) in
+            let mill =
+             fun (x,ot) -> match ot with None -> Ast.TyLab(_loc,x,<:ctyp< _ >>) | Some t -> Ast.TyLab(_loc,x,t) in
             List.map mill input_ports
           in
 
@@ -154,7 +163,11 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           let firmware =
             let pl = List.map (fun i -> Ast.PaLab (_loc, i, <:patt< >>)) inputs             in
             let firmware_expr   = List.fold_right (fun p e -> <:expr< fun $p$ -> $e$ >>) pl e in
-            let firmware_method = <:class_str_item< method firmware : $signature$ = $firmware_expr$ >>               in
+            let firmware_method =
+              match is_source with
+              | false -> <:class_str_item< method firmware : $signature$ = $firmware_expr$ >>
+              | true  -> <:class_str_item< method firmware = $firmware_expr$ >>
+            in
             [firmware_method]
           in
 
@@ -194,19 +207,14 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 
           (* connect method *)
           let connect =
-      	   let input_pattern1 = pattern_of_string_list inputs  in
+      	   let pi = pattern_of_string_list inputs  in
+      	   let po = pattern_of_string_list outputs in
            let connect_actions = Ast.exSem_of_list (List.map connect_application port_names) in
-           if List.length outputs = 0 then
-            [ <:class_str_item<
-             method connect $input_pattern1$ =
-              begin $connect_actions$ end >> ]
-	   else
-      	   let input_pattern2 = pattern_of_string_list outputs
-            in
-            [ <:class_str_item<
-             method connect $input_pattern1$ $input_pattern2$ =
-              begin $connect_actions$ end >> ]
-
+           match inputs, outputs with
+           | [] , [] -> assert false
+           |  _ , [] -> [ <:class_str_item< method connect $pi$ = begin $connect_actions$ end >> ]
+           | [] , _  -> [ <:class_str_item< method connect $po$ = begin $connect_actions$ end >> ]
+	   |  _ , _  -> [ <:class_str_item< method connect $pi$ $po$ = begin $connect_actions$ end >> ]
           in
 
           (* disconnect_? methods for all ports *)
@@ -311,6 +319,30 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 
           in
 
+          (* emit method section (for sources) *)
+          let emit =
+
+            let arg = fresh_var_name ~blacklist:port_names ~prefix:"arg" in
+
+            let output_bindings =
+             let inputs_as_lid_expressions = List.map (fun x -> <:expr< $lid:x$>>) inputs            in
+             let firmware_application = apply _loc <:expr< self#firmware $lid:arg$ >> inputs_as_lid_expressions in
+             let output_pattern = pattern_of_string_list outputs in
+             <:binding< $output_pattern$ = $firmware_application$ >>
+            in
+
+            let set_actions = Ast.exSem_of_list (List.map set_alone_application outputs)
+            in
+
+            [ <:class_str_item<
+             method emit $lid:arg$ =
+                 let $binding:output_bindings$ in
+                  $set_actions$ ;
+                  self#system#stabilize
+            >>]
+
+          in
+
           (* set method section *)
           let set =
       	   let input_pattern = pattern_of_string_list inputs in
@@ -368,11 +400,11 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
               set_in_port_i     ;
               set_alone_i       ;
               set_alone_o       ;
-              stabilize         ;
-              set               ;
               get               ;
               get_i             ;
               get_o             ;
+              if is_source then emit else stabilize ;
+              if is_source then [] else set       ;
             ])
            in
 

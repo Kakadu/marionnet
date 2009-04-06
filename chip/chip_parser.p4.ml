@@ -411,9 +411,8 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           (* Class expression *)
 
           let ce =
-            let msg = "new "^class_name^": current system undefined" in
             <:class_expr<
-             fun ?(system : system = (extract ~caller:$str:msg$ !current_system)) () -> object (self) $cst$ end >> in
+             fun ?(system : system = (Chip.get_or_initialize_current_system ())) () -> object (self) $cst$ end >> in
 
           (* Class expression with optional parameters *)
           let cop_list = List.map (fun i -> Ast.PaOlb (_loc, i, <:patt< >>)) port_names in

@@ -219,10 +219,6 @@ class ['a] wref ?(name = fresh_wire_name "wref") (system:system) (value:'a) =
   method set_alone v = (content <- v)
  end
 
-(** Simplified constructor. *)
-let wref ?(system=(extract ~caller:"Chip.wref: current system undefined" !current_system)) x =
- new wref system x
-
 type ('b,'a) in_port  = (('b,'a) wire * 'a) option
 type ('a,'b) out_port = ('a,'b) wire option
 
@@ -243,3 +239,11 @@ let stabilize () =
 let get_current_system () =
  let system = (extract ~caller:"Chip.current_system: current system undefined" !current_system) in
  system
+
+let get_or_initialize_current_system () = match !current_system with
+ | None   -> new system ()
+ | Some s -> s
+
+(** Simplified constructor. *)
+let wref ?(system=(get_or_initialize_current_system ())) x =
+ new wref system x

@@ -52,6 +52,8 @@ type application_state =
 
 type filename = string;;
 
+(*let () = Chip.initialize ();;*)
+
 (** The class modelling the global state of the application. *)
 class globalState = fun () ->
   let win        = new Gui.window_MARIONNET ()           in

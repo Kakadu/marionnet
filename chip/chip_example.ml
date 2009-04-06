@@ -9,7 +9,7 @@ open Chip ;;
     Chip.teach_ocamldep;;   - in order to teach ocamldep on Chip dependency, or
     Chip.initialize ();;    - in order to teach ocamldep and create an "current" implicit system. *)
 
-Chip.initialize ();;
+(*Chip.initialize ();;*)
 (*
 let r = Chip.get_current_system () ;;
 let r  = new system ~max_number_of_iterations:2048 () ;;

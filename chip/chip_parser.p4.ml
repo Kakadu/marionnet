@@ -72,7 +72,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
         |       x = LIDENT                      -> (x, None  )  ] ] ;
 
     str_item: FIRST
-      [ [ "chip"; class_name = LIDENT; user_parameters = LIST0 [ x=patt -> x];  ":" ;
+      [ [ "chip"; virt = OPT "virtual"; class_name = LIDENT; user_parameters = LIST0 [ x=patt -> x];  ":" ;
 
           input_ports  = [ "(" ; l = LIST0 [ x = port_ident -> x] SEP ","; ")" -> l ];
 
@@ -81,6 +81,9 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
                          | "="               -> [] ];
 
           e = expr ->
+
+          (* Class type *)
+          let is_virtual = (virt <> None) in
 
           (* Port names (inputs + outputs) *)
           let is_source = (input_ports = []) in
@@ -420,12 +423,15 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           let cewop = <:class_expr< fun ?(name=fresh_chip_name "chip") ?(equality=(Pervasives.(=))) -> $cewop$ >> in
           let cewop_with_user_parameters = lambda_class_expr _loc user_parameters cewop in
           let internal_module_name = ("Chip_class_definition_"^class_name) in
+          let class_def = match is_virtual with
+          | false -> <:str_item< class         [ $ctv$ ] $lid:class_name$ = $cewop_with_user_parameters$ >>
+          | true  -> <:str_item< class virtual [ $ctv$ ] $lid:class_name$ = $cewop_with_user_parameters$ >>
+          in
           <:str_item<
 
             module $uid:internal_module_name$ = struct
              open Chip
-             class [ $ctv$ ] $lid:class_name$ =
-               $cewop_with_user_parameters$
+             $class_def$
             end
             include $uid:internal_module_name$
           >>

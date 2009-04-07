@@ -66,7 +66,7 @@ chip distributor : (x:int list,s) -> (y1,y2,y3:int list,y4) =
   if s then (x,y2,x,x) else (y1,x,x,x)
 ;;
 
-chip tata : (x:int list) -> () =
+chip virtual tata : (x:int list) -> () =
   let () = self#get in ()
 ;;
 

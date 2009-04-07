@@ -28,7 +28,9 @@ let check_path_name_validity_and_add_extension_if_needed =
 open GdkKeysyms
 open GtkStock
 
-module Make (State:sig val st:State.globalState end) = struct
+module Make
+ (State:sig val st:State.globalState end)
+ (Motherboard:sig val sensitiveness_manager:Gui_motherboard.sensitiveness_manager_interface end) = struct
 
 open State
 
@@ -326,11 +328,11 @@ let help_apropos =
  * **************************************** *)
 
 let () = List.iter (* when Active *)
-          (fun w -> st#add_sensitive_when_Active w#coerce)
+          (fun w -> Motherboard.sensitiveness_manager#add_sensitive_when_Active w#coerce)
           [project_save; project_save_as; project_copy_to; project_close; project_export]
 
 let () = List.iter (* when NoActive *)
-          (fun w -> st#add_sensitive_when_NoActive w#coerce)
+          (fun w -> Motherboard.sensitiveness_manager#add_sensitive_when_NoActive w#coerce)
           [options_cwd]
 
 end

@@ -78,43 +78,12 @@ class globalState = fun () ->
   method flash ?(delay:int=2000) (msg:string) = statusbar_ctx#flash ~delay msg
 
   (** The state of application.*)
-  val mutable app_state : application_state = NoActiveProject
+  val app_state : application_state Chip.wref = Chip.wref NoActiveProject
+  method app_state = app_state
 
   (** Are we working with an active project. *)
-  method active_project = not (app_state=NoActiveProject)
+  method active_project = (app_state#get <> NoActiveProject)
 
-  (** Sensitive active_project related widgets *)
-  val mutable sensitive_when_Active   : GObj.widget list = []
-  val mutable sensitive_when_Runnable : GObj.widget list = []
-  val mutable sensitive_when_NoActive : GObj.widget list = []
-
-  method add_sensitive_when_Active x =
-    sensitive_when_Active <- x::sensitive_when_Active
-
-  method add_sensitive_when_Runnable x =
-    sensitive_when_Runnable <- x::sensitive_when_Runnable
-
-  method add_sensitive_when_NoActive x =
-    sensitive_when_NoActive <- x::sensitive_when_NoActive
-
-  method set_sensitive () =
-   let l1 = sensitive_when_Active   in
-   let l2 = sensitive_when_Runnable in
-   let l3 = sensitive_when_NoActive in
-   (match app_state with
-   | NoActiveProject
-    ->  List.iter (fun x->x#misc#set_sensitive false) (l1@l2) ;
-        List.iter (fun x->x#misc#set_sensitive true)  l3
-
-   | ActiveNotRunnableProject
-    ->  List.iter (fun x->x#misc#set_sensitive true)  l1 ;
-        List.iter (fun x->x#misc#set_sensitive false) (l2@l3)
-
-   | ActiveRunnableProject
-    ->  List.iter (fun x->x#misc#set_sensitive true)  (l1@l2) ;
-        List.iter (fun x->x#misc#set_sensitive false) l3
-   )
- 
   (** The project filename. *)
   val prj_filename = Chip.wref None
   method prj_filename = prj_filename
@@ -240,7 +209,7 @@ class globalState = fun () ->
       self#dotoptions#reset_defaults () ;
 
       (* Set the app_state. *)
-      app_state <- ActiveNotRunnableProject ;
+      app_state#set ActiveNotRunnableProject ;
 
       (* Force GUI coherence. *)
       self#gui_coherence () ;
@@ -259,7 +228,7 @@ class globalState = fun () ->
     (* Destroy whatever the LEDgrid manager is managing: *)
     self#network#ledgrid_manager#reset;
 
-    (if (app_state = NoActiveProject) then
+    (if (app_state#get = NoActiveProject) then
        Log.print_string ">>>>>>>>>>(THERE'S NO PROJECT TO CLOSE)<<<<<<<<\n"
      else begin
       self#network#reset ();
@@ -284,7 +253,7 @@ class globalState = fun () ->
       self#set_pwdir None;
 
       (* Set the app_state. *)
-      app_state <- NoActiveProject ;
+      app_state#set NoActiveProject ;
 
       (* Force GUI coherence. *)
       self#gui_coherence ();
@@ -325,7 +294,7 @@ class globalState = fun () ->
    else ( emergency (Failure "file not readable"); raise (Failure "state#import_network: cannot open the xml file") ));
 
    (* Fix the app_state and update it if necessary *)
-   app_state <- ActiveNotRunnableProject ;
+   app_state#set ActiveNotRunnableProject ;
    self#update_state (); (* is it runnable? *)
 
    (* Undump Dotoptions.network *)
@@ -420,7 +389,7 @@ class globalState = fun () ->
   (** Rewrite the compressed archive prj_filename with the content of the project working directory (pwdir). *)
   method save_project () =
 
-    if (app_state <> NoActiveProject) then begin
+    if self#active_project then begin
     Log.print_string ">>>>>>>>>>SAVING THE PROJECT: BEGIN<<<<<<<<\n";
 
     (* Progress bar periodic callback. *)
@@ -475,7 +444,7 @@ class globalState = fun () ->
 
   (** Update the project filename to the given string, and save: *)
   method save_project_as (x:filename) =
-    if not (app_state=NoActiveProject) then
+    if self#active_project then
       try
       begin
         let new_prj_name = (self#default_prj_name ~arg:(Some x) ()) in
@@ -501,7 +470,7 @@ class globalState = fun () ->
   method copy_project_into (x:filename) =
     (* This is implemented by temporarily updating the name, saving and then switch back to
        the old name *)
-    if not (app_state=NoActiveProject) then
+    if self#active_project then
       try
       begin
         let original_prj_name = self#get_prj_name in
@@ -619,11 +588,11 @@ There is no need to restart the application."
   method update_state () =
     let old = app_state in
     begin
-    match app_state with
+    match app_state#get with
      | NoActiveProject -> ()
-     | _ -> app_state <- if self#network#nodes=[]
-                         then ActiveNotRunnableProject
-                         else ActiveRunnableProject
+     | _ -> app_state#set (if self#network#nodes=[]
+                           then ActiveNotRunnableProject
+                           else ActiveRunnableProject)
     end ;
     if app_state <> old then self#gui_coherence ();
     ()
@@ -632,7 +601,7 @@ There is no need to restart the application."
  (** Force coherence between state and sensitive attributes of mainwin's widgets *)
  method gui_coherence () =
     self#update_state  () ;
-    self#set_sensitive () ;
+(*    self#set_sensitive () ;*)
     self#update_cable_sensitivity ();
 
  (** For debugging *)
@@ -719,7 +688,7 @@ There is no need to restart the application."
    Log.print_string "!!! This should never be shown.\n";;
 
  method mrPropre () =
-    if not (app_state=NoActiveProject) then raise (Failure "A project is still open, I cannot clean the wdir!")
+    if self#active_project then raise (Failure "A project is still open, I cannot clean the wdir!")
     begin
     let _ = Unix.system ("rmdir "^wdir) in ()
     end

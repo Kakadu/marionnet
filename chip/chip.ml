@@ -34,7 +34,7 @@ let extract ?caller = function
  | Some x -> x
  | None   -> (match caller with None -> failwith ("extract") | Some c -> failwith ("extract called by "^c))
 
-(* Extract the value of the wire connected to a port comparing it with its previous value. *)
+(** Extract the value of the wire connected to a port comparing it with its previous value. *)
 let extract_and_compare (caller:string) equality (* :'a -> 'a -> bool *) (port:((< get : 'a; .. > as 'w) * 'a option) option) : 'w * 'a * bool =
  let (w, vo) = extract ~caller port in
  let v' = w#get in

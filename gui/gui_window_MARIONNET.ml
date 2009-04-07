@@ -32,10 +32,18 @@ let () = begin
 end
 
 (* ***************************************** *
+             Gui motherboard
+ * ***************************************** *)
+
+module Motherboard = Gui_motherboard. Make (State)
+
+
+(* ***************************************** *
          MENUS Project, Options, ...
  * ***************************************** *)
 
-module Created_menubar_MARIONNET = Gui_menubar_MARIONNET. Make (State)
+module Created_menubar_MARIONNET = Gui_menubar_MARIONNET. Make (State) (Motherboard)
+
 
 (* ***************************************** *
              notebook_CENTRAL 
@@ -130,11 +138,5 @@ let () =
     w#toplevel#event#connect#delete ~callback
 
   in ()
-
-(* ***************************************** *
-             Gui motherboard
- * ***************************************** *)
-
-module Created_motherboard = Gui_motherboard. Make (State)
 
 end

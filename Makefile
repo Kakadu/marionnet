@@ -772,8 +772,8 @@ myocamlbuild.ml:
 	for x in $(LIBRARIES_TO_LINK); do \
 		echo -en "A \"$$x.cmxa\"; " >> $@; \
 	done; \
-	for x in $(C_OBJECTS_TO_LINK); do \
-		echo -en "A \"$$x.o\"; " >> $@; \
+	for x in $(OBJECTS_TO_LINK); do \
+		echo -en "A \"$$x.cmx\"; " >> $@; \
 	done; \
 	for x in $(C_OBJECTS_TO_LINK); do \
 		echo -en "A \"$$x.o\"; " >> $@; \

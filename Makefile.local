@@ -24,11 +24,10 @@ C_OBJECTS_TO_LINK += gettext-c-wrapper
 PP_OPTION = camlp4of -verbose
 
 OBJECTS_TO_LINK = gtkThread
-#PROGRAMS = marionnet.byte marionnet.native
 BYTE_PROGRAMS = marionnet.byte chip_example.byte chip_example.expanded.ml chip_example.expanded.byte
 ROOT_BYTE_PROGRAMS = marionnet-daemon.byte
 
-BYTE_PROGRAMS += gettexttest.byte
+BYTE_PROGRAMS += gettext-example.byte
 
 # To do: these should be enabled for release, but they take too long to
 # build every time...
@@ -38,12 +37,14 @@ BYTE_PROGRAMS += gettexttest.byte
 #ROOT_PROGRAMS = marionnet-daemon.byte marionnet-daemon.native
 OTHER_PROGRAMS_TO_INSTALL = scripts/marionnet-can-directory-host-sparse-files
 
+main-local: _build/gettext-c-wrapper.o
+
 # Before building the main targets we have to create the machine-generated
 # sources:
-chip_example.byte : chip/chip_example.ml _build/chip_parser.p4.cmo _build/gettext-c-wrapper.o
+chip_example.byte : chip/chip_example.ml _build/chip_parser.p4.cmo
 
 # A trivial example of how to use our gettext wrapper:
-gettext-example.byte : gettext/gettext-example.ml _build/gettext-c-wrapper.o
+gettext-example.byte : gettext/gettext-example.ml
 
 # How to build the trivial C module:
 _build/gettext-c-wrapper.o: gettext/gettext-c-wrapper.c
@@ -64,7 +65,7 @@ chip_example.expanded.byte : chip_example.expanded.ml
 	#cd _build ; ocamlc -pp camlp4of -I chip chip.cmo $< -o $@
 	cd _build ; ocamlc -pp camlp4rf -I chip chip.cmo $< -o $@
 
-marionnet.byte marionnet.native : _build/chip_parser.p4.cmo _build/include_type_definitions.p4.cmo version.ml gui.ml
+marionnet.byte marionnet.native : _build/chip_parser.p4.cmo _build/include_type_definitions.p4.cmo version.ml gui.ml _build/gettext-c-wrapper.o
 
 _build/include_type_definitions.p4.cmo: include_type_definitions.p4.ml
 	@mkdir _build/ 2>/dev/null || true

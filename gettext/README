@@ -1,0 +1,39 @@
+This file is part of Marionnet, a virtual network laboratory
+Copyright (C) 2009  Luca Saiu
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+This is a very simple OCaml wrapper for GNU Gettext, allowing for
+internationalization of messages in OCaml programs.
+
+Date, time and more advanced features like plurals are *not* currently
+supported.
+
+The interface is extremely simple: it suffices to initialize gettext
+support at startup time by calling initialize_gettext, which takes
+two parameters: the text domain, and the locale directory.
+
+After that, strings can be translated by simply calling gettext, taking
+an English string and returning a translated string. gettext is thread-safe
+and can be called without any external synchronization.
+
+An example is included: see gettext-example.ml.
+
+
+The Gettext ocaml wrapper is free software; it's released under the GPL
+version 2 or, at your option, any later version released by the Free
+Software Foundation.
+
+-- Luca Saiu, 2009-04-09

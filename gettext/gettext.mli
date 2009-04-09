@@ -21,3 +21,11 @@ val initialize_gettext : string -> string -> unit;;
 
 (** Given a string in English, return its translated version: *)
 val gettext : string -> string;;
+
+(** Given a string in English, return its translated version. This is just an alias for
+    gettext: *)
+val s_ : string -> string;;
+
+(** Given a format string in English (to be used with Printf.printf and friends), return
+    its translated version: *)
+val f_ : (('a, out_channel, unit) format) -> (('a, out_channel, unit) format);;

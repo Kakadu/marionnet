@@ -29,3 +29,9 @@ let gettext string_in_english =
   let result = non_thread_safe_gettext_primitive string_in_english in
   Mutex.unlock the_mutex;
   result;;
+
+(* Public versions for strings, with the type we like: *)
+let s_ = gettext;;
+
+(* Public versions for format strings, with the type we like: *)
+let f_ x = (Obj.magic gettext ((Obj.magic x) : string));;

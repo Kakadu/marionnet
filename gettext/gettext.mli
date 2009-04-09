@@ -28,4 +28,4 @@ val s_ : string -> string;;
 
 (** Given a format string in English (to be used with Printf.printf and friends), return
     its translated version: *)
-val f_ : (('a, out_channel, unit) format) -> (('a, out_channel, unit) format);;
+val f_ : (('a, out_channel, 'b) format) -> (('a, out_channel, 'b) format);;

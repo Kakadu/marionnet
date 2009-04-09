@@ -29,6 +29,9 @@ After that, strings can be translated by simply calling gettext, taking
 an English string and returning a translated string. gettext is thread-safe
 and can be called without any external synchronization.
 
+gettext has an alias with a shorter name, s_. You can use f_ for format
+strings to be passed to Printf.printf and friends.
+
 An example is included: see gettext-example.ml.
 
 

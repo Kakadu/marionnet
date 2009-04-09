@@ -78,14 +78,14 @@ class globalState = fun () ->
   method flash ?(delay:int=2000) (msg:string) = statusbar_ctx#flash ~delay msg
 
   (** The state of application.*)
-  val app_state : application_state Chip.wref = Chip.wref NoActiveProject
+  val app_state = Chip.wref ~name:"globalState#app_state" NoActiveProject
   method app_state = app_state
 
   (** Are we working with an active project. *)
   method active_project = (app_state#get <> NoActiveProject)
 
   (** The project filename. *)
-  val prj_filename = Chip.wref None
+  val prj_filename = Chip.wref ~name:"globalState#prj_filename" None
   method prj_filename = prj_filename
 
   (** The project name. *)

@@ -30,20 +30,7 @@ let fresh_sink_name   = fresh_name_generator ()
 let fresh_wire_name   = fresh_name_generator ()
 let fresh_system_name = fresh_name_generator ()
 
-let extract ?caller = function
- | Some x -> x
- | None   -> (match caller with None -> failwith ("extract") | Some c -> failwith ("extract called by "^c))
-
-(** Extract the value of the wire connected to a port comparing it with its previous value. *)
-let extract_and_compare (caller:string) equality (* :'a -> 'a -> bool *) (port:((< get : 'a; .. > as 'w) * 'a option) option) : 'w * 'a * bool =
- let (w, vo) = extract ~caller port in
- let v' = w#get in
- let unchanged = match vo with
-  | None   -> false
-  | Some v -> (Obj.magic equality) v v'
- in (w, v', unchanged)
-
-type performed = Performed of bool 
+type performed = Performed of bool
 let max_number_of_iterations = 1024
 let current_system = ref None
 
@@ -55,10 +42,12 @@ class
    val id = fresh_id ()
    method id = id
    method name = name
-   method trace tracing_method_name =
+   method trace ?msg tracing_method_name =
     begin
-    (Printf.eprintf "In %s#%s (id=%d)\n" self#name tracing_method_name self#id);
-    (flush stderr)
+    (match msg with 
+     | None     -> (Printf.eprintf "In %s#%s (id=%d)\n"  self#name tracing_method_name self#id)
+     | Some msg -> (Printf.eprintf "%s#%s (id=%d): %s\n" self#name tracing_method_name self#id msg)
+     ); (flush stderr)
     end
  end
 
@@ -147,6 +136,31 @@ and
  system ?(name = fresh_system_name "system") ?(max_number_of_iterations = max_number_of_iterations) () =
   object (self) inherit common ~name
 
+  (* Wires perform their operations (get,set) preventing from effects of other threads.
+     In a single-thread application this support is unnecessary. *)
+  val mutex     = Mutex.create ()
+  method lock   = Mutex.lock   mutex
+  method unlock = Mutex.unlock mutex
+  method with_mutex : 'a. ( unit -> 'a) -> 'a = 
+   (* Adapted from Luca's recursive_mutex.ml *)
+   fun thunk ->
+    begin
+    self#lock;
+    try
+      let result = thunk () in
+      self#unlock;
+      result
+    with e -> begin
+      self#unlock;
+      let msg =
+        Printf.sprintf
+          "exception %s raised in critical section. Unlocking and re-raising."
+          (Printexc.to_string e)
+      in
+      raise e;
+      end
+    end
+
   val mutable reactive_list : reactive list = []
   val mutable component_list : component list = []
 
@@ -198,23 +212,31 @@ and
   object (self)
   inherit component ~name system
 
-  method virtual get : 'b
+  method virtual get_alone : 'b
   method virtual set_alone : 'a -> unit
 
-  (** This must be a final method. *)
+  (** This would be a final method. *)
+  method get : 'b =
+   let action () = self#get_alone in
+   self#system#with_mutex action
+
+  (** This would be a final method. *)
   method set (x:'a) : unit =
-   begin
-   (self#set_alone x);
-   ignore (self#system#stabilize)
-   end
-  end
+   let action () =
+     begin
+     (self#set_alone x);
+     ignore (self#system#stabilize);
+     end
+   in self#system#with_mutex action
+
+ end
 
 
 (** References are simple examples of wires. *)
 class ['a] wref ?(name = fresh_wire_name "wref") (system:system) (value:'a) =
   object (self) inherit ['a,'a] wire ~name system
   val mutable content = value
-  method get = content
+  method get_alone   = content
   method set_alone v = (content <- v)
  end
 
@@ -222,6 +244,27 @@ type ('b,'a) in_port  = (('b,'a) wire * 'a) option
 type ('a,'b) out_port = ('a,'b) wire option
 
 let in_port_of_wire_option = function None -> None | Some w -> Some (w,None)
+
+let extract ?caller = function
+ | Some x -> x
+ | None   -> (match caller with
+              | None   -> failwith ("extract")
+              | Some c -> failwith ("extract called by "^c)
+              )
+
+(** Extract the value of the wire connected to a port comparing it with its previous value. *)
+let extract_and_compare
+  (caller:string)
+   equality (* :'a -> 'a -> bool *)
+  (port:((('b,'a) wire as 'w) * 'a option) option) : 'w * 'a * bool
+ =
+ let (w, vo) = extract ~caller port in
+ let v' = w#get_alone in
+ let unchanged = match vo with
+  | None   -> false
+  | Some v -> (Obj.magic equality) v v'
+ in (w, v', unchanged)
+
 
 let teach_ocamldep = ()
 
@@ -244,5 +287,5 @@ let get_or_initialize_current_system () = match !current_system with
  | Some s -> s
 
 (** Simplified constructor. *)
-let wref ?(system=(get_or_initialize_current_system ())) x =
- new wref system x
+let wref ?(name = fresh_wire_name "wref") ?(system=(get_or_initialize_current_system ())) x =
+ new wref ~name system x

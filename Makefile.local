@@ -63,9 +63,10 @@ gui.po: gui/gui.xml
 
 chip_example.expanded.byte : chip_example.expanded.ml
 	#cd _build ; ocamlc -pp camlp4of -I chip chip.cmo $< -o $@
-	cd _build ; ocamlc -pp camlp4rf -I chip chip.cmo $< -o $@
+# 	cd _build ; ocamlc -thread -g -pp camlp4rf -I chip -I . -I +threads -I /usr/lib/ocaml/3.10.0/threads recursive_mutex.cmo chip.cmo  $< -o $@
+	cd _build ; ocamlc -thread -pp camlp4rf -I chip -I . -I +threads threads.cma chip.cmo  $< -o $@
 
-marionnet.byte marionnet.native : _build/chip_parser.p4.cmo _build/include_type_definitions.p4.cmo version.ml gui.ml _build/gettext-c-wrapper.o
+marionnet.byte marionnet.native : _build/chip_parser.p4.cmo _build/include_type_definitions.p4.cmo version.ml gui.ml
 
 _build/include_type_definitions.p4.cmo: include_type_definitions.p4.ml
 	@mkdir _build/ 2>/dev/null || true

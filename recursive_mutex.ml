@@ -96,7 +96,7 @@ let with_mutex mutex thunk =
   with e -> begin
     unlock mutex;
     Printf.printf
-      "with_mutex: exception %s raised in critical section.\n  Unlocking and re-raising.\n"
+      "Recursive_mutex.with_mutex: exception %s raised in critical section.\n  Unlocking and re-raising.\n"
       (Printexc.to_string e);
     raise e;
   end;;

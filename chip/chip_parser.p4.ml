@@ -339,9 +339,11 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 
             [ <:class_str_item<
              method emit $lid:arg$ =
-                 let $binding:output_bindings$ in
-                  $set_actions$ ;
-                  self#system#stabilize
+                 let actions () = 
+                   let $binding:output_bindings$ in
+                   $set_actions$ ;
+                   self#system#stabilize
+                 in self#system#with_mutex actions
             >>]
 
           in
@@ -363,7 +365,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           let get =
            let mill a =
             let str = <:expr< $str:class_name^"#get (reading "^a^")"$ >> in
-            <:expr< (extract ~caller:$str$ $lid:a$)#get >> in
+            <:expr< (extract ~caller:$str$ $lid:a$)#get_alone >> in
            let output_expression = expression_of_expr_list (List.map mill outputs)
            in [ <:class_str_item< method get = $output_expression$ >> ]
 
@@ -373,7 +375,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           let get_i =
             let mill a =
              let str = <:expr< $str:class_name^"#get_"^a$ >> in
-             <:class_str_item< method $lid:"get_"^a$ = (fst (extract ~caller:$str$ $lid:a$))#get >> in
+             <:class_str_item< method $lid:"get_"^a$ = (fst (extract ~caller:$str$ $lid:a$))#get_alone >> in
             List.map mill inputs
           in
 
@@ -381,7 +383,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           let get_o =
             let mill a =
              let str = <:expr< $str:class_name^"#get_"^a$ >> in
-             <:class_str_item< method $lid:"get_"^a$ = (extract ~caller:$str$ $lid:a$)#get >> in
+             <:class_str_item< method $lid:"get_"^a$ = (extract ~caller:$str$ $lid:a$)#get_alone >> in
             List.map mill outputs
           in
 

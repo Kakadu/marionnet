@@ -41,6 +41,7 @@ let mkenv = Environment.make_string_env ;;
               Module MSG
  * **************************************** *)
 
+open Gettext;;
 
 (** Some tools for building simple help, error, warning and info dialogs *)
 module Msg = struct
@@ -52,7 +53,7 @@ module Msg = struct
 
  (** Why you have to choose a folder to work *)
  let help_repertoire_de_travail =
-   let title = "CHOISIR UN RÉPERTOIRE DE TRAVAIL" in
+   let title = (s_ "CHOISIR UN RÉPERTOIRE DE TRAVAIL") in
    let msg   = "Marionnet utilise un répertoire au choix \
 pour chaque séance de travail. Tous les fichiers créés par Marionnet dans le répertoire de travail seront effacés \
 à la sortie du programme. \
@@ -60,7 +61,7 @@ Si le logiciel est executé à partir du DVD Marionnet, il est conseillé d'util
 (dans /mnt/hd*) pour ne pas occuper la memoire vive inutilement." in help title msg ;;
 
 let help_machine_insert_update =
-   let title = "AJOUTER OU MODIFIER UNE MACHINE VIRTUELLE" in
+   let title = (s_ "AJOUTER OU MODIFIER UNE MACHINE VIRTUELLE") in
    let msg   = "\
 Dans cette fenêtre de dialogue vous pouvez définir le nom de \
 la machine virtuelle et régler plusieur paramètres matériels \

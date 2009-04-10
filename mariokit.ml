@@ -963,7 +963,7 @@ class receptacle = fun ~network (name:receptname) (index:int) label (kind:portki
       For instance, one expects that a receptacle with the label "eth2" will have the index=2. *)
   method index = if (index>=0)
                  then index
-                 else name => ((Str.extract_groups (Str.regexp "[a-z]*\([0-9]+\)")) || List.hd || int_of_string)
+                 else name => ((Str.extract_groups (Str.regexp "[a-z]*\\([0-9]+\\)")) || List.hd || int_of_string)
 end;;
 
 

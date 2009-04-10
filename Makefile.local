@@ -21,7 +21,7 @@ DIRECTORIES_TO_INCLUDE = threads lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 C_OBJECTS_TO_LINK += gettext-c-wrapper
 
-PP_OPTION = camlp4of -verbose
+PP_OPTION = camlp4of extract_pot.p4.cmo
 
 OBJECTS_TO_LINK = gtkThread
 BYTE_PROGRAMS = marionnet.byte chip_example.byte chip_example.expanded.ml chip_example.expanded.byte
@@ -56,17 +56,20 @@ chip_example.expanded.ml : chip/chip_example.ml _build/chip_parser.p4.cmo
 	#cd _build ; camlp4of -o $@  chip_parser.p4.cmo chip_example.ml # bug in ocaml 3.10.0 (ubuntu)
 	cd _build ; camlp4of -printer Camlp4OCamlRevisedPrinter -o $@  chip_parser.p4.cmo chip_example.ml
 
+_build/marionnet.pot: marionnet.byte
+	msgcat --use-first $(shell find _build/ -name "*.ml.pot") > $@
+
+pot: _build/marionnet.pot
+
 # Useful to discover widgets containing translatable strings
 gui.po: gui/gui.xml
 	xml2po $< > /tmp/$@
 	@echo "Generated file: /tmp/$@"
 
 chip_example.expanded.byte : chip_example.expanded.ml
-	#cd _build ; ocamlc -pp camlp4of -I chip chip.cmo $< -o $@
-# 	cd _build ; ocamlc -thread -g -pp camlp4rf -I chip -I . -I +threads -I /usr/lib/ocaml/3.10.0/threads recursive_mutex.cmo chip.cmo  $< -o $@
 	cd _build ; ocamlc -thread -pp camlp4rf -I chip -I . -I +threads threads.cma chip.cmo  $< -o $@
 
-marionnet.byte marionnet.native : _build/chip_parser.p4.cmo _build/include_type_definitions.p4.cmo version.ml gui.ml _build/gettext-c-wrapper.o
+marionnet.byte marionnet.native : _build/chip_parser.p4.cmo _build/include_type_definitions.p4.cmo _build/extract_pot.p4.cmo version.ml gui.ml _build/gettext-c-wrapper.o
 
 _build/include_type_definitions.p4.cmo: include_type_definitions.p4.ml
 	@mkdir _build/ 2>/dev/null || true
@@ -77,6 +80,11 @@ _build/chip_parser.p4.cmo: chip/chip_parser.p4.ml
 	@mkdir -p _build/chip/ 2>/dev/null || true
 	cp $< _build/
 	cd _build ; ocamlc -c -I +camlp4 -pp camlp4of camlp4lib.cma chip_parser.p4.ml
+
+_build/extract_pot.p4.cmo: gettext/extract_pot.p4.ml
+	@mkdir -p _build/ 2>/dev/null || true
+	cp $< _build/
+	cd _build ; ocamlc -c -I +camlp4 -pp camlp4of camlp4lib.cma extract_pot.p4.ml
 
 run: marionnet.byte
 	(export WORKING=`pwd`; OCAMLRUNPARAM="b" $$WORKING/_build/marionnet.byte) | tee /tmp/LOG

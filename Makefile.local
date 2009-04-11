@@ -60,6 +60,7 @@ _build/marionnet.pot: marionnet.byte
 	msgcat --use-first $(shell find _build/ -name "*.ml.pot") > $@
 
 pot: _build/marionnet.pot
+	cp _build/marionnet.pot gettext/messages.pot
 
 # Useful to discover widgets containing translatable strings
 gui.po: gui/gui.xml
@@ -137,9 +138,31 @@ gui-help: gui.ml
 	ocamlc -i -I +lablgtk2 lablgtk.cma gui.ml | grep -v "val" | grep -v "[0-9]"
 
 # Clean all the automatically-generated sources:
-clean-local:
+clean-local: clean-mo
 	@(rm -f VERSION BUILD-TIME version.ml; \
 	rm -f share/gui.glade.patched gui.ml)
 
 edit:
 	test -n $$EDITOR && $$EDITOR Makefile.local $$(find . gui chip -maxdepth 1 -name "*.ml" -o -name "*.mli") &
+
+# ==============gettext stuff=============
+
+install-local: install-mo
+
+LANGUAGES = it fr
+
+compile-mo: 
+	cd gettext/; \
+	for i in $(LANGUAGES); do msgfmt $$i.po; mv messages.mo $$i.mo; done;
+
+update-po: pot
+	cd gettext/; \
+	for i in $(LANGUAGES); do msgmerge --no-fuzzy-matching --sort-by-file --update $$i.po messages.pot;done;	
+
+install-mo: compile-mo
+	cd gettext/; \
+	for i in $(LANGUAGES); do cp $$i.mo /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; done;
+
+clean-mo:
+	@(cd gettext/; \
+	rm -rf *.mo *~ *.pot;)

@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
+
 (* span foreground="red" *)
 
 let splashscreen_text =
@@ -50,7 +52,7 @@ let splash =
     ~wm_name:"Marionnet splash screen"
     ~icon:Icon.icon_pixbuf
     ();;
-splash#set_title "Bienvenue dans Marionnet";;
+splash#set_title (s_ "Welcome to Marionnet");;
 let event_box = GBin.event_box ~packing:splash#add () in
 let box = GPack.vbox ~border_width:2 ~packing:event_box#add () in
 let _ = GMisc.pixmap splash_image ~packing:(box#pack ~padding:3) () in

@@ -19,9 +19,6 @@ open Gettext;;
 
 (** Gui completion for the widget window_MARIONNET (main window) defined with glade. *)
 
-#load "chip_parser.p4.cmo"
-let () = Chip.teach_ocamldep
-
 module Make (State : sig val st:State.globalState end) = struct
 
 open State

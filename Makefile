@@ -40,7 +40,7 @@ SHELL=/bin/bash
 OCAMLBUILD = $$( $(call OCAMLBUILD_COMMAND_LINE) )
 
 # The main target. Its implementation is entirely project-dependant:
-main: ocamlbuild-stuff main-local data libraries programs documentation
+main: ocamlbuild-stuff main-local data libraries programs
 	@(echo "Success.")
 
 BUILD_FROM_STUFF = \
@@ -119,13 +119,16 @@ all: main
 world: world-local main
 	@(echo 'Success.')
 
-# Generate ocamldoc documentation:
-ocamldoc: ocamldoc-local
-	@($(call READ_META, name); \
-	$(OCAMLBUILD) $$name.docdir/index.html &> /dev/null && \
-	rm $$name.docdir && \
-	echo 'Success.'; \
-	echo 'The documentation has been built with success under _build/')
+# Edit all ml/mli files and Makefile.local with your $EDITOR
+edit:
+	test -n $$EDITOR && $$EDITOR Makefile.local $$(find . \( -wholename "./_build/*" -o -wholename "./_darcs/*" -o -name "meta.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
+
+# Create the documentation
+documentation: world documentation-local
+	chmod +x Makefile.d/doc.sh
+	Makefile.d/doc.sh -pp "$(PP_OPTION)" -e "$(UNDOCUMENTED)" -i $(DIRECTORIES_TO_INCLUDE)
+
+doc: documentation
 
 # Install programs and libraries:
 install: install-programs install-libraries install-data install-configuration install-documentation install-local
@@ -139,14 +142,14 @@ OTHER_DATA_TO_INSTALL =
 # $documentationprefix/$name installation directory:
 OTHER_DOCUMENTATION_TO_INSTALL =
 
-# Install the documentation from this package into $prefix/share/$name:
+# Install the documentation from this package (_build/doc) into $prefix/share/$name:
 install-documentation: install-documentation-local
 	@($(call READ_CONFIG, documentationprefix); \
 	$(call READ_META, name); \
 	directory=$$documentationprefix/$$name; \
 	shopt -s nullglob; \
-	if [ -e doc ]; then \
-	  documentationifany=`ls -d doc/*`; \
+	if [ -e _build/doc ]; then \
+	  documentationifany=`ls -d _build/doc/*`; \
 	else \
 	  documentationifany=''; \
 	fi; \
@@ -264,7 +267,7 @@ uninstall-data: uninstall-data-local
 	echo 'Data uninstallation was successful.')
 
 # Remove the documentation of this package from $documentationprefix/$name:
-uninstall-documentation: documentation uninstall-documentation-local
+uninstall-documentation: uninstall-documentation-local
 	@( ($(call READ_CONFIG, documentationprefix); \
 	$(call READ_META, name); \
 	directory=$$documentationprefix/$$name; \
@@ -277,13 +280,6 @@ uninstall-documentation: documentation uninstall-documentation-local
 	  exit -1; \
 	fi); \
 	echo 'Documentation uninstallation was successful.')
-
-# Create the documentation (do nothing by default):
-documentation: documentation-local
-	@(echo 'Success: documentation was build.')
-
-# Just a handy alias:
-doc: documentation
 
 # The user is free to override this to add custom targets to install into the
 # $prefix/bin installation directory; the typical use of this would be
@@ -392,7 +388,7 @@ FILES_TO_ALWAYS_DISTRIBUTE = \
   REQUIREMENTS NEWS ChangeLog
 
 # Make a binary tarball:
-dist-binary: dist-binary-local main #ocamldoc
+dist-binary: dist-binary-local main documentation
 	@(($(call READ_META, name, version); \
 	$(call FIX_VERSION); \
 	architecture=$$(echo `uname -o`-`uname -m` | sed 's/\//-/g'); \
@@ -476,7 +472,6 @@ libraries-local:
 native-programs-local:
 byte-programs-local:
 programs-local:
-ocamldoc-local:
 install-local:
 uninstall-local:
 install-programs-local:

@@ -17,7 +17,7 @@
 
 
 COMPILE_OPTIONS += -g
-DIRECTORIES_TO_INCLUDE = threads lablgtk2 lablglade ocamlbricks
+DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 C_OBJECTS_TO_LINK += gettext-c-wrapper
 
@@ -36,6 +36,9 @@ BYTE_PROGRAMS += gettext-example.byte
 
 #ROOT_PROGRAMS = marionnet-daemon.byte marionnet-daemon.native
 OTHER_PROGRAMS_TO_INSTALL = scripts/marionnet-can-directory-host-sparse-files
+
+# menu_factory.ml menu_factory.mli chip.ml are not documented because they get ocamldoc (with -pp camlp4of) confused
+UNDOCUMENTED=log.ml version.ml gui.ml chip_example.expanded.ml chip_example.ml gettext-example.ml menu_factory.ml menu_factory.mli chip.ml gui_*.ml*
 
 main-local: _build/gettext-c-wrapper.o
 
@@ -118,9 +121,6 @@ gui-help: gui.ml
 clean-local: clean-mo
 	@(rm -f VERSION BUILD-TIME version.ml; \
 	rm -f share/gui.glade.patched gui.ml)
-
-edit:
-	test -n $$EDITOR && $$EDITOR Makefile.local $$(find . gui chip -maxdepth 1 -name "*.ml" -o -name "*.mli") &
 
 # ==============gettext stuff=============
 

@@ -53,7 +53,7 @@ module Msg = struct
 
  (** Why you have to choose a folder to work *)
  let help_repertoire_de_travail =
-   let title = (s_ "CHOISIR UN RÉPERTOIRE DE TRAVAIL") in
+   let title = (s_ "Select a working directory" "CHOISIR UN RÉPERTOIRE DE TRAVAIL") in
    let msg   = "Marionnet utilise un répertoire au choix \
 pour chaque séance de travail. Tous les fichiers créés par Marionnet dans le répertoire de travail seront effacés \
 à la sortie du programme. \

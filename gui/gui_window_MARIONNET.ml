@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Gui completion for the widget window_MARIONNET (main window) defined with glade. *)
 
 #load "chip_parser.p4.cmo"
@@ -27,8 +29,8 @@ let w = st#mainwin
 
 (* Labels in main window *)
 let () = begin
- w#label_VIRTUAL_NETWORK#set_label "Réseau virtuel";
- w#label_TAB_DOCUMENTS#set_label   "Documents du projet"
+ w#label_VIRTUAL_NETWORK#set_label (s_ "Virtual network");
+ w#label_TAB_DOCUMENTS#set_label   (s_ "Project documents")
 end
 
 (* ***************************************** *
@@ -61,8 +63,8 @@ let () = begin
  let labels = get_tab_labels_of w#notebook_CENTRAL in
  let (l1,l2) = tuple2_of_list labels in
  List.iter (fun l -> l#set_use_markup true) labels ;
- l1#set_label "<i>Composants</i>"   ;
- l2#set_label "<i>Documents</i>"  ;
+ l1#set_label (s_ "<i>Components</i>");
+ l2#set_label (s_ "<i>Documents</i>");
 end
 
 (* ***************************************** *
@@ -74,10 +76,10 @@ let () = begin
  let (l1,l2,l3,l4) = tuple4_of_list labels in
  List.iter (fun l -> l#set_use_markup true) labels ;
  let set l text = l#set_label ("<i>"^text^"</i>") in
- set l1 "Image"       ;
- set l2 "Interfaces"  ;
- set l3 "Anomalies"   ;
- set l4 "Disques"     ;
+ set l1 (s_ "Image")       ;
+ set l2 (s_ "Interfaces")  ;
+ set l3 (s_ "Defects")     ;
+ set l4 (s_ "Disks")       ;
 end
 
 (* ***************************************** *
@@ -95,18 +97,18 @@ let () =
  let set label text =
  label#set_use_markup true;
  label#set_label text in
-(set w#label_button_BASE_STARTUP_EVERYTHING "Tout démarrer" ;
-set w#label_button_BASE_BROADCAST "Diffuser" ;
-set w#label_button_BASE_POWEROFF_EVERYTHING "Tout éteindre" ;
-set w#label_button_BASE_SHUTDOWN_EVERYTHING "Tout arrêter" )
+(set w#label_button_BASE_STARTUP_EVERYTHING (s_ "Start all");
+set w#label_button_BASE_BROADCAST (s_ "Broadcast") ;
+set w#label_button_BASE_POWEROFF_EVERYTHING (s_ "Shutdown all");
+set w#label_button_BASE_SHUTDOWN_EVERYTHING (s_ "Stop all"))
 
 (* Tooltips for base buttons *)
 let () = 
  let set = (GData.tooltips ())#set_tip in begin
-  set w#button_BASE_STARTUP_EVERYTHING#coerce  ~text:"Démarrer le réseau virtuel (machines, switch, hub, etc) en local sur cette machine.";
-  set w#button_BASE_BROADCAST#coerce           ~text:"Diffuser la spécification du réseau virtuel sur un réseau réél.";
-  set w#button_BASE_POWEROFF_EVERYTHING#coerce ~text:"Éteindre brusquement tous les éléments du réseau comme lors d'une panne de courant (power off)";
-  set w#button_BASE_SHUTDOWN_EVERYTHING#coerce ~text:"Éteindre proprement tous les éléments du réseau (shutdown)"
+  set w#button_BASE_STARTUP_EVERYTHING#coerce  ~text:(s_ "Start the virtual network (machines, switch, hub, etc) locally on this machine.");
+  set w#button_BASE_BROADCAST#coerce           ~text:(s_ "Broadcast the specification of the virtual network on a real network.");
+  set w#button_BASE_POWEROFF_EVERYTHING#coerce ~text:(s_ "Shutdown ungracefully every element of the network as in a power off");
+  set w#button_BASE_SHUTDOWN_EVERYTHING#coerce ~text:(s_ "Stop gracefully every element of the network")
  end
 
 (* Connections *)
@@ -117,7 +119,7 @@ let () =
   let _ = w#button_BASE_SHUTDOWN_EVERYTHING#connect#clicked
     ~callback:(fun () ->
       match Simple_dialogs.confirm_dialog
-          ~question:"Etes-vous sûr de vouloir arrêter\ntous les composants en exécution ?"
+          ~question:(s_ "Are you shure you want to stop\nall running components ?")
           () with
         Some true  -> st#shutdown_everything ()
       | Some false -> ()
@@ -126,8 +128,7 @@ let () =
   let _ = w#button_BASE_POWEROFF_EVERYTHING#connect#clicked
     ~callback:(fun () ->
       match Simple_dialogs.confirm_dialog
-          ~question:("Etes-vous sûr de vouloir débrancher le courant\nà tous les composants en exécution (power off) ?\n\n"^
-                     "Il est aussi possible de les arrêter gracieusement (shutdown)...")
+          ~question:(s_ "Are you shure you want to power off\nall running components? It is also possible to shut them down graciously...")
           () with
         Some true -> st#poweroff_everything ()
       | Some false -> ()

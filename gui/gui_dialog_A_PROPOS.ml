@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Gui completion for the dialog_A_PROPOS widget defined with glade. *)
 
 (* Shortcuts *)
@@ -29,7 +31,7 @@ module Make (State:sig val st:State.globalState end) = struct
   let dialog () =
 
    let d = new Gui.dialog_A_PROPOS () in
-   d#toplevel#set_title "À propos";
+   d#toplevel#set_title (s_ "About");
 
    (* Labels *)
    let () = begin
@@ -38,11 +40,10 @@ module Make (State:sig val st:State.globalState end) = struct
       label#set_label text
     in
 
-    set d#label_dialog_A_PROPOS_a_propos "À propos";
-    set d#label_dialog_A_PROPOS_a_propos_content "<b>Marionnet</b> est un environnement de simulation de réseaux composés de machines GNU/Linux. Ce logiciel permet, d'une part, aux étudiants de s'entrainer à la mise en place (cablage et configuration) d'un réseaux et, d'autre part, aux enseignants de définir leurs énoncés de TP et/ou contrôles réseaux.\n\nCe logiciel est basé sur les fonctionnalités UML (User Mode Linux) du noyau Linux.\n
-<tt><u><span color=\"blue\">http://www.marionnet.org</span></u></tt>\n";
+    set d#label_dialog_A_PROPOS_a_propos (s_ "About");
+    set d#label_dialog_A_PROPOS_a_propos_content (s_ "<b>Marionnet</b> is an environment for the simulation of a network composed of GNU/Linux machines. This software allows, on one side, the students to experience the connection and configuration of a network and, on the other side, the teachers to create their excercises and tests.\n\nThis software is based on the UML features of the Linux kernel.\n<tt><u><span color=\"blue\">http://www.marionnet.org</span></u></tt>\n");
 
-    set d#label_dialog_A_PROPOS_authors "Auteurs";
+    set d#label_dialog_A_PROPOS_authors (s_ "Authors");
     set d#label_dialog_A_PROPOS_authors_content "
 Jean-Vincent Loddo <tt><u><span color=\"blue\">&lt;loddo@lipn.univ-paris13.fr&gt;</span></u></tt>
 Département R&amp;T - IUT de Villetaneuse
@@ -52,7 +53,7 @@ Luca Saiu <tt><u><span color=\"blue\">&lt;saiu@lipn.univ-paris13.fr&gt;</span></
 Laboratoire d'Informatique de Paris Nord (LIPN)
 Université Paris 13\n\n";
 
-    set d#label_dialog_A_PROPOS_license "Licence";
+    set d#label_dialog_A_PROPOS_license (s_ "License");
     set d#label_dialog_A_PROPOS_license_content "
 Copyright (C) 2007, 2008  Jean-Vincent Loddo;
 Copyright (C) 2007, 2008  Luca Saiu\n

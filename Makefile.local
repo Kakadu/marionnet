@@ -43,29 +43,6 @@ main-local: _build/gettext-c-wrapper.o
 # sources:
 chip_example.byte : chip/chip_example.ml _build/chip_parser.p4.cmo
 
-# A trivial example of how to use our gettext wrapper:
-gettext-example.byte : gettext/gettext-example.ml
-
-# How to build the trivial C module:
-_build/gettext-c-wrapper.o: gettext/gettext-c-wrapper.c
-	(mkdir _build &> /dev/null || true) && \
-	gcc -g -O3 -o $@ -c $^
-
-chip_example.expanded.ml : chip/chip_example.ml _build/chip_parser.p4.cmo
-	cp chip/chip_example.ml _build/
-	#cd _build ; camlp4of -o $@  chip_parser.p4.cmo chip_example.ml # bug in ocaml 3.10.0 (ubuntu)
-	cd _build ; camlp4of -printer Camlp4OCamlRevisedPrinter -o $@  chip_parser.p4.cmo chip_example.ml
-
-_build/marionnet.pot: marionnet.byte
-	msgcat --use-first $(shell find _build/ -name "*.ml.pot") > $@
-
-pot: _build/marionnet.pot
-	cp _build/marionnet.pot gettext/messages.pot
-
-# Useful to discover widgets containing translatable strings
-gui.po: gui/gui.xml
-	xml2po $< > /tmp/$@
-	@echo "Generated file: /tmp/$@"
 
 chip_example.expanded.byte : chip_example.expanded.ml
 	cd _build ; ocamlc -thread -pp camlp4rf -I chip -I . -I +threads threads.cma chip.cmo  $< -o $@
@@ -148,21 +125,50 @@ edit:
 # ==============gettext stuff=============
 
 install-local: install-mo
+uninstall-local: uninstall-mo
 
+# A trivial example of how to use our gettext wrapper:
+gettext-example.byte : gettext/gettext-example.ml
+
+# How to build the trivial C module:
+_build/gettext-c-wrapper.o: gettext/gettext-c-wrapper.c
+	(mkdir _build &> /dev/null || true) && \
+	gcc -g -O3 -o $@ -c $^
+
+chip_example.expanded.ml : chip/chip_example.ml _build/chip_parser.p4.cmo
+	cp chip/chip_example.ml _build/
+	#cd _build ; camlp4of -o $@  chip_parser.p4.cmo chip_example.ml # bug in ocaml 3.10.0 (ubuntu)
+	cd _build ; camlp4of -printer Camlp4OCamlRevisedPrinter -o $@  chip_parser.p4.cmo chip_example.ml
+
+_build/marionnet.pot: marionnet.byte
+	msgcat --use-first $(shell find _build/ -name "*.ml.pot") > $@
+
+pot: _build/marionnet.pot
+	cp _build/marionnet.pot po/messages.pot
+
+# Useful to discover widgets containing translatable strings
+gui.po: gui/gui.xml
+	xml2po $< > /tmp/$@
+	@echo "Generated file: /tmp/$@"
+
+#this could be extracted from po/LINGUAS
 LANGUAGES = it fr
 
 compile-mo: 
-	cd gettext/; \
+	cd po/; \
 	for i in $(LANGUAGES); do msgfmt $$i.po; mv messages.mo $$i.mo; done;
 
 update-po: pot
-	cd gettext/; \
+	cd po/; \
 	for i in $(LANGUAGES); do msgmerge --no-fuzzy-matching --sort-by-file --update $$i.po messages.pot;done;	
 
 install-mo: compile-mo
-	cd gettext/; \
+	cd po/; \
 	for i in $(LANGUAGES); do cp $$i.mo /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; done;
 
 clean-mo:
-	@(cd gettext/; \
+	@(cd po/; \
 	rm -rf *.mo *~ *.pot;)
+
+uninstall-mo:
+	for i in $(LANGUAGES); do rm -f /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; done;

@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Toolbar entry for the component 'hub' *)
 
 (* Shortcuts *)
@@ -27,12 +29,12 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Toolbar_entry = struct
    let imagefile = "ico.hub.palette.png"
-   let tooltip   = "Répéteur (hub)"
+   let tooltip   = (s_ "Hub")
   end
 
   module Add = struct
     let key      = Some (GdkKeysyms._H)
-    let dialog   = let module M = Gui_dialog_HUB.Make (State) in M.dialog ~title:"Ajouter répéteur" ~update:None
+    let dialog   = let module M = Gui_dialog_HUB.Make (State) in M.dialog ~title:(s_ "Add hub") ~update:None
 
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in
@@ -61,7 +63,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dialog =
      fun name -> let m = (st#network#getDeviceByName name) in
-                 let title = "Modifier répéteur" in
+                 let title = (s_ "Modify hub") in
                  let module M = Gui_dialog_HUB.Make (State) in
                  M.dialog ~title:(title^" "^name) ~update:(Some m)
 
@@ -92,8 +94,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Talking.EDialog.ask_question ~help:None ~cancel:false
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
-        ~title:"Supprimer"
-        ~question:(Printf.sprintf "Confirmez-vous la suppression de %s\net de tous le cables éventuellement branchés à ce %s ?" name "hub")
+        ~title:(s_ "Remove")
+        ~question:(Printf.sprintf (f_ "Are you sure you want to remove %s\nand all cables connected to this %s ?") name (s_ "hub"))
 
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in

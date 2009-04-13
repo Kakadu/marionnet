@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Layouts for component-related menus. See the file gui_machine.ml for an example of application. *)
 
 (** Function for insert or append entries to the toolbar_COMPONENTS *)
@@ -69,19 +71,19 @@ module Layout_for_network_component
 
  module Add' = struct
    include Add
-   let text  = "Ajouter"
+   let text  = (s_ "Add")
    let stock = `ADD
    end
 
  module Properties' = struct
    include Properties
-   let text  = "Modifier"
+   let text  = (s_ "Modify")
    let stock = `PROPERTIES
    end
 
  module Remove' = struct
    include Remove
-   let text  = "Supprimer"
+   let text  = (s_ "Remove")
    let stock= `REMOVE
    end
 
@@ -106,25 +108,25 @@ module Layout_for_network_node
  
  module Startup' = struct
    include Startup
-   let text  = "Démarrer"
+   let text  = (s_ "Start")
    let stock = `EXECUTE
    end
 
  module Stop' = struct
    include Stop
-   let text  = "Arrêter"
+   let text  = (s_ "Stop")
    let stock = `MEDIA_STOP
    end
 
  module Suspend' = struct
    include Suspend
-   let text  = "Suspendre"
+   let text  = (s_ "Suspend")
    let stock = `MEDIA_PAUSE
    end
 
  module Resume' = struct
    include Resume
-   let text  = "Réveiller"
+   let text  = (s_ "Resume")
    let stock = `MEDIA_PLAY
    end
 
@@ -154,7 +156,7 @@ module Layout_for_network_node_with_state
  
  module Ungracefully_stop' = struct
    include Ungracefully_stop
-   let text  = "Éteindre"
+   let text  = (s_ "Shutdown")
    let stock = `DISCONNECT
    end
 
@@ -178,13 +180,13 @@ module Layout_for_network_edge
  
  module Disconnect' = struct
    include Disconnect
-   let text  = "Débrancher"
+   let text  = (s_ "Disconnect")
    let stock = `DISCONNECT
    end
 
  module Reconnect' = struct
    include Reconnect
-   let text  = "Rebrancher"
+   let text  = (s_ "Re-connect")
    let stock = `CONNECT
    end
 

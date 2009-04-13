@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
 
 (** Toolbar entry for the component 'cable' (direct/crossover) *)
 
@@ -37,8 +38,8 @@ module Make_menus
       | Netmodel.Crossover -> "ico.cable.crossed.palette.png"
 
    let tooltip   = match cablekind with
-      | Netmodel.Direct    -> "Câble RJ45 droit"
-      | Netmodel.Crossover -> "Câble RJ45 croisé"
+      | Netmodel.Direct    -> (s_ "Straight RJ45 cable")
+      | Netmodel.Crossover -> (s_ "Crossover RJ45 cable")
   end
 
   (* Common tool for Add.reaction and Properties.reaction. *)
@@ -66,8 +67,8 @@ module Make_menus
     let dialog   =
       let module M = Gui_dialog_CABLE.Make (State) (Cablekind) in
       let title = match cablekind with
-       | Netmodel.Direct    -> "Ajouter câble droit"
-       | Netmodel.Crossover -> "Ajouter câble croisé"
+       | Netmodel.Direct    -> (s_ "Add straight cable")
+       | Netmodel.Crossover -> (s_ "Add crossover cable")
       in M.dialog ~title ~update:None
 
     let reaction r =
@@ -88,8 +89,8 @@ module Make_menus
       let module M = Gui_dialog_CABLE.Make (State) (Cablekind) in
       let c = (st#network#getCableByName name) in
       let title = match cablekind with
-       | Netmodel.Direct    -> "Modifier câble droit"
-       | Netmodel.Crossover -> "Modifier câble croisé"
+       | Netmodel.Direct    -> (s_ "Modify straight cable")
+       | Netmodel.Crossover -> (s_ "Modify crossover cable")
       in M.dialog ~title:(title^" "^name) ~update:(Some c)
 
     let reaction r =
@@ -115,13 +116,13 @@ module Make_menus
 
     let dialog name =
       let question = match cablekind with
-       | Netmodel.Direct    -> Printf.sprintf "Confirmez-vous la suppression du câble RJ45 droit %s ?"  name
-       | Netmodel.Crossover -> Printf.sprintf "Confirmez-vous la suppression du câble RJ45 croisé %s ?" name
+       | Netmodel.Direct    -> Printf.sprintf (f_ "Are you sure you want to remove the RJ45 straight cable %s ?") name
+       | Netmodel.Crossover -> Printf.sprintf (f_ "Are you sure you want to remove the RJ45 crossover cable %s ?") name
       in
       Talking.EDialog.ask_question ~help:None ~cancel:false 
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
-        ~title:"Supprimer"
+        ~title: (s_ "Remove")
         ~question
 
     let reaction r =

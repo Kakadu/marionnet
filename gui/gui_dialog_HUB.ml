@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Gui completion for the dialog_HUB widget defined with glade. *)
 
 (* Shortcuts *)
@@ -35,17 +37,17 @@ module Make (State:sig val st:State.globalState end) = struct
 
    (* Labels *)
    let () = begin
-     Tk.Label.set d#label_dialog_HUB_name "Nom";
-     Tk.Label.set d#label_dialog_HUB_label "\nÉtiquette";
-     Tk.Label.set d#label_dialog_HUB_ports "Nombre de Ports";
+     Tk.Label.set d#label_dialog_HUB_name  (s_ "Name");
+     Tk.Label.set d#label_dialog_HUB_label (s_ "\nLabel");
+     Tk.Label.set d#label_dialog_HUB_ports (s_ "Ports number");
     end in
 
    (* Tooltips *)
    let () = begin
-     Tk.Tooltip.set d#image_dialog_HUB "Répéteur (hub)";
-     Tk.Tooltip.set_both d#label_dialog_HUB_name  d#hub_name "Le nom du répéteur (hub). Ce nom doit être unique dans le réseau virtuel. Suggestion : H1, H2,...";
+     Tk.Tooltip.set d#image_dialog_HUB (s_ "Hub");
+     Tk.Tooltip.set_both d#label_dialog_HUB_name  d#hub_name (s_ "Hub name. This name must be unique in the virtual network. Suggested : H1, H2, ... ");
      Tk.Tooltip.set_both d#label_dialog_HUB_label d#hub_label Tk.Tooltip.Text.component_label_with_suggestion;
-     Tk.Tooltip.set_both d#label_dialog_HUB_ports d#hub_ports "Nombre de ports du répéteur (hub)";
+     Tk.Tooltip.set_both d#label_dialog_HUB_ports d#hub_ports (s_ "Hub ports number");
 end in
 
    (* Set defaults. If we are updating, defaults are the old values. *)

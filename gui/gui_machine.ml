@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Toolbar entry for the component 'machine' *)
 
 (* Shortcuts *)
@@ -27,12 +29,12 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Toolbar_entry = struct
    let imagefile = "ico.machine.palette.png"
-   let tooltip   = "Machine"
+   let tooltip   = (s_ "Machine")
   end
 
   module Add = struct
     let key      = Some (GdkKeysyms._M)
-    let dialog   = let module M = Gui_dialog_MACHINE.Make (State) in M.dialog ~title:"Ajouter machine" ~update:None
+    let dialog   = let module M = Gui_dialog_MACHINE.Make (State) in M.dialog ~title:(s_ "Add machine") ~update:None
 
     let reaction r = 
       let details = Network_details_interface.get_network_details_interface () in
@@ -68,7 +70,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dialog =
      fun name -> let m = (st#network#getMachineByName name) in
-                 let title = "Modifier machine" in
+                 let title = (s_ "Modify machine") in
                  let module M = Gui_dialog_MACHINE.Make (State) in M.dialog ~title:(title^" "^name) ~update:(Some m)
 
     let reaction r =
@@ -103,9 +105,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      fun name -> Talking.EDialog.ask_question ~help:None ~cancel:false
                    ~enrich:(mkenv [("name",name)])
                    ~gen_id:"answer"
-                   ~title:"Supprimer"
-                   ~question:("Confirmez-vous la suppression de "^name^"\net de tous le cables éventuellement branchés à cette machine ?")
-
+                   ~title:(s_ "Remove")
+                   ~question:(Printf.sprintf (f_ "Are you sure you want to remove %s\nand all cables connected to this %s ?") name (s_ "machine"))
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
@@ -142,8 +143,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      fun name -> Talking.EDialog.ask_question ~help:None ~cancel:false
                    ~enrich:(mkenv [("name",name)])
                    ~gen_id:"answer"
-                   ~title:"Shutdown"
-                   ~question:("Voulez-vous arrêter la machine "^name^" ?")
+                   ~title:(s_ "Shutdown")
+                   ~question:(Printf.sprintf (f_ "Do you want to stop the machine %s ?") name)
 
     let reaction r =
       if (r#get "answer") = "yes"
@@ -187,8 +188,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      fun name -> Talking.EDialog.ask_question ~help:None ~cancel:false
                    ~enrich:(mkenv [("name",name)])
                    ~gen_id:"answer"
-                   ~title:"Power off"
-                   ~question:("ATTENTION: vous avez demandé un arrêt instantané de la machine,\ntel que provoqué par une interruption du courant électrique. \nLa procédure ordinaire est plutôt celle d'arrêter gracieusement les machines (shutdown). \n\nVoulez-vous tout de même débrancher le courant à "^name^" ?\n")
+                   ~title:(s_ "Power off")
+                   ~question:(Printf.sprintf (f_ "WARNING: you asked for an immediate stop of the machine,\nlike in a power off. \nThe normal procedure is to stop graciously machines (stop). \n\nDo you want to power off %s anyway ?\n") name)
 
     let reaction r =
       if (r#get "answer") = "yes"

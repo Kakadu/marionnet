@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
 
 (** Gui completion for both dialog_CABLE widget defined with glade. *)
 
@@ -40,19 +41,19 @@ module Make
 
    (* Labels *)
    let () = begin
-     Tk.Label.set d#label_dialog_CABLE_name     "Nom";
-     Tk.Label.set d#label_dialog_CABLE_label    "\nÉtiquette";
-     Tk.Label.set d#label_dialog_CABLE_col_from "De";
-     Tk.Label.set d#label_dialog_CABLE_col_to   "Vers";
-     Tk.Label.set d#label_dialog_CABLE_row_name "Nom";
-     Tk.Label.set d#label_dialog_CABLE_row_port "Port";
+     Tk.Label.set d#label_dialog_CABLE_name     (s_ "Name");
+     Tk.Label.set d#label_dialog_CABLE_label    (s_ "\nLabel");
+     Tk.Label.set d#label_dialog_CABLE_col_from (s_ "From");
+     Tk.Label.set d#label_dialog_CABLE_col_to   (s_ "To");
+     Tk.Label.set d#label_dialog_CABLE_row_name (s_ "Name");
+     Tk.Label.set d#label_dialog_CABLE_row_port (s_ "Port");
     end in
 
    let () = begin
-     Tk.Tooltip.set d#label_dialog_CABLE_col_from "Le premier noeud du reseau connecté par le cable";
-     Tk.Tooltip.set d#label_dialog_CABLE_col_to   "Le second noeud du reseau connecté par le cable";
-     Tk.Tooltip.set d#label_dialog_CABLE_row_name "Le nom du noeud";
-     Tk.Tooltip.set d#label_dialog_CABLE_row_port "Le port ethernet RJ45 du noeud";
+     Tk.Tooltip.set d#label_dialog_CABLE_col_from (s_ "The first network node connected by the cable");
+     Tk.Tooltip.set d#label_dialog_CABLE_col_to   (s_ "The second network node connected by the cable");
+     Tk.Tooltip.set d#label_dialog_CABLE_row_name (s_ "Node name");
+     Tk.Tooltip.set d#label_dialog_CABLE_row_port (s_ "Node RJ45 ethernet port");
      (* The following tips disappear when the user choose an entry => deplace them in Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave
      Tk.Tooltip.set left#box  "Choisissez le nom du noeud à l'extrémité gauche";
      Tk.Tooltip.set right#box "Choisissez le nom du noeud à l'extrémité droite";
@@ -62,9 +63,9 @@ module Make
 
    (match cablekind with
    | Netmodel.Direct ->
-       Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  "Le nom du câble droit. Ce nom doit être unique dans le réseau virtuel. Suggestion : D1, D2, ... ";
-       Tk.Tooltip.set_both d#label_dialog_CABLE_label d#cable_label "L'étiquette à ajouter au dessin du câble droit.";
-       Tk.Tooltip.set_both d#image_dialog_CABLE_direct d#image_dialog_CABLE_direct_link "Cable RJ45 droit";
+       Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  (s_ "Straight cable name. This name must be unique in the virtual network. Suggested : D1, D2, ... ");
+       Tk.Tooltip.set_both d#label_dialog_CABLE_label d#cable_label (s_ "Label to add to the straight cable icon.");
+       Tk.Tooltip.set_both d#image_dialog_CABLE_direct d#image_dialog_CABLE_direct_link (s_ "Straight RJ45 cable");
 
    | Netmodel.Crossover ->
        (* The cable dialog is defined with glade using a poor man technique of layers. *)
@@ -73,9 +74,9 @@ module Make
        dialog#image_dialog_CABLE_direct        #misc#hide ();
        dialog#image_dialog_CABLE_direct_link   #misc#hide ();
 
-       Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  "Le nom du cable croisé. Ce nom doit être unique dans le réseau virtuel. Suggestion : C1, C2, ... ";
-       Tk.Tooltip.set_both d#label_dialog_CABLE_label d#cable_label (Tk.Tooltip.Text.append_label_suggestion_to "L'étiquette à ajouter au dessin du câble croisé.");
-       Tk.Tooltip.set_both d#image_dialog_CABLE_crossover d#image_dialog_CABLE_crossover_link "Cable RJ45 croisé";
+       Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  (s_ "Crossover cable name. This name must be unique in the virtual network. Suggested : C1, C2, ... ");
+       Tk.Tooltip.set_both d#label_dialog_CABLE_label d#cable_label (Tk.Tooltip.Text.append_label_suggestion_to (s_ "Label to add to the crossover cable icon."));
+       Tk.Tooltip.set_both d#image_dialog_CABLE_crossover d#image_dialog_CABLE_crossover_link (s_ "Crossover RJ45 cable");
 
    | _ -> assert false
    );
@@ -153,16 +154,15 @@ module Make
      then raise Talking.EDialog.IncompleteDialog  else
      if (ln,lr) = (rn,rr)
      then (raise (Talking.EDialog.BadDialog
-                    ("Connexion erronée",
-                     "Le cable ne peut pas être branché au même endroit des deux côtés!"))) else
+                    ((s_ "Wrong connection"),
+                     (s_ "The cable can't be connected on both ends to the same socket!")))) else
      let result = mkenv [("name",n)       ; ("action",c)         ; ("oldname",o)      ; ("label",l) ;
                          ("left_node",ln) ; ("left_recept",lr)   ; ("right_node",rn)  ; ("right_recept",rr)]
      in
      if (ln = rn)
      then (raise (Talking.EDialog.StrangeDialog
-                    ("Connexion étrange",
-                     "Le cable est branché sur le même composant.\n\
-Les machines ont déjà l'interface de loopback pour cela.",result))) else result
+                    ((s_ "Strange connexion"),
+                     (s_ "The cable is connected to the same device.\nMachines already have the loopback interface for this purpose."),result))) else result
 
      end in
 

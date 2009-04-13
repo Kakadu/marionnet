@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
 
 (** Toolbar entry for the component 'cloud' *)
 
@@ -27,7 +28,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Toolbar_entry = struct
    let imagefile = "ico.cloud.palette.png"
-   let tooltip   = "Nuage L2 (sous-réseau indéterminé de niveau 2)"
+   let tooltip   = s_ "Unknown layer 2 sub network"
   end
 
   module Add = struct
@@ -36,7 +37,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dialog   =
       let module M = Gui_dialog_CLOUD.Make (State) in
-      M.dialog ~title:"Ajouter nuage" ~update:None
+      M.dialog ~title: (s_ "Add cloud") ~update:None
 
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in
@@ -59,7 +60,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dialog name =
       let m = (st#network#getCloudByName name) in
-      let title = "Modifier nuage" in
+      let title = (s_ "Modify cloud") in
       let module M = Gui_dialog_CLOUD.Make (State) in
       M.dialog ~title:(title^" "^name) ~update:(Some m)
 
@@ -85,8 +86,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Talking.EDialog.ask_question ~help:None ~cancel:false
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
-        ~title:"Supprimer"
-        ~question:(Printf.sprintf "Confirmez-vous la suppression de %s\net de tous le cables éventuellement branchés à ce %s ?" name "nuage")
+        ~title: (s_ "Remove")
+        ~question:(Printf.sprintf (f_ "Are you sure you want to remove %s\nand all cables connected to this %s ?") name (s_ "cloud"))
 
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in

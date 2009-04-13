@@ -16,7 +16,7 @@
 
 
 (** Gui completion for the toolbar_DOT_TUNING widget defined with glade. *)
-
+open Gettext;;
 module List = ListExtra.List
 open Sugar (* for '=>' and '||' *)
 
@@ -31,10 +31,10 @@ let () = begin
   label#set_use_markup true;
   label#set_label ("<small><small>"^text^"</small></small>")
  in
- set w#label_DOT_TUNING_NODES  "Nœuds"   ;
- set w#label_DOT_TUNING_EDGES  "Arcs"    ;
- set w#label_DOT_TUNING_LABELS "Labels"  ;
- set w#label_DOT_TUNING_AREA   "Surface" ;
+ set w#label_DOT_TUNING_NODES  (s_ "Nodes")   ;
+ set w#label_DOT_TUNING_EDGES  (s_ "Arcs" )   ;
+ set w#label_DOT_TUNING_LABELS (s_ "Labels")  ;
+ set w#label_DOT_TUNING_AREA   (s_ "Surface") ;
 end
 
 

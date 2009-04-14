@@ -33,6 +33,7 @@ open State;;
 open Simulated_network;;
 open Network_details_interface;;
 open Defects_interface;;
+open Gettext;;
 
 (* Shortcuts *)
 let mkenv = Environment.make_string_env ;;
@@ -53,119 +54,90 @@ module Msg = struct
 
  (** Why you have to choose a folder to work *)
  let help_repertoire_de_travail =
-   let title = (s_ "Select a working directory" "CHOISIR UN RÉPERTOIRE DE TRAVAIL") in
-   let msg   = "Marionnet utilise un répertoire au choix \
-pour chaque séance de travail. Tous les fichiers créés par Marionnet dans le répertoire de travail seront effacés \
-à la sortie du programme. \
-Si le logiciel est executé à partir du DVD Marionnet, il est conseillé d'utiliser un répertoire persistant \
-(dans /mnt/hd*) pour ne pas occuper la memoire vive inutilement." in help title msg ;;
+   let title = (s_ "CHOOSE A WORKING DIRECTORY") in
+   let msg   = (s_ "\
+Marionnet use a directory fo your choice for every working session. \
+Every file created by Marionnet in the directory will be deleted \
+when the program exits. If the program is run from the Marionnet DVD, \
+you are advised to use a persistent directory (in /mnt/hd*) to not waste \
+virtual memory.") in help title msg ;;
 
 let help_machine_insert_update =
-   let title = (s_ "AJOUTER OU MODIFIER UNE MACHINE VIRTUELLE") in
-   let msg   = "\
-Dans cette fenêtre de dialogue vous pouvez définir le nom de \
-la machine virtuelle et régler plusieur paramètres matériels \
-et logiciels.
-
-SECTION 'Hardware'
-
-- Mémoire : quantité de mémoire vive (RAM) que le système \
-doit réserver pour cette machine virtuelle (48Mo par défaut)
-
-- Cartes Ethernet : nombre de cartes Ethernet (1 par défaut)
-
-SECTION 'Software' :
-
-- Distribution : la distribution GNU/Linux (Debian, Mandriva, Gentoo,..), à \
-choisir parmi les disponibles dans le répertoire /usr/marionnet/filesystems
-
-- Variante : une variante (ou patch) de la distribution choisie; une variante \
-est un fichier COW (Copy On Write) qui représente une petite mise à jour da la \
-distribution concernée. Les variantes sont à choisir parmi les disponibles dans \
-les répertoires /usr/marionnet/filesystems/*_variants/. Vous pouvez créer vos \
-propres variantes en exportant n'importe quel état de machine virtuelle dans l'onglet \
-'Disques'
-
-- Noyau : la version du noyau Linux, à choisir parmi les disponibles dans le \
-répertoire /usr/marionnet/kernels
-
-SECTION 'UML' :
-
-- Terminal : les choix possibles sont ici 'X HOST' et 'X NEST'; le premier \
-choix permet de lancer des applications graphiques à partir d'un terminal textuel \
-où l'utilisateur pourra prendre les commandes de la machine virtuelle \
-(avec le login 'root' et mot de passe 'root'); le choix 'X NEST' permet \
-d'avoir un véritable serveur graphique réservé à la machine virtuelle, avec \
-des gestionnaire de fenêtres et de bureaux indépendants.\
-" in help title msg ;;
+   let title = (s_ "ADD OR MODIFY A VIRTUAL MACHINE") in
+   let msg   = (s_ "\
+In this dialog window you can define the name of the virtual \
+machine and set many parameters both hardware and software.\n\n\
+SECTION 'Hardware'\n\
+- Memory : amount of memory (RAM) that will be reserved on \
+the host for this virtual machine (default 48 Mb)\n\n\
+- Ethernet Card : number of Ethernet cards (defalut 1)\n\n\
+SECTION 'Software' :\n\n\
+- Distribution : the GNU/Linux distribution (Debian, Mandriva, Gentoo,..), \
+ choose from thoose available in /usr/marionnet/filesystems/\n\n\
+- Variant : a variant (or patch) of the given distribution; a variant is a \
+COW (Copy On Write) file that represent a small update of the distribution used.\
+Variant available are in /usr/marionnet/filesystems/*_variants/. You can \
+make your own variant exporting any virtual machine state in the tab 'Disks'\n\n\
+- Kernel : the linux kernel version, choose from thoose available in \
+/usr/marionnet/kernels\n\n\
+SECTION 'UML' :\n\n\
+- Terminal : possible choices are 'X HOST' and 'X NEST'; the first one \
+allows to run graphic applications from a text terminal where the user \
+can operate the virtual machine (with user 'root' and password 'root'); \
+the second allows to have a real graphic server reserved for the virtual \
+machine, with independent windows manager and desktops.") in help title msg ;;
 
 
  let help_hub_insert_update =
-   let title = "AJOUTER OU MODIFIER UN RÉPÉTEUR (HUB)" in
-   let msg   = "\
-Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
-répetéur de trames Ethernet (hub) et régler plusieurs paramètres :
-
-- Étiquette : chaîne de caractères utilisée pour décorer l'icône du \
-répéteur dans l'image du réseau; ceci permet de savoir en un clin d'oeil \
-le réseau Ethernet (par exemple '192.168.1.0/24') que le composant réalise \
-ou doit réaliser; ce champ est utilisé exclusivement à des fins graphiques, il \
-n'est pas pris en compte à des fins de configuration
-
-- Nb de Ports : le nombre de ports du répéteur (4 par défaut); ce nombre ne doit \
-pas être inutilement grand, le nombre de processus nécessaires à l'émulation de ce \
-composant étant proportionnel au nombre de ses ports.
-" in help title msg ;;
+   let title = (s_ "ADD OR MODIFY A HUB") in
+   let msg   = (s_ "\
+In this dialog window you can define the name of an Ethernet HUB \
+and set many parameters:\n\
+- Label : string that appear with the hub icon in the network graph; \
+allows to know at a glance the Ethernet network realized by the device; \
+this field is exclusively for graphic purposes, is not taken in consideration \
+for the configuration.\n\
+- Nb of Ports : the number of ports of the hub (default 4); this number must \
+not be increased without a reason, because the number of processes needed for the \
+device emulation is proportional to his ports number.") in help title msg ;;
 
  let help_switch_insert_update =
-   let title = "AJOUTER OU MODIFIER UN COMMUTATEUR (SWITCH)" in
-   let msg   = "\
-Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
-commutateur de trames Ethernet (switch) et régler plusieurs paramètres :
-
-- Étiquette : chaîne de caractères utilisée pour décorer l'icône du \
-commutateur dans l'image du réseau; ceci permet de savoir en un clin d'oeil \
-le réseau Ethernet (par exemple '192.168.1.0/24') que le composant réalise \
-ou doit réaliser; ce champ est utilisé exclusivement à des fins graphiques, il \
-n'est pas pris en compte à des fins de configuration
-
-- Nb de Ports : le nombre de ports du commutateur (4 par défaut); ce nombre ne doit \
-pas être inutilement grand, le nombre de processus nécessaires à l'émulation de ce \
-composant étant proportionnel au nombre de ses ports.
-" in help title msg ;;
+   let title = (s_ "ADD OR MODIFY A SWITCH") in
+   let msg   = (s_ "\
+In this dialog window you can define the name of an Ethernet switch \
+and set many parameters:\n\
+- Label : string that appear with the switch icon in the network graph; \
+allows to know at a glance the Ethernet network realized by the device \
+(for example '192.168.1.0/24'); this field is exclusively for graphic \
+purposes, is not taken in consideration for the configuration.\n\
+- Nb of Ports : the number of ports of the switch (default 4); this number must \
+not be increased without a reason, because the number of processes needed for the \
+device emulation is proportional to his ports number.") in help title msg ;;
 
  let help_router_insert_update =
-   let title = "AJOUTER OU MODIFIER UN ROUTEUR" in
-   let msg   = "\
-Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
-routeur de paquets IP (router) et régler plusieurs paramètres :
-
-- Étiquette : chaîne de caractères utilisée pour décorer l'icône du \
-routeur dans l'image du réseau; ce champ est utilisé exclusivement à \
-des fins graphiques, il n'est pas pris en compte à des fins de configuration
-
-- Nb de Ports : le nombre de ports du routeur (4 par défaut); ce nombre ne doit \
-pas être inutilement grand, le nombre de processus nécessaires à l'émulation de ce \
-composant étant proportionnel au nombre de ses ports.
-
-L'émulation de ce composant est réalisée avec le logiciel 'quagga' dérivé du \
-projet 'zebra'.
-
-Chaque interface du routeur peut être configurée depuis \
-l'onglet 'Interfaces'. Une fois démarré, le routeur répondra \
-au protocole telnet sur toutes les interfaces configurées, sur les \
-ports tcp suivants :
-
-zebra\t\t2601/tcp\t\t# zebra vty
-ripd\t\t\t2602/tcp\t\t# RIPd vty
-ripngd\t\t2603/tcp\t\t# RIPngd vty
-ospfd\t\t2604/tcp\t\t# OSPFd vty
-bgpd\t\t2605/tcp\t\t# BGPd vty
-ospf6d\t\t2606/tcp\t\t# OSPF6d vty
-isisd\t\t2608/tcp\t\t# ISISd vty
-
-Mot de passe : zebra\
-" in help title msg ;;
+   let title = (s_ "ADD OR MODIFY A ROUTER") in
+   let msg   = (s_ "\
+In this dialog window you can define the name of an IP router \
+and set many parameters:\n\
+- Label : string that appear with the router icon in the network graph; \
+this field is exclusively for graphic purposes, is not taken in consideration \
+for the configuration.\n\
+- Nb of Ports : the number of ports of the hub (default 4); this number must \
+not be increased without a reason, because the number of processes needed for the \
+device emulation is proportional to his ports number.\n\
+The emulation of this device is realised with the program 'quagga' derived from \
+the project 'zebra'.\n\
+Every interface of the router can be configured in the tab \
+'Interfaces'. Once started, the router will answer to the telnet \
+protocol on every configured interface, on the following tcp ports:\n\
+zebra\t\t2601/tcp\t\t# zebra vty\n\
+ripd\t\t\t2602/tcp\t\t# RIPd vty\n\
+ripngd\t\t2603/tcp\t\t# RIPngd vty\n\
+ospfd\t\t2604/tcp\t\t# OSPFd vty\n\
+bgpd\t\t2605/tcp\t\t# BGPd vty\n\
+ospf6d\t\t2606/tcp\t\t# OSPF6d vty\n\
+isisd\t\t2608/tcp\t\t# ISISd vty\n\
+Password : zebra") in help title msg ;;
 
  let help_device_insert_update = function
   | Netmodel.Hub    -> help_hub_insert_update
@@ -175,44 +147,32 @@ Mot de passe : zebra\
  ;;
 
  let help_cable_direct_insert_update =
-   let title = "AJOUTER OU MODIFIER UN CABLE DROIT" in
-   let msg   = "\
-Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
-cable Ethernet droit et régler les paramètres suivants :
-
-- Étiquette : chaîne de caractères utilisée pour décorer l'arc \
-représentant le cable dans l'image du réseau
-
-- Extrémités : les deux composants réseaux (machine, répéteur,..) reliés par le \
-cable et les deux interfaces impliquées  \
-(à choisir parmi les disponibles, c'est-à-dire parmi les existantes non occupées \
-par d'autres cables)
-
-ATTENTION : ce dialogue permet de définir des cables droits \
-même lorsque ils ne pourront pas fonctionner (par exemple, entre \
-deux machines); la possibilité de définir un cablage incorrect \
-n'est pas lié à des raisons techniques mais porte un intérêt \
-exclusivement pédagogique." in help title msg ;;
+   let title = (s_ "ADD OR MODIFY A STRAIGHT CABLE") in
+   let msg   = (s_ "\
+In this dialog window you can define the name of a straight ethernet cable \
+and set many parameters:\n\
+- Label : string that appear with the arc representing the cable in the \
+network graph\n\
+- Devices : the two network devices (machine, hub, ...) linked by the cable and \
+the two implied interfaces\n\
+ATTENTION : this dialog allows to define straight cable even if \
+they won't work (for example between two machines); define a wrong \
+connection doesn't concern technical reason, it is just of pedagogical \
+interest.") in help title msg ;;
 
  let help_cable_crossover_insert_update =
-   let title = "AJOUTER OU MODIFIER UN CABLE CROISÉ" in
-   let msg   = "\
-Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
-cable Ethernet croisé et régler les paramètres suivants :
-
-- Étiquette : chaîne de caractères utilisée pour décorer l'arc \
-représentant le cable dans l'image du réseau
-
-- Extrémités : les deux composants réseaux (machine, répéteur,..) reliés par le \
-cable et les deux interfaces impliquées  \
-(à choisir parmi les disponibles, c'est-à-dire parmi les existantes non occupées \
-par d'autres cables)
-
-ATTENTION : ce dialogue permet de définir des cables croisé \
-même lorsque ils ne pourront pas fonctionner (par exemple, entre \
-une machine et un commutateur); la possibilité de définir un cablage incorrect \
-n'est pas lié à des raisons techniques mais porte un intérêt \
-exclusivement pédagogique." in help title msg ;;
+   let title = (s_ "ADD OR MODIFY A CROSSOVER CABLE") in
+   let msg   = (s_ "\
+In this dialog window you can define the name of a crossed ethernet cable \
+and set many parameters:\n\
+- Label : string that appear with the arc representing the cable in the \
+network graph\n\
+- Devices : the two network devices (machine, hub, ...) linked by the cable and \
+the two implied interfaces\n\
+ATTENTION : this dialog allows to define crossed cable even if \
+they won't work (for example between two machines); define a wrong \
+connection doesn't concern technical reason, it is just of pedagogical \
+interest.") in help title msg ;;
 
  let help_cable_insert_update = function
   | Netmodel.Direct    -> help_cable_direct_insert_update
@@ -221,64 +181,52 @@ exclusivement pédagogique." in help title msg ;;
  ;;
 
  let help_cloud_insert_update =
-   let title = "AJOUTER OU MODIFIER UN NUAGE" in
-   let msg   = "\
-Dans cette fenêtre de dialogue vous pouvez définir le nom d'un \
-'nuage'. Ce composant est un réseau Ethernet, dont la structure interne \
-n'est pas connue, mais qui provoque des rétards ou d'autres anomalies lors d'un \
-passage de trames entre ses deux extrémités.
-
-Une fois le nuage défini, utilisez l'onglet 'Anomalies' pour régler les retards, \
-les pertes de trames et les autres anomalies que vous souhaitez provoquer entre les deux \
-extrémités du nuage." in help title msg ;;
+   let title = (s_ "ADD OR MODIFY A CLOUD" )in
+   let msg   = (s_ "\
+In this dialog window you can define the name of a cloud. \
+This component is an Ethernet network with an unknown internal \
+structure, that introduce delays and other anomalies when packets \
+pass through.\n\
+Once the cloud is defined, use the tab 'Anomalies' to control retards, \
+frame loss et the other anomalies that you wish to produce.") in help title msg ;;
 
  let help_socket_insert_update =
-   let title = "AJOUTER OU MODIFIER UNE PRISE ETHERNET" in
-   let msg   = "\
-Dans cette fenêtre de dialogue vous pouvez définir le nom d'une \
-prise Ethernet. Ce composant permet de relier le réseau virtuel avec \
-un réseau Ethernet (réel) duquel fait partie le système hôte, c'est-à-dire \
-le système GNU/Linux qui exécute l'ensemble des composants virtuels.
-
-Le réseau réel est choisi de la façon suivante:
-
-(1) si l'hôte a une route par défaut, le réseau est celui de la passerelle;
-
-(2) sinon, le réseau est la réunion (bridge Linux) des réseaux de toutes les \
-interfaces réseau actives de l'hôte.
-
-La prise permet aux machines virtuelles d'accéder aux mêmes \
-services réseau (DHCP, DNS, NFS,..) que l'hôte peut atteindre, \
-par la passerelle, dans le cas n°1, ou par une de ses interfaces, \
-dans le cas n°2.
-
-Dans la plupart des cas, l'hôte a une route par défaut et peut atteindre \
-le réseau Internet par cette passerelle. Dans ce cas, les machines \
-virtuelles pourrons, elles aussi, accéder au réseau Internet. \
-Ceci permet, par exemple, d'installer des programmes manquants sur \
-les machines virtuelles, par une simple séquence de commandes:
-
-$ dhclient eth0
-$ apt-get install mon-programme-fétiche
-
-La prise permet aussi de travailler en groupe dans une salle réseau \
-en faisant communiquer des instances de Marionnet s'exécutant \
-sur différents postes." in help title msg ;;
+   let title = (s_ "ADD OR MODIFY AN ETHERNET SOCKET") in
+   let msg   = (s_ "\
+In this dialog window you can define the name of an ethernet socket \
+and set many parameters. This component allows to connect the virtual network \
+with an ethernet network (real) of which the host system is part.\n\
+The real network is choosen with the following rules:\n\
+(1) if the host has a default route, the network is the one of the gateway;\n\
+(2) else, the network is the union (Linux bridge) of every network of every \
+network interface active on the host.\n\
+The socket allows the machines to access the same network \
+services (DHCP, DNS, NFS,...) the host can access through, \
+the bridge, case (1), or one of his interfaces, case (2).\n\
+In most of cases, the host has a defult route and can access interent \
+through that gateway. In such case, virtual machines can access internet \
+too, thus being able to easily install missing software  :\n\
+$ dhclient eth0\n\
+$ apt-get install my-favourite-software\n\
+The socket allows also to work as a team in a network laboratory \
+creating a connection between Marionnet instances running on \
+different machines.") in help title msg ;;
 
  let error_saving_while_something_up =
   Simple_dialogs.error
-   "Sauvegarde"
-  "Le projet ne peut être enregistré maintenant. \
-Un ou plusieurs composants réseau sont en cours d'exécution. \
-S'il vous plaît arrêtez-les avant d'enregistrer."
+    (s_ "Attention")
+   (s_ "The project can't be saved right now. \
+One or more network components are still running. \
+Please stop them before saving.")
  ;;
 
  (** Why you have to choose a name for your project *)
  let help_nom_pour_le_projet =
-   let title = "CHOISIR UN NOM POUR LE PROJET" in
-   let msg   = "Marionnet regroupe tous les fichiers concernant un même projet dans un fichier dont l'extension \
-standard est .mar. Il s'agit en réalité d'un fichier de type tar compressé (gzip) qui peut donc être ouvert \
-indépendamment de ce logiciel." in help title msg ;;
+   let title = (s_ "CHOOSE A NAME FOR THE PROJECT") in
+   let msg   = (s_ "\
+Marionnet saves every files belonging to a project in a file with extension .mar. \
+It is a tar compressed (gzip) that can thus be opened independently than Marionnet.")
+   in help title msg ;;
 end;; (* module Msg *)
 
 (** Return the given pathname as it is, if it doesn't contain funny characters
@@ -306,9 +254,9 @@ let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path
       check_pathname_validity directory
     with _ -> begin
       Simple_dialogs.error
-        "Nom de répertoire incorrect"
-        ((Printf.sprintf "Le nom \"%s\" n'est pas un nom de répertoire valide." directory)^
-         "\n\nLes noms de répertoires peuvent contenir seulement des lettres, chiffres, tirets et tirets bas.")
+        (s_ "Invalid directory name")
+        (Printf.sprintf (f_ "The name \"%s\" is not a valid directory.\n\nDirectory names \
+must contain only letters, numbers, dash and underscore.") directory)
         ();
       failwith "the given directory name is invalid";
     end in
@@ -318,9 +266,9 @@ let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path
       chopped_basename
     else begin
       Simple_dialogs.error
-        "Nom de fichier incorrect"
-        ((Printf.sprintf "Le nom \"%s\" n'est pas un nom de fichier valide." chopped_basename)^
-         "\n\nUn nom de fichier valide doit commencer par une lettre et peut contenir des lettres, chiffres, tirets et tirets bas.")
+        (s_ "Invalid file name")
+        (Printf.sprintf (f_ "The name \"%s\" is not a valid file name.\n\nA valid file \
+name must start with a letter and can contain letters, numbers, dash and underscore.") chopped_basename)
         ();
       failwith "the given file name is invalid";
     end in
@@ -337,9 +285,9 @@ let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path
       let _ = Filename.chop_extension path_name in
       (* There is an extension but it's not the correct one; fail: *)
       Simple_dialogs.error
-        "Extension de fichier non admise"
+        (s_ "Invalid file extension")
         (Printf.sprintf
-           "Le fichier \"%s\" doit avoir une extension \"%s\", ou aucune (dans ce cas l'extension \"%s\" sera automatiquement ajoutée)."
+           (f_ "The file \"%s\" must have an extension \"%s\", or nothing (in that case the extension \"%s\" will be added automatically).")
            path_name
            correct_extension
            correct_extension)
@@ -513,8 +461,8 @@ let ask_for_existing_writable_folder_pathname_supporting_sparse_files
        (not (does_directory_support_sparse_files pathname)) then
         begin
          Simple_dialogs.error
-          "Répertoire inexploitable"
-          "Vous devez choisir un répertoire existant, modifiable et résidant sur un système de fichiers supportant les fichiers 'sparse' (ext2, ext3, reiserfs, NTFS, ...)"
+           (s_ "Invalid directory")
+           (s_ "Choose a directory existing, modifiable and hosted on a filesystem that support sparse files (ext2, ext3, reiserfs, NTFS, ...)")
           ();
          false;
         end
@@ -531,7 +479,10 @@ let ask_for_fresh_writable_filename
 
   let valid = fun x ->
     if (Sys.file_exists x)
-    then ((Simple_dialogs.error "Choix du nom" "Un fichier de même nom existe déjà!\n\nVous devez choisir un nouveau nom pour votre fichier." ()); false)
+    then ((Simple_dialogs.error 
+             (s_ "Name choice")
+             (s_ "A file with the same name already exists!\n\nChoose another name for your file.")
+             ()); false)
     else (Log.print_endline ("valid: x="^x) ; (Shell.freshname_possible x)) in
 
   let result =
@@ -543,7 +494,10 @@ let ask_for_existing_filename ?(enrich=mkenv []) ~title ?(filters = allfilters) 
 
   let valid = fun x ->
     if not (Sys.file_exists x)
-    then ((Simple_dialogs.error "Choix du fichier" "Le fichier n'existe pas!\nVous devez choisir un nom de fichier existant." ()); false)
+    then ((Simple_dialogs.error 
+             (s_ "File choice")
+             (s_ "The file doesn't exists!\nYou must choose an exiting file name.")
+             ()); false)
     else (Shell.regfile_modifiable x) in
 
   ask_for_file ~enrich ~title ~valid ~filters ~action:`OPEN ~gen_id:"filename" ~help ()

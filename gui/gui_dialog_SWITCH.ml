@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Gui completion for the dialog_SWITCH widget defined with glade. *)
 
 (* Shortcuts *)
@@ -35,17 +37,17 @@ module Make (State:sig val st:State.globalState end) = struct
 
    (* Labels *)
    let () = begin
-     Tk.Label.set d#label_dialog_SWITCH_name "Nom";
-     Tk.Label.set d#label_dialog_SWITCH_label "\nÉtiquette";
-     Tk.Label.set d#label_dialog_SWITCH_ports "Nombre de Ports";
+     Tk.Label.set d#label_dialog_SWITCH_name (s_ "Name" );
+     Tk.Label.set d#label_dialog_SWITCH_label (s_ "\nLabel" );
+     Tk.Label.set d#label_dialog_SWITCH_ports (s_ "Ports number" );
     end in
 
    (* Tooltips *)
    let () = begin
-     Tk.Tooltip.set d#image_dialog_SWITCH "Commutateur (switch)";
-     Tk.Tooltip.set_both d#label_dialog_SWITCH_name  d#switch_name "Le nom du commutateur (switch). Ce nom doit être unique dans le réseau virtuel. Suggestion : S1, S2,...";
+     Tk.Tooltip.set d#image_dialog_SWITCH (s_ "Switch" );
+     Tk.Tooltip.set_both d#label_dialog_SWITCH_name  d#switch_name (s_ "Switch name. This name must be unique in the virtual network. Suggested : S1, S2, ..." );
      Tk.Tooltip.set_both d#label_dialog_SWITCH_label d#switch_label Tk.Tooltip.Text.component_label_with_suggestion;
-     Tk.Tooltip.set_both d#label_dialog_SWITCH_ports d#switch_ports "Nombre de ports du commutateur (switch)";
+     Tk.Tooltip.set_both d#label_dialog_SWITCH_ports d#switch_ports (s_ "Switch port number" );
     end in
 
 

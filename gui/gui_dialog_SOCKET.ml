@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
 
 (** Gui completion for the dialog_SOCKET widget defined with glade. *)
 
@@ -35,14 +36,14 @@ module Make (State:sig val st:State.globalState end) = struct
 
    (* Labels *)
    let () = begin
-     Tk.Label.set d#label_dialog_SOCKET_name "Nom";
-     Tk.Label.set d#label_dialog_SOCKET_label "\nÉtiquette";
+     Tk.Label.set d#label_dialog_SOCKET_name (s_ "Name" );
+     Tk.Label.set d#label_dialog_SOCKET_label (s_ "\nLabel" );
     end in
 
    (* Tooltips *)
    let () = begin
-     Tk.Tooltip.set d#image_dialog_SOCKET "Prise RJ45 vers l'extérieur";
-     Tk.Tooltip.set_both d#label_dialog_SOCKET_name  d#socket_name "Le nom de la prise RJ45. Ce nom doit être unique dans le réseau virtuel. Suggestion : E1, E2,...";
+     Tk.Tooltip.set d#image_dialog_SOCKET (s_ "RJ45 socket to outside" );
+     Tk.Tooltip.set_both d#label_dialog_SOCKET_name  d#socket_name (s_ "RJ45 socket name. This name must be unique in the virtual network. Suggested : E1, E2, ..." );
      Tk.Tooltip.set_both d#label_dialog_SOCKET_label d#socket_label Tk.Tooltip.Text.component_label;
     end in
 

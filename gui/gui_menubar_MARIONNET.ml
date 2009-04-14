@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Gui completion for the menubar_MARIONNET widget defined with glade. *)
 
 (* Shortcuts *)
@@ -45,7 +47,7 @@ include F
                 Menu "Project"
  * **************************************** *)
 
-let project         = add_menu "_Project"
+let project         = add_menu (s_ "_Project" )
 
 module Common_dialogs = struct
 
@@ -54,22 +56,22 @@ module Common_dialogs = struct
    if st#active_project
     then EDialog.ask_question ~help:None ~cancel:true
           ~gen_id:"save_current"
-          ~title:"Fermer"
-          ~question:"Voulez-vous enregistrer le projet courant ?" ()
+          ~title:(s_ "Close" )
+          ~question:(s_ "Do you want to save the current project ?") ()
     else (Some (mkenv [("save_current","no")]))
 
 end
 
 module Created_entry_project_new = Menu_factory.Make_entry
  (struct
-   let text  = "Nouveau"
+   let text  = (s_ "New" )
    let stock = `NEW
    let key   = (Some _N)
 
    let dialog =
      let filename () =
        EDialog.ask_for_fresh_writable_filename
-         ~title:"Nom du nouveau projet"
+         ~title:(s_ "Name of the new project" )
          ~filters:[EDialog.MAR;EDialog.ALL]
          ~help:(Some Msg.help_nom_pour_le_projet) ()
      in
@@ -97,14 +99,14 @@ let project_new = Created_entry_project_new.item
 
 module Created_entry_project_open = Menu_factory.Make_entry
  (struct
-   let text  = "Ouvrir"
+   let text  = (s_ "Open" )
    let stock = `OPEN
    let key   = (Some _O)
 
    let dialog =
      let filename_dialog () =
        EDialog.ask_for_existing_filename
-         ~title:"Ouvrir un projet marionnet existant"
+         ~title:(s_ "Open an existing Marionnet project" )
          ~filters:[EDialog.MAR;EDialog.ALL]
          ~help:(Some Msg.help_nom_pour_le_projet) ()
      in
@@ -118,7 +120,7 @@ module Created_entry_project_open = Menu_factory.Make_entry
          st#close_project () ;
          try
           st#open_project filename;
-         with e -> ((Simple_dialogs.error "Ouvrir un projet" ("Échéc d'ouverture du fichier "^filename) ()); raise e)
+         with e -> ((Simple_dialogs.error (s_ "Open a project") ((s_ "Failed to open the file ")^filename) ()); raise e)
         end in
       if (st#active_project) && ((r#get "save_current")="yes")
       then
@@ -133,7 +135,7 @@ let project_open = Created_entry_project_open.item
 
 
 let project_save =
-  add_stock_item "Enregistrer"
+  add_stock_item (s_ "Save" )
     ~stock:`SAVE
     ~callback:(fun () ->
       if st#is_there_something_on_or_sleeping ()
@@ -143,13 +145,13 @@ let project_save =
 
 module Created_entry_project_save_as = Menu_factory.Make_entry
  (struct
-   let text  = "Enregistrer sous"
+   let text  = (s_ "Save as" )
    let stock = `SAVE_AS
    let key   = None
 
    let dialog () =
      EDialog.ask_for_fresh_writable_filename
-       ~title:"Enregistrer sous"
+       ~title:(s_ "Save as" )
        ~filters:[EDialog.MAR;EDialog.ALL]
        ~help:(Some Msg.help_nom_pour_le_projet) ()
 
@@ -158,7 +160,7 @@ module Created_entry_project_save_as = Menu_factory.Make_entry
      let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
       st#save_project_as filename;
-     with _ -> (Simple_dialogs.error "Projet enregistrer sous" ("Échéc de la sauvegarde du project vers "^filename) ())
+     with _ -> (Simple_dialogs.error (s_ "Save project as") ((s_ "Failed to save the project to ")^filename) ())
 
   end) (F)
 let project_save_as = Created_entry_project_save_as.item
@@ -166,13 +168,13 @@ let project_save_as = Created_entry_project_save_as.item
 
 module Created_entry_project_copy_to = Menu_factory.Make_entry
  (struct
-   let text  = "Copier sous"
+   let text  = (s_ "Copy to" )
    let stock = `SAVE_AS
    let key   = None
 
    let dialog () =
      EDialog.ask_for_fresh_writable_filename
-       ~title:"Copier sous"
+       ~title:(s_ "Copy to" )
        ~filters:[EDialog.MAR;EDialog.ALL]
        ~help:(Some Msg.help_nom_pour_le_projet) ()
 
@@ -181,7 +183,7 @@ module Created_entry_project_copy_to = Menu_factory.Make_entry
      let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
        st#copy_project_into filename
-     with _ -> (Simple_dialogs.error "Projet copier sous" ("Échéc de la copie vers "^filename) ())
+     with _ -> (Simple_dialogs.error (s_ "Project copy to" ) ((s_ "Failed to copy project to ")^filename) ())
 
   end) (F)
 let project_copy_to = Created_entry_project_copy_to.item
@@ -189,14 +191,14 @@ let project_copy_to = Created_entry_project_copy_to.item
 
 module Created_entry_project_close = Menu_factory.Make_entry
  (struct
-   let text  = "Fermer"
+   let text  = (s_ "Close" )
    let stock = `CLOSE
    let key   = (Some _W)
 
    let dialog () = 
      EDialog.ask_question ~help:None ~cancel:true
-       ~title:"Fermer"
-       ~question:"Voulez-vous enregistrer le projet courant ?" ()
+       ~title:(s_ "Close" )
+       ~question:(s_ "Do you want to save the current project ?") ()
 
    let reaction r = begin
     st#shutdown_everything ();
@@ -215,13 +217,13 @@ let separator       = project#add_separator ()
 
 module Created_entry_project_export = Menu_factory.Make_entry
  (struct
-   let text  = "Exporter image"
+   let text  = (s_ "Export image" )
    let stock = `CONVERT
    let key   = None
 
    let dialog () = 
      EDialog.ask_for_fresh_writable_filename
-       ~title:"Exporter l'image du reseau"
+       ~title:(s_ "Export network image" )
        ~filters:[EDialog.PNG;EDialog.ALL]
        ~help:None ()
 
@@ -231,10 +233,10 @@ module Created_entry_project_export = Menu_factory.Make_entry
      let () =  Log.print_string "About to call Unix.run...\n"; flush_all () in
      try
       (match Unix.run command with
-      |  (_ , Unix.WEXITED 0) -> st#flash ~delay:6000 ("Image du réseau exportée avec succès dans le fichier "^filename)
-      |  _                    -> raise (Failure ("Echec durant l'exportation de l'image du réseau vers le fichier "^filename))
+      |  (_ , Unix.WEXITED 0) -> st#flash ~delay:6000 ((s_ "Network image correctly exported to the file ")^filename)
+      |  _                    -> raise (Failure ((s_ "Failed to export network image to the file ")^filename))
       )
-     with e -> ((Simple_dialogs.error "Exporter l'image du reseau" ("Échec durant l'exportation vers le fichier "^filename) ()); raise e)
+     with e -> ((Simple_dialogs.error "Export network image" ((s_ "Failed to export network image to the file ")^filename) ()); raise e)
 
   end) (F)
 let project_export = Created_entry_project_export.item
@@ -242,15 +244,15 @@ let project_export = Created_entry_project_export.item
 
 module Created_entry_project_quit = Menu_factory.Make_entry
  (struct
-   let text  = "Quitter"
+   let text  = (s_ "Quit")
    let stock = `QUIT
    let key   = (Some _Q)
    let dialog () =
     if (st#active_project = false)
      then (Some (mkenv [("answer","no")]))
      else Talking.EDialog.ask_question ~help:None ~cancel:true
-           ~title:"QUITTER"
-           ~question:"Voulez-vous enregistrer\nle projet courant avant de quitter ?"
+           ~title:(s_ "Quit")
+           ~question:(s_ "Do you want to save\nthe current project before quitting ?")
            ()
    let reaction r =
     let () = if (st#active_project) && ((r#get "answer") = "yes")
@@ -266,23 +268,23 @@ let project_quit = Created_entry_project_quit.item
                 Menu "Options"
  * **************************************** *)
 
-let options         = add_menu "_Options"
+let options         = add_menu (s_ "_Options")
 
 module Created_entry_options_cwd = Menu_factory.Make_entry
  (struct
-   let text  = "Changer le répertoire de travail"
+   let text  = (s_ "Change working directory")
    let stock = `DIRECTORY
    let key   = None
    let dialog () =
     Talking.EDialog.ask_for_existing_writable_folder_pathname_supporting_sparse_files
-       ~title:"Choisir un répertoire de travail"
+       ~title:(s_ "Choose working directory")
        ~help:(Some Msg.help_repertoire_de_travail) ()
    let reaction r = st#set_wdir (r#get "foldername")
   end) (F)
 let options_cwd = Created_entry_options_cwd.item
 
 let options_autogenerate_ip_addresses =
- add_check_item "Auto-génération des adresses IP"
+ add_check_item (s_ "Auto-generation of IP address" )
   ~active:Global_options.autogenerate_ip_addresses_default
   ~callback:(fun active ->
          Log.printf "You toggled the option (IP)\n"; flush_all ();
@@ -290,7 +292,7 @@ let options_autogenerate_ip_addresses =
    ()
 
 let options_debug_mode                =
- add_check_item "Modalité debug"
+ add_check_item (s_ "Debug mode")
   ~active:Global_options.debug_mode_default
   ~callback:(fun active ->
          Log.printf "You toggled the option (debug)\n"; flush_all ();
@@ -314,13 +316,13 @@ let () = workaround_wirefilter_problem#coerce#misc#hide ()
                 Menu "Help"
  * **************************************** *)
 
-let help         = add_menu "_Aide"
+let help         = add_menu (s_ "_Help")
 let help_apropos =
  let module D = Gui_dialog_A_PROPOS.Make (State) in
  let callback () =
    let dialog = D.dialog () in
    let _ = dialog#closebutton_A_PROPOS#connect#clicked ~callback:(dialog#toplevel#destroy) in ()
- in add_stock_item "À propos" ~stock:`ABOUT ~callback ()
+ in add_stock_item (s_ "Help") ~stock:`ABOUT ~callback ()
 
 
 (* **************************************** *

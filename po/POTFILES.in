@@ -5,20 +5,20 @@
 ../gui/gui_cloud.ml
 ../gui/gui_dialog_A_PROPOS.ml
 ../gui/gui_dialog_CABLE.ml
-# ../gui/gui_dialog_CLOUD.ml
-# ../gui/gui_dialog_HUB.ml
-# ../gui/gui_dialog_MACHINE.ml
-# ../gui/gui_dialog_ROUTER.ml
-# ../gui/gui_dialog_SOCKET.ml
-# ../gui/gui_dialog_SWITCH.ml
-# ../gui/gui_dialog_toolkit.ml
+../gui/gui_dialog_CLOUD.ml
+../gui/gui_dialog_HUB.ml
+../gui/gui_dialog_MACHINE.ml
+../gui/gui_dialog_ROUTER.ml
+../gui/gui_dialog_SOCKET.ml
+../gui/gui_dialog_SWITCH.ml
+../gui/gui_dialog_toolkit.ml
 ../gui/gui_hub.ml
 ../gui/gui_machine.ml
-# ../gui/gui_menubar_MARIONNET.ml
-# ../gui/gui_router.ml
-# ../gui/gui_socket.ml
-# ../gui/gui_switch.ml
+../gui/gui_menubar_MARIONNET.ml
+../gui/gui_router.ml
+../gui/gui_socket.ml
+../gui/gui_switch.ml
 ../gui/gui_toolbar_COMPONENTS_layouts.ml
-# ../gui/gui_toolbar_DOT_TUNING.ml
+../gui/gui_toolbar_DOT_TUNING.ml
 ../gui/gui_window_MARIONNET.ml
-# ../gui/talking.ml
+../gui/talking.ml

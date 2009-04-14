@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
 
 (** Toolbar entry for the component 'router' *)
 
@@ -27,14 +28,14 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Toolbar_entry = struct
    let imagefile = "ico.router.palette.png"
-   let tooltip   = "Routeur"
+   let tooltip   = (s_ "Router")
   end
 
   module Add = struct
     let key      = Some GdkKeysyms._R
 
     let dialog   = let module M = Gui_dialog_ROUTER.Make (State) in
-                   M.dialog ~title:"Ajouter routeur" ~update:None
+                   M.dialog ~title:(s_ "Add router") ~update:None
 
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in
@@ -66,7 +67,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dialog name =
      let m = (st#network#getDeviceByName name) in
-     let title = "Modifier routeur" in
+     let title = (s_ "Modify router") in
      let module M = Gui_dialog_ROUTER.Make (State) in M.dialog ~title:(title^" "^name) ~update:(Some m)
 
     let reaction r =
@@ -98,8 +99,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Talking.EDialog.ask_question ~help:None ~cancel:false
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
-        ~title:"Supprimer"
-        ~question:("Confirmez-vous la suppression de "^name^"\net de tous le cables éventuellement branchés à ce routeur ?")
+        ~title:(s_ "Remove")
+        ~question:(Printf.sprintf (f_ "Are you sure you want to remove %s\nand all cables connected to this %s ?") name "router")
 
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in
@@ -171,8 +172,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Talking.EDialog.ask_question ~help:None ~cancel:false
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
-        ~title:"Power off"
-        ~question:("ATTENTION: vous avez demandé un arrêt instantané du routeur,\ntel que provoqué par une interruption du courant électrique. \nLa procédure ordinaire est plutôt celle d'arrêter gracieusement les routeurs (shutdown). \n\nVoulez-vous tout de même débrancher le courant à "^name^" ?\n")
+        ~title:(s_ "Power off")
+        ~question:(Printf.sprintf (f_ "WARNING: you asked for an immediate stop of the machine,\nlike in a power off. \nThe normal procedure is to stop graciously machines (stop). \n\nDo you want to power off %s anyway ?\n") name)
 
     let reaction r =
       if (r#get "answer") = "yes"
@@ -181,7 +182,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   end
 
- module Create_entries =
+  module Create_entries =
   Gui_toolbar_COMPONENTS_layouts.Layout_for_network_node_with_state (State) (Toolbar_entry) (Add) (Properties) (Remove) (Startup) (Stop) (Suspend) (Resume) (Ungracefully_stop)
 
 end

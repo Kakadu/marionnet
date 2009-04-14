@@ -155,20 +155,33 @@ gui.po: gui/gui.xml
 LANGUAGES = it fr
 
 compile-mo: 
-	cd po/; \
-	for i in $(LANGUAGES); do msgfmt $$i.po; mv messages.mo $$i.mo; done;
+	@(cd po/; \
+	for i in $(LANGUAGES); \
+	do msgfmt $$i.po; \
+	mv messages.mo $$i.mo; \
+	echo "Compiled "$$i.mo; \
+	done;)
 
 update-po: pot
-	cd po/; \
-	for i in $(LANGUAGES); do msgmerge --no-fuzzy-matching --sort-by-file --update $$i.po messages.pot;done;	
+	@(cd po/; \
+	for i in $(LANGUAGES); \
+	do msgmerge --no-fuzzy-matching --sort-by-file --update $$i.po messages.pot; \
+	echo "Updated "$$i.po; \
+	done;)	
 
 install-mo: compile-mo
-	cd po/; \
-	for i in $(LANGUAGES); do cp $$i.mo /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; done;
+	@(cd po/; \
+	for i in $(LANGUAGES); \
+	do cp $$i.mo /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; \
+	echo "Installed "$$i; \
+	done;)
 
 clean-mo:
 	@(cd po/; \
 	rm -rf *.mo *~ *.pot;)
 
 uninstall-mo:
-	for i in $(LANGUAGES); do rm -f /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; done;
+	@(for i in $(LANGUAGES); \
+	do rm -f /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; \
+	echo "Uninstalled "$$i; \
+	done;)

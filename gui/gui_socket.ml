@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
 
 (** Toolbar entry for the component 'socket' *)
 
@@ -27,7 +28,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Toolbar_entry = struct
    let imagefile = "ico.socket.palette.png"
-   let tooltip   = "Prise RJ45 vers l'extérieur"
+   let tooltip   = (s_ "RJ45 socket to outside")
   end
 
   module Add = struct
@@ -36,7 +37,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dialog   =
       let module M = Gui_dialog_SOCKET.Make (State) in
-      M.dialog ~title:"Ajouter prise" ~update:None
+      M.dialog ~title:(s_ "Add socket") ~update:None
 
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
@@ -59,7 +60,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dialog =
      fun name -> let m = (st#network#getGatewayByName name) in
-                 let title = "Modifier prise" in
+                 let title = (s_ "Modify socket") in
                  let module M = Gui_dialog_SOCKET.Make (State) in
                  M.dialog ~title:(title^" "^name) ~update:(Some m)
 
@@ -84,8 +85,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Talking.EDialog.ask_question ~help:None ~cancel:false
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
-        ~title:"Supprimer"
-        ~question:(Printf.sprintf "Confirmez-vous la suppression de %s\net du cable éventuellement branché à cette %s ?" name "prise")
+        ~title:(s_ "Remove")
+        ~question:(Printf.sprintf (f_ "Are you sure you want to remove %s\nand all cables connected to this %s ?") name (s_ "socket"))
 
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in

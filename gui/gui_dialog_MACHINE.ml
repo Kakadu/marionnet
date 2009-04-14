@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Gui completion for the dialog_MACHINE widget defined with glade. *)
 
 (* Shortcuts *)
@@ -60,28 +62,28 @@ module Make (State:sig val st:State.globalState end) = struct
 
    (* Labels *)
    let () = begin
-     Tk.Label.set d#label_dialog_MACHINE_name     "Nom" ;
-     Tk.Label.set d#label_dialog_MACHINE_memory   "Mémoire<tt>\n(Mb)</tt>" ;
-     Tk.Label.set d#label_dialog_MACHINE_ethnum   "Cartes\nEthernet" ;
-     Tk.Label.set d#label_dialog_MACHINE_distrib  "Distribution" ;
-     Tk.Label.set d#label_dialog_MACHINE_variant  "Variante" ;
-     Tk.Label.set d#label_dialog_MACHINE_kernel   "Noyau" ;
-     Tk.Label.set d#label_dialog_MACHINE_terminal "Terminal" ;
+     Tk.Label.set d#label_dialog_MACHINE_name     (s_ "Name" ) ;
+     Tk.Label.set d#label_dialog_MACHINE_memory   (s_ "Memory<tt>\n(Mb)</tt>" ) ;
+     Tk.Label.set d#label_dialog_MACHINE_ethnum   (s_ "Ethernet\ncards" ) ;
+     Tk.Label.set d#label_dialog_MACHINE_distrib  (s_ "Distribution" ) ;
+     Tk.Label.set d#label_dialog_MACHINE_variant  (s_ "Variant" ) ;
+     Tk.Label.set d#label_dialog_MACHINE_kernel   (s_ "kernel" ) ;
+     Tk.Label.set d#label_dialog_MACHINE_terminal (s_ "Terminal" ) ;
     end in
 
    (* Tooltips *)
    let () = begin
-     Tk.Tooltip.set d#image_dialog_MACHINE          "Machine virtuelle" ;
-     Tk.Tooltip.set d#image_dialog_MACHINE_hardware "Spécifications matérielles." ;
-     Tk.Tooltip.set d#image_dialog_MACHINE_software "Spécifications logicielles." ;
-     Tk.Tooltip.set d#image_dialog_MACHINE_uml      "Spécifications du mode de fonctionnement User Mode Linux (UML)." ;
-     Tk.Tooltip.set_both d#label_dialog_MACHINE_name     d#name       "Le nom de la machine virtuelle. Ce nom doit être unique dans le réseau virtuel." ;
-     Tk.Tooltip.set_both d#label_dialog_MACHINE_memory   d#memory     "Quantité de mémoire vive (RAM) à reserver pour l'exécution de cette machine virtuelle." ;
-     Tk.Tooltip.set_both d#label_dialog_MACHINE_ethnum   d#eth        "Nombre de cartes ethernet (eth0, eth1,...) de la machine virtuelle" ;
-     Tk.Tooltip.set_both d#label_dialog_MACHINE_distrib  distrib#box  "Distribution GNU/Linux installée sur la machine virtuelle." ;
-     Tk.Tooltip.set_both d#label_dialog_MACHINE_variant  distrib#slave#box "État initial du disque dur. La machine virtuelle sera démarrée par défaut dans cette variante de la distribution choisie." ;
-     Tk.Tooltip.set_both d#label_dialog_MACHINE_kernel   kernel#box   "Version du noyau Linux à utiliser pour cette machine virtuelle." ;
-     Tk.Tooltip.set_both d#label_dialog_MACHINE_terminal terminal#box "Type de terminal à utiliser pour contrôler la machine virtuelle. Les choix possibles sont : (X HOST) terminal avec possibilité de lancer des applications graphiques sur le serveur de l'hôte, et (X NEST) serveur graphique indépendant, regroupant toutes les fenêtres de la machine virtuelle." ;
+     Tk.Tooltip.set d#image_dialog_MACHINE          (s_ "Virtual machine" ) ;
+     Tk.Tooltip.set d#image_dialog_MACHINE_hardware (s_ "Hardware specification." ) ;
+     Tk.Tooltip.set d#image_dialog_MACHINE_software (s_ "Software specification." ) ;
+     Tk.Tooltip.set d#image_dialog_MACHINE_uml      (s_ "Specification of User Mode Linux (UML) terminal mode." ) ;
+     Tk.Tooltip.set_both d#label_dialog_MACHINE_name     d#name       (s_ "Virtual machine name. This name must be unique in the virtual network." ) ;
+     Tk.Tooltip.set_both d#label_dialog_MACHINE_memory   d#memory     (s_ "Amount of RAM to be reserved for this machine execution." ) ;
+     Tk.Tooltip.set_both d#label_dialog_MACHINE_ethnum   d#eth        (s_ "Number of ethernet cards (eth0, eth1 ...) of the virtual machine" ) ;
+     Tk.Tooltip.set_both d#label_dialog_MACHINE_distrib  distrib#box  (s_ "GNU/Linux distribution installed on the virtual machine." ) ;
+     Tk.Tooltip.set_both d#label_dialog_MACHINE_variant  distrib#slave#box (s_ "Initial hard disk state. The virtual machine will start by default with this variant of the chosen distribution." ) ;
+     Tk.Tooltip.set_both d#label_dialog_MACHINE_kernel   kernel#box   (s_ "Linux kernel version used for this virtual machine." ) ;
+     Tk.Tooltip.set_both d#label_dialog_MACHINE_terminal terminal#box (s_ "Type of terminal to use to control the virtual machine. Possible choices are: (X HOST) terminal with the possibility to launch graphical application on the host X server, and (X NEST) independent graphic server, collecting all virtual machine windows." ) ;
     end in
 
    (* Set defaults. If we are updating, defaults are the old values. *)

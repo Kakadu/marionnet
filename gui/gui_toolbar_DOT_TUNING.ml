@@ -42,19 +42,19 @@ end
 let () = begin
  let set w text = (GData.tooltips ())#set_tip w ~text
  in
- set w#label_DOT_TUNING_NODES#coerce       "Réglage des noeuds du graphe"      ;
- set w#vscale_DOT_TUNING_ICONSIZE#coerce   "Augmenter ou diminuer la taille des icones (machines, switch, hub, etc), sans modifier l'agencement" ;
- set w#button_DOT_TUNING_SHUFFLE#coerce    "Réagencer les noeuds de façon aléatoire" ;
- set w#button_DOT_TUNING_UNSHUFFLE#coerce  "Revenir à l'agencement prédéfini (non aléatoire) des noeuds" ;
- set w#label_DOT_TUNING_EDGES#coerce       "Réglage des arcs du graphe" ;
- set w#button_DOT_TUNING_RANKDIR_TB#coerce "Dessiner les arcs du haut vers le bas" ;
- set w#button_DOT_TUNING_RANKDIR_LR#coerce "Dessiner les arcs de la gauche vers la droite" ;
- set w#vscale_DOT_TUNING_NODESEP#coerce    "Taille minimale des arcs" ;
- set w#menubar_DOT_TUNING_INVERT#coerce    "Dessiner un arc dans le sens inverse" ;
- set w#label_DOT_TUNING_LABELS#coerce      "Réglage des étiquettes aux extrémités des arcs" ;
- set w#vscale_DOT_TUNING_LABELDISTANCE#coerce "Distance entre les étiquettes et les sommets" ;
- set w#label_DOT_TUNING_AREA#coerce        "Réglage de la taille du canevas contenant le graphe. La taille peut être agrandi jusqu'au double (100%) de la taille d'origine. Dans ce cas, les éléments sont réagencés de façon à remplir l'espace disponible." ;
- set w#vscale_DOT_TUNING_EXTRASIZE#coerce  "Taille du canevas"
+ set w#label_DOT_TUNING_NODES#coerce       (s_ "Tuning of graph nodes")      ;
+ set w#vscale_DOT_TUNING_ICONSIZE#coerce   (s_ "Tuning of icons size (machines, switch, hub, etc), without changing arrangement") ;
+ set w#button_DOT_TUNING_SHUFFLE#coerce    (s_ "Randomly arrange nodes") ;
+ set w#button_DOT_TUNING_UNSHUFFLE#coerce  (s_ "Go back to standard nodes arrangement (not random)") ;
+ set w#label_DOT_TUNING_EDGES#coerce       (s_ "Tuning of graph arcs") ;
+ set w#button_DOT_TUNING_RANKDIR_TB#coerce (s_ "Arrange arcs from top to bottom") ;
+ set w#button_DOT_TUNING_RANKDIR_LR#coerce (s_ "Arrange arcs from lef to right") ;
+ set w#vscale_DOT_TUNING_NODESEP#coerce    (s_ "Minimun arcs size") ;
+ set w#menubar_DOT_TUNING_INVERT#coerce    (s_ "Invert arcs arrangement") ;
+ set w#label_DOT_TUNING_LABELS#coerce      (s_ "Tuning of labels on arcs edges") ;
+ set w#vscale_DOT_TUNING_LABELDISTANCE#coerce (s_ "Distance between labels and icons") ;
+ set w#label_DOT_TUNING_AREA#coerce        (s_ "Tuning of the graph background size. The size may increase to double (100%) the original. In that case, elements are arranged to fill available space.") ;
+ set w#vscale_DOT_TUNING_EXTRASIZE#coerce  (s_ "Size of background")
  end
 
 (* Callbacks *)
@@ -68,7 +68,7 @@ let fold_lines = function [] -> "" | l-> List.fold_left (fun x y -> x^" "^y) (Li
 let iconsize_react () = if opt#are_gui_callbacks_disable then () else
   begin
    let size = opt#read_gui_iconsize () in
-   st#flash ~delay:4000 ("Taille des icones fixée à la valeur "^size^" (default=large)");
+   st#flash ~delay:4000 (Printf.sprintf (f_ "Icons size is fixed to value %s (default=large)") size);
    st#refresh_sketch () ;
   end
 
@@ -77,7 +77,7 @@ let shuffle_react () =
   begin
    opt#set_shuffler (List.shuffleIndexes (net#nodes));
    let namelist = net#getNodeNames => ( (List.permute opt#get_shuffler) || fold_lines ) in
-   st#flash ~delay:4000 ("Icones réagencées de façon aléatoire : "^namelist);
+   st#flash ~delay:4000 ((s_ "Icons arranged randomly : ")^namelist);
    st#refresh_sketch () ;
   end
 
@@ -86,7 +86,7 @@ let unshuffle_react () =
   begin
    opt#reset_shuffler ();
    let namelist = (net#getNodeNames => fold_lines) in
-   st#flash ~delay:4000 ("Icones dans l'agencement prédéfini : "^namelist);
+   st#flash ~delay:4000 ((s_ "Icons arranged by default : ")^namelist);
    st#refresh_sketch () ;
   end
 
@@ -96,8 +96,8 @@ let rankdir_react x () =
    let old = st#dotoptions#rankdir in
    st#dotoptions#set_rankdir x;
    let msg = match x with
-    | "TB" -> "Tracer les arcs du haut vers le bas (default)"
-    | "LR" -> "Tracer les arcs de la gauche vers la droite"
+    | "TB" -> (s_ "Arrange arcs from top to bottom (default)")
+    | "LR" -> (s_ "Arrange arcs from left to right")
     | _    -> "Not valid Rankdir" in
    st#flash ~delay:4000 msg;
    if x<>old then st#refresh_sketch () ;
@@ -107,8 +107,7 @@ let rankdir_react x () =
 let nodesep_react () = if opt#are_gui_callbacks_disable then () else
   begin
    let y = opt#read_gui_nodesep () in
-   st#flash ("Taille minimale des arcs (distance entre noeuds) fixées à la valeur "^
-                  (string_of_float y)^" (default=0.5)");
+   st#flash (Printf.sprintf (f_ "Minimum arcs size (distance between nodes) is fixed to value %s (default=0.5)") (string_of_float y));
    st#refresh_sketch () ;
   end
 
@@ -116,8 +115,7 @@ let nodesep_react () = if opt#are_gui_callbacks_disable then () else
 let labeldistance_react () = if opt#are_gui_callbacks_disable then () else
   begin
    let y = opt#read_gui_labeldistance () in
-   st#flash ("Distance entre sommets et étiquettes fixée à la valeur "^
-                  (string_of_float y)^" (default=1.6)");
+   st#flash (Printf.sprintf (f_ "Distance between labels and icons fixed to value %s (default=1.6)") (string_of_float y));
    st#refresh_sketch () ;
   end
 
@@ -125,8 +123,7 @@ let labeldistance_react () = if opt#are_gui_callbacks_disable then () else
 let extrasize_react () = if opt#are_gui_callbacks_disable then () else
   begin
    let x = () => (opt#read_gui_extrasize || int_of_float || string_of_int) in
-   st#flash ("Taille du canevas fixée à +"^x^
-                   "% de la valeur suffisante à contenir le graphe (default=0%)");
+   st#flash (Printf.sprintf (f_ "Background size fixed to %s%% of the minimun value to contain the graph (default=0%%)") x );
    st#refresh_sketch () ;
   end
 
@@ -134,7 +131,7 @@ let extrasize_react () = if opt#are_gui_callbacks_disable then () else
 let rotate_callback x () =
   begin
    st#network#invertedCableToggle x ;
-   st#flash ("Cable "^x^" (re)inversé");
+   st#flash (Printf.sprintf (f_ "Cable %s (re)inverted") x);
    st#refresh_sketch () ;
   end
 

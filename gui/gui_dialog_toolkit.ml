@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
 
 (** Common tools for setting labels and tips in a dialog. *)
 module Make (Toplevel : sig val toplevel : GWindow.dialog_any end) = struct
@@ -42,13 +43,13 @@ module Make (Toplevel : sig val toplevel : GWindow.dialog_any end) = struct
   (* Common text for dialog's tooltips *)
   module Text = struct
 
-   let component_label = "L'étiquette à ajouter au dessin du réseau à côté de l'icone représentant cet élément."
+   let component_label = (s_ "Label to add to the network sketch next to the element icon." )
 
    let component_label_with_suggestion =
-    component_label^" "^"Il est conseillé d'utiliser comme étiquette l'adresse IP du réseau que l'élément réalise (par exemple \"192.168.1.0/24\")."
+    component_label^" "^(s_ "It is advisable to use as label the IP address of the element (for example \"192.168.1.0/24\")." )
 
    let append_label_suggestion_to msg =
-     msg^" "^"Il est conseillé d'utiliser comme étiquette l'adresse IP du réseau que l'élément réalise (par exemple \"192.168.1.0/24\")."
+     msg^" "^(s_ "It is advisable to use as label the IP address of the element (for example \"192.168.1.0/24\")." )
 
   end (* Tooltip.Text *)
 
@@ -76,9 +77,8 @@ module Make (Toplevel : sig val toplevel : GWindow.dialog_any end) = struct
                     ((action="update") && (not (name=oldname)) && (st#network#nameExists name))
 
                  then
-                   (Simple_dialogs.error "Choix du nom"
-                              ("Le nom '"^name^"' est déja réservé dans le réseau virtuel. "^
-                               "Les noms des composants du réseau virtuel doivent être uniques.") ())
+                   (Simple_dialogs.error (s_ "Name choice" )
+                              (Printf.sprintf(f_ "The name '%s' is already used in the virtual network. The names of virtual network elements must be unique." ) name) ())
 
                  else
                    (result := Some r ; cont := false)
@@ -89,7 +89,7 @@ module Make (Toplevel : sig val toplevel : GWindow.dialog_any end) = struct
                  | (Talking.EDialog.StrangeDialog (title,msg,r)) -> (*(Msg.warning title msg ()); *)
                        begin
                        match Talking.EDialog.ask_question ~gen_id:"answer" ~title:"CONFIRMER"
-                       ~question:(msg^"\nVous confirmez cette connexion ?") ~help:None ~cancel:false ()
+                       ~question:(msg^(s_ "\nDo you confirm this connection ?" )) ~help:None ~cancel:false ()
                        with
                        | Some e -> if (e#get("answer")="yes")
                                    then (result := Some r ; cont := false)

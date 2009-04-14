@@ -15,6 +15,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+open Gettext;;
+
 (** Gui completion for the dialog_CLOUD widget defined with glade. *)
 
 (* Shortcuts *)
@@ -35,14 +37,14 @@ module Make (State:sig val st:State.globalState end) = struct
 
    (* Labels *)
    let () = begin
-     Tk.Label.set d#label_dialog_CLOUD_name "Nom";
-     Tk.Label.set d#label_dialog_CLOUD_label "\nÉtiquette";
+     Tk.Label.set d#label_dialog_CLOUD_name (s_ "Name");
+     Tk.Label.set d#label_dialog_CLOUD_label (s_ "\nLabel");
     end in
 
    (* Tooltips *)
    let () = begin
-     Tk.Tooltip.set d#image_dialog_CLOUD "Nuage L2 (sous-réseau indéterminé de niveau 2)";
-     Tk.Tooltip.set_both d#label_dialog_CLOUD_name  d#cloud_name "Le nom du sous-réseau. Ce nom doit être unique dans le réseau virtuel. Suggestion : N1, N2,...";
+     Tk.Tooltip.set d#image_dialog_CLOUD (s_ "Unknown layer 2 sub network");
+     Tk.Tooltip.set_both d#label_dialog_CLOUD_name  d#cloud_name (s_ "Sub network name. This name must be unique in the virtual network. Suggested : N1, N2, ... ");
      Tk.Tooltip.set_both d#label_dialog_CLOUD_label d#cloud_label Tk.Tooltip.Text.component_label;
     end in
 

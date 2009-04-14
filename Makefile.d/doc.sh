@@ -136,7 +136,7 @@ EOF
 ################################
 
 set -x
-eval ocamldoc -t $PROJECT $PP_OPTION -keep-code -html -colorize-code -d doc/html/ $INCLUDES $INCLUDE_LIBS $SOURCES
+eval ocamldoc -t $PROJECT $PP_OPTION -sort -m A -keep-code -html -colorize-code -d doc/html/ $INCLUDES $INCLUDE_LIBS $SOURCES
 set +x
 echo 'Ok, the documentation was built with success.'
 enrich_index_html

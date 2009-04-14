@@ -121,7 +121,7 @@ world: world-local main
 
 # Edit all ml/mli files and Makefile.local with your $EDITOR
 edit:
-	test -n $$EDITOR && $$EDITOR Makefile.local $$(find . \( -wholename "./_build/*" -o -wholename "./_darcs/*" -o -name "meta.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
+	test -n "$$EDITOR" && $$EDITOR Makefile.local $$(find . \( -wholename "./_build/*" -o -wholename "./_darcs/*" -o -name "meta.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
 
 # Create the documentation
 documentation: world documentation-local
@@ -129,6 +129,11 @@ documentation: world documentation-local
 	Makefile.d/doc.sh -pp "$(PP_OPTION)" -e "$(UNDOCUMENTED)" -i $(DIRECTORIES_TO_INCLUDE)
 
 doc: documentation
+
+INDEX_HTML=_build/doc/html/index.html
+browse: 
+	test -f  $(INDEX_HTML) || make documentation
+	test -n "$$BROWSER" && $$BROWSER $(INDEX_HTML)
 
 # Install programs and libraries:
 install: install-programs install-libraries install-data install-configuration install-documentation install-local

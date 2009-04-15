@@ -23,7 +23,7 @@
 open PreludeExtra.Prelude (* We want synchronous terminal output *)
 open StdLabels
 open Gui
-
+open Gettext
 open State
 open Talking
 open Filesystem_history
@@ -129,9 +129,9 @@ let () =
 with e -> begin
   Daemon_client.disable_daemon_support ();
   Simple_dialogs.warning
-    "FRENCH Could not connect to the daemon"
+    (s_ "Could not connect to the daemon")
     (Printf.sprintf
-       "FRENCH Connecting to the Marionnet daemon failed (%s); Marionnet will work, but some features (graphics on virtual machines and host sockets) won't be available."
+       (f_ "Connecting to the Marionnet daemon failed (%s); Marionnet will work, but some features (graphics on virtual machines and host sockets) won't be available.")
        (Printexc.to_string e))
     ();
 end)
@@ -158,10 +158,10 @@ if (Unix.getuid ()) = 0 then begin
   Log.printf "* Continuing anyway...                       *\n";
   Log.printf "**********************************************\n\n";
   Simple_dialogs.warning
-    "FRENCH You should not be root!"
-    "FRENCH Marionnet is running with UID 0; this is bad from a security point of view.
-[To do: write a longer, cleaner message...]
-Continuing anyway."
+    (s_ "You should not be root!")
+    (s_ "Marionnet is running with UID 0; this is bad from a security point of view.\
+[To do: write a longer, cleaner message...]\
+Continuing anyway.")
     ();
 end
 end
@@ -186,8 +186,8 @@ let check_dependency command_line error_message =
     system_or_fail command_line;
   with e ->
     Simple_dialogs.error
-      "FRENCH Unsatisfied dependency"
-      (error_message ^ "\nFRENCH Continuing anyway, but *some important features will be missing*.")
+      (s_ "Unsatisfied dependency")
+      (error_message ^ (s_ "\nContinuing anyway, but *some important features will be missing*."))
       ()
 
 (** Check whether we have UML computer filesystems: *)
@@ -195,7 +195,7 @@ let () = check_dependency
   (Printf.sprintf
     "ls -l %s/machine-default &> /dev/null"
     Initialization.marionnet_home_filesystems)
-  "FRENCH You don't have a default filesystem for virtual computers"
+  (s_ "You don't have a default filesystem for virtual computers")
 
 (** Check whether we have UML router filesystems: *)
 let () = begin
@@ -205,7 +205,7 @@ let () = begin
     Initialization.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in
   check_dependency
    command_line
-   ("FRENCH You don't have a default filesystem for virtual routers (" ^ command_line ^")")
+   ((s_ "You don't have a default filesystem for virtual routers") ^ " (" ^ command_line ^")")
   end
 
 (** Check whether we have UML kernels: *)
@@ -213,17 +213,17 @@ let () = check_dependency
   (Printf.sprintf
     "ls -l %s/linux-default &> /dev/null"
     Initialization.marionnet_home_kernels)
-  "FRENCH You don't have a default UML kernel"
+  (s_ "You don't have a default UML kernel")
 
 (** Check whether we have (our patched) VDE: *)
 let () = check_dependency
   ("which `basename " ^ Initialization.vde_prefix ^ "vde_switch` &> /dev/null")
-  "FRENCH You don't have VDE"
+  (s_ "You don't have VDE")
 
 (** Check whether we have Graphviz: *)
 let () = check_dependency
   "which dot &> /dev/null"
-  "FRENCH You don't have Graphviz"
+  (s_ "You don't have Graphviz")
 
 let () = begin
 

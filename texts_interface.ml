@@ -21,6 +21,7 @@ open ListExtra;;
 open UnixExtra;;
 open Sugar;;
 open Row_item;;
+open Gettext;;
 
 class texts_interface =
 fun ~packing
@@ -48,7 +49,7 @@ object(self)
     ignore (Unix.system command_line)
 
   val error_message =
-    "Vous devez sélectionner un document existant et lisible au format PDF, Postscript, DVI, HTML ou texte."
+    (s_ "You should select an existing document, in format PDF, Postscript, DVI, HTML ou text.")
 
   (** Ask the user to choose a file, and return its pathname. Fail if the user doesn't
       choose a file or cancels: *)
@@ -56,14 +57,14 @@ object(self)
     let dialog = GWindow.file_chooser_dialog 
         ~icon:Icon.icon_pixbuf
         ~action:`OPEN 
-        ~title:((*utf8*)"Choisissez le document à importer")
+        ~title:((*utf8*)(s_ "Choose the document to import"))
         ~modal:true () in
     dialog#add_button_stock `CANCEL `CANCEL;
     dialog#add_button_stock `OK `OK;
     dialog#unselect_all;
     dialog#add_filter
       (GFile.filter
-         ~name:"Textes (PDF, PostScript, DVI, HTML, text)"
+         ~name:(s_ "Texts (PDF, PostScript, DVI, HTML, text)")
          ~patterns:["*.pdf"; "*.ps"; "*.dvi"; "*.text"; "*.txt"; "*.html"; "*.htm"; "README"; "LISEZMOI"]
          ());
     dialog#set_default_response `OK;
@@ -165,7 +166,7 @@ object(self)
           let rm_command_line =
             Printf.sprintf "rm -f '%s' &> /dev/null" fresh_pathname in
           ignore (Unix.system rm_command_line);
-          failwith ("La copie de \n\"" ^ pathname ^ "\"\n dans \n\""^ fresh_pathname ^"\"\nfailed")
+          failwith ("The copy of \n\"" ^ pathname ^ "\"\n in \n\""^ fresh_pathname ^"\"\nfailed")
         end)
     with (Failure title) as e -> begin
       Simple_dialogs.error title error_message ();
@@ -173,20 +174,20 @@ object(self)
     end
 
   method import_report ~machine_or_router_name ~pathname () =
-    let title = "Rapport sur " ^ machine_or_router_name in
+    let title = (s_ "Report on ") ^ machine_or_router_name in
     let row_id = self#import_document ~move:true pathname in
     self#set_row_item row_id "Title" (String title);
     self#set_row_item row_id "Author" (String "-");
-    self#set_row_item row_id "Type" (String "Rapport");
-    self#set_row_item row_id "Comment" (String ("généré le " ^ (Timestamp.current_timestamp_as_string ())));
+    self#set_row_item row_id "Type" (String (s_ "Report"));
+    self#set_row_item row_id "Comment" (String ((s_ "created the ") ^ (Timestamp.current_timestamp_as_string ())));
 
   method import_history ~machine_or_router_name ~pathname () =
-    let title = "Historique de " ^ machine_or_router_name in
+    let title = (s_ "History of ") ^ machine_or_router_name in
     let row_id = self#import_document ~move:true pathname in
     self#set_row_item row_id "Title" (String title);
     self#set_row_item row_id "Author" (String "-");
-    self#set_row_item row_id "Type" (String "Historique");
-    self#set_row_item row_id "Comment" (String ("généré le " ^ (Timestamp.current_timestamp_as_string ())));
+    self#set_row_item row_id "Type" (String (s_ "History"));
+    self#set_row_item row_id "Comment" (String ((s_ "created the ") ^ (Timestamp.current_timestamp_as_string ())));
 
   method import_document ?(move=false) user_path_name =
     let internal_file_name, format = self#import_file user_path_name in
@@ -200,35 +201,35 @@ object(self)
   initializer
     let _ =
       self#add_icon_column
-        ~shown_header:"Icone"
+        ~shown_header:(s_ "Icon")
         ~header:"Icon"
         ~strings_and_pixbufs:[ "text", marionnet_home_images^"treeview-icons/text.xpm"; ]
         ~default:(fun () -> Icon "text")
         () in
     let _ =
       self#add_editable_string_column
-        ~shown_header:"Titre"
+        ~shown_header:(s_ "Title")
         ~header:"Title"
         ~italic:true
         ~default:(fun () -> String "Please edit this")
         () in
     let _ =
       self#add_editable_string_column
-        ~shown_header:"Auteur"
+        ~shown_header:(s_ "Author")
         ~header:"Author"
         ~italic:false
         ~default:(fun () -> String "Please edit this")
         () in
     let _ =
       self#add_editable_string_column
-        ~shown_header:"Type"
+        ~shown_header:(s_ "Type")
         ~header:"Type"
         ~italic:false
         ~default:(fun () -> String "Please edit this")
         () in
     let _ =
       self#add_editable_string_column
-        ~shown_header:"Commentaire"
+        ~shown_header:(s_ "Comment")
         ~header:"Comment"
         ~italic:true
         ~default:(fun () -> String "Please edit this")
@@ -253,13 +254,13 @@ object(self)
     self#set_contextual_menu_title "Texts operations";
     let get = raise_when_none in (* just a convenient alias *)
     self#add_menu_item
-      "Importer un document"
+      (s_ "Import a document")
       (fun _ -> true)
       (fun _ ->
         ignore (self#import_document self#ask_file));
 
     self#add_menu_item
-      "Afficher ce document"
+      (s_ "Display this document")
       is_some
       (fun selected_rowid_if_any ->
         let row_id = get selected_rowid_if_any in
@@ -267,7 +268,7 @@ object(self)
     self#set_double_click_on_row_callback (fun row_id -> self#display row_id);
 
     self#add_menu_item
-      "Supprimer ce document"
+      (s_ "Remove this document")
       is_some
       (fun selected_rowid_if_any ->
         let row_id = get selected_rowid_if_any in

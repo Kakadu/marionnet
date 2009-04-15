@@ -20,6 +20,7 @@ open Initialization;;
 open ListExtra;;
 open Sugar;;
 open Row_item;;
+open Gettext;;
 
 (** The direction in which data flow in a single port; this is the 'resolution'
     of each defect, for each port: *)
@@ -397,13 +398,13 @@ object(self)
     let _ =
       self#add_string_column
         ~header:"Name"
-        ~shown_header:"Nom"
+        ~shown_header:(s_ "Name")
         ~italic:true
         () in
     let _ =
       self#add_icon_column
         ~header:"Type"
-        ~shown_header:"Type"
+        ~shown_header:(s_ "Type")
         ~strings_and_pixbufs:[ "machine", marionnet_home_images^"treeview-icons/machine.xpm";
                                "hub", marionnet_home_images^"treeview-icons/hub.xpm";
                                "switch", marionnet_home_images^"treeview-icons/switch.xpm";
@@ -424,7 +425,7 @@ object(self)
     let loss =
       self#add_editable_string_column
         ~header:"Loss %"
-        ~shown_header:"Perte %"
+        ~shown_header:(s_ "Loss %")
         ~default:(fun () -> String "")
         ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_percentage i)
         () in
@@ -434,7 +435,7 @@ object(self)
     let duplication =
       self#add_editable_string_column
         ~header:"Duplication %"
-        ~shown_header:"Duplication %"
+        ~shown_header:(s_ "Duplication %")
         ~default:(fun () -> String "")
         ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_non_100_percentage i)
         () in
@@ -444,7 +445,7 @@ object(self)
     let flipped_bits =
       self#add_editable_string_column
         ~header:"Flipped bits %"
-        ~shown_header:"Bits inversés %"
+        ~shown_header:(s_ "Flipped bits %")
         ~default:(fun () -> String "")
         ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_percentage i)
         () in
@@ -460,7 +461,7 @@ object(self)
     let minimum_delay =
       self#add_editable_string_column
         ~header:"Minimum delay (ms)"
-        ~shown_header:"Retard min (ms)"
+        ~shown_header:(s_ "Minimum delay (ms)")
         ~default:(fun () -> String "")
         ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_delay i)
         () in
@@ -477,7 +478,7 @@ object(self)
     let maximum_delay =
       self#add_editable_string_column
         ~header:"Maximum delay (ms)"
-        ~shown_header:"Retard max (ms)"
+        ~shown_header:(s_ "Maximum delay (ms)")
         ~default:(fun () -> String "")
         ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_delay i)
         () in
@@ -493,7 +494,7 @@ object(self)
           row_id);
 
   self#add_row_constraint
-    ~name:"vous devez choisir une direction pour pouvoir définir ce paramètre"
+    ~name:(s_ "you should choose a direction to define this parameter")
     (fun row ->
       let uneditable = item_to_bool (lookup_alist "_uneditable" row) in
       (not uneditable) or

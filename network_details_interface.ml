@@ -20,6 +20,7 @@ open Initialization;;
 open ListExtra;;
 open Sugar;;
 open Row_item;;
+open Gettext;;
 
 (* To do: move this into EXTRA/ *)
 let rec take n xs =
@@ -323,13 +324,13 @@ object(self)
     let _ =
       self#add_string_column
         ~header:"Name"
-        ~shown_header:"Nom"
+        ~shown_header:(s_ "Name")
         ~italic:true
         () in
     let _ =
       self#add_icon_column
         ~header:"Type"
-        ~shown_header:"Type"
+        ~shown_header:(s_ "Type")
         ~strings_and_pixbufs:[ "machine", marionnet_home_images^"treeview-icons/machine.xpm";
                                "router", marionnet_home_images^"treeview-icons/router.xpm";
 (*                                "cloud", marionnet_home_images^"treeview-icons/cloud.xpm"; *)
@@ -341,7 +342,7 @@ object(self)
     let _ =
       self#add_editable_string_column
         ~header:"MAC address"
-        ~shown_header:"Adresse MAC"
+        ~shown_header:(s_ "MAC address")
         ~default:(fun () -> String self#generate_mac_address)
         ~constraint_predicate:(fun i -> let s = item_to_string i in
                                           (self#is_a_valid_mac_address s) or s = "")
@@ -356,7 +357,7 @@ object(self)
     let _ =
       self#add_editable_string_column
         ~header:"IPv4 address"
-        ~shown_header:"Adresse IPv4"
+        ~shown_header:(s_ "IPv4 address")
         ~default:(fun () ->
                     if Global_options.get_autogenerate_ip_addresses () then
                       String self#generate_ipv4_address
@@ -368,7 +369,7 @@ object(self)
     let _ =
       self#add_editable_string_column
         ~header:"IPv4 broadcast"
-        ~shown_header:"Broadcast IPv4"
+        ~shown_header:(s_ "IPv4 broadcast")
         ~default:(fun () ->
                     if Global_options.get_autogenerate_ip_addresses () then
                       String "10.10.255.255"
@@ -380,7 +381,7 @@ object(self)
     let _ =
       self#add_editable_string_column
         ~header:"IPv4 netmask"
-        ~shown_header:"Netmask IPv4"
+        ~shown_header:(s_ "IPv4 netmask")
         ~default:(fun () ->
                     if Global_options.get_autogenerate_ip_addresses () then
                       String "255.255.0.0"
@@ -392,7 +393,7 @@ object(self)
     let _ =
       self#add_editable_string_column
         ~header:"IPv6 address"
-        ~shown_header:"Adresse IPv6"
+        ~shown_header:(s_ "IPv6 address")
         ~default:(fun () ->
                     if Global_options.get_autogenerate_ip_addresses () then
                       String self#generate_ipv6_address
@@ -409,7 +410,7 @@ object(self)
 (*         () in *)
 
   self#add_row_constraint
-    ~name:"vous devez choisir une porte pour pouvoir définir ce paramètre"
+    ~name:(s_ "you should choose a port to define this parameter")
     (fun row ->
       let uneditable = item_to_bool (lookup_alist "_uneditable" row) in
       (not uneditable) or

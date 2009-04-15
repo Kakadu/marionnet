@@ -15,11 +15,12 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
 
 (** What to show in the GUI for 'no variant'. This is safe to hardcode translated,
     as it doesn't break file format compatibility. *)
 let no_variant_text =
-  "aucune";;
+  "aucune";; (* TODO translate *)
 
 (** What to show in the GUI for 'no variant'. This is safe to hardcode translated,
     as it's never saved in project files due to variant symlink resolution: *)

@@ -23,7 +23,7 @@ open ListExtra;;
 open StringExtra;;
 open UnixExtra;;
 open SysExtra;;
-
+open Gettext;;
 open Environment;;
 open Mariokit;;
 
@@ -537,14 +537,12 @@ class globalState = fun () ->
     self#mainwin#sketch#set_file self#pngSketchFile ;
     (if not (exit_code = 0) then
       Simple_dialogs.error
-        "FRENCH dot failed"
+        (s_ "dot failed")
         (Printf.sprintf
-           "FRENCH Invoking dot failed. Did you install graphviz?
-The command line is
-%s
-and the exit code is %i.
-Marionnet will work, but you will not see the network graph picture until you fix the problem.
-There is no need to restart the application."
+           (f_ "Invoking dot failed. Did you install graphviz?\n\
+The command line is\n%s\nand the exit code is %i.\n\
+Marionnet will work, but you will not see the network graph picture until you fix the problem.\n\
+There is no need to restart the application.")
            command_line
            exit_code)
         ());

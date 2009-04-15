@@ -23,6 +23,7 @@ open Sugar;;
 open Row_item;;
 open StrExtra;;
 open Strings;;
+open Gettext;;
 
 (** A function to be called for starting up a given device in a given state. This very ugly
     kludge is needed to avoid a cyclic depencency between mariokit and states_interface *)
@@ -170,8 +171,8 @@ object(self)
     (* We can only export the cow file if we are not running the device: *)
     if not (can_startup device_name) then
       Simple_dialogs.error
-        ("La device "^device_name^" est in exécution")
-        "Vous devez l'arrêter au préalable."
+        (Printf.sprintf (f_ "The device %s is running") device_name)
+        (s_ "Vous devez l'arrêter au préalable.") (* TODO *)
         ()
     else if router then begin (* the given row is about a router *)
       (* We don't need to choose a name because there can be only one variant for
@@ -189,12 +190,12 @@ object(self)
       let cow_name = item_to_string (self#get_row_item row_id "File name") in
       let prefixed_filesystem = item_to_string (self#get_row_item row_id "Prefixed filesystem") in
       Simple_dialogs.ask_text_dialog
-        ~title:"Choix du nom de la variante"
-        ~label:"Entrez le nom de la nouvelle variante; ce nom doit commencer par une lettre et peut contenir des lettres, chiffres, tirets et tirets bas."
+        ~title:(s_ "Choose the variant name")
+        ~label:(s_ "Enter the new variant name; this name must begin with a letter and can contain letters, numbers, dashes and underscores.")
         ~constraint_predicate:(fun s ->
                                  (String.length s > 0) &&
                                  (Str.wellFormedName ~allow_dash:true s))
-        ~invalid_text_message:"Le nom doit commencer par une lettre et peut contenir des lettres, chiffres, tirets et tirets bas."
+        ~invalid_text_message:(s_ "The name must begin with a letter and can contain letters, numbers, dashes and underscores.")
         ~enable_cancel:true
         ~ok_callback:(fun variant_name ->
           self#actually_export_as_variant
@@ -220,8 +221,8 @@ object(self)
       (Unix.WEXITED 0) ->
         (* Ok, everything went smooth. *)
         Simple_dialogs.info
-          "Succès"
-          ("La variante a été exportée dans le fichier \"" ^ new_variant_pathname ^ "\".")
+          (s_ "Success")
+          ((s_ "The variant has been exported to the file") ^ " \"" ^ new_variant_pathname ^ "\".")
           ()
     | _ -> begin
       (* Remove any partial copy: *)
@@ -230,25 +231,26 @@ object(self)
       with _ ->
         ());
       Simple_dialogs.error
-        "Échec"
-        ("La variante n'a pu être exportée dans le fichier \"" ^ new_variant_pathname ^ "\"." ^ 
-         "\n\nPlusieurs raisons sont possible:\n - vous n'avez pas le droit décrire dans ce répertoire\n" ^ 
-         " - la machine na jamais été démarrée\n - vous avez pas selectionné le disque de la machine mais\n" ^ 
-         "   la machine elle même (déroulez donc l'arborescence).") 
+        (s_ "Error")
+        (Printf.sprintf (f_ "\
+The variant couldn't be exported to the file \"%s\".\n\n\
+Many reasons are possible:\n - you don't have write access to this directory\n\
+ - the machine was never started\n - you didn't select the machine disk but \n\
+the machine itself (so expand the tree).") new_variant_pathname) 
         ()
-    end)
+      end)
 
   initializer
     (* Make columns: *)
     let _ =
       self#add_string_column
         ~header:"Name"
-        ~shown_header:"Nom"
+        ~shown_header:(s_ "Name")
         () in
     let _ =
       self#add_icon_column
         ~header:"Type"
-        ~shown_header:"Type"
+        ~shown_header:(s_ "Type")
         ~strings_and_pixbufs:[ "router", marionnet_home_images^"treeview-icons/router.xpm";
                                "machine", marionnet_home_images^"treeview-icons/machine.xpm"; ]
         () in
@@ -262,7 +264,7 @@ object(self)
     let _ =
       self#add_string_column
         ~header:"Timestamp"
-        ~shown_header:"Date"
+        ~shown_header:(s_ "Timestamp")
         ~default:(fun () -> String (Timestamp.current_timestamp_as_string ()))
         () in
     (*
@@ -274,7 +276,7 @@ object(self)
     let _ =
       self#add_editable_string_column
         ~header:"Comment"
-        ~shown_header:"Commentaire"
+        ~shown_header:(s_ "Comment")
         ~italic:true
         ~default:(fun () -> String "[no comment]")
         () in
@@ -296,7 +298,7 @@ object(self)
     let get = raise_when_none in (* just a convenient alias *)
     self#set_contextual_menu_title "Filesystem history operations";
     self#add_menu_item
-      "Exporter comme variante de machine"
+     (s_  "Export as machine variant")
       (fun selected_rowid_if_any ->
         (is_some selected_rowid_if_any) &&
         (let row_id = get selected_rowid_if_any in
@@ -306,7 +308,7 @@ object(self)
         let row_id = get selected_rowid_if_any in
         self#export_as_machine_variant row_id);
     self#add_menu_item
-      "Exporter comme la (seule) variante des routeurs"
+      (s_ "Export as (only) router variant")
       (fun selected_rowid_if_any ->
         (is_some selected_rowid_if_any) &&
         (let row_id = get selected_rowid_if_any in
@@ -317,7 +319,7 @@ object(self)
         self#export_as_router_variant row_id);
 (*     self#add_separator_menu_item; *)
     self#add_menu_item
-      "Démarrer dans cet état"
+      (s_ "Start in this state")
       (fun selected_rowid_if_any ->
         (is_some selected_rowid_if_any) &&
         (let row_id = get selected_rowid_if_any in
@@ -329,7 +331,7 @@ object(self)
         self#startup_in_state row_id);
 (*     self#add_separator_menu_item; *)
     self#add_menu_item
-      "Éliminer cet état"
+      (s_ "Delete this state")
       (fun selected_rowid_if_any ->
         (is_some selected_rowid_if_any) &&
         (let row_id = get selected_rowid_if_any in

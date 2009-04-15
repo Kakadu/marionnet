@@ -21,6 +21,7 @@ open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Daemon_language;;
 open Daemon_parameters;;
 open Recursive_mutex;;
+open Gettext;;
 
 let socket_name =
   Initialization.configuration#string "MARIONNET_SOCKET_NAME";;
@@ -81,8 +82,8 @@ let ask_the_server request =
         flush_all ();
         disable_daemon_support ();
         Simple_dialogs.error
-          "FRENCH Failure in daemon communication"
-          "FRENCH Error in trying to communicate with the daemon.\nSeveral things will not work any more [...]"
+          (s_ "Failure in daemon communication")
+          (s_ "Error in trying to communicate with the daemon.\nSeveral things will not work any more [...]")
           ();
         (Error "the socket to the daemon just went down");
       end);;

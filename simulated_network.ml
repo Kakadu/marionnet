@@ -22,6 +22,7 @@ open Recursive_mutex;;
 open Daemon_language;;
 open FilenameExtra;;
 open X;; (* Not really needed: this works around a problem with OCamlBuild 3.10.0 *)
+open Gettext;;
 
 (** Fork a process which just sleeps forever without doing any output. Its stdout is
     perfect to be used as stdin for processes created with create_process which wait
@@ -1085,12 +1086,12 @@ object(self)
         name in
     let message =
       Printf.sprintf
-        "Le processus %s avec pid %i permettant la simulation du %s %s est mort de façon inattendue. Il a été nécessaire %s \"%s\" pour maintenir un état consistent."
+        (f_ "The process %s with pid %i allowing the simulation of %s %s is unexpectedly dead. It was necessary %s \"%s\" to maintain a consistent state.")
         process_name
         pid
         self#device_type
         name
-        (if self#device_type = "Ethernet cable" then "de redémarrer" else "d'arrêter")
+        (if self#device_type = "Ethernet cable" then (s_ "to restart") else (s_ "to stop"))
         name
     in
     (* Run the actual callback, and warn the user: *)
@@ -1442,7 +1443,7 @@ object(self)
     (if xnest then
       xnest_process :=
         Some (new xnest_process
-                ~title:(Printf.sprintf "Écran X virtuel pour \"%s\"" umid)
+                ~title:(Printf.sprintf (f_ "Virtual X display of \"%s\"") umid)
                 ~unexpected_death_callback:self#execute_the_unexpected_death_callback
                 ()));
     uml_process :=

@@ -19,6 +19,8 @@
  * - Jean-Vincent Loddo: make_progress_bar_dialog generalization and re-styling
  *)
 
+open Gettext;;
+
 type kind = Pulse | Fill of (unit -> float)
 
 let progress_bars : (GWindow.window * GRange.progress_bar * kind) list ref =
@@ -44,10 +46,10 @@ let destroy_progress_bar_dialog window = begin
 +----------------------------------------------+
 *)
 let make_progress_bar_dialog
-    ?title:(title="Une opération lente est en cours")
-    ?(text_on_label="Une opération lente est en cours")
+    ?title:(title=(s_ "A slow operation is in progress"))
+    ?(text_on_label=(s_ "A slow operation is in progress"))
     ?(text_on_sub_label="")
-    ?text_on_bar:(text_on_bar="Patientez s'il vous plaît...")
+    ?text_on_bar:(text_on_bar=(s_ "Wait please..."))
     ?kind:(kind=Pulse)
     ?(modal=false)
     ?(position=(if modal then `CENTER else `NONE))

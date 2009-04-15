@@ -31,6 +31,7 @@ open Oomarshal;;
 open Task_runner;;
 open Simple_dialogs;;
 open Recursive_mutex;;
+open Gettext;;
 
 (** Some constants for drawing with colors. *)
 module Color = struct
@@ -655,23 +656,23 @@ class virtual simulated_device = object(self)
 
   method startup =
     self#set_next_simulated_device_state (Some DeviceOn);
-    self#enqueue_task_with_progress_bar "Démarrage de" (fun () -> if self#can_startup then self#startup_right_now)
+    self#enqueue_task_with_progress_bar (s_ "Starting") (fun () -> if self#can_startup then self#startup_right_now)
 
   method suspend =
     self#set_next_simulated_device_state (Some DeviceSleeping);
-    self#enqueue_task_with_progress_bar "Suspension de" (fun () -> if self#can_suspend then self#suspend_right_now)
+    self#enqueue_task_with_progress_bar (s_ "Suspending") (fun () -> if self#can_suspend then self#suspend_right_now)
 
   method resume =
     self#set_next_simulated_device_state (Some DeviceOn);
-    self#enqueue_task_with_progress_bar "Réveil de" (fun () -> if self#can_resume then self#resume_right_now)
+    self#enqueue_task_with_progress_bar (s_ "Resuming") (fun () -> if self#can_resume then self#resume_right_now)
 
   method gracefully_shutdown =
     self#set_next_simulated_device_state (Some DeviceOff);
-    self#enqueue_task_with_progress_bar "Arrêt de" (fun () -> if self#can_gracefully_shutdown then self#gracefully_shutdown_right_now)
+    self#enqueue_task_with_progress_bar (s_ "Stopping") (fun () -> if self#can_gracefully_shutdown then self#gracefully_shutdown_right_now)
 
   method poweroff =
     self#set_next_simulated_device_state (Some DeviceOff);
-    self#enqueue_task_with_progress_bar "Débranchement de" (fun () -> if self#can_poweroff then self#poweroff_right_now)
+    self#enqueue_task_with_progress_bar (s_ "Shutting down") (fun () -> if self#can_poweroff then self#poweroff_right_now)
 
   method (*private*) create_right_now =
     with_mutex mutex

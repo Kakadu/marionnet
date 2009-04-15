@@ -20,6 +20,7 @@ open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 (* open GTree;; *)
 open Forest;;
 open Row_item;;
+open Gettext;;
 
 let highlight_foreground_color = "White";;
 
@@ -1376,12 +1377,12 @@ object(self)
     ();
 
     self#add_menu_item
-      "Tout développer"
+      (s_ "Expand all")
       (fun _ -> true)
       (fun selected_rowid_if_any ->
         self#expand_everything);
     self#add_menu_item
-      "Tout collapser"
+      (s_ "Collapse all")
       (fun _ -> true)
       (fun selected_rowid_if_any ->
         self#collapse_everything);

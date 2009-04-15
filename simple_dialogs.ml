@@ -17,6 +17,7 @@
 
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Initialization;;
+open Gettext;;
 
 (** Convert ocaml (ISO-8859-1) string in UTF-8 format *)
 (* let utf8 x = Glib.Convert.convert x "UTF-8" "ISO-8859-1";;  *)
@@ -37,19 +38,19 @@ let message win_title msg_title msg_content img_file () =
 
 (** Specific constructor for help messages *)
 let help title msg () = 
-  message "Aide" title msg "ico.help.orig.png" ();; 
+  message (s_ "Help") title msg "ico.help.orig.png" ();; 
 
 (** Specific constructor for error messages *)
 let error title msg () = 
-  message "Erreur" title msg "ico.error.orig.png" ();; 
+  message (s_ "Error") title msg "ico.error.orig.png" ();; 
 
 (** Specific constructor for warning messages *)
 let warning title msg () = 
-  message "Avertissement" title msg "ico.warning.orig.png" ();; 
+  message (s_ "Advice") title msg "ico.warning.orig.png" ();; 
 
 (** Specific constructor for info messages *)
 let info title msg () = 
-  message "Information" title msg "ico.info.orig.png" ();;
+  message (s_ "Information") title msg "ico.info.orig.png" ();;
 
 (** Show a new dialog displaying a progress bar *)
 let make_progress_bar_dialog =
@@ -110,7 +111,7 @@ let ask_text_dialog
     ~label
     ?(initial_text="")
     ?(constraint_predicate=(fun _ -> true))
-    ?(invalid_text_message="Désolé, la saisie est invalide.")
+    ?(invalid_text_message=(s_ "Sorry, the size is invalid."))
     ?(changed_callback=(fun _ -> ()))
     ?max_length
     ?(enable_cancel=false)
@@ -149,7 +150,7 @@ let ask_text_dialog
       ok_callback text
     end
     else begin
-      error "Saisie invalide" invalid_text_message ()
+      error (s_ "Invalid size") invalid_text_message ()
     end
   in
   ignore (button_ok#connect#clicked ~callback:(ok_callback window entry));

@@ -617,7 +617,7 @@ There is no need to restart the application.")
                     let progress_bar =
                       Simple_dialogs.make_progress_bar_dialog
                         ~title:(verb ^ " " ^ node#get_name)
-                        ~text_on_bar:"Patientez s'il vous plaît..." () in
+                        ~text_on_bar:(s_ "Wait please...") () in
                     (try
                       what_to_do_with_a_node node;
                     with e ->

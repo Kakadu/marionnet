@@ -40,8 +40,6 @@ OTHER_PROGRAMS_TO_INSTALL = scripts/marionnet-can-directory-host-sparse-files
 # menu_factory.ml menu_factory.mli chip.ml are not documented because they get ocamldoc (with -pp camlp4of) confused
 UNDOCUMENTED=log.ml version.ml gui.ml chip_example.expanded.ml chip_example.ml gettext-example.ml menu_factory.ml menu_factory.mli chip.ml gui_*.ml*
 
-main-local: _build/gettext-c-wrapper.o
-
 # Before building the main targets we have to create the machine-generated
 # sources:
 chip_example.byte : chip/chip_example.ml _build/chip_parser.p4.cmo

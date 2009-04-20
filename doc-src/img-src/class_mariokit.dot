@@ -1,0 +1,19 @@
+digraph Netmodel {
+               size="30,30"
+               ratio=1.0
+               simulated_device
+               nodo [label="node"]
+               simulated_device -> nodo
+               simulated_device -> cable
+               nodo -> device
+               nodo -> machine
+               nodo -> cloud
+               nodo -> gateway
+               component
+               component -> nodo
+               component -> cable
+               fore [label="Xforest.interpreter"]
+               fore -> network
+               fore -> component
+}
+

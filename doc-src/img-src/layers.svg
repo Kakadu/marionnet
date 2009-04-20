@@ -1,0 +1,116 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: fig2dev Version 3.2 Patchlevel 5 -->
+<!-- CreationDate: Wed Jan 14 11:46:50 2009 -->
+<!-- Magnification: 1.050 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="6.5in" height="5.6in" viewBox="361 556 7756 6687">
+<g style="stroke-width:.025in; stroke:black; fill:none">
+<!-- Arc -->
+<path style="stroke:#000000;stroke-width:8;stroke-linecap:butt;"
+d="M 1417,1417 A 5192 5192  0  0  1  7039  1370 " />
+<!-- Arc -->
+<path style="stroke:#000000;stroke-width:8;stroke-linecap:butt;"
+d="M 1417,2834 A 5192 5192  0  0  1  7039  2787 " />
+<!-- Arc -->
+<path style="stroke:#000000;stroke-width:8;stroke-linecap:butt;"
+d="M 1417,4251 A 5192 5192  0  0  1  7039  4204 " />
+<!-- Arc -->
+<path style="stroke:#000000;stroke-width:8;stroke-linecap:butt;"
+d="M 1417,5669 A 5192 5192  0  0  1  7039  5622 " />
+<!-- Arc -->
+<path style="stroke:#000000;stroke-width:8;stroke-linecap:butt;"
+d="M 1417,7086 A 5192 5192  0  0  1  7039  7039 " />
+<!-- Line -->
+<polyline points="7275,1637
+7275,4078
+" style="stroke:#000000;stroke-width:8;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Arrowhead on XXXpoint 7275 1511 - 7275 4220-->
+<polygon points="7244 4077
+7275 4203
+7307 4077
+7244 4077
+
+" style="stroke:#000000;stroke-width:8;
+fill:#000000;"/>
+<!-- Arrowhead on XXXpoint 7275 4204 - 7275 1496-->
+<polygon points="7307 1638
+7275 1512
+7244 1638
+7307 1638
+
+" style="stroke:#000000;stroke-width:8;
+fill:#000000;"/>
+<!-- Line -->
+<polyline points="1181,4425
+1181,6913
+" style="stroke:#000000;stroke-width:8;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Arrowhead on XXXpoint 1181 4299 - 1181 7055-->
+<polygon points="1149 6912
+1181 7038
+1212 6912
+1149 6912
+
+" style="stroke:#000000;stroke-width:8;
+fill:#000000;"/>
+<!-- Arrowhead on XXXpoint 1181 7039 - 1181 4283-->
+<polygon points="1212 4426
+1181 4300
+1149 4426
+1212 4426
+
+" style="stroke:#000000;stroke-width:8;
+fill:#000000;"/>
+<!-- Text -->
+<g transform="translate(7653,3543) rotate(-90.00021046)" >
+<text xml:space="preserve" x="0" y="0" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="bold" font-size="177" text-anchor="start">MARIONNET</text>
+</g><!-- Text -->
+<g transform="translate(8031,4062) rotate(-90.00021046)" >
+<text xml:space="preserve" x="0" y="0" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="italic" font-weight="bold" font-size="177" text-anchor="start">OCaml, ~12,000 lines</text>
+</g><!-- Text -->
+<g transform="translate(6141,3165) rotate(-20.00195663)" >
+<text xml:space="preserve" x="0" y="0" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="bold" font-size="152" text-anchor="start">VNUML</text>
+</g><!-- Text -->
+<g transform="translate(6283,3543) rotate(-20.00195663)" >
+<text xml:space="preserve" x="0" y="0" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="bold" font-size="152" text-anchor="start">Netkit</text>
+</g><!-- Text -->
+<text xml:space="preserve" x="2598" y="1275" stroke="#000000" fill="#000000"  font-family="Times" font-style="italic" font-weight="normal" font-size="227" text-anchor="start">Interactive Friendly Interface</text>
+<!-- Text -->
+<text xml:space="preserve" x="3496" y="1748" stroke="#000000" fill="#000000"  font-family="Times" font-style="normal" font-weight="normal" font-size="227" text-anchor="start">GUI LAYER</text>
+<!-- Text -->
+<text xml:space="preserve" x="3070" y="3165" stroke="#000000" fill="#000000"  font-family="Times" font-style="normal" font-weight="normal" font-size="227" text-anchor="start">CONTROL LAYER</text>
+<!-- Text -->
+<text xml:space="preserve" x="2220" y="4110" stroke="#000000" fill="#000000"  font-family="Times" font-style="italic" font-weight="normal" font-size="227" text-anchor="start">Device (Hub/Switch/..) Emulation</text>
+<!-- Text -->
+<text xml:space="preserve" x="2220" y="2692" stroke="#000000" fill="#000000"  font-family="Times" font-style="italic" font-weight="normal" font-size="227" text-anchor="start">Network Design and Manangement</text>
+<!-- Text -->
+<text xml:space="preserve" x="2598" y="5480" stroke="#000000" fill="#000000"  font-family="Times" font-style="italic" font-weight="normal" font-size="227" text-anchor="start">Single Machine Emulation</text>
+<!-- Text -->
+<text xml:space="preserve" x="2409" y="4582" stroke="#000000" fill="#000000"  font-family="Times" font-style="normal" font-weight="normal" font-size="227" text-anchor="start">COMMUNICATION LAYER</text>
+<!-- Text -->
+<text xml:space="preserve" x="2503" y="5999" stroke="#000000" fill="#000000"  font-family="Times" font-style="normal" font-weight="normal" font-size="227" text-anchor="start">EMULATION PLATFORM</text>
+<!-- Text -->
+<text xml:space="preserve" x="2598" y="6850" stroke="#000000" fill="#000000"  font-family="Times" font-style="italic" font-weight="normal" font-size="227" text-anchor="start">GNU/Linux on x86/powerPC</text>
+<!-- Text -->
+<text xml:space="preserve" x="3165" y="7228" stroke="#000000" fill="#000000"  font-family="Times" font-style="normal" font-weight="normal" font-size="227" text-anchor="start">HOST MACHINE</text>
+<!-- Text -->
+<g transform="translate(6377,5102) rotate(-20.00195663)" >
+<text xml:space="preserve" x="0" y="0" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="bold" font-size="152" text-anchor="start">VDE</text>
+</g><!-- Text -->
+<g transform="translate(6047,4818) rotate(-20.00195663)" >
+<text xml:space="preserve" x="0" y="0" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="bold" font-size="152" text-anchor="start">uml_switch</text>
+</g><!-- Text -->
+<g transform="translate(6236,6047) rotate(-20.00195663)" >
+<text xml:space="preserve" x="0" y="0" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="bold" font-size="152" text-anchor="start">UML</text>
+</g><!-- Text -->
+<g transform="translate(566,6472) rotate(-90.00021046)" >
+<text xml:space="preserve" x="0" y="0" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="italic" font-weight="bold" font-size="177" text-anchor="start">C, small patches</text>
+</g><!-- Text -->
+<g transform="translate(944,6283) rotate(-90.00021046)" >
+<text xml:space="preserve" x="0" y="0" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="bold" font-size="177" text-anchor="start">MARIONNET</text>
+</g></g>
+</svg>

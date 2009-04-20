@@ -1,0 +1,11 @@
+digraph device_automaton {
+               process
+               process -> xnest_process 
+               process -> hub_or_switch_process
+               hub_or_switch_process -> switch_process
+               hub_or_switch_process -> hub_process
+               hub_process -> hublet_process
+               hub_or_switch_process -> gateway_hub_process
+               process -> ethernet_cable_process
+               process -> uml_process
+}

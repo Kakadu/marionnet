@@ -1,0 +1,1268 @@
+\input texinfo   @c -*-texinfo-*@c %**start of header
+
+@c This file is part of Marionnet, a virtual network laboratory Copyright
+@c      (C) 2008 Marco Stronati
+
+@c This documentation falls under the terms of the GNU Free Documentation
+@c Licence version 1.2 or later.
+     
+@c You should have received a copy of the GNU Free Documentation License
+@c along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+@setfilename documentation.tex
+@settitle Marionnet developer documentation
+@c %**end of header
+
+@copying
+Documentation of the Marionnet project oriented at a developer audience.
+Copyright @copyright{} 2008 Marco Stronati youfind.marco@@gmail.com
+@end copying
+
+@c @c marionnet ocamldoc references
+@c @macro mariourl{myurl,mystring}
+@c @ifhtml
+@c @url{../../_build/marionnet.docdir/\myurl\.html,\mystring\}
+@c @end ifhtml
+@c @iftex
+@c @c @url{/home/paracetamolo/marionnet/DOC/marionnet.docdir/\myurl\.html,\mystring\}
+@c @url{_build/marionnet.docdir/\myurl\.html,\mystring\}
+@c @end iftex
+@c @end macro
+
+@c @macro marioscript{myurl,mystring}
+@c @c @url{/home/paracetamolo/marionnet/DOC/virtual-machine/\myurl\,\mystring\}
+@c @url{virtual-machine/\myurl\,\mystring\}
+@c @end macro
+
+@c @c put every image in a directory img in the same directory as the file.texi
+@c @c TODO resize images
+@c @macro marioimage{imgname,description}
+@c @float Figure,\imgname\
+@c @image{/home/paracetamolo/marionnet/DOC/img/\imgname\}
+@c \description\
+@c @end float
+@c @end macro
+
+@c provide macros mariourl marioimage marioscript with correct paths
+@include macros.texi
+
+@c title and copyright pages for the printed manual
+@titlepage
+@title Marionnet developer documentation
+@subtitle Documentation of the Marionnet project oriented at a developer audience.
+@author Marco Stronati youfind.marco@@gmail.com
+@c The following two commands start the copyright page.
+@page
+@vskip 0pt plus 1filll
+@c grab copying info from the previous section
+@insertcopying
+@end titlepage
+
+    
+@contents
+
+
+@ifnottex
+@node Top
+@top Topnode
+Documentation of the Marionnet project oriented at a developer audience.
+@end ifnottex
+
+@c Menu doesn't appear in printed manual
+@menu
+* Abstract       :: Abstract
+* Overview       :: Overview
+* UML            :: UML
+* VDE            :: VDE
+* Ocamlbricks    :: Ocamlbricks
+* Emulation      :: Processes
+* Devices        :: Devices
+* GUI            :: GUI
+* Datastructures :: Datastructures
+* Daemon         :: Daemon
+* Exam-mode      :: Exam-mode
+* Build system   :: Build system
+* I18n           :: I18n
+* Darcs          :: Darcs
+* Project file   :: Project file
+* Licence        :: Licence
+* Index          :: Complete index.
+@end menu
+
+
+@node Abstract
+@chapter Abstract
+@cindex Abstract
+
+A virtual network laboratory allowing to emulate a physical network of
+computers and network devices such as switches or routers in software
+represents a valuable tool for students, and may also be useful to
+researchers and system administrators. A tool of this kind,
+particularly if it aims at being usable by inexperienced students,
+should offer the same opportunities of conﬁguring and experimenting
+with components as a physical network, providing also an intuitive
+graphical user interface for dynamically manipulating the network
+topology and each individual virtual device.  Indeed some projects
+with similar purposes have been existing for years, and typically use
+scripting languages such as Python and Bash; by contrast our system,
+Marionnet, has been implemented using the functional language OCaml in
+just six man-months and yet providing several important features, such
+as dynamic reconfiguration, still missing in more mature projects.
+Building such an inherently concurrent system is nontrivial, requiring
+the integration of many different components written in different
+languages and a complex control logic.  This is the first chapter.
+
+
+@node Overview
+@chapter Overview
+@cindex Overview
+
+We can briefly split Marionnet components as in figure: 
+@marioimage{layers,Overview of Marionnet structure.,8cm}
+
+Starting from bottom, Marionnet currently runs only on GNU/Linux machines
+on x86 and powerPC architectures, this is both a technical choice (we
+are not much interested in Windows or MacOSX support) and a
+consequence of the use of UML technlogy [@pxref{UML}] that is
+Linux only by design (we are sorry for *BSD users).
+
+@sp 3
+@section Single machine emulation
+On top of a GNU/Linux host, the emulation of guest machines is
+achieved through User Mode Linux technology, that, as you may guess,
+allows you to run many Linux kernel in User space as regular
+processes.@* 
+UML brings many advantages over other emulation solutions:
+@enumerate
+@item
+it is not a machine virtualisation system, is a operating system
+emulation system (despite this, later we'll use the term virtual
+machine freely) thus being much faster and lighter.
+@item
+the code is mature and well
+@url{http://user-mode-linux.sourceforge.net, documented}
+@item
+the manipulation of virtual machines is estremely easy and handy
+@item
+the user experience is 100% compatible with real GNU/Linux machines.
+@end enumerate
+@enumerate
+As well as some limitations:
+@item
+is a linux-on-linux-only solution, no other hosts or guests are supported 
+@end enumerate
+For our pedagogical purpose this was absolutely acceptable considering
+open source solution should be the privileged choice for teaching, on the 
+other hand the network is less realistic, thus less suitable for the
+simulation of real environments.@*
+Other future developing towards open solutions (such as Xen or Qemu) are
+not planned for now but not discouraged. @sp 1
+On the code side we needed to patch UML kernel to introduce a hidden
+interface allowing us to link host and guest in way transparent for
+the user [@pxref{UML-ghost}], this allows also to launch graphical
+applications from guests using the host X server so that machine
+filesystem are much lighter and only one X server is actually running
+[@pxref{X-support}]. @sp 1 
+Much work is also being done on the front of filesystems creation,
+even if plenty of material is available from the UML project, our
+memory constraints (every router is a UML machine running quagga)
+brought us to create a custom mini-distribution called 'pinocchio'
+[@pxref{UML-filesystems}]. Moreover to minimize disk usage Marionnet
+also use the common sparse file technique so that only changes are
+dumped to disk, this also reflect the UI disk treeview
+[@pxref{GUI-disk}].
+
+@sp 3
+@section Device emulation
+To link together Uml machines in a virtual network we chose once again
+an external project, @url{http://vde.sourceforge.net,VDE} - Virtual
+Distributed Ethernet project whose purpose is to emulate cable, hub
+and switch devices allowing also to introduce perturbations in the
+communication. @* 
+The software is written in C and only a small part is used by
+Marionnet; we are currently in very good collaborating relationship
+with VDE team as we exchanged some patches and advice in the past.
+
+@sp 3
+@section Objective Caml
+Until here we analyzed what free software could offer to emulate a
+virtual network, from now on we'll see what Marionnet added and how. @*
+The language of choice is OCaml for the following reason:
+@enumerate
+@item 
+static type checking and type inferring systems
+@item
+functional paradigm 
+@item 
+imperative paradigm (only where stictly needed)
+@item
+object system
+@item 
+stable library 
+@item
+improved density and readibility of code
+@end enumerate
+We strongly believe that without such a tool it would have been unachievable
+to develop a complex program like Marionnet in such a small amount of time.@*
+Marionnet can be simply diveded into the fully dynamic control layer @pxref{Devices}
+and the GUI layer @pxref{GUI}.
+
+@sp 3
+@section Ocamlbriks
+During development we felt the need to expand and simplify many of the
+standard library functions or just to define our new tools, as a
+result we end up building a small library made of many little
+unrelated parts, the bricks of our application.@*
+The library is well documented in the form of code comments and for
+its nature we think nothing more is necessary to understand and use it.
+
+@sp 3
+@section Network design and management
+One of Marionnet biggest enhancement over previous solutions is the
+possibility to modify the network configuration 'on the fly', while
+all machines and devices are running. Such dynamic adaptation is
+perfectly realistic on a real computer network and we believe it is
+essential for the learning experience of the student. In fact the
+network, with such a plug&play ability, can be stressed to see how it
+reacts, for example in routing algorithms this is absolutely crucial.@*
+To achieve this goal, that is trivial in real world, a great amount of
+work was necessary to manage all processes and grant concurrency in
+the execution because nor UML nor VDE supported dynamic
+reconfiguration, so we need to create and destroy processes every time
+something changes in the network in a way transparent to the user and,
+as you'll see later, the number of this processes is not negligible.@*
+Moreover we trace a graph of the network, that will be visible in the
+user interface, using @url{http://www.graphviz.org, DOT}.  This is also
+where most of the object oriented OCaml code reside and where it has
+proven to be a great tool for stability, density of code and bug
+tracking.
+
+@sp 3
+@section Graphical User Interface
+For what concern the interface we chose the @url{http://www.gtk.org,
+GTK+} toolkit; the staic part is designed with
+@url{http://glade.gnome.org, Glade 3} while the dynamic part with
+LablGTK, the OCaml GTK+ binding.@*
+Our main goal is for it to be simple and intuitive considering is
+unexperienced audience and also because, as of now, we have really few
+user-controlled feature and the most of the work should be done inside
+virtual machines. So the interface has two main purpose:
+@enumerate 
+@item 
+configure your network layout with the help of the network grap
+[@pxref{Dot}], the filesystem history tab [@pxref{GUI-disk}] and the
+defects tab [@pxref{GUI-defects}].
+@item
+fire the network up, stop, suspend it and check whenever something
+occurs during execution; @* 
+as an example of this it has proven to be really valuable the little
+blinking interface for hub/switch/router devices [@pxref{Ledgrid}] as
+it gives live feedback on the device state.
+@end enumerate
+Worth noting that from several experiences, student started to be
+productive after just 15-20 minutes of usage of Marionnet, succeding
+in creating complex network just after few hours.
+
+
+@node UML
+@chapter UML
+@cindex UML
+
+@section UML kernel
+For what concern guest kernels currently we support Linux 2.6.18, of
+course builded on UML architecture and properly set for networking.
+When we need to supply some parameters from the OCaml side to a UML
+instance we simply bind some variables on the kernel command line, and
+then retrieve them in the emulated computer from the Linux virtual file
+@code{/proc/cmdline} with the @marioscript{/usr/sbin/marionnet_source_cmdline, script}.
+@pxref{Exam-mode}.
+
+@anchor{UML-ghost}
+To allow comunication between host and guest without interferring with
+the virtual network (e.g. invisible to sniffers) we needed to
+@marioscript{patch,patch} the Linux kernel introducing a ghostified
+interface.@*
+A ghostiﬁed interface is a network interface which remains fully
+functional in receiving and sending frames but can not be in any way
+detected or conﬁgured by userspace processes, including utilities like
+ifconfig, route and netstat, and sniffers like tcpdump.@* 
+An interface can be ghostiﬁed and unghostiﬁed by calling the new
+ioctls SIOCGIFGHOSTIFY and SIOCGIFUNGHOSTIFY.@* 
+Ghostiﬁcation works by making some ioctls fail when their parameter is
+a currently ghostiﬁed interface, returning -ENODEV as if the device
+did not exist.@sp 1
+
+On Marionnet virtual machines the ghostified interface is
+@url{http://en.wikipedia.org/wiki/The_Hitchhiker's_Guide_to_the_Galaxy,eth42}
+and it is connected to a host tap interface rather than to a hublet
+@pxref{hublet} thus allowing graphical applications to communicate
+with the host X server.@sp 1
+
+Once in a virtual machine:@*
+@command{# unghostify eth42}@*
+@command{# ghostify eth42}@*
+
+@c TODO indicare codice, X host e nest
+
+@sp 2 
+@section UML filesystem
+@anchor{UML-filesystems}
+The user should be able to choose among several GNU/Linux distribution
+but as of now we only support debian, despite this marionnetifying a
+distro is trivial and in future you can expext more choice.  In order
+to save disk space, considering that an average fs take from ~300MB up
+to several GB, we use as virtual fs a pair of file:
+@enumerate
+@item
+a read only ﬁlesystem image
+@item
+a sparse ﬁle containing only changes relative to the initial image. In
+UML jargon such a “patch” is called, for understandable reasons,
+copy-on-write ﬁle, or cow.
+@end enumerate
+Typical cow ﬁles take just few megabytes on disk but require
+sparse ﬁle support on the host ﬁlesystem. Such support is in prac-
+tice always present on GNU/Linux, but it may be lacking on other
+systems to which the user might want to copy some ﬁles. For this
+reason we work with cows only in temporary directories of the host
+ﬁlesystem, and avoid them while saving a project @pxref{Project file}.
+@sp 1
+
+UML easily allows one to use an xterm or gnome-terminal as the virtual
+machine console. Practically the only “customization” we needed
+consisted in displaying the virtual machine name on the window title
+bar, to enable users to recognize which console belongs to which
+machine.  This was achieved with a
+@marioscript{marionnet-xterm-title,script} making the virtual machines
+print a string with XTerm terminal control sequences at startup.@sp 1
+
+To fully marionnetify a fs, a bunch of other scripts are needed:
+@enumerate
+@item
+@marioscript{marionnet_prepare_startup,startup}
+@item
+@marioscript{marionnet_prepare_shutdown,shutdown}
+@item
+@marioscript{marionnet_grab_config,Exam script} @pxref{Exam-mode}
+@end enumerate
+@sp 1
+
+Currently we use as router an UML machine properly configured with
+@url{http://www.quagga.net,quagga} suite, this allows to emulete as
+close as possible a common Cisco router with free software.
+
+@c TODO mariokit.ml, simulated_network.ml, router cisco quagga
+@c TODO cow, swap, memory usage, console, umid
+@c TODO maeglio device: macchine possono essere shutdown or poweroff
+@c In this case Xnest processes run on virtual machines, but seen as X clients
+@c they however require a connection to the host X server.
+@c talk about message passing between threads
+
+@node VDE
+@chapter VDE
+@cindex VDE
+
+VDE allows one to create virtual switches and hubs connected to the
+Ethernet interfaces of UML machines and virtual wires.  All virtual
+switch and hub ports are implemented via Unix sockets or tun/tap
+interfaces. Wires can be destroyed and recreated at runtime without
+affecting virtual machines.  Unfortunately, however, a couple of
+implementation choices in VDE and UML prevent a direct application of
+VDE devices to emulate the devices speciﬁed by the user in Marionnet.
+@enumerate
+@item
+The first problem is that when a network interface is deﬁned for an UML
+machine, a switch or hub where to connect it can be speciﬁed, but not
+a wire: in other words, some virtual cables are not directly
+represented as cables in VDE, and are left implicit.  This creates
+problems with dynamicity: destroying the virtual hub or switch to
+which a virtual Ethernet interface is connected makes the interface
+unusable; by contrast we need “stable endpoints” to which we can
+dynamically connect and disconnect cables which on their turn may be
+connected to other devices.
+@item
+VDE also implements defects as we need them but only in
+cables, whereas we require the same functionality also for ports.@*
+@end enumerate
+We'll see solutions to these issues in the section Devices @pxref{Devices}.
+@sp 1
+
+Currently we use VDE to emulate:
+@enumerate
+@item
+Hubs and Switches: for each hub or switch the user can specify
+the number of ports, and —for switches— whether it should sup-
+port the STP protocol.
+@item
+Cables: an Ethernet cable either straight-thru or crossover, they are
+identical in implementation, we simply don't allow certain kind of
+incorrect connections (e.g. two machine with a straight cable).
+@end enumerate
+@sp 1
+
+Currently supported defects are:
+@enumerate
+@item delay
+@item lost packets
+@item flipped bits
+@item bandwidth upper limit
+@end enumerate
+They apply to both direction to cables (left-to-right, right-to-left)
+and to ports (in-to-out,out-to-in).
+
+@c TODO dire che i cavi possono essere sospesi (cambiano colore), in modo da
+@c poter provare come va la rete senza di loro, senza doverli togliere e
+@c rimettere tutte le volte.
+
+@c TODO simulated_network.ml link code
+
+
+@c @node Ocamlbricks
+@c @chapter Ocamlbricks
+@c @cindex Ocamlbricks
+
+@c state o env usati da talking
+
+
+@node Emulation
+@chapter Emulation
+@cindex Emulation
+
+To overcome the two problems in the VDE section @pxref{VDE} we chose a
+two-level emulation approach where each device in the user-level
+network is represented, in general, by several UML and VDE processes,
+making up the emulation-level network.@*
+For what concern the lack of dynamic uml-vde_switch connection we
+solved the problem introducing a middle stable endpoint that we called
+hublet. Each ethernet port of each network device is connected to a
+hublet, that act as interface to which one can connect and disconnect
+ethernet cables on the fly.@*
+The lack of port defects was solved by adding an additional
+cable to each port so that the cable introduces the defects.
+@anchor{hublet} Hublets are two-port hub processes used as the stable
+endpoints we need for Ethernet connections: they are only destroyed
+when a virtual device is destroyed or the number of its ports is
+changed. Virtual cables can be connected or disconnected from hublets
+at any moment.@*
+Altought this solution looks overcomplicated and involves a
+considerable number of processes it proved to perform well and to
+introduce a negligible overhead in the packets trasmission.  Moreover
+it was the best we could afford with the technology involved and the
+time constraints.@sp 1
+
+Our mapping from user-level into emulation level may be most
+easily understood with an example:@*
+
+@marioimage{network-emulation-level, Userl-level & Emulation-level, 7cm}
+
+A sample network seen both at user-level and at emulation-level. The
+virtual computer a is connected to the virtual computer b via the
+four-port virtual switch S1. User-level network devices are
+represented as gray boxes with rounded angles, while emulation-level
+processes running on the host are shown white; the two user-level
+virtual cables are particular in being the only cases where the two
+views exactly match, a user-level device being mapped into an
+emulation-level process. @sp 1
+
+The two levels of emulation are clearly reﬂected
+by the structure of our OCaml code. On one hand a hierarchy of classes
+represents processes, on the other a second distinct hierarchy
+implements devices, using processes as building blocks. Both processes
+and devices internally represent the current emulation state as a DFA
+state (including for example on and off for a device, and running and
+suspended for a process). In both cases methods are provided for
+following existing DFA transitions, interacting with the external
+UML, VDE and updating the emulation state.
+
+@marioimage{device-automaton, Device automaton, 9cm}
+
+
+@sp 3
+@section Processes
+
+The class @mariourl{Simulated_network.process, process} allows to
+start a generic process with the proper command line arguments, send it
+signals, stop it (in several ways) and moreover handle the start/stop
+of the death monitoring @pxref{DeathMonitor}.@*
+
+@marioimage{class_process, simulated_network.ml: processes class diagram., 7cm}
+
+As you can see from the graph this generic class is inherited by
+several other classes, related to specific processes, that call the
+actual external processes:
+@enumerate
+@item @url{http://wiki.virtualsquare.org/index.php/VDE#vde_switch, vde_switch}
+is called when you need to create a switch or a hub 
+@item @url{http://wiki.virtualsquare.org/index.php/VDE#wirefilter, wirefilter} 
+is called when you need to create a cable, some defects may be applied too
+@item linux-default
+is called when you need to create a uml machine or a router
+@end enumerate
+
+This layer abstract the processes that can now be used to create our
+network devices.@*
+Note that all the processes can be executed concurrently, a mutex
+mechanism is used to grant a correct behaviour.
+
+@sp 3
+@section Devices
+@anchor{Devices}
+
+The virtual class device abstract a generic network device allowing to:
+@enumerate
+@item 
+change its state following the DFA scheme
+@item
+manage hublets
+@item
+manage processes involved in the simulation
+@end enumerate
+it is then inherited by all hardware specific devices.
+
+@marioimage{class_device, simulated_network.ml: devices class diagram., 4cm}
+
+Follows an in depth description of each device:
+
+@sp 2
+@subsection Ethernet cable 
+Virtual Ethernet cable connecting any pair of Ethernet ports: the two
+endpoints are simply connected by a wirefilter process. This is the
+only case in witch emulation level perfectly matches user level: this
+class methods just calls those of ethernet_cable_process.@* 
+A user cable can connect pairs of objects of several kinds. The user
+is free to connect objects with cables having incorrect crossoverness.
+
+@marioimage{cable_crossoverness, Type of cable needed to connect different devices., 2cm}
+
+Bandwidth limitation and cable defects due to the cable are directly
+implemented by the wirefilter process If the user cable
+"crossoverness" is incorrect then it is configured to lose all
+packets.
+
+@c TODO move in mariokit description and only link here
+@c read mariokit code and complete description here, now it is too generic
+
+@sp 2
+@subsubsection Cable reference counter
+A feature quite useful in practice is the possibility of temporarily
+disconnecting and then reconnecting a single virtual cable, without
+destroying it so that you keep the configuration.@*
+This is nontrivial to implement because of the complexity added by the
+need for a cable process to have both its endpoints (hublets) alive to
+be started: for example a cable whose endpoints become alive might be
+currently in disconnected state (hence the cable process should not be
+spawn), or the conﬁguration of a currently running cable endpoint
+could be modiﬁed, leaving the cable with only one alive endpoint (and
+hence the cable process should be terminated).@*
+We found a very compact and elegant solution to this problem involving
+a reference counter: each cable object has a mutable integer ﬁeld
+reference counter, always in the range [0, 3].@*
+Reference counter is initialized to 1, and then: 
+@enumerate
+@item decremented at each disconnection 
+@item incremented at each reconnection 
+@item incremented at each endpoint startup 
+@item decremented at each endpoint shutdown
+@end enumerate
+A cable process has be spawn only when the reference counter of its
+cable object rises from 2 to 3, and must be terminated as soon as
+reference counter drops from 3 to 2.
+
+@sp 2
+@subsection Hub or Switch
+Virtual hub or switch with n ports: a main VDE hub or switch m
+is connected to n cables c_i , each incorporating the defects of port i.
+Each cable c_i is connected to a hublet h_i , representing port i as an
+endpoint.
+
+@sp 2
+@subsection Router
+Virtual router with n ports: a router with n ports is represented
+exactly as a machine with n Ethernet ports.
+Routing protocols are implemented “in software” on the virtual
+machine, using the Quagga service.
+
+@sp 2
+@subsection Machine
+Virtual computer with n Ethernet cards and m serial ports: A
+UML process u is connected to n hublets hi_1, and each hi1 is
+connected to another hublet hi_2 via a cable c_i incorporating the
+defect of the Ethernet port eth_i. Each user-level eth_i —seen as a
+connection endpoint— is represented by the hublet hi_2 .
+The special Ethernet interface eth42 is also always emulated
+to allow graphical applications to communicate with the host X
+server. eth42 is ghostiﬁed, and connected to a host tap interface
+rather than to a hublet.
+
+@sp 2
+@subsection Cloud
+Cloud: Two hublets h1 and h2 are connected by a cable c. All
+“defects” like lost packets or delay are implemented in c, while
+the random ttl decrease is implemented (by convention) in h1.
+The free endpoints of h1 and h2 represent the two user-level cloud
+endpoints.
+
+@sp 2
+@subsection Gateway
+Gateway: A hublet is connected to a host tap on one side, and has
+the other side available for connecting cables, as the only gateway
+endpoint in the user-level network.
+The only speciﬁed parameter for gateways is their IP address.@sp 2
+Creating the bridge during a default install require root
+??privilegies?? and is too intrusive (may interfere with user
+configuration) so a @marioscript{prepare-bridge.sh, script} is
+provided to later configure it at user choice.
+@c TODO tell more about the bridge
+@c TODO unclear!! isn't there a cable+hublet more to implement port defects???
+
+@c TODO mariokit device convention, left/right end convention
+
+@sp 3
+@section DeathMonitor
+@anchor{DeathMonitor}
+
+Death Monitor, as the name suggest, is the part of Marionnet that
+monitor the processes involved in the device creation, looking for
+unexpected deaths and eventually reacting with a proper callback
+function.@*
+Considering the strong relation whithin processes belonging to the
+same device it is important, in case one of such processes dies, to
+handle the whole device by, for example, switching everything off or
+by starting again the missing process.@*
+Moreover we want to make sure that no process, no more needed, is
+forgot running or in any other state, expecially knowing the large
+number of processes involved. @sp 1
+
+The @mariourl{TODO,list} of processes under control is stored in map
+structure containing the name of the process, a predicate and a
+callback function to invoke in case the predicate result true.@*
+Once a process is started it should be registered in the map, then a
+@mariourl{TODO,polling} loop will check its predicate and eventually
+call its callback; finally when the process is stopped it should be
+removed from the map.@*
+Now the @mariourl{TODO,default predicate} just verify if the process is
+alive but it can easily be changed making the death monitor a more
+general process monitor (for example monitoring used resources).@*
+At the beginning the implementation was based on unix signals
+exchanged between parent and child processes, despite this was faster
+and more fine grained than the polling solution, it proved to be too long
+to debug.@sp 1
+
+As well as the network simulation, the entire monitoring process is
+thread safe, thanks to a mutex mechanism.
+
+@node Mariokit the core
+@chapter Mariokit the core
+@cindex Mariokit the core
+
+The file mariokit.ml contains several utilities that are useful to the
+whole marionnet but not enough general to go into the ocamlbricks
+library. @* @c TODO evidenziare le più utili
+
+@section MSys
+In the module MSys we find all the necessary to work in the system, in
+particular we have all the pathname to kernels and filesystem needed
+by virtual machines.@*
+
+@section simulate_device
+Probably the most important module of the network part of marionnet is
+Netmodel, it contains a number of classes which abstract
+simulated_devices and allow to build and manage the network; it also
+introduces a slightly different convention: 
+@enumerate
+@item 
+a device is a hub, switch or router 
+@item
+a cable is crossed or direct
+@item 
+a port is a eth or tty
+@item 
+a node may be a device, a machine, a cloud or a gateway
+@item
+a repectacle is an object representing both a eth and a tty port, and their addresses 
+@end enumerate 
+@*
+
+@marioimage{class_mariokit, mariokit.ml: classes diagram, 7cm}
+
+The class virtual simulated_device manage the class device
+@pxref{Devices} in simulated_network: it uses the same automaton and
+same exception, but simplify the passages between states of a
+device. In particular it provides the methods create, destroy,
+startup, suspend, resume, gracefully_shutdown, poweroff to change
+state, as well as the methods can_startup etc. to check whether the
+device is in a state allowing the transition.@*
+Moreover it define the
+@mariourl{code_METHODMariokit.Netmodel.simulated_device.destroy_because_of_unexpected_death,callback}
+needed by the deathmonitor, in this case it simply shutdown the whole
+device if a single process dies unexpectedly.@*
+It is interesting the value
+@mariourl{code_ATTMariokit.Netmodel.simulated_device.is_correct,is_correct},
+that when hinerited by cable allows to control whether the user choose
+the wrong cable, and in this case prevent the cables from being
+started; this is achieved through the val @mariourl{TODO, polarity}
+found in the class node, that in the case is the same on both
+endpoints requires a crossover cable.@*
+
+Of course all the methods are thread safe, as well as the other
+components of the network virtualization.@*
+
+@c TODO enqueue dot
+@c Dotoptions may be separated in future
+
+@section Node
+@mariourl{Mariokit.Netmodel.node, Node} is a class that provides
+extensive methods to work with receptacles and sockets, thus to manage
+the connections between elements of the network. In also contains some
+methods to generate information fot the Dot network representation
+@pxref{Dot}.@*
+
+@c say that every other device inherit this stuff
+
+@section Network
+@anchor{Network}
+The class @mariourl{Mariokit.Netmodel.network,Network} represent the
+entire network created on top of the devices analyzed before.@*
+It maintain in several lists every device present in the network, with
+specific methods to add and remove each of them, as well as providing
+methods to access them and set their properties.@*
+The second big functionality of this class consists in the management
+of the connections that is possible on each device (receptacles) or on
+the whole network (sockets).@*
+Finally it is able to translate the current network in its dot
+representation, to be displayed in the main Marionnet window
+@pxref{Dot}.
+
+@c TODO clear dot interaction
+@c ledgrid_manager, dot stuff
+
+@c to_forest led_grid eval_forest_attribute cow_file
+
+@node State
+@chapter State
+@cindex State
+
+@mariourl{State.globalState, GlobalState} is the module that
+represent the whole Marionnet state, it is defined uniquely in
+@mariourl{Marionnet, Marionnet.ml} as 'st' and then manipulated.@sp 1
+Marionnet state can roughly be devided in four parts: project, GUI,
+dot, network.@*
+Network state simply allows to access the network class in mariokit
+@pxref{Network}, that itself is the state of the virtual network.@*
+The same holds for the Gui state that is a simple access to
+GUI.window_MARIONNET, the main window of the application, that will 
+be binded to the gui handler by marionnet.ml.@*
+The project state consist in providing all the attributes to abstract
+the .mar file @pxref{Project file} and the methods to manipulate
+them. For example are provided variables for the working directory,
+project name, project file, hostfs, sketch.dot, etc, and methods to
+open, save, save as, import and close the project. Moreover the state
+of the current project is modelled with the type application_state
+that can assume the values:
+@enumerate
+@item NoActiveProject           : Working with no project defined. User have to create or open.
+@item ActiveNotRunnableProject  : Working with a project with an empty or non runnable network.
+@item ActiveRunnableProject     : Working with a runnable project.
+@end enumerate
+
+Finally the dot @pxref{dot} representation of the network, from now on the sketch, 
+
+@c TODO clear dot interaction
+@c sketch(dot), 
+@c presence of the mutex sketch_mutex
+@c files: project file, pwd, project name, project directories :"tmp" "states" "netmodel" "scripts" "hostfs" "classtest" "sketch.dot" "sketch.png" "network.xml" "dotoptions.marshal" 
+@c                           methods to change it
+@c set_sensitive: disable GUI functions depending on states
+
+@node Dot
+@chapter Dot
+@cindex Dot
+
+@c dotoptions.ml,
+
+@node GUI
+@chapter GUI
+@cindex GUI
+
+One important improvement that Marionnet brought over previous
+solutions (such as Netkit), is a nice and clear graphical user
+interface that for teaching pourposes is crucial.@*
+GTK+ was the obvious choice to make in terms of toolkit for its good
+intergration will OCaml throught Lablgtk2, the OCaml bindings GTK+;
+moreover we were already familiar with the library because of previous
+experiences.@*
+As designing tool we used @url{http://TODO, Glade2}, from which we
+obtained the file gui.glade; using the utility provided by lablgtk,
+lablgladecc2, it is possible to extract from the xml gui.glade, a sort
+of wrapper in ocaml gui.ml that make easier the binding with the
+various GUI handler files: 
+@code{$ lablgladecc2 gui.glade > gui.ml}
+
+@enumerate
+@item dotoptions.ml     -        traslation to Dot graph
+@item marionnet.ml      -        main window and application initialization
+@item simple_dialogs.ml -        standard Maionnet dialogs
+@item state.ml          -        manages almost the entire application state
+@item talking.ml        -        contains all the dialogs for the user
+@end enumerate
+Another major structure used in the interface is the treeview, that is widely used by:
+@enumerate
+@item defects_interface.ml	  -	the defect tab from which cables and ports can be tuned
+@item filesystem_history.ml	  -	filesystem tab to choose the boot state for each machine
+@item network_details_interface.ml-	network tab to tune every port and card addresses, MTU and netmask
+@item state.ml	                  -	manages almost the entire application state
+@item texts_interface.ml	  -	tab showing the student assignement 
+@end enumerate
+For other widget we prefered to use plain GTK+ to have more control:
+@enumerate
+@item ledgrid_manager.ml        -       shows a grid of led blinking at port activity
+@item progress_bar.ml           -       shows a progress bar for longer tasks
+@item splash.ml                 -       starting Marionnet splash image
+@end enumerate
+
+@c marionnet.ml fa tutti i bindings di st
+@c talk about glade, gui.glade, gui.ml 
+
+
+@section Main
+
+@marioimage{main, Main marionnet window with network graph, 12cm}
+
+In the part 1 of the main window, we find all the devices available to
+build our network; clicking on the icon present us a menu allowing to
+add, remove, modify the properties of a device depending of its kind;
+this is likely the first place where users will go and the one they
+will be more familiar with.@sp 1 
+
+@marioimage{menu, device management menu, 4cm} 
+@sp 1
+
+Part 2 is the graph of the network, obtained thanks to Dot, that show
+us the current layout and any further modification, this is very
+useful to 'materialize' to the user the subject he is dealing with; it
+worths noting some nice particulars: machine running and idle have
+different icons (monitor blu or grey); crossover and straight cables
+have different colours; cables disconnected have different colour too.@* 
+
+@marioimage{details, Details of dot graph, 6cm}
+@sp 1
+
+Very important is the possibility to add labels to every device, thus
+making the graph more readable and expressive: this comes very handy
+for both students and teachers as it help to disinguish between
+devices of the same kind, plus add more information e.g. Main router,
+Web server etc.@*
+Part 3 is called graph palette and allows to tune some Dot variable to
+help making the graph more readable, it is very unlikely that a user
+will use this but sometime it can be necessary. Configurable variables
+are (top to bottom): 
+@enumerate
+@item icons size, 
+@item randomly arrange nodes, 
+@item default node arrangement, 
+@item design arcs top down, 
+@item design arcs right left,
+@item arcs lenght,
+@item reverse an arc of choice, 
+@item distance from nodes and labels,
+@item image size, 
+@end enumerate
+
+@anchor{GUI-Dot}
+
+@c DOT graph: always up-to-date, best representation of the network,
+
+
+Part 4 contains the big buttons to play with what we've just created,
+we can startup or stop the whole network or shutdown it, that is the
+equivalent of powering off everything. In the case of a startup,
+Marionnet will spawn all the necessary processes and soon many ledgrid
+and terminal emulator will pop up as in figure TODO. In the case of a
+shutdown the machines will start a normal shutdown process and
+the other processes will be terminated as we say 'gracefully'. Finally
+the shutdown is just like pulling the power cord of the entire
+network off, immediatelly killing every process. @*
+
+Note: in case of an incorrect choice of cable crossoverness no warning
+will be displayed, the link won't simply work as it appends in real
+world.
+
+
+@marioimage{simpledialogs, Example of use of simpledialogs: saving project on exit?, 2.5cm}
+
+
+@section Network details
+
+@marioimage{network_details, Ports and cards settings tab, 9cm}
+
+Network details is the interface aimed at configuring devices
+interfaces for both routers (port#) and machines (eth#). The
+configurable options that will probably be the most used are IPv4
+address, netmask and broadcast address while in case of a IPv6 network
+we just need to set the address. Additionally we can also set a proper
+MTU, this can be very useful to study TCP fragmenting properties.@*
+Of course, at startup this settings will be passed to the UML
+instances (remember router are UML machines + quagga) that will have
+their interfaces already configured.
+
+
+@section Defects interface
+@anchor{GUI-defects}
+
+@marioimage{defects, Cables and ports defects tab, 9cm}
+
+The defects interface will be most useful to study the behaviour of
+each TCP/IP layer in case of errors, both single and in burst, an
+experience that is almost impossible in reality or when it occurs is
+always to make trouble during an exam!@*
+User can choose whether the defect should be inward or outward the
+interface and the kind of malfunction desired: packets loss, packets
+duplication, flipped bits, max/min delay; of course all the controls
+are given as percent and then randomly generated.@*
+
+
+@section Disks history interface
+@anchor{GUI-disk}
+
+@marioimage{filesystem_history, Disks history tab, 9cm}
+
+The 'Disk' tab is an interface based on a treeview
+widget allowing to easily navigate in the ﬁlesystem history
+displayed as a forest, showing which state is derived from which
+other state for each machine and router, allowing to delete uninter-
+esting states, to add textual comments and to boot a device from
+any saved state.@*
+This allows to make incremental modification and verify the different
+behaviour of the network after each one, a very interesting
+possibilities also for network managers.
+@c @marioimage{history-screenshot, Filesystem history interface}
+
+
+@section Assignement interface
+
+@c TODO add screenshot
+
+The tab 'Assignement' is indended for distributing documentation and
+exercises to students; they can list available documents (text, dvi,
+pdf, html are supported) and read them with the default system
+programs. This can be particularly useful in an exam context to
+distribute assignements to each student.
+
+
+@section Led grid
+@anchor{Ledgrid}
+
+@sp 2
+@marioimage{ledgrid, Led grid for Hub Switch and Router, 3cm}
+
+Once the network is started, machines will show their prompt so that
+the user can start to interact, for what concern network devices such
+as hubs, switches and router we tryed to emulete as close as possible
+reality, providing a small blinking led grid. The blinking is
+non-fictional, for every packet that hit the device ports a blink will
+appear, making it really useful for immediate feedback on network
+behaviour, as a matter of fact, it proved to be one of users most
+useful tool. To distinguish the kind of device and if it is on
+we chose different led colors and added another little on/off led in the 
+graph icons.
+
+
+@section Progress bar
+@anchor{progressbar}
+
+@sp 2
+@marioimage{progress_bar, Progress bar during network startup, 2.5cm}
+
+Due to the heavy workload of some operations Marionnet could seem to
+hang, for example at startup of the network, for this reason we
+implemented the classic progress bar that ensure the user some work is
+being done (without the promise of ending soon). @sp 1
+
+This should be extended also to save/load project because the
+compressing process tend to be very long @pxref{Project file}. 
+
+
+@section Terminal
+
+@sp 2
+@marioimage{machine, Machine terminal waiting for login, 6cm}
+
+When a machine boot up, its terminal (xterm) pop up showing the boot
+process and then wait for root login, we did't feel the need for any
+other user considering that this is a secure sandbox for any kind of
+experiments.@*
+Practically the only “customization” we needed consisted in
+displaying the virtual machine name on the window title bar, to
+enable users to recognize which console belongs to which machine 
+(essential when working with more than 3).
+This was achieved “in software” by making the GNU/Linux system
+running on virtual machines print a string with XTerm terminal
+control sequences at startup.
+
+
+
+@c TODO
+@c talk about dotoptions
+@anchor{X-support}
+@c something in Mariokit.MSys
+
+
+@c theacer releted stuff: assignment, report of exam mode [see UML section], 
+@c disabled gui stuff: serial cable, broadcast
+@c talking.ml, simple_dialogs.ml
+
+
+@node Datastructures
+@chapter Datastructures
+@cindex Datastructures
+
+The forest data structure is an algebraic polymorphic data type,
+used for implementing the data structures displayed in the filesystem 
+history and defects GUI.@sp 1
+
+@code{type ’a forest =
+Empty                                   @*
+| NonEmpty of ’a *                      @*
+(* first tree root *)                   @*
+(’a forest) * (* first tree subtrees *) @*
+(’a forest);; (* other trees *)}        @sp 1
+
+Forests are easy to manipulate in a purely functional style, and
+we rely on higher order for many operations.
+Forests are saved into Marionnet project files using OCaml mar-
+shaling support.
+
+
+@c treeview.ml, forest.ml Xforest  state??? graph.ml(usato solo da task_runner.ml)
+@c treeview used for filesystem_history, network_details_interface, defects_interface, texts_interface
+
+@node Options
+@chapter Options
+@cindex Options
+
+@c Marionnet options management: global_options.ml, initialization.ml marionnet.conf
+
+
+@node Daemon
+@chapter Daemon
+@cindex Daemon
+
+First versions of Marionnet needed super user privilege to run because
+they needed to create tap interfaces. To avoid this security risk all
+super user actions are now performed by a small daemon that is now the
+only Marionnet part that must be runned as root.@*
+The daemon, defined in
+@mariourl{Marionnet-daemon,marionnet-daemon.ml}, is connected to the
+@mariourl{Daemon_client,Marionnet client}, through a socket and they
+communicate with a specific language defined in the file
+@mariourl{Daemon_language,daemon_language.ml}.@*
+With this mechanism we ensure that the smallest possible amount of code 
+is executed as root.@sp 1
+To correctly run Marionnet:@*
+@code{~$ sudo marionnet-daemon.byte &} @*
+@code{~$ marionnet.byte}
+
+@c needed for graphics on virtual machines and host sockets
+@c marionnet_daemon.ml, daemon_client.ml, daemon_language.ml, daemon_parameter.ml 
+
+
+node Exam-mode
+@chapter Exam mode
+@cindex Exam mode
+
+In order to help teachers to judge the work of each student, an exam
+mode is provided with Maionnet, if this option is enabled, several
+information regarding the machine will be saved. The most interesting
+thing is the possibility to save the bash history of each student thus
+being able to see how he worked step by step: altough this could seem
+excessive it may come handy in some situations.@* To implement the
+exam mode, we simply invoke UML with the parameter exam=1; the
+GNU/Linux distributions we provide are modiﬁed to check at shutdown
+time whether exam is bound in @code{/proc/cmdline} and, if that is the
+case, to run the analysis @marioscript{TODOmarionnet_grab_config,
+script} that save the root .bashrc and an html copy of the report.  To
+enter exam mode use Marionnet (only) command line option: @code{$
+marionnet.byte --exam}
+
+
+@node Project file
+@chapter Project file
+@cindex Project file
+
+Standard Marionnet files are extended as .mar and inside are simple
+compressed GNU tar archive.@* 
+As you know, Marionnet saves machine filesystem using sparse file in
+order to save disk space, so the host filesystem is supposed to
+support this feature. This could not be the case, when we want to move
+our Maionnet file .mar to another machine, so the tar may contain
+sparse ﬁles without wasting space and without being sparse themselves,
+hence they are safe to copy to any ﬁlesystem.@*
+Thanks to sparse file and compression Marionnet is able to save entire
+filesystem in just few MB, in our tests an average of 3~5 MB, of
+course the more you modify each machine the bigger the file will be.@*
+The format has been very carefully designed to be back- and
+forward-compatible: newer versions of Marionnet can read project saved
+by older versions and vice-versa: when Marionnet ﬁnds some information
+which it doesn’t “under- stand”, the system simply ignores it. If
+instead some needed ﬁeld is lacking then a default value is generated.@sp 1
+
+If you note that Marionnet hangs during saving of project, this is due
+to the gzip compression process, some user suggested to introduce a
+GUI widget (progress_bar?) to suggest that the program is just
+working.
+
+
+@c TODO How it works, back-forward-compatibility
+@c @mariourl{code_METHODState.globalState.save_project.html, save with simple tar command}
+
+
+@node Build system
+@appendix Build system
+@cindex Build system
+
+The project is built using Ocamlbuild, a tool automating the
+compilation of OCaml projects with minimal user input, but much work,
+that worth attention, is also done in the Makefile.@*
+The Makefile is an effort to generalize as much as possible the
+compilation process needed by an OCaml project, as a result it is
+possible to make it fit your needs by simply configuring the
+Makefile.local; this file adds some target to specialize the
+compilation.@*
+Many information are extracted from files like META and CONFIGME and
+then used as variable, for example is possible to define installation
+paths from CONFIGME.
+
+@c machine generated files: gui.ml, meta.ml, myocamlbuild.ml, version.ml
+@c Makefile Makefile.local 
+
+@node I18n
+@appendix I18n
+@cindex I18n
+
+Recent effort has been put into Marionnet internationalization
+because, as of now, a french only interface is available. The goal is
+to have a default english Marionnet interface and then being able to
+localize it depending on the system configuration.@*
+To achieve this we chose to use GNU Gettext technology that is widely
+used, stable, well documented and, despite its original version is
+in C, an ocaml library is also available. The library is called Ocaml
+Gettext, is developed by Sylvain Le Gall, and present differet
+oprions: it can act simply as a wrapper to Gettext or it can use its
+own functional implementation of Gettext, called Camomille; under Le
+Gall advice we chose the functional way.@sp 1
+
+To use Gettext it is necessary to apply the functions s_ and f_ to
+every string in the code we'd like to translate, the first for regular
+strings, the latter for strings with formatting characters. This
+allows to have minor impact on the code and is a fast and easy
+process. Code sample: @sp 1
+
+@code{  Simple_dialogs.error                                     @*
+             "Invalid directory"                                 @*
+             "Choose a directory existing, modifiable and hosted @* 
+             on a filesystem that support sparse files"}         @sp 1
+@code{  Simple_dialogs.error                                     @*
+         (s_ "Invalid directory")                                @*
+         (s_ "Choose a directory existing, modifiable and hosted @*
+             on a filesystem that support sparse files")}        @sp 1
+
+As you can see it is very clear and readable, moreover parentesis isn't 
+always necessary.@sp 1
+
+Once the code is ready it is necessary to initialise Ocaml Gettext,
+operation that is done in the module @mariourl{Marionnet_gettext,
+marionnet_gettext}, now the code is ready to be translated.@*
+In order to provide Gettext with the strings translated into varios
+language, we must create several .po files containing the original
+english strings as identifiers and the relative translated strings
+that will be eventually substituted; this process can be automated by
+simply extracting every string in every source file, once again
+ocaml-gettext can help: @sp 1
+@command{~$ ocaml-gettext --action extract *.ml} @sp 1
+now we have a .pot file, that is a .po template, that contain nothing
+but english strings.
+At this point every translator is supposed to fill the .pot file to
+create a .po for its own language, graphical tools for both Gnome and
+KDE can help the translation and note that only basic informatic
+skills are required to participate in the translation.@*
+Once the .po are ready they must be compiled into .mo: @sp 1
+@code{~$ ocaml-gettext --action compile fr.po} @sp 1
+and installed: @sp 1
+@code{~$ ocaml-gettext --action install --install-textdomain marionnet --install-destdir ./po *.mo} @sp 1
+After installation a number of directories will be created under po/,
+one for each language, and they will be the source for gettext to find
+the right string translation.@*
+All this operation are automatically executed by the Makefile.local so
+during translation only the files .po are to be taken care of. @sp 1
+
+When Marionnet is launched it will look for the system variable LANG
+(this may change in other distributions) and depending on his value
+ocaml-gettext will pick up the right language to display the
+application.
+
+@c how works po/ Makefile or how is integrated into documentation, ??
+
+
+@node Darcs
+@appendix Darcs
+@cindex Darcs
+
+Darcs is a distributed revision control system by David Roundy,
+supporting both ssh and html access, written in the functional
+language Haskell. Currently we use version 2 of the software that will
+be soon packaged for the major distribution, more information can be
+found at @code{http://darcs.net}.@sp 1
+
+Marionnet server is located at @code{marionnet.org} and you can
+get a fresh copy of the sources throught http with the command:@*
+@code{~$ darcs get http://darcs.marionnet.org/repos/marionnet}@*
+and maintain it up to date by pulling new changes (all commands from
+now on are supposed to be used from within the repository
+directory):@*
+@code{~$ darcs pull}@*
+You can then start to make changes and experiment with the program; to
+use darcs to keep track of your changes you must record them: @*
+to record changes on existing files use:@*
+@code{~$ darcs records}@*
+to record changes on new file mario.ml you must first add it:@*
+@code{~$ darcs add mario.ml}@*
+and then you can use the previous command. During the recording you
+will be prompted for some info, expecially relevant is the patch
+desription, than will later remind you briefly what you were doing.@*
+Once you got your patch ready you can push it to the main server by issuing:@*
+@code{~$ darcs push darcs@@darcs.marionnet.org:repos/myrepo}@*
+of course you must have write permission to myrepo, in Marionnet case
+you just need to contact the developers.
+
+
+@node Licence
+@appendix Licence
+@cindex Licence
+
+Marionnet is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 2 of the License, or (at your
+option) any later version.@sp 1
+
+Marionnet is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.@sp 4
+
+This documentation is part of Marionnet, a virtual network laboratory,@*
+Copyright (c)  2008  Marco Stronati @*
+  Permission is granted to copy, distribute and/or modify this document
+  under the terms of the GNU Free Documentation License, Version 1.2
+  or any later version published by the Free Software Foundation;
+  with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+  Texts.  For more information see http://www.gnu.org/licenses.
+
+
+     
+@c The end segment contains commands for generating an index in a node and unnumbered chapter of its own.
+@node Index
+@unnumbered Index
+@c decide which type of index to print, are alphabetically ordered.
+@printindex cp
+
+@c marks the end of the document.
+@bye

@@ -1,0 +1,23 @@
+@c Included in documentation.texi
+@c Path to external files: images, script, ocamldoc
+@c We are supposed to work inside marionnet/doc-src/
+
+@c TODO add @iftex clause to avoid link to ocamldoc in the pdf, they are useless...
+@c url to ocamldoc
+@macro mariourl{myurl,description}
+@url{../_build/marionnet.docdir/\myurl\.html,\description\}
+@end macro
+
+@c url to scripts used in virtual machine
+@macro marioscript{myscript,description}
+@url{../virtual-machine/\myscript\,\description\}
+@end macro
+
+@c image in the directory img/ in a nice float with caption
+@macro marioimage{myimage,description,height}
+@float Figure,\myimage\
+@image{./img/\myimage\,,\height\}
+\description\
+@end float
+@sp 1
+@end macro

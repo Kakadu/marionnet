@@ -116,7 +116,7 @@ gui-help: gui.ml
 	ocamlc -i -I +lablgtk2 lablgtk.cma gui.ml | grep -v "val" | grep -v "[0-9]"
 
 # Clean all the automatically-generated sources:
-clean-local: clean-mo
+clean-local: clean-mo clean-doc
 	@(rm -f VERSION BUILD-TIME version.ml; \
 	rm -f share/gui.glade.patched gui.ml)
 
@@ -183,3 +183,60 @@ uninstall-mo:
 	do rm -f /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; \
 	echo "Uninstalled "$$i; \
 	done;)
+
+######### documentation ##############
+
+#build texinfo developer documentation in one default format
+documentation-local: documentation-html-no-split
+
+#build texinfo developer documentation in one all formats
+documentation-all: documentation-pdf documentation-html-split documentation-html-no-split
+
+#multi page html output
+#the makeinfo command need to be executed in the same directory as img, otherwise it doesn't find any image
+documentation-html-split:
+	@(cd doc-src; \
+	  makeinfo --html --force --no-validate \
+	   documentation.texi -o ../doc/documentation/; \
+	  cp -r img/ ../doc/documentation/; \
+	  cd ..;) 
+
+#one page html output
+documentation-html-no-split:
+	@(cd doc-src; \
+	  makeinfo --html --force --no-validate --no-split \
+           documentation.texi -o ../doc/documentation.html; \
+	  cp -r img/ ../doc/; \
+	  cd ..;) 
+
+#pdf output
+documentation-pdf:
+	@(cd doc-src; \
+	  texi2dvi --pdf -E --build=local \
+	   documentation.texi -o ../doc/documentation.pdf; \
+	  rm -f documentation.aux documentation.cp documentation.cps \
+	        documentation.fn documentation.ky documentation.log  \
+		documentation.pg documentation.toc documentation.tp  \
+		documentation.vr;)
+
+clean-doc:
+	@(rm -rf doc/* )
+
+#convert and resize images from ps and eps to png
+images: dot
+	@(mkdir doc/img; \
+	  cp doc-src/img/*.png doc/img/; \
+	  for i in $$(ls doc-src/img-src/*{ps,eps}); \
+          do convert $$i doc/img/$$(basename $${i%.*}.png); \
+          done)
+
+
+# #compile dot sources
+dot:
+	@(for i in $$(ls doc-src/img-src/*.dot); \
+	do dot -Tsvg $$i -o doc-src/img-src/$$(basename $$i .dot).svg; \
+           convert -geometry 300x300 -density 150 -antialias doc-src/img-src/$$(basename $$i .dot).svg \
+           doc-src/img/$$(basename $$i .dot).png; \
+        done; \
+        #rm doc-src/img-src/*.svg \
+        )

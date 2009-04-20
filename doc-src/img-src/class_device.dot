@@ -1,0 +1,12 @@
+digraph device_automaton {
+               device
+               device -> ethernet_cable
+               device -> hub_or_switch
+               device -> machine_or_router
+               device -> gateway
+               device -> cloud
+               hub_or_switch -> hub
+               hub_or_switch -> switch
+               machine_or_router -> machine
+               machine_or_router -> router
+}

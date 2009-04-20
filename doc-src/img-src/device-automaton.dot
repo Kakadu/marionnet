@@ -1,0 +1,24 @@
+digraph device_automaton {
+               rankdir=TB;
+               edge [fontname="Courier-new",fontsize=8];
+
+               start [shape=plaintext,label="",color=white]
+               start -> ne [constraint=false]
+  
+               ne [label="non-existing"];
+
+               ne -> off [style=dashed, label="|> startup (step 1) "]
+
+               off -> on [label="|> startup (step 2)"]
+               off -> on [label="|> startup"]
+
+               on -> off [label="[] gracefully_terminate"]
+               on -> off [label=" | =| terminate"]
+
+               on -> sleeping [label="|| pause"]
+               sleeping -> on [label=" |> resume"]
+               sleeping -> off [label="| =|\nterminate"]
+
+               off -> ne [color=red, fontcolor=red,label=" configuration\nchange"]
+ 
+}

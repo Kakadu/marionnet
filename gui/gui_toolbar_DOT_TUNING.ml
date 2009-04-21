@@ -16,8 +16,7 @@
 
 
 (** Gui completion for the toolbar_DOT_TUNING widget defined with glade. *)
-open Gettext;;
-module List = ListExtra.List
+open Gettext
 open Sugar (* for '=>' and '||' *)
 
 module Make (State : sig val st:State.globalState end)  = struct
@@ -75,8 +74,8 @@ let iconsize_react () = if opt#are_gui_callbacks_disable then () else
 (** Reaction for the shuffle tuning *)
 let shuffle_react () =
   begin
-   opt#set_shuffler (List.shuffleIndexes (net#nodes));
-   let namelist = net#getNodeNames => ( (List.permute opt#get_shuffler) || fold_lines ) in
+   opt#set_shuffler (ListExtra.shuffleIndexes (net#nodes));
+   let namelist = net#getNodeNames => ( (ListExtra.permute opt#get_shuffler) || fold_lines ) in
    st#flash ~delay:4000 ((s_ "Icons arranged randomly : ")^namelist);
    st#refresh_sketch () ;
   end

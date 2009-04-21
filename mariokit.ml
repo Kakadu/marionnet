@@ -296,7 +296,7 @@ class network =
   method invertedCableSet     = net#invertedCableSet
 
   method get_iconsize         = iconsize
-  method get_shuffler         = shuffler => List.asFunction  (* returns the permutation function *)
+  method get_shuffler         = shuffler => ListExtra.asFunction  (* returns the permutation function *)
   method get_rankdir          = "rankdir="^rankdir^";"
   method get_nodesep          = let s=(string_of_float nodesep) in ("nodesep="^s^"; ranksep="^s)
   method get_labeldistance    = "labeldistance="^(string_of_float labeldistance)
@@ -336,7 +336,7 @@ class network =
   method reset_defaults () =
     begin
       iconsize  <- "large"; shuffler <- []; rankdir <- "TB"; nodesep <- 0.5; labeldistance <- 1.6 ;
-      List.foreach self#invertedCables (self#invertedCableSet false) ;
+      ListExtra.foreach self#invertedCables (self#invertedCableSet false) ;
       self#reset_extrasize () ;
       self#write_gui ()
     end
@@ -400,7 +400,7 @@ class network =
   (** This method is used just for undumping dotoptions, so is not strict.
       For instance, exceptions provoked by bad cable names are simply ignored. *)
   method set_invertedCables names =
-    List.foreach names (fun n -> try (self#invertedCableSet true n) with _ -> ())
+    ListExtra.foreach names (fun n -> try (self#invertedCableSet true n) with _ -> ())
 
   (** Undump the state of [self] from the given file. *)
   method load_from_file (file_name : string) =
@@ -1041,7 +1041,7 @@ class virtual node = fun
   (** The max index in the list of receptacles of this node. The portkind is here mandatory. *)
   method maxReceptacleIndex (k:portkind)  =
     let l = (List.map (fun x->x#index) (self#get_receptacles ~portkind:(Some k) ())) in
-    if l=[] then -1 else (List.max l)
+    if l=[] then -1 else (ListExtra.max l)
 
   (** The list of names of receptacles of this node. The portkind may be specified. *)
   method receptacleNames ?(portkind:(portkind option)=None) () =
@@ -2366,7 +2366,7 @@ class network = fun () ->
  method busySocketnames = List.flatten (List.map (fun c->c#socketnames) cables)
 
  (** List of available socketnames in the network *)
- method freeSocketnames = List.substract self#socketnames self#busySocketnames
+ method freeSocketnames = ListExtra.substract self#socketnames self#busySocketnames
 
  (** Is a socketname available for connection? *)
  method isSocketnameFree x = List.mem x self#freeSocketnames
@@ -2412,7 +2412,7 @@ class network = fun () ->
  method maxBusyReceptacleIndex nodename portkind : int =
    let bl = (self#busyReceptaclesOfNode nodename portkind) in
    let il = (List.map (fun x->x#index) bl) in
-   if il=[] then -1 else List.max il
+   if il=[] then -1 else ListExtra.max il
 
  (** Component exists? *)
 
@@ -2624,7 +2624,7 @@ class network = fun () ->
    if oldname = newname then () else
    let node = self#getNodeByName oldname in
    node#set_name newname ;
-   List.foreach cables (fun c->c#changeNodeName oldname newname)
+   ListExtra.foreach cables (fun c->c#changeNodeName oldname newname)
 
  (** Facilities *)
 
@@ -2783,7 +2783,7 @@ class network = fun () ->
 (String.Text.to_string
    (List.map
      (fun (n:node)->n#dotTrad opt#get_iconsize)
-     (List.permute opt#get_shuffler self#nodes)
+     (ListExtra.permute opt#get_shuffler self#nodes)
    ))
 ^"
 /* ***********************

@@ -15,12 +15,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
-open ListExtra;;
 open UnixExtra;;
 open Defects_interface;;
 open Recursive_mutex;;
 open Daemon_language;;
-open FilenameExtra;;
 open X;; (* Not really needed: this works around a problem with OCamlBuild 3.10.0 *)
 open Gettext;;
 
@@ -710,7 +708,7 @@ class uml_process =
     List.append
       (List.map
          (fun (ei, h) -> ethernet_interface_to_uml_command_line_argument umid ei h)
-         (zip (List.range 0 (ethernet_interfaces_no - 1)) hublet_processes))
+         (zip (ListExtra.range 0 (ethernet_interfaces_no - 1)) hublet_processes))
       [
        "ubd0s=" ^ cow_file_name ^ "," ^ filesystem_file_name;
 (*        "ubd0s=" ^ filesystem_file_name;  *)
@@ -904,7 +902,7 @@ object(self)
           (List.flatten
              (List.map
                 (fun (ei, h) -> ethernet_interface_to_boot_parameters_bindings umid ei h)
-                (zip (List.range 0 (ethernet_interfaces_no - 1)) hublet_processes)))
+                (zip (ListExtra.range 0 (ethernet_interfaces_no - 1)) hublet_processes)))
           [(* A non-standard binding we use to identify the IP address of eth42 in the guest: *)
            "ip42", ip42;
            (* A non-standard binding we use to pass the virtual machine name to the guest: *)
@@ -990,7 +988,7 @@ object(self)
     let hublet_processes =
       List.map
         (fun _ -> new hublet_process ~unexpected_death_callback ())
-        (List.range 1 n) in
+        (ListExtra.range 1 n) in
 (*     Thread.delay 2.0; *)
     hublet_processes
 
@@ -1147,12 +1145,12 @@ object(self)
         else begin (* hublets are being destroyed *)
           (* Remove the last (old_hublets_no - new_hublets_no) hublets: *)
           let hublet_processes_to_remove =
-            List.tail ~i:new_hublets_no !current_hublet_processes in
+            ListExtra.tail ~i:new_hublets_no !current_hublet_processes in
           ignore (List.map
                     (fun hp -> try hp#terminate with _ -> ())
                     hublet_processes_to_remove);
           current_hublet_processes :=
-            List.head ~n:new_hublets_no !current_hublet_processes
+            ListExtra.head ~n:new_hublets_no !current_hublet_processes
         end;
         Log.print_string ("Simulated_network.device: changed the hublets no from " ^
                       (string_of_int old_hublets_no) ^ " to " ^
@@ -1297,7 +1295,7 @@ object(self)
             ~unexpected_death_callback:self#execute_the_unexpected_death_callback
             ())
         (zip
-           (List.range 0 ((List.length hublets) - 1))
+           (ListExtra.range 0 ((List.length hublets) - 1))
            hublets));
     Task_runner.do_in_parallel
       (List.map (* Here map returns a list of thunks *)
@@ -1498,7 +1496,7 @@ object(self)
             ~unexpected_death_callback:self#execute_the_unexpected_death_callback
             ())
         (zip3
-           (List.range 0 (half_hublets_no - 1))
+           (ListExtra.range 0 (half_hublets_no - 1))
            self#get_inner_hublet_processes
            self#get_outer_hublet_processes));
 (*     Log.printf "OK-Q 3\n"; flush_all (); *)

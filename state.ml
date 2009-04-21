@@ -19,7 +19,6 @@
 
 open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Sugar;;
-open ListExtra;;
 open StringExtra;;
 open UnixExtra;;
 open SysExtra;;
@@ -193,7 +192,7 @@ class globalState = fun () ->
       (* Create the directory skeleton into the pwdir. *)
       let prefix = (self#get_pwdir^"/"^(self#get_prj_name)^"/") in
       Unix.mkdir (prefix)             0o755 ;
-      List.foreach ["states";"netmodel";"scripts";"hostfs";"classtest";"tmp"] (fun x->(Unix.mkdir (prefix^x) 0o755)) ;
+      ListExtra.foreach ["states";"netmodel";"scripts";"hostfs";"classtest";"tmp"] (fun x->(Unix.mkdir (prefix^x) 0o755)) ;
 
       (* Treeview data should be saved within prefix: *)
       Filesystem_history.set_states_directory (prefix ^ "states/");
@@ -331,7 +330,7 @@ class globalState = fun () ->
         match (Sys.readdir_into_list self#get_pwdir) with
 
         | [x] -> let skel = (Sys.readdir_into_list (self#get_pwdir^x)) in
-                 if List.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"]
+                 if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"]
                  then x
                  else raise (Failure "state#open_project: no expected content in the project working directory root.")
 

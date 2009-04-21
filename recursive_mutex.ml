@@ -66,7 +66,7 @@ let unlock (the_mutex, fields_mutex, owning_thread_ref, lock_counter_ref) =
   Mutex.lock fields_mutex;
   match !owning_thread_ref with
     None ->
-      Printf.printf "\n\nrecursive_mutex: UNLOCK OCCURRED BEFORE LOCK. This is currently not supported\n\n\n";
+      Printf.eprintf "\n\nrecursive_mutex: UNLOCK OCCURRED BEFORE LOCK. This is currently not supported\n\n\n";
       flush_all ();
       assert false;
   | Some t -> begin
@@ -84,7 +84,7 @@ let unlock (the_mutex, fields_mutex, owning_thread_ref, lock_counter_ref) =
       end
     end;;
 
-(** Execute thunk in a synchronized block, and return the value of returned
+(** Execute thunk in a synchronized block, and return the value returned
     by the thunk. If executing thunk raises an exception the same exception
     is propagated, after correctly unlocking the mutex: *)
 let with_mutex mutex thunk =
@@ -95,7 +95,7 @@ let with_mutex mutex thunk =
     result
   with e -> begin
     unlock mutex;
-    Printf.printf
+    Printf.eprintf
       "Recursive_mutex.with_mutex: exception %s raised in critical section.\n  Unlocking and re-raising.\n"
       (Printexc.to_string e);
     raise e;

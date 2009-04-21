@@ -152,11 +152,8 @@ and
       result
     with e -> begin
       self#unlock;
-      let msg =
-        Printf.sprintf
-          "exception %s raised in critical section. Unlocking and re-raising."
-          (Printexc.to_string e)
-      in
+      (Printf.eprintf "exception %s raised in critical section. Unlocking and re-raising." (Printexc.to_string e));
+      (flush stderr);
       raise e;
       end
     end

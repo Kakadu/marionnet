@@ -24,7 +24,6 @@ open Sugar;;
 open StringExtra;;
 open StrExtra;;
 open ListExtra;;
-open FilenameExtra;;
 open UnixExtra;;
 open StrExtra;;
 open Environment;;

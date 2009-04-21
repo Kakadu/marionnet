@@ -20,7 +20,6 @@ open Gettext;;
 
 (* Shortcuts *)
 module Str  = StrExtra.Str
-module List = ListExtra.List
 module Netmodel = Mariokit.Netmodel
 let mkenv = Environment.make_string_env
 
@@ -119,7 +118,7 @@ module Make
                   ~slaveSlaveSlavePacking:(Some (dialog#cable_endpoints#attach ~left:3 ~top:2 ~right:4))
                   (fun n1 r1 n2 ->
                      let l = (get_right_recept_of n2) in
-                     if n1 = n2 then (List.substract l [r1]) else l) in
+                     if n1 = n2 then (ListExtra.substract l [r1]) else l) in
 
     let right=left#slave#slave in
 

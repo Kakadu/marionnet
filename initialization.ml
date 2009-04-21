@@ -15,7 +15,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Unix;;
 open Sys;;
 open Gettext;;

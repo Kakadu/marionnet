@@ -14,10 +14,9 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Graph;;
 open Message_passing;;
-         
+
 let do_in_parallel thunks =
   (* Make a thread per thunk: *)
   let threads =

@@ -16,7 +16,7 @@
 
 
 (* To do: this could be moved to WIDGET/ *)
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
+
 (* open GTree;; *)
 open Forest;;
 open Row_item;;

@@ -18,7 +18,6 @@
 
 (** Some modules for managing the virtual network *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Strings;;
 open Sugar;;
 open ListExtra;;
@@ -1578,7 +1577,7 @@ object (self)
      (if right_endpoint#has_hublet_processes then
        self#increment_alive_endpoints_no);
      Log.print_string ("The reference count for the just-created cable " ^ (self#get_name)^" is ");
-     print_int !alive_endpoints_no; Log.print_string "\n";
+     PervasivesExtra.print_int !alive_endpoints_no; Log.print_string "\n";
 end;;
 
 (** Function for make receptacles from 0 to k (so call it with desired number - 1) of desired portkind

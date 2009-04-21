@@ -17,7 +17,6 @@
 
 (** This is the client side of the Marionnet-daemon support: *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Daemon_language;;
 open Daemon_parameters;;
 open Recursive_mutex;;

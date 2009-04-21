@@ -16,7 +16,6 @@
 
 (* To do: rename 'state' into 'row' *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Treeview;;
 open Initialization;;
 open Sugar;;

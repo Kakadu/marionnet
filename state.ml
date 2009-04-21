@@ -17,7 +17,6 @@
 
 (** Provide the class modelling the global state of the application. *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Sugar;;
 open StringExtra;;
 open UnixExtra;;

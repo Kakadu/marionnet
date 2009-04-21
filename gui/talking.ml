@@ -18,12 +18,10 @@
 (** All dialogs are implemented here. This module provide the capability for user to talk with the application.
     Specifically, the name "Talking" stands here for "Talking with user". *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Simple_dialogs;;
 open Sugar;;
 open StringExtra;;
 open StrExtra;;
-open ListExtra;;
 open UnixExtra;;
 open StrExtra;;
 open Environment;;

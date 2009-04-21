@@ -14,7 +14,6 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Sugar;;
 open ListExtra;;
 open StringExtra;;
@@ -201,7 +200,7 @@ object (self)
       (self#id_to_window id)#destroy ();
       Hashmap.remove id_to_data id
      with _ ->
-       (print_string "WARNING: failed in destroy_device_ledgrid\n";
+       (PervasivesExtra.print_string "WARNING: failed in destroy_device_ledgrid\n";
         Log.print_string ("  (id is "^(string_of_int id)^",\n")));
     self#unlock
 

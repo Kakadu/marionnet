@@ -14,7 +14,6 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
 open Treeview;;
 open Initialization;;
 open ListExtra;;
@@ -134,9 +133,7 @@ object(self)
 
   method private device_row_id device_name =
     let result = 
-(*     print_string "!!!!C1 treeview: row_such_that: begin\n"; flush_all (); *)
     self#row_id_such_that (fun row -> (lookup_alist "Name" row) = String device_name) in
-(*     print_string "!!!!C1 treeview: row_such_that: begin\n"; flush_all (); *)
     result
 
   method ports_no_of device_name =

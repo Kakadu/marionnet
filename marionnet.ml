@@ -20,7 +20,6 @@
     bindings between widgets of the main window and dialogs are created, and
     finally the GTK main loop is launched. *)
 
-open PreludeExtra.Prelude (* We want synchronous terminal output *)
 open StdLabels
 open Gui
 open Gettext

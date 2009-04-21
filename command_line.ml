@@ -14,7 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open PreludeExtra.Prelude;; (* We want synchronous terminal output *)
+open PervasivesExtra;; (* We want synchronous terminal output *)
 
 (** Parse the command line looking for the option "--exam". It's the only command-line
     argument we support as of now. *)

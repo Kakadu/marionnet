@@ -20,7 +20,6 @@ open Gettext;;
 (** Gui completion for the dialog_SWITCH widget defined with glade. *)
 
 (* Shortcuts *)
-module Str = StrExtra.Str
 let mkenv = Environment.make_string_env
 
 module Make (State:sig val st:State.globalState end) = struct
@@ -75,7 +74,7 @@ module Make (State:sig val st:State.globalState end) = struct
      let (c,o) = match update with None -> ("add","") | Some h -> ("update",h#name)      in
      let l     = dialog#switch_label#text                                                in
      let eth   = (string_of_int dialog#switch_ports#value_as_int)                        in
-     if not (Str.wellFormedName n) then raise Talking.EDialog.IncompleteDialog
+     if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog
      else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
      end in
 

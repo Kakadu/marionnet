@@ -230,7 +230,7 @@ end;; (* module Msg *)
     we don't want to bother supporting, like ' ', otherwise raise an exception.
     No check is performed on the pathname actual existence or permissions: *)
 let check_pathname_validity pathname =
-  if Str.Bool.match_string "^[a-zA-Z0-9_\\/\\-]+$" pathname then
+  if StrExtra.Bool.match_string "^[a-zA-Z0-9_\\/\\-]+$" pathname then
     pathname
   else
     failwith "The pathname "^ pathname ^" contains funny characters, and we don't support it";;
@@ -259,7 +259,7 @@ must contain only letters, numbers, dash and underscore.") directory)
     end in
   let path_name = Filename.basename path_name in
   let check_chopped_basename_validity chopped_basename =
-    if Str.wellFormedName ~allow_dash:true chopped_basename then
+    if StrExtra.wellFormedName ~allow_dash:true chopped_basename then
       chopped_basename
     else begin
       Simple_dialogs.error

@@ -193,7 +193,7 @@ object(self)
         ~label:(s_ "Enter the new variant name; this name must begin with a letter and can contain letters, numbers, dashes and underscores.")
         ~constraint_predicate:(fun s ->
                                  (String.length s > 0) &&
-                                 (Str.wellFormedName ~allow_dash:true s))
+                                 (StrExtra.wellFormedName ~allow_dash:true s))
         ~invalid_text_message:(s_ "The name must begin with a letter and can contain letters, numbers, dashes and underscores.")
         ~enable_cancel:true
         ~ok_callback:(fun variant_name ->

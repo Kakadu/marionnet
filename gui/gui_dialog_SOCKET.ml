@@ -19,7 +19,6 @@ open Gettext;;
 (** Gui completion for the dialog_SOCKET widget defined with glade. *)
 
 (* Shortcuts *)
-module Str = StrExtra.Str
 let mkenv = Environment.make_string_env
 
 module Make (State:sig val st:State.globalState end) = struct
@@ -67,7 +66,7 @@ module Make (State:sig val st:State.globalState end) = struct
      let ip_3 = string_of_float dialog#socket_ip_c   #value                            in
      let ip_4 = string_of_float dialog#socket_ip_d   #value                            in
      let nm   = string_of_float dialog#socket_ip_netmask#value                         in
-     if not (Str.wellFormedName n) then raise Talking.EDialog.IncompleteDialog  else
+     if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog  else
             mkenv [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ;
                    ("ip_1",ip_1); ("ip_2",ip_2); ("ip_3",ip_3);  ("ip_4",ip_4); ("nm",nm) ]
      end in

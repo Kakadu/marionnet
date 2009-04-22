@@ -20,7 +20,6 @@ open Gettext;;
 (** Gui completion for the dialog_HUB widget defined with glade. *)
 
 (* Shortcuts *)
-module Str = StrExtra.Str
 let mkenv = Environment.make_string_env
 
 module Make (State:sig val st:State.globalState end) = struct
@@ -74,7 +73,7 @@ end in
      let l     = dialog#hub_label#text                                                   in
      let (c,o) = match update with None -> ("add","") | Some h -> ("update",h#name)      in
      let eth   = (string_of_int dialog#hub_ports#value_as_int)                           in
-     if not (Str.wellFormedName n) then raise Talking.EDialog.IncompleteDialog
+     if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog
      else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
      end in
 

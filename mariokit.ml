@@ -874,10 +874,10 @@ end;;
 class id_name_label = fun ?(name="noname") ?(label="") () ->
 
   (* Some checks over used name and label *)
-  let wellFormedLabel =  (Str.Bool.match_string ".*[><].*") || not in
+  let wellFormedLabel =  (StrExtra.Bool.match_string ".*[><].*") || not in
 
   let check_name  x =
-  	if not (Str.wellFormedName  x)
+  	if not (StrExtra.wellFormedName  x)
        	then failwith ("Setting component "^name^": invalid name")
         else x in
 
@@ -943,10 +943,10 @@ class receptacle = fun ~network (name:receptname) (index:int) label (kind:portki
 
    let wellFormedReceptName k x =
     match k with
-    | Eth  -> (Str.Bool.match_string "^eth[0-9]$"        x) or
-              (Str.Bool.match_string "^eth[1-9][0-9]+$"  x) or
-              (Str.Bool.match_string "^port[0-9]$"       x) or
-              (Str.Bool.match_string "^port[1-9][0-9]+$" x) in
+    | Eth  -> (StrExtra.Bool.match_string "^eth[0-9]$"        x) or
+              (StrExtra.Bool.match_string "^eth[1-9][0-9]+$"  x) or
+              (StrExtra.Bool.match_string "^port[0-9]$"       x) or
+              (StrExtra.Bool.match_string "^port[1-9][0-9]+$" x) in
 
   let check_receptname k x = if not (wellFormedReceptName k x) then
     failwith ("Setting receptacle: name "^x^" not valid for this kind of receptacle")
@@ -963,7 +963,7 @@ class receptacle = fun ~network (name:receptname) (index:int) label (kind:portki
       For instance, one expects that a receptacle with the label "eth2" will have the index=2. *)
   method index = if (index>=0)
                  then index
-                 else name => ((Str.extract_groups (Str.regexp "[a-z]*\\([0-9]+\\)")) || List.hd || int_of_string)
+                 else name => ((StrExtra.extract_groups (Str.regexp "[a-z]*\\([0-9]+\\)")) || List.hd || int_of_string)
 end;;
 
 

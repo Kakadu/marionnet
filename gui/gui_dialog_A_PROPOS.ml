@@ -20,7 +20,6 @@ open Gettext;;
 (** Gui completion for the dialog_A_PROPOS widget defined with glade. *)
 
 (* Shortcuts *)
-module Str = StrExtra.Str
 let mkenv = Environment.make_string_env
 
 module Make (State:sig val st:State.globalState end) = struct

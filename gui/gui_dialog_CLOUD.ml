@@ -20,7 +20,6 @@ open Gettext;;
 (** Gui completion for the dialog_CLOUD widget defined with glade. *)
 
 (* Shortcuts *)
-module Str = StrExtra.Str
 let mkenv = Environment.make_string_env
 
 module Make (State:sig val st:State.globalState end) = struct
@@ -64,7 +63,7 @@ module Make (State:sig val st:State.globalState end) = struct
      let n     = dialog#cloud_name#text                                                  in
      let l     = dialog#cloud_label#text                                                 in
      let (c,o) = match update with None -> ("add","") | Some c -> ("update",c#name)      in
-     if not (Str.wellFormedName n) then raise Talking.EDialog.IncompleteDialog
+     if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog
      else mkenv [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ; ]
      end in
 

@@ -19,7 +19,6 @@ open Gettext;;
 (** Gui completion for both dialog_CABLE widget defined with glade. *)
 
 (* Shortcuts *)
-module Str  = StrExtra.Str
 module Netmodel = Mariokit.Netmodel
 let mkenv = Environment.make_string_env
 
@@ -149,7 +148,7 @@ module Make
      let lr    = left#slave#selected                                                     in
      let rn    = right#selected                                                          in
      let rr    = right#slave#selected                                                    in
-     if (not (Str.wellFormedName n)) or (ln="") or (lr="") or (rn="") or (rr="")
+     if (not (StrExtra.wellFormedName n)) or (ln="") or (lr="") or (rn="") or (rr="")
      then raise Talking.EDialog.IncompleteDialog  else
      if (ln,lr) = (rn,rr)
      then (raise (Talking.EDialog.BadDialog

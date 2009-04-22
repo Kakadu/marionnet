@@ -20,7 +20,6 @@ open Gettext;;
 (** Gui completion for the dialog_MACHINE widget defined with glade. *)
 
 (* Shortcuts *)
-module Str = StrExtra.Str
 let mkenv = Environment.make_string_env
 
 module Make (State:sig val st:State.globalState end) = struct
@@ -123,7 +122,7 @@ module Make (State:sig val st:State.globalState end) = struct
      let p     = distrib#slave#selected                                             in
      let k     = kernel#selected                                                    in
      let t     = terminal#selected                                                  in
-     if not (Str.wellFormedName n) then raise Talking.EDialog.IncompleteDialog  else
+     if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog  else
      mkenv [("name",n) ; ("action",c)  ; ("oldname",o) ; ("memory",m) ; ("eth",e) ;
             ("distrib",d) ; ("patch",p)   ; ("kernel",k) ; ("term",t)  ]
      end in

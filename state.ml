@@ -18,7 +18,6 @@
 (** Provide the class modelling the global state of the application. *)
 
 open Sugar;;
-open StringExtra;;
 open UnixExtra;;
 open SysExtra;;
 open Gettext;;
@@ -394,7 +393,7 @@ class globalState = fun () ->
     let fill =
       (* disk usage (in kb) with the unix command *)
       let du x = match Unix.run ~trace:true ("du -sk "^x) with
-       | kb, (Unix.WEXITED 0) -> (try Some (float_of_string (List.hd (String.split ~d:'\t' kb))) with _ -> None)
+       | kb, (Unix.WEXITED 0) -> (try Some (float_of_string (List.hd (StringExtra.split ~d:'\t' kb))) with _ -> None)
        | _,_                  -> None
       in
       (* disk usage (in kb) with the unix library *)

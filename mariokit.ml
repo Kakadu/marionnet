@@ -884,7 +884,7 @@ class id_name_label = fun ?(name="noname") ?(label="") () ->
   let check_label x =
   	if not (wellFormedLabel x)
         then failwith ("Setting component "^name^": invalid label")
-        else (String.strip x) in
+        else (StringExtra.strip x) in
 
   object (self)
 
@@ -1611,7 +1611,7 @@ class device =
     MSys.variant_list_of ("router-" ^ d) () in
   let check_variant x d =
     if not (List.mem x (variantsListOf d)) then
-      raise (Failure ("Setting router variant: "^x^" not in the list of available variants, which is:"^((variantsListOf d)=> String.Text.to_string)))
+      raise (Failure ("Setting router variant: "^x^" not in the list of available variants, which is:"^((variantsListOf d)=> StringExtra.Text.to_string)))
     else
       x in
  fun
@@ -1826,7 +1826,7 @@ class machine =
     MSys.variant_list_of ("machine-" ^ d) () in
 
   let check_variant x d = if not (List.mem x (variantsListOf d)) then
-    raise (Failure ("Setting machine "^name^": variant "^x^" not in the list of available variants, which is:"^((variantsListOf d)=> String.Text.to_string)))
+    raise (Failure ("Setting machine "^name^": variant "^x^" not in the list of available variants, which is:"^((variantsListOf d)=> StringExtra.Text.to_string)))
     else x in
 
   let check_kernel x = if not (List.mem x (MSys.kernelList ())) then
@@ -2121,8 +2121,8 @@ let dotEdgeTrad ?(edgeoptions="") (labeldistance_base) (((n1,r1),c,(n2,r2)):edge
       | _ , "" -> (","^iden^"=\""^port^"\"")
       | _ , _  ->
           begin
-          let port_line      = (String.assemble "<TR><TD>" port "</TD></TR>") in
-          let portlabel_line = (String.assemble "<TR><TD><FONT COLOR=\"#3a3936\">" portlabel "</FONT></TD></TR>") in
+          let port_line      = (StringExtra.assemble "<TR><TD>" port "</TD></TR>") in
+          let portlabel_line = (StringExtra.assemble "<TR><TD><FONT COLOR=\"#3a3936\">" portlabel "</FONT></TD></TR>") in
 (","^iden^"=<
 <TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">
 "^port_line^"
@@ -2712,28 +2712,28 @@ class network = fun () ->
    Log.print_endline "========== NETWORK STATUS ===========";
    (* show devices *)
    let msg= try
-        (String.Fold.commacat
+        (StringExtra.Fold.commacat
         (List.map (fun d->d#name^" ("^(string_of_devkind d#devkind)^")") devices))
         with _ -> ""
      in Log.print_endline ("Devices \r\t\t: "^msg);
    (* show machines *)
    let msg=try
-        (String.Fold.commacat (List.map (fun m->m#show) machines))
+        (StringExtra.Fold.commacat (List.map (fun m->m#show) machines))
         with _ -> ""
    in Log.print_endline ("Machines \r\t\t: "^msg);
    (* show clouds *)
    let msg=try
-        (String.Fold.commacat (List.map (fun c->c#show) clouds))
+        (StringExtra.Fold.commacat (List.map (fun c->c#show) clouds))
         with _ -> ""
    in Log.print_endline ("Clouds \r\t\t: "^msg);
    (* show gateways *)
    let msg=try
-        (String.Fold.commacat (List.map (fun c->c#show) gateways))
+        (StringExtra.Fold.commacat (List.map (fun c->c#show) gateways))
         with _ -> ""
    in Log.print_endline ("Gateways \r\t\t: "^msg);
    (* show links *)
    let msg=try
-        (String.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables))
+        (StringExtra.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables))
         with _ -> ""
    in Log.print_endline ("Cables \r\t\t: "^msg)
 
@@ -2779,7 +2779,7 @@ class network = fun () ->
    *************** */
 
 "^
-(String.Text.to_string
+(StringExtra.Text.to_string
    (List.map
      (fun (n:node)->n#dotTrad opt#get_iconsize)
      (ListExtra.permute opt#get_shuffler self#nodes)
@@ -2794,7 +2794,7 @@ edge [dir=none,color=\""^Color.direct_cable^"\",fontsize=8,labelfontsize=8,minle
 opt#get_labeldistance^",tailclip=true];
 
 "^
-(String.Text.to_string
+(StringExtra.Text.to_string
    (List.map (dotEdgeTrad opt#labeldistance) (self#edgesOfKind None (Some Direct) None)))
 
 ^"
@@ -2806,11 +2806,11 @@ opt#get_labeldistance^",tailclip=true];
 edge [headclip=true,minlen=1.6,color=\""^Color.crossover_cable^"\",weight=1];
 
 "^
-(String.Text.to_string
+(StringExtra.Text.to_string
    (List.map (dotEdgeTrad opt#labeldistance) (self#edgesOfKind None (Some Crossover) None)))
 
 ^
-(String.Text.to_string
+(StringExtra.Text.to_string
    (List.map
       (dotEdgeTrad ~edgeoptions:"style=bold" opt#labeldistance)
       (self#edgesOfKind None (Some NullModem) None)

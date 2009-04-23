@@ -15,42 +15,27 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Sugar;;
-open ListExtra;;
-open StringExtra;;
-open SysExtra;;
-open StrExtra;;
-open UnixExtra;;
-open Hashmap;;
 open Ledgrid;;
-open Unix;;
-open UnixExtra;;
 open Gtk.Tags;;
 
 let blinker_thread_socket_file_name =
   let parent =
-    try
-      Some (Global_options.get_project_working_directory ())
-    with _ ->
-      None in
-  Unix.temp_file
-    ?parent
-    ~prefix:".marionnet-blinker-server-socket-"
-    ();;
+    try Some (Global_options.get_project_working_directory ())
+    with _ -> None
+  in
+  UnixExtra.temp_file ?parent ~prefix:".marionnet-blinker-server-socket-" ()
+;;
 
 class ledgrid_manager =
 object (self)
   (** Synchornization is automatically managed by methods, thus making 
       ledgrid_manager a monitor *)
-  val mutex =
-    Mutex.create ()
-  method private lock =
-    Mutex.lock mutex
-  method private unlock =
-    Mutex.unlock mutex
-      
-  val id_to_data =
-    Hashmap.make ()
-  
+  val mutex = Mutex.create ()
+  method private lock   = Mutex.lock mutex
+  method private unlock = Mutex.unlock mutex
+
+  val id_to_data = Hashmap.make ()
+
   method blinker_thread_socket_file_name =
     blinker_thread_socket_file_name
 
@@ -256,10 +241,10 @@ object (self)
     Thread.create
       (fun () ->
         Log.print_string ("Making the socket\n");
-        let socket = socket PF_UNIX SOCK_DGRAM 0 in
+        let socket = Unix.socket Unix.PF_UNIX Unix.SOCK_DGRAM 0 in
         let _ = try Unix.unlink blinker_thread_socket_file_name with _ -> () in
         Log.print_string ("Binding the socket\n");
-        let _ = bind socket (ADDR_UNIX blinker_thread_socket_file_name) in
+        let _ = Unix.bind socket (Unix.ADDR_UNIX blinker_thread_socket_file_name) in
         Log.print_string ("Still alive\n");
         let maximum_message_size = 1000 in
         let buffer = String.create maximum_message_size in
@@ -294,7 +279,7 @@ object (self)
           (* ==== End of the reasonable version ==== *)
           (* ==== Beginning of the unreasonable version ==== *)
           (try
-            ignore (recvfrom socket buffer 0 maximum_message_size [])
+            ignore (Unix.recvfrom socket buffer 0 maximum_message_size [])
           with _ -> ());
           let length = try String.index buffer '\n' with _ -> 0 in
           let message = String.sub buffer 0 length in
@@ -329,11 +314,11 @@ object (self)
   (** This should be called before termination *)
   method kill_blinker_thread =
     let client_socket =
-      Unix.socket PF_UNIX SOCK_DGRAM 0 in
+      Unix.socket Unix.PF_UNIX Unix.SOCK_DGRAM 0 in
     let client_socket_file_name =
       Filename.temp_file "blinker-killer-client-socket-" "" in
     (try Unix.unlink client_socket_file_name with _ -> ());
-    Unix.bind client_socket (ADDR_UNIX client_socket_file_name);
+    Unix.bind client_socket (Unix.ADDR_UNIX client_socket_file_name);
     Log.printf "Sending the message \"please-die\" to the blinker thread...\n";
     flush_all ();
     let message = "please-die" in
@@ -344,7 +329,7 @@ object (self)
                 0
                 ((String.length message))
                 []
-                (ADDR_UNIX blinker_thread_socket_file_name));
+                (Unix.ADDR_UNIX blinker_thread_socket_file_name));
     with _ -> begin
       Log.print_string "!!!!!!!!!!! VERY SERIOUS !!!!!!!!!!\n"; flush_all ();
       Log.print_string "sending the message \"please-die\" to the blinker thread failed.\n"; flush_all ();

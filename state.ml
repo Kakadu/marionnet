@@ -18,8 +18,6 @@
 (** Provide the class modelling the global state of the application. *)
 
 open Sugar;;
-open UnixExtra;;
-open SysExtra;;
 open Gettext;;
 open Environment;;
 open Mariokit;;
@@ -185,7 +183,7 @@ class globalState = fun () ->
 
       (* Set the project working directory to a random name in the wdir. *)
       self#set_pwdir
-        (Some (Unix.temp_dir ~parent:wdir ~prefix:marionnet_working_directory_prefix ~suffix:".dir" ()));
+        (Some (UnixExtra.temp_dir ~parent:wdir ~prefix:marionnet_working_directory_prefix ~suffix:".dir" ()));
 
       (* Create the directory skeleton into the pwdir. *)
       let prefix = (self#get_pwdir^"/"^(self#get_prj_name)^"/") in
@@ -316,7 +314,7 @@ class globalState = fun () ->
     prj_filename#set (Some x) ;
 
     (* Set the project working directory to a random name in the wdir. *)
-    let working_directory = Unix.temp_dir ~parent:wdir ~prefix:marionnet_working_directory_prefix ~suffix:".dir" () in
+    let working_directory = UnixExtra.temp_dir ~parent:wdir ~prefix:marionnet_working_directory_prefix ~suffix:".dir" () in
     self#set_pwdir (Some working_directory);
 
     (* Extract the mar file into the pwdir *)
@@ -392,7 +390,7 @@ class globalState = fun () ->
     (* Progress bar periodic callback. *)
     let fill =
       (* disk usage (in kb) with the unix command *)
-      let du x = match Unix.run ~trace:true ("du -sk "^x) with
+      let du x = match UnixExtra.run ~trace:true ("du -sk "^x) with
        | kb, (Unix.WEXITED 0) -> (try Some (float_of_string (List.hd (StringExtra.split ~d:'\t' kb))) with _ -> None)
        | _,_                  -> None
       in

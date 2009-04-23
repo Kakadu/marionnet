@@ -20,7 +20,6 @@ open Gettext;;
 (** Gui completion for the menubar_MARIONNET widget defined with glade. *)
 
 (* Shortcuts *)
-module Unix = UnixExtra.Unix
 module EDialog = Talking.EDialog
 module Msg = Talking.Msg
 let mkenv = Environment.make_string_env
@@ -232,7 +231,7 @@ module Created_entry_project_export = Menu_factory.Make_entry
      let command  = ("cp "^st#pngSketchFile^" "^filename) in
      let () =  Log.print_string "About to call Unix.run...\n"; flush_all () in
      try
-      (match Unix.run command with
+      (match UnixExtra.run command with
       |  (_ , Unix.WEXITED 0) -> st#flash ~delay:6000 ((s_ "Network image correctly exported to the file ")^filename)
       |  _                    -> raise (Failure ((s_ "Failed to export network image to the file ")^filename))
       )

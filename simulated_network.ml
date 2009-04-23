@@ -14,7 +14,6 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open UnixExtra;;
 open Defects_interface;;
 open Recursive_mutex;;
 open Daemon_language;;
@@ -282,7 +281,7 @@ class hub_or_switch_process =
       () ->
 (* Make a unique socket name: *)
 let socket_name =
-  Unix.temp_file
+  UnixExtra.temp_file
     ~parent:(Global_options.get_project_working_directory ())
     ~prefix:"hub-or-switch-"
     () in
@@ -643,7 +642,7 @@ let random_ghost_mac_address () =
 
 (** Create a fresh sparse file name for swap and return it: *)
 let create_swap_file_name () =
-  Unix.temp_file
+  UnixExtra.temp_file
     ~parent:(Global_options.get_project_working_directory ())
     ~prefix:"sparse-swap-"
     ();;

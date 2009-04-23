@@ -16,8 +16,6 @@
 
 open Treeview;;
 open Initialization;;
-open ListExtra;;
-open UnixExtra;;
 open Sugar;;
 open Row_item;;
 open Gettext;;
@@ -147,7 +145,7 @@ object(self)
       let format =
         self#file_to_format pathname in
       let fresh_pathname =
-        Unix.temp_file ~parent:self#get_working_directory ~prefix:"document-" () in
+        UnixExtra.temp_file ~parent:self#get_working_directory ~prefix:"document-" () in
       let fresh_name = 
         Filename.basename fresh_pathname in
       let command_line =

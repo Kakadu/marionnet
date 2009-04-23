@@ -20,10 +20,6 @@
 
 open Strings;;
 open Sugar;;
-open ListExtra;;
-open StringExtra;;
-open SysExtra;;
-open StrExtra;;
 open UnixExtra;;
 open Environment;;
 open Oomarshal;;
@@ -100,7 +96,7 @@ module MSys = struct
    let prefix_length = String.length prefix in
    let strip_prefix s = String.sub s prefix_length ((String.length s) - prefix_length) in
    let list =
-     Sys.readdir_into_list
+     SysExtra.readdir_into_list
        ~namefilter:(fun file_name -> ((String.length file_name) > prefix_length) &&
                                      ((String.sub file_name 0 prefix_length) = prefix))
        ~nameconverter:strip_prefix

@@ -28,13 +28,7 @@
     table, and reinsert the surviving ones. *)
 
 type id = int;;
-
-let fresh_id : unit -> id =
-  let next_fresh_id = ref 1 in
-  fun () ->
-    let result = !next_fresh_id in
-    next_fresh_id := result + 1;
-    result;;
+let fresh_id = Counter.make_int_generator ()
 
 type 'a graph =
     (* Nodes: *)

@@ -231,7 +231,7 @@ let hex_byte_to_int_byte h =
 (** {2 Implementation of stuff simulated with Unix processes} *)
 
 (** Generate a unique identifier for a switch process *)
-let gensym () = Identifier.click ~index:3 ();;
+let gensym = Counter.make_int_generator ();;
 
 class xnest_process =
   fun ?(host_name_as_client=X.host_name)
@@ -630,7 +630,7 @@ let zip3 xs ys zs =
         zip3' rest_of_xs rest_of_ys rest_of_zs ((x, y, z) :: acc)
   in
   zip3' xs ys zs [];;
-          
+
 let random_ghost_mac_address () =
   let octet0 = "42" in
   let octet1 = "42" in

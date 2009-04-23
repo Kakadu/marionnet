@@ -882,10 +882,12 @@ class id_name_label = fun ?(name="noname") ?(label="") () ->
         then failwith ("Setting component "^name^": invalid label")
         else (StringExtra.strip x) in
 
+  let fresh_id = Counter.make_int_generator () in
+
   object (self)
 
   (** A component has an immutable identifier. *)
-  val id : int = Identifier.fresh ()
+  val id : int = fresh_id ()
   method id = id
 
   (** A component has a mutable name. *)

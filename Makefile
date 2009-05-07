@@ -40,7 +40,7 @@ SHELL=/bin/bash
 OCAMLBUILD = $$( $(call OCAMLBUILD_COMMAND_LINE) )
 
 # The main target. Its implementation is entirely project-dependant:
-main: ocamlbuild-stuff main-local data libraries programs
+main: ocamlbuild-stuff manually_pre_actions main-local data libraries programs manually_post_actions
 	@(echo "Success.")
 
 # Build C modules (no one, by default):
@@ -125,6 +125,82 @@ all: main
 # but we do nothing more by default:
 world: world-local main
 	@(echo 'Success.')
+
+
+############################################################################
+# Support for manually generated files (i.e. not generated with ocamlbuild)
+############################################################################
+
+# Example: (in your Makefile.local)
+#
+# foo.byte   : manually_pre_actions
+# foo.native : manually_pre_actions
+#
+# MANUALLY_PRE_COPY_IN_build = include_as_string.ml USAGE.txt
+# MANUALLY_PRE_MAKE_IN_build = include_as_string.cmo
+#
+# _build/include_as_string.cmo: include_as_string.ml
+#	ocamlc -c -I +camlp4 camlp4lib.cma -pp camlp4of -o $@ $<
+
+.PHONY : manually_pre_actions manually_post_actions
+
+################################# PRE-ACTIONS support
+
+# Files that must be copied in _build/ *before* the ocamlbuild processing.
+MANUALLY_PRE_COPY_IN_build =
+
+# Targets that must be created in _build/ *before* the ocamlbuild processing.
+# For each foo.bar that appears in this list, you have to write a rule
+# _build/foo.bar in your Makefile.local
+MANUALLY_PRE_MAKE_IN_build =
+
+manually_pre_actions:
+	$(call PERFORM_MANUALLY_PRE_ACTIONS, $(MANUALLY_PRE_COPY_IN_build),$(MANUALLY_PRE_MAKE_IN_build))
+
+# Detect if "make clean" is required or copy and build manually targets
+# specified in MANUALLY_PRE_COPY_IN_build and MANUALLY_PRE_MAKE_IN_build
+PERFORM_MANUALLY_PRE_ACTIONS = \
+	@(\
+	if test -d _build/; \
+	then \
+	  echo "Checking if files manually copied in _build/ have been modified..."; \
+	  for x in $(1); do \
+	    echo "Checking \"$$x\"..."; \
+	    test ! -f _build/$$x || \
+	       diff -q $$x _build/$$x 2>/dev/null || \
+	       { echo -e "********************\nmake clean required!\n********************"; exit 1; } ;\
+	  done; \
+	else \
+	  mkdir _build/; \
+	fi; \
+	for x in $(1); do echo "Manually pre-copying \"$$x\"...";  cp --parent -f $$x _build/; done; \
+	for y in $(2); do echo "Manually pre-building \"$$y\"..."; make _build/$$y || exit 1; done; \
+	)
+
+################################# POST-ACTIONS support
+
+# Files that must be copied in _build/ *after* the ocamlbuild processing.
+MANUALLY_POST_COPY_IN_build =
+
+# Targets that must be created in _build/ *after* the ocamlbuild processing.
+# For each foo.bar that appears in this list, you have to write a rule
+# _build/foo.bar in your Makefile.local
+MANUALLY_POST_MAKE_IN_build =
+
+manually_post_actions:
+	$(call PERFORM_MANUALLY_POST_ACTIONS, $(MANUALLY_POST_COPY_IN_build), $(MANUALLY_POST_MAKE_IN_build))
+
+PERFORM_MANUALLY_POST_ACTIONS = \
+	@(\
+	for x in $(1); do echo "Manually post-copying \"$$x\"...";  cp --parent -f $$x _build/; done; \
+	for y in $(2); do echo "Manually post-building \"$$y\"..."; make _build/$$y || exit 1; done; \
+	)
+
+
+
+############################################################################
+# Other entries
+
 
 # Edit all ml/mli files and Makefile.local with your $EDITOR
 edit:

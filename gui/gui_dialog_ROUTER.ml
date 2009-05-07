@@ -48,24 +48,27 @@ module Make (State:sig val st:State.globalState end) = struct
      Tk.Tooltip.set_both d#label_dialog_ROUTER_label d#router_label Tk.Tooltip.Text.component_label;
      Tk.Tooltip.set_both d#label_dialog_ROUTER_ports d#router_ports (s_ "Number of router ports" );
      Tk.Tooltip.set d#label_dialog_ROUTER_ip_port0 (s_ "IPv4 configuration of the first router port (0)" );
-     Tk.Tooltip.set d#router_ip_a (s_ "First octet of the IPv4 address" );
-     Tk.Tooltip.set d#router_ip_b (s_ "Second octet of the IPv4 address" );
-     Tk.Tooltip.set d#router_ip_c (s_ "Third octet of the IPv4 address" );
-     Tk.Tooltip.set d#router_ip_d (s_ "Fourth octet of the IPv4 address" );
-     Tk.Tooltip.set d#router_ip_netmask (s_ "Netmask (CIDR notation)" );
+     Tk.Tooltip.set d#spin_dialog_ROUTER_ip_a (s_ "First octet of the IPv4 address" );
+     Tk.Tooltip.set d#spin_dialog_ROUTER_ip_b (s_ "Second octet of the IPv4 address" );
+     Tk.Tooltip.set d#spin_dialog_ROUTER_ip_c (s_ "Third octet of the IPv4 address" );
+     Tk.Tooltip.set d#spin_dialog_ROUTER_ip_d (s_ "Fourth octet of the IPv4 address" );
+     Tk.Tooltip.set d#spin_dialog_ROUTER_ip_netmask (s_ "Netmask (CIDR notation)" );
     end in
 
    begin
    match update with
    | None   -> let prefix = "R" in
-               dialog#router_name#set_text (st#network#suggestedName prefix);
-               dialog#router_name#misc#grab_focus ()
-   | Some h -> begin
-                dialog#router_name #set_text   h#get_name                  ;
-                dialog#router_label#set_text   h#get_label                 ;
-                dialog#router_ports#set_value (float_of_int h#get_eth_number);
+               d#router_name#set_text (st#network#suggestedName prefix);
+               d#router_name#misc#grab_focus ()
+   | Some r -> begin
+                d#router_name #set_text   r#get_name                  ;
+                d#router_label#set_text   r#get_label                 ;
+                d#router_ports#set_value (float_of_int r#get_eth_number);
+(*                List.iter
+                   (fun spin x -> spin#set_value x)
+                   [(d#spin_dialog_ROUTER_ip_a,???); (d#spin_dialog_ROUTER_ip_b,???); (d#spin_dialog_ROUTER_ip_c,???); (d#spin_dialog_ROUTER_ip_d,???)];*)
                 (* The user cannot remove receptacles used by a cable. *)
-                let min_eth = (st#network#maxBusyReceptacleIndex h#get_name Mariokit.Netmodel.Eth)+1 in
+                let min_eth = (st#network#maxBusyReceptacleIndex r#get_name Mariokit.Netmodel.Eth)+1 in
                 let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
                 dialog#router_ports#adjustment#set_bounds ~lower:(max min_multiple_of_4 4.0) () ;
                end

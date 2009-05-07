@@ -2668,7 +2668,7 @@ Version QQVERSIONQQ, QQDATEQQ
               </packing>
             </child>
             <child>
-              <widget class="GtkSpinButton" id="router_ip_a">
+              <widget class="GtkSpinButton" id="spin_dialog_ROUTER_ip_a">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="xalign">1</property>
@@ -2684,7 +2684,7 @@ Version QQVERSIONQQ, QQDATEQQ
               </packing>
             </child>
             <child>
-              <widget class="GtkSpinButton" id="router_ip_b">
+              <widget class="GtkSpinButton" id="spin_dialog_ROUTER_ip_b">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="xalign">1</property>
@@ -2700,7 +2700,7 @@ Version QQVERSIONQQ, QQDATEQQ
               </packing>
             </child>
             <child>
-              <widget class="GtkSpinButton" id="router_ip_c">
+              <widget class="GtkSpinButton" id="spin_dialog_ROUTER_ip_c">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="xalign">1</property>
@@ -2716,7 +2716,7 @@ Version QQVERSIONQQ, QQDATEQQ
               </packing>
             </child>
             <child>
-              <widget class="GtkSpinButton" id="router_ip_d">
+              <widget class="GtkSpinButton" id="spin_dialog_ROUTER_ip_d">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="xalign">1</property>
@@ -2796,7 +2796,7 @@ Version QQVERSIONQQ, QQDATEQQ
               </packing>
             </child>
             <child>
-              <widget class="GtkSpinButton" id="router_ip_netmask">
+              <widget class="GtkSpinButton" id="spin_dialog_ROUTER_ip_netmask">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="xalign">1</property>

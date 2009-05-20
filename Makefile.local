@@ -149,21 +149,21 @@ LANGUAGES = it fr
 compile-mo: 
 	@(cd po/; \
 	for i in $(LANGUAGES); \
-	do (msgfmt $$i.po && mv messages.mo $$i.mo || exit -1); \
+	do (msgfmt $$i.po && mv messages.mo $$i.mo || exit -1) && \
 	echo "Compiled "$$i.mo; \
 	done;)
 
 update-po: pot
 	@(cd po/; \
 	for i in $(LANGUAGES); \
-	do (msgmerge --no-fuzzy-matching --sort-by-file --update $$i.po messages.pot || exit -1); \
+	do (msgmerge --no-fuzzy-matching --sort-by-file --update $$i.po messages.pot || exit -1) && \
 	echo "Updated "$$i.po; \
 	done;)	
 
 install-mo: compile-mo
 	@(cd po/; \
 	for i in $(LANGUAGES); \
-	do (cp $$i.mo /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo || exit -1); \
+	do (cp $$i.mo /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo || exit -1) && \
 	echo "Installed "$$i; \
 	done;)
 

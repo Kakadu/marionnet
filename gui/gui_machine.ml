@@ -106,7 +106,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
                    ~enrich:(mkenv [("name",name)])
                    ~gen_id:"answer"
                    ~title:(s_ "Remove")
-                   ~question:(Printf.sprintf (f_ "Are you sure you want to remove %s\nand all cables connected to this %s ?") name (s_ "machine"))
+                   ~question:(Printf.sprintf (f_ "Are you sure that you want to remove %s\nand all the cables connected to this %s?") name (s_ "machine"))
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
@@ -144,7 +144,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
                    ~enrich:(mkenv [("name",name)])
                    ~gen_id:"answer"
                    ~title:(s_ "Shutdown")
-                   ~question:(Printf.sprintf (f_ "Do you want to stop the machine %s ?") name)
+                   ~question:(Printf.sprintf (f_ "Do you want to stop the machine %s?") name)
 
     let reaction r =
       if (r#get "answer") = "yes"
@@ -189,7 +189,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
                    ~enrich:(mkenv [("name",name)])
                    ~gen_id:"answer"
                    ~title:(s_ "Power off")
-                   ~question:(Printf.sprintf (f_ "WARNING: you asked for an immediate stop of the machine,\nlike in a power off. \nThe normal procedure is to stop graciously machines (stop). \n\nDo you want to power off %s anyway ?\n") name)
+                   ~question:(Printf.sprintf (f_ "WARNING: you asked to brutally stop the machine,\nlike in a power-off;\n however you can also gracefully stop machines.\n\nDo you want to power-off %s anyway?\n") name)
 
     let reaction r =
       if (r#get "answer") = "yes"

@@ -75,14 +75,14 @@ module Make (State:sig val st:State.globalState end) = struct
      Tk.Tooltip.set d#image_dialog_MACHINE          (s_ "Virtual machine" ) ;
      Tk.Tooltip.set d#image_dialog_MACHINE_hardware (s_ "Hardware specification." ) ;
      Tk.Tooltip.set d#image_dialog_MACHINE_software (s_ "Software specification." ) ;
-     Tk.Tooltip.set d#image_dialog_MACHINE_uml      (s_ "Specification of User Mode Linux (UML) terminal mode." ) ;
+     Tk.Tooltip.set d#image_dialog_MACHINE_uml      (s_ "User Mode Linux (UML) graphical interface" ) ;
      Tk.Tooltip.set_both d#label_dialog_MACHINE_name     d#name       (s_ "Virtual machine name. This name must be unique in the virtual network." ) ;
-     Tk.Tooltip.set_both d#label_dialog_MACHINE_memory   d#memory     (s_ "Amount of RAM to be reserved for this machine execution." ) ;
+     Tk.Tooltip.set_both d#label_dialog_MACHINE_memory   d#memory     (s_ "Amount of RAM to be reserved for this machine." ) ;
      Tk.Tooltip.set_both d#label_dialog_MACHINE_ethnum   d#eth        (s_ "Number of ethernet cards (eth0, eth1 ...) of the virtual machine" ) ;
      Tk.Tooltip.set_both d#label_dialog_MACHINE_distrib  distrib#box  (s_ "GNU/Linux distribution installed on the virtual machine." ) ;
      Tk.Tooltip.set_both d#label_dialog_MACHINE_variant  distrib#slave#box (s_ "Initial hard disk state. The virtual machine will start by default with this variant of the chosen distribution." ) ;
      Tk.Tooltip.set_both d#label_dialog_MACHINE_kernel   kernel#box   (s_ "Linux kernel version used for this virtual machine." ) ;
-     Tk.Tooltip.set_both d#label_dialog_MACHINE_terminal terminal#box (s_ "Type of terminal to use to control the virtual machine. Possible choices are: (X HOST) terminal with the possibility to launch graphical application on the host X server, and (X NEST) independent graphic server, collecting all virtual machine windows." ) ;
+     Tk.Tooltip.set_both d#label_dialog_MACHINE_terminal terminal#box (s_ "Type of terminal to use to control the virtual machine. Possible choices are: X HOST terminal (providing the possibility to launch graphical applications on the host X server) and X NEST (an independent graphic server displaying all the X windows of a virtual machines)." ) ;
     end in
 
    (* Set defaults. If we are updating, defaults are the old values. *)

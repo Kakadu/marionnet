@@ -40,7 +40,7 @@ module Make
    (* Labels *)
    let () = begin
      Tk.Label.set d#label_dialog_CABLE_name     (s_ "Name");
-     Tk.Label.set d#label_dialog_CABLE_label    (s_ "\nLabel");
+     Tk.Label.set d#label_dialog_CABLE_label    (s_ "\nLabel"); (* The '\n' is intentional. It's needed for layout *)
      Tk.Label.set d#label_dialog_CABLE_col_from (s_ "From");
      Tk.Label.set d#label_dialog_CABLE_col_to   (s_ "To");
      Tk.Label.set d#label_dialog_CABLE_row_name (s_ "Name");
@@ -48,8 +48,8 @@ module Make
     end in
 
    let () = begin
-     Tk.Tooltip.set d#label_dialog_CABLE_col_from (s_ "The first network node connected by the cable");
-     Tk.Tooltip.set d#label_dialog_CABLE_col_to   (s_ "The second network node connected by the cable");
+     Tk.Tooltip.set d#label_dialog_CABLE_col_from (s_ "The first network node connected to the cable");
+     Tk.Tooltip.set d#label_dialog_CABLE_col_to   (s_ "The second network node connected to the cable");
      Tk.Tooltip.set d#label_dialog_CABLE_row_name (s_ "Node name");
      Tk.Tooltip.set d#label_dialog_CABLE_row_port (s_ "Node RJ45 ethernet port");
      (* The following tips disappear when the user choose an entry => deplace them in Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave
@@ -61,7 +61,7 @@ module Make
 
    (match cablekind with
    | Netmodel.Direct ->
-       Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  (s_ "Straight cable name. This name must be unique in the virtual network. Suggested : D1, D2, ... ");
+       Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  (s_ "Straight cable name. This name must be unique in the virtual network. Suggested: D1, D2, ... ");
        Tk.Tooltip.set_both d#label_dialog_CABLE_label d#cable_label (s_ "Label to add to the straight cable icon.");
        Tk.Tooltip.set_both d#image_dialog_CABLE_direct d#image_dialog_CABLE_direct_link (s_ "Straight RJ45 cable");
 
@@ -72,7 +72,7 @@ module Make
        dialog#image_dialog_CABLE_direct        #misc#hide ();
        dialog#image_dialog_CABLE_direct_link   #misc#hide ();
 
-       Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  (s_ "Crossover cable name. This name must be unique in the virtual network. Suggested : C1, C2, ... ");
+       Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  (s_ "Crossover cable name. This name must be unique in the virtual network. Suggested: C1, C2, ... ");
        Tk.Tooltip.set_both d#label_dialog_CABLE_label d#cable_label (Tk.Tooltip.Text.append_label_suggestion_to (s_ "Label to add to the crossover cable icon."));
        Tk.Tooltip.set_both d#image_dialog_CABLE_crossover d#image_dialog_CABLE_crossover_link (s_ "Crossover RJ45 cable");
 
@@ -159,7 +159,7 @@ module Make
      in
      if (ln = rn)
      then (raise (Talking.EDialog.StrangeDialog
-                    ((s_ "Strange connexion"),
+                    ((s_ "Funny connection"),
                      (s_ "The cable is connected to the same device.\nMachines already have the loopback interface for this purpose."),result))) else result
 
      end in

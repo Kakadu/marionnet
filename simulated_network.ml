@@ -1082,7 +1082,7 @@ object(self)
         name in
     let message =
       Printf.sprintf
-        (f_ "The process %s with pid %i allowing the simulation of %s %s is unexpectedly dead. It was necessary %s \"%s\" to maintain a consistent state.")
+        (f_ "The process %s with pid %i allowing the simulation of %s %s died unexpectedly. It was necessary %s \"%s\" to maintain a consistent state.")
         process_name
         pid
         self#device_type

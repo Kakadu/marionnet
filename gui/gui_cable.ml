@@ -116,8 +116,8 @@ module Make_menus
 
     let dialog name =
       let question = match cablekind with
-       | Netmodel.Direct    -> Printf.sprintf (f_ "Are you sure you want to remove the RJ45 straight cable %s ?") name
-       | Netmodel.Crossover -> Printf.sprintf (f_ "Are you sure you want to remove the RJ45 crossover cable %s ?") name
+       | Netmodel.Direct    -> Printf.sprintf (f_ "Are you sure that you want to remove the RJ45 straight cable %s?") name
+       | Netmodel.Crossover -> Printf.sprintf (f_ "Are you sure that you want to remove the RJ45 crossover cable %s?") name
       in
       Talking.EDialog.ask_question ~help:None ~cancel:false 
         ~enrich:(mkenv [("name",name)])

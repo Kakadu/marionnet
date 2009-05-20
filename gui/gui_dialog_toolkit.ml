@@ -43,7 +43,7 @@ module Make (Toplevel : sig val toplevel : GWindow.dialog_any end) = struct
   (* Common text for dialog's tooltips *)
   module Text = struct
 
-   let component_label = (s_ "Label to add to the network sketch next to the element icon." )
+   let component_label = (s_ "Label to be written in the network sketch, next to the element icon." )
 
    let component_label_with_suggestion =
     component_label^" "^(s_ "It is advisable to use as label the IP address of the element (for example \"192.168.1.0/24\")." )
@@ -77,7 +77,7 @@ module Make (Toplevel : sig val toplevel : GWindow.dialog_any end) = struct
                     ((action="update") && (not (name=oldname)) && (st#network#nameExists name))
 
                  then
-                   (Simple_dialogs.error (s_ "Name choice" )
+                   (Simple_dialogs.error (s_ "Name conflict" )
                               (Printf.sprintf(f_ "The name '%s' is already used in the virtual network. The names of virtual network elements must be unique." ) name) ())
 
                  else
@@ -88,8 +88,8 @@ module Make (Toplevel : sig val toplevel : GWindow.dialog_any end) = struct
                  | (Talking.EDialog.BadDialog     (title,msg))   -> (Simple_dialogs.error   title   msg ())
                  | (Talking.EDialog.StrangeDialog (title,msg,r)) -> (*(Msg.warning title msg ()); *)
                        begin
-                       match Talking.EDialog.ask_question ~gen_id:"answer" ~title:"CONFIRMER"
-                       ~question:(msg^(s_ "\nDo you confirm this connection ?" )) ~help:None ~cancel:false ()
+                       match Talking.EDialog.ask_question ~gen_id:"answer" ~title:(s_ "CONFIRM")
+                       ~question:(msg^(s_ "\nDo you confirm this connection?" )) ~help:None ~cancel:false ()
                        with
                        | Some e -> if (e#get("answer")="yes")
                                    then (result := Some r ; cont := false)

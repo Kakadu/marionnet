@@ -36,15 +36,15 @@ module Make (State:sig val st:State.globalState end) = struct
    (* Labels *)
    let () = begin
      Tk.Label.set d#label_dialog_ROUTER_name (s_ "Name" );
-     Tk.Label.set d#label_dialog_ROUTER_label (s_ "\nLabel" );
+     Tk.Label.set d#label_dialog_ROUTER_label (s_ "\nLabel" ); (* the newline is intentional *)
      Tk.Label.set d#label_dialog_ROUTER_ports (s_ "Ports number" );
-     Tk.Label.set d#label_dialog_ROUTER_ip_port0 (s_ "IP port0" );
+     Tk.Label.set d#label_dialog_ROUTER_ip_port0 (s_ "Address of the first port" );
     end in
 
    (* Tooltips *)
    let () = begin
      Tk.Tooltip.set d#image_dialog_ROUTER (s_ "Router" );
-     Tk.Tooltip.set_both d#label_dialog_ROUTER_name  d#router_name (s_ "Router name. This name must be unique in the virtual network. Suggested : R1, R2, ..." );
+     Tk.Tooltip.set_both d#label_dialog_ROUTER_name  d#router_name (s_ "Router name. This name must be unique in the virtual network. Suggested: R1, R2, ..." );
      Tk.Tooltip.set_both d#label_dialog_ROUTER_label d#router_label Tk.Tooltip.Text.component_label;
      Tk.Tooltip.set_both d#label_dialog_ROUTER_ports d#router_ports (s_ "Number of router ports" );
      Tk.Tooltip.set d#label_dialog_ROUTER_ip_port0 (s_ "IPv4 configuration of the first router port (0)" );

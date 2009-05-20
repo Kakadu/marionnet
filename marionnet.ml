@@ -158,9 +158,7 @@ if (Unix.getuid ()) = 0 then begin
   Log.printf "**********************************************\n\n";
   Simple_dialogs.warning
     (s_ "You should not be root!")
-    (s_ "Marionnet is running with UID 0; this is bad from a security point of view.\
-[To do: write a longer, cleaner message...]\
-Continuing anyway.")
+    (s_ "Marionnet is running with UID 0; this is bad from a security point of view... Continuing anyway.")
     ();
 end
 end

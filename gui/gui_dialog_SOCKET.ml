@@ -36,13 +36,13 @@ module Make (State:sig val st:State.globalState end) = struct
    (* Labels *)
    let () = begin
      Tk.Label.set d#label_dialog_SOCKET_name (s_ "Name" );
-     Tk.Label.set d#label_dialog_SOCKET_label (s_ "\nLabel" );
+     Tk.Label.set d#label_dialog_SOCKET_label (s_ "\nLabel" ); (* the newline is intentional *)
     end in
 
    (* Tooltips *)
    let () = begin
-     Tk.Tooltip.set d#image_dialog_SOCKET (s_ "RJ45 socket to outside" );
-     Tk.Tooltip.set_both d#label_dialog_SOCKET_name  d#socket_name (s_ "RJ45 socket name. This name must be unique in the virtual network. Suggested : E1, E2, ..." );
+     Tk.Tooltip.set d#image_dialog_SOCKET (s_ "Outgoing RJ45 socket" );
+     Tk.Tooltip.set_both d#label_dialog_SOCKET_name  d#socket_name (s_ "RJ45 socket name. This name must be unique in the virtual network. Suggested: E1, E2, ..." );
      Tk.Tooltip.set_both d#label_dialog_SOCKET_label d#socket_label Tk.Tooltip.Text.component_label;
     end in
 

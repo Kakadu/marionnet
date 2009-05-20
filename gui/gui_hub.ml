@@ -95,7 +95,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
         ~title:(s_ "Remove")
-        ~question:(Printf.sprintf (f_ "Are you sure you want to remove %s\nand all cables connected to this %s ?") name (s_ "hub"))
+        ~question:(Printf.sprintf (f_ "Are you sure that you want to remove %s\nand all cables connected to this %s?") name (s_ "hub"))
 
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in

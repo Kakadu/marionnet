@@ -25,7 +25,7 @@ open Gettext;;
 initialize_gettext "hello" "/usr/share/locale";;
 
 (* The strings below are really used in GNU Hello. Of course you can't replace
-   them with any arbitrary message, unless you have translations for them: *)
+   them with other messages, unless you also have translations: *)
 Printf.printf "%s" (s_ "hello, world\n");;
 Printf.printf (f_ "hello, world\n");;
 Printf.printf (f_ "Try `%s --help' for more information.\n") "foo";;

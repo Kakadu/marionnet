@@ -1,5 +1,6 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007, 2008  Luca Saiu
+   Updared in 2009 by Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -46,7 +47,7 @@ object(self)
     ignore (Unix.system command_line)
 
   val error_message =
-    (s_ "You should select an existing document, in format PDF, Postscript, DVI, HTML ou text.")
+    (s_ "You should select an existing document in PDF, Postscript, DVI, HTML or text format.")
 
   (** Ask the user to choose a file, and return its pathname. Fail if the user doesn't
       choose a file or cancels: *)
@@ -62,7 +63,8 @@ object(self)
     dialog#add_filter
       (GFile.filter
          ~name:(s_ "Texts (PDF, PostScript, DVI, HTML, text)")
-         ~patterns:["*.pdf"; "*.ps"; "*.dvi"; "*.text"; "*.txt"; "*.html"; "*.htm"; "README"; "LISEZMOI"]
+         ~patterns:["*.pdf"; "*.ps"; "*.dvi"; "*.text"; "*.txt"; "*.html"; "*.htm"; "README";
+                    (s_ "README") (* it's nice to also support something like LISEZMOI... *)]
          ());
     dialog#set_default_response `OK;
     (match dialog#run () with
@@ -176,7 +178,7 @@ object(self)
     self#set_row_item row_id "Title" (String title);
     self#set_row_item row_id "Author" (String "-");
     self#set_row_item row_id "Type" (String (s_ "Report"));
-    self#set_row_item row_id "Comment" (String ((s_ "created the ") ^ (Timestamp.current_timestamp_as_string ())));
+    self#set_row_item row_id "Comment" (String ((s_ "created on ") ^ (Timestamp.current_timestamp_as_string ())));
 
   method import_history ~machine_or_router_name ~pathname () =
     let title = (s_ "History of ") ^ machine_or_router_name in
@@ -184,7 +186,7 @@ object(self)
     self#set_row_item row_id "Title" (String title);
     self#set_row_item row_id "Author" (String "-");
     self#set_row_item row_id "Type" (String (s_ "History"));
-    self#set_row_item row_id "Comment" (String ((s_ "created the ") ^ (Timestamp.current_timestamp_as_string ())));
+    self#set_row_item row_id "Comment" (String ((s_ "created on ") ^ (Timestamp.current_timestamp_as_string ())));
 
   method import_document ?(move=false) user_path_name =
     let internal_file_name, format = self#import_file user_path_name in

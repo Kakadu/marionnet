@@ -37,14 +37,14 @@ module Make (State:sig val st:State.globalState end) = struct
    (* Labels *)
    let () = begin
      Tk.Label.set d#label_dialog_SWITCH_name (s_ "Name" );
-     Tk.Label.set d#label_dialog_SWITCH_label (s_ "\nLabel" );
+     Tk.Label.set d#label_dialog_SWITCH_label (s_ "\nLabel" ); (* the newline is intentional *)
      Tk.Label.set d#label_dialog_SWITCH_ports (s_ "Ports number" );
     end in
 
    (* Tooltips *)
    let () = begin
      Tk.Tooltip.set d#image_dialog_SWITCH (s_ "Switch" );
-     Tk.Tooltip.set_both d#label_dialog_SWITCH_name  d#switch_name (s_ "Switch name. This name must be unique in the virtual network. Suggested : S1, S2, ..." );
+     Tk.Tooltip.set_both d#label_dialog_SWITCH_name  d#switch_name (s_ "Switch name. This name must be unique in the virtual network. Suggested: S1, S2, ..." );
      Tk.Tooltip.set_both d#label_dialog_SWITCH_label d#switch_label Tk.Tooltip.Text.component_label_with_suggestion;
      Tk.Tooltip.set_both d#label_dialog_SWITCH_ports d#switch_ports (s_ "Switch port number" );
     end in

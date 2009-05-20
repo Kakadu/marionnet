@@ -40,7 +40,7 @@ module Make (State:sig val st:State.globalState end) = struct
     in
 
     set d#label_dialog_A_PROPOS_a_propos (s_ "About");
-    set d#label_dialog_A_PROPOS_a_propos_content (s_ "<b>Marionnet</b> is an environment for the simulation of a network composed of GNU/Linux machines. This software allows, on one side, the students to experience the connection and configuration of a network and, on the other side, the teachers to create their excercises and tests.\n\nThis software is based on the UML features of the Linux kernel.\n<tt><u><span color=\"blue\">http://www.marionnet.org</span></u></tt>\n");
+    set d#label_dialog_A_PROPOS_a_propos_content (s_ "<b>Marionnet</b> is an environment for the simulation of a network composed of GNU/Linux machines. This software was thought for students to experiment with bulding and configuring networks, and for teachers to prepare excercises and tests.\n\nMarionnet is based on the UML features of the Linux kernel.\n<tt><u><span color=\"blue\">http://www.marionnet.org</span></u></tt>\n");
 
     set d#label_dialog_A_PROPOS_authors (s_ "Authors");
     set d#label_dialog_A_PROPOS_authors_content "
@@ -54,8 +54,8 @@ Université Paris 13\n\n";
 
     set d#label_dialog_A_PROPOS_license (s_ "License");
     set d#label_dialog_A_PROPOS_license_content "
-Copyright (C) 2007, 2008  Jean-Vincent Loddo;
-Copyright (C) 2007, 2008  Luca Saiu\n
+Copyright (C) 2007, 2008, 2009  Jean-Vincent Loddo;
+Copyright (C) 2007, 2008, 2009  Luca Saiu\n
 <i>Marionnet is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.</i>\n
 This program is distributed in the hope that it will be useful, but <b>WITHOUT ANY WARRANTY</b>; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.\n
 You should have received a copy of the GNU General Public License along with this program.  If not, see

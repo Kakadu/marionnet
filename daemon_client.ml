@@ -82,7 +82,7 @@ let ask_the_server request =
         disable_daemon_support ();
         Simple_dialogs.error
           (s_ "Failure in daemon communication")
-          (s_ "Error in trying to communicate with the daemon.\nSeveral things will not work any more [...]")
+          (s_ "Error in trying to communicate with the daemon.\nThe application should remain usable, but without the features requiring root access...")
           ();
         (Error "the socket to the daemon just went down");
       end);;

@@ -102,10 +102,10 @@ set w#label_button_BASE_SHUTDOWN_EVERYTHING (s_ "Stop all"))
 (* Tooltips for base buttons *)
 let () = 
  let set = (GData.tooltips ())#set_tip in begin
-  set w#button_BASE_STARTUP_EVERYTHING#coerce  ~text:(s_ "Start the virtual network (machines, switch, hub, etc) locally on this machine.");
-  set w#button_BASE_BROADCAST#coerce           ~text:(s_ "Broadcast the specification of the virtual network on a real network.");
-  set w#button_BASE_POWEROFF_EVERYTHING#coerce ~text:(s_ "Shutdown ungracefully every element of the network as in a power off");
-  set w#button_BASE_SHUTDOWN_EVERYTHING#coerce ~text:(s_ "Stop gracefully every element of the network")
+  set w#button_BASE_STARTUP_EVERYTHING#coerce  ~text:(s_ "Start the virtual network (machines, switch, hub, etc) locally on this machine");
+  set w#button_BASE_BROADCAST#coerce           ~text:(s_ "Broadcast the specification of the virtual network on a real network");
+  set w#button_BASE_POWEROFF_EVERYTHING#coerce ~text:(s_ "(Ungracefully) shutdown every element of the network, as in a power-off");
+  set w#button_BASE_SHUTDOWN_EVERYTHING#coerce ~text:(s_ "Gracefully stop every element of the network")
  end
 
 (* Connections *)
@@ -116,7 +116,7 @@ let () =
   let _ = w#button_BASE_SHUTDOWN_EVERYTHING#connect#clicked
     ~callback:(fun () ->
       match Simple_dialogs.confirm_dialog
-          ~question:(s_ "Are you shure you want to stop\nall running components ?")
+          ~question:(s_ "Are you sure that you want to stop\nall the running components?")
           () with
         Some true  -> st#shutdown_everything ()
       | Some false -> ()
@@ -125,7 +125,7 @@ let () =
   let _ = w#button_BASE_POWEROFF_EVERYTHING#connect#clicked
     ~callback:(fun () ->
       match Simple_dialogs.confirm_dialog
-          ~question:(s_ "Are you shure you want to power off\nall running components? It is also possible to shut them down graciously...")
+          ~question:(s_ "Are you sure that you want to power off\nall the running components? It is also possible to shut them down graciously...")
           () with
         Some true -> st#poweroff_everything ()
       | Some false -> ()

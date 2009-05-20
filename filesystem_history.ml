@@ -171,7 +171,7 @@ object(self)
     if not (can_startup device_name) then
       Simple_dialogs.error
         (Printf.sprintf (f_ "The device %s is running") device_name)
-        (s_ "Vous devez l'arrêter au préalable.") (* TODO *)
+        (s_ "You have to shut it down first.") (* TODO *)
         ()
     else if router then begin (* the given row is about a router *)
       (* We don't need to choose a name because there can be only one variant for
@@ -235,7 +235,7 @@ object(self)
 The variant couldn't be exported to the file \"%s\".\n\n\
 Many reasons are possible:\n - you don't have write access to this directory\n\
  - the machine was never started\n - you didn't select the machine disk but \n\
-the machine itself (so expand the tree).") new_variant_pathname) 
+the machine itself (you should expand the tree).") new_variant_pathname) 
         ()
       end)
 
@@ -256,6 +256,7 @@ the machine itself (so expand the tree).") new_variant_pathname)
     let _ =
       self#add_string_column
         ~header:"Activation scenario"
+        ~shown_header:(s_ "Activation scenario")
         ~default:(fun () -> String "[No scenario]")
         ~hidden:true
         ~italic:true

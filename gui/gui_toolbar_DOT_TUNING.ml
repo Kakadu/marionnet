@@ -31,7 +31,7 @@ let () = begin
   label#set_label ("<small><small>"^text^"</small></small>")
  in
  set w#label_DOT_TUNING_NODES  (s_ "Nodes")   ;
- set w#label_DOT_TUNING_EDGES  (s_ "Arcs" )   ;
+ set w#label_DOT_TUNING_EDGES  (s_ "Edges" )  ;
  set w#label_DOT_TUNING_LABELS (s_ "Labels")  ;
  set w#label_DOT_TUNING_AREA   (s_ "Surface") ;
 end
@@ -42,18 +42,18 @@ let () = begin
  let set w text = (GData.tooltips ())#set_tip w ~text
  in
  set w#label_DOT_TUNING_NODES#coerce       (s_ "Tuning of graph nodes")      ;
- set w#vscale_DOT_TUNING_ICONSIZE#coerce   (s_ "Tuning of icons size (machines, switch, hub, etc), without changing arrangement") ;
+ set w#vscale_DOT_TUNING_ICONSIZE#coerce   (s_ "Tuning of icon size (machines, switch, hub, etc), without changing the icon arrangement") ;
  set w#button_DOT_TUNING_SHUFFLE#coerce    (s_ "Randomly arrange nodes") ;
- set w#button_DOT_TUNING_UNSHUFFLE#coerce  (s_ "Go back to standard nodes arrangement (not random)") ;
- set w#label_DOT_TUNING_EDGES#coerce       (s_ "Tuning of graph arcs") ;
- set w#button_DOT_TUNING_RANKDIR_TB#coerce (s_ "Arrange arcs from top to bottom") ;
- set w#button_DOT_TUNING_RANKDIR_LR#coerce (s_ "Arrange arcs from lef to right") ;
- set w#vscale_DOT_TUNING_NODESEP#coerce    (s_ "Minimun arcs size") ;
- set w#menubar_DOT_TUNING_INVERT#coerce    (s_ "Invert arcs arrangement") ;
- set w#label_DOT_TUNING_LABELS#coerce      (s_ "Tuning of labels on arcs edges") ;
+ set w#button_DOT_TUNING_UNSHUFFLE#coerce  (s_ "Go back to the standard node arrangement (not random)") ;
+ set w#label_DOT_TUNING_EDGES#coerce       (s_ "Tuning of graph edges") ;
+ set w#button_DOT_TUNING_RANKDIR_TB#coerce (s_ "Arrange edges top-to-bottom") ;
+ set w#button_DOT_TUNING_RANKDIR_LR#coerce (s_ "Arrange edges left-to-right") ;
+ set w#vscale_DOT_TUNING_NODESEP#coerce    (s_ "Minimun edge size") ;
+ set w#menubar_DOT_TUNING_INVERT#coerce    (s_ "Reverse an edge") ;
+ set w#label_DOT_TUNING_LABELS#coerce      (s_ "Tuning edge endpoint labels") ;
  set w#vscale_DOT_TUNING_LABELDISTANCE#coerce (s_ "Distance between labels and icons") ;
- set w#label_DOT_TUNING_AREA#coerce        (s_ "Tuning of the graph background size. The size may increase to double (100%) the original. In that case, elements are arranged to fill available space.") ;
- set w#vscale_DOT_TUNING_EXTRASIZE#coerce  (s_ "Size of background")
+ set w#label_DOT_TUNING_AREA#coerce        (s_ "Tuning of the graph size. The surface may increase up to double (100%) the original, in which case case elements are arranged to completely fill the available space.") ;
+ set w#vscale_DOT_TUNING_EXTRASIZE#coerce  (s_ "Canvas size")
  end
 
 (* Callbacks *)
@@ -67,7 +67,7 @@ let fold_lines = function [] -> "" | l-> List.fold_left (fun x y -> x^" "^y) (Li
 let iconsize_react () = if opt#are_gui_callbacks_disable then () else
   begin
    let size = opt#read_gui_iconsize () in
-   st#flash ~delay:4000 (Printf.sprintf (f_ "Icons size is fixed to value %s (default=large)") size);
+   st#flash ~delay:4000 (Printf.sprintf (f_ "The icon size is fixed to value %s (default=large)") size);
    st#refresh_sketch () ;
   end
 
@@ -76,7 +76,7 @@ let shuffle_react () =
   begin
    opt#set_shuffler (ListExtra.shuffleIndexes (net#nodes));
    let namelist = net#getNodeNames => ( (ListExtra.permute opt#get_shuffler) || fold_lines ) in
-   st#flash ~delay:4000 ((s_ "Icons arranged randomly : ")^namelist);
+   st#flash ~delay:4000 ((s_ "Icons randomly arranged: ")^namelist);
    st#refresh_sketch () ;
   end
 
@@ -85,7 +85,7 @@ let unshuffle_react () =
   begin
    opt#reset_shuffler ();
    let namelist = (net#getNodeNames => fold_lines) in
-   st#flash ~delay:4000 ((s_ "Icons arranged by default : ")^namelist);
+   st#flash ~delay:4000 ((s_ "Default icon arrangement: ")^namelist);
    st#refresh_sketch () ;
   end
 
@@ -95,8 +95,8 @@ let rankdir_react x () =
    let old = st#dotoptions#rankdir in
    st#dotoptions#set_rankdir x;
    let msg = match x with
-    | "TB" -> (s_ "Arrange arcs from top to bottom (default)")
-    | "LR" -> (s_ "Arrange arcs from left to right")
+    | "TB" -> (s_ "Arrange edges top-to-bottom (default)")
+    | "LR" -> (s_ "Arrange edges left-to-right")
     | _    -> "Not valid Rankdir" in
    st#flash ~delay:4000 msg;
    if x<>old then st#refresh_sketch () ;
@@ -106,7 +106,7 @@ let rankdir_react x () =
 let nodesep_react () = if opt#are_gui_callbacks_disable then () else
   begin
    let y = opt#read_gui_nodesep () in
-   st#flash (Printf.sprintf (f_ "Minimum arcs size (distance between nodes) is fixed to value %s (default=0.5)") (string_of_float y));
+   st#flash (Printf.sprintf (f_ "The minimum edge size (distance between nodes) is fixed to the value %s (default=0.5)") (string_of_float y));
    st#refresh_sketch () ;
   end
 
@@ -114,7 +114,7 @@ let nodesep_react () = if opt#are_gui_callbacks_disable then () else
 let labeldistance_react () = if opt#are_gui_callbacks_disable then () else
   begin
    let y = opt#read_gui_labeldistance () in
-   st#flash (Printf.sprintf (f_ "Distance between labels and icons fixed to value %s (default=1.6)") (string_of_float y));
+   st#flash (Printf.sprintf (f_ "The distance between labels and icons is fixed to the value %s (default=1.6)") (string_of_float y));
    st#refresh_sketch () ;
   end
 
@@ -122,7 +122,7 @@ let labeldistance_react () = if opt#are_gui_callbacks_disable then () else
 let extrasize_react () = if opt#are_gui_callbacks_disable then () else
   begin
    let x = () => (opt#read_gui_extrasize || int_of_float || string_of_int) in
-   st#flash (Printf.sprintf (f_ "Background size fixed to %s%% of the minimun value to contain the graph (default=0%%)") x );
+   st#flash (Printf.sprintf (f_ "The canvas size is fixed to %s%% of the minimun value to contain the graph (default=0%%)") x );
    st#refresh_sketch () ;
   end
 

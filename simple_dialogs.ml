@@ -45,7 +45,7 @@ let error title msg () =
 
 (** Specific constructor for warning messages *)
 let warning title msg () = 
-  message (s_ "Advice") title msg "ico.warning.orig.png" ();; 
+  message (s_ "Warning") title msg "ico.warning.orig.png" ();; 
 
 (** Specific constructor for info messages *)
 let info title msg () = 

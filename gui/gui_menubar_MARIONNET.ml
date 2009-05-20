@@ -56,7 +56,7 @@ module Common_dialogs = struct
     then EDialog.ask_question ~help:None ~cancel:true
           ~gen_id:"save_current"
           ~title:(s_ "Close" )
-          ~question:(s_ "Do you want to save the current project ?") ()
+          ~question:(s_ "Do you want to save the current project?") ()
     else (Some (mkenv [("save_current","no")]))
 
 end
@@ -159,7 +159,7 @@ module Created_entry_project_save_as = Menu_factory.Make_entry
      let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
       st#save_project_as filename;
-     with _ -> (Simple_dialogs.error (s_ "Save project as") ((s_ "Failed to save the project to ")^filename) ())
+     with _ -> (Simple_dialogs.error (s_ "Save project as") ((s_ "Failed to save the project into the file ")^filename) ())
 
   end) (F)
 let project_save_as = Created_entry_project_save_as.item
@@ -182,7 +182,7 @@ module Created_entry_project_copy_to = Menu_factory.Make_entry
      let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
        st#copy_project_into filename
-     with _ -> (Simple_dialogs.error (s_ "Project copy to" ) ((s_ "Failed to copy project to ")^filename) ())
+     with _ -> (Simple_dialogs.error (s_ "Project copy to" ) ((s_ "Failed to copy the project into the file ")^filename) ())
 
   end) (F)
 let project_copy_to = Created_entry_project_copy_to.item
@@ -197,7 +197,7 @@ module Created_entry_project_close = Menu_factory.Make_entry
    let dialog () = 
      EDialog.ask_question ~help:None ~cancel:true
        ~title:(s_ "Close" )
-       ~question:(s_ "Do you want to save the current project ?") ()
+       ~question:(s_ "Do you want to save the current project?") ()
 
    let reaction r = begin
     st#shutdown_everything ();
@@ -233,7 +233,7 @@ module Created_entry_project_export = Menu_factory.Make_entry
      try
       (match UnixExtra.run command with
       |  (_ , Unix.WEXITED 0) -> st#flash ~delay:6000 ((s_ "Network image correctly exported to the file ")^filename)
-      |  _                    -> raise (Failure ((s_ "Failed to export network image to the file ")^filename))
+      |  _                    -> raise (Failure ((s_ "Failed when exporting the network image to the file ")^filename))
       )
      with e -> ((Simple_dialogs.error "Export network image" ((s_ "Failed to export network image to the file ")^filename) ()); raise e)
 
@@ -251,7 +251,7 @@ module Created_entry_project_quit = Menu_factory.Make_entry
      then (Some (mkenv [("answer","no")]))
      else Talking.EDialog.ask_question ~help:None ~cancel:true
            ~title:(s_ "Quit")
-           ~question:(s_ "Do you want to save\nthe current project before quitting ?")
+           ~question:(s_ "Do you want to save\nthe current project before quitting?")
            ()
    let reaction r =
     let () = if (st#active_project) && ((r#get "answer") = "yes")

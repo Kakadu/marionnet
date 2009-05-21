@@ -79,7 +79,7 @@ object(self)
         (ipv4_address_as_int mod 256)
     in
     (* Try again if we generated an invalid address: *)
-    if self#is_a_valid_ipv4_address result then
+    if Ipv4.String.is_valid_ipv4 result then
       result
     else
       self#generate_ipv4_address
@@ -103,7 +103,7 @@ object(self)
     else
       self#generate_ipv6_address
 
-  method add_device device_name device_type ports_no =
+  method add_device ?port_row_completions device_name device_type ports_no =
     let row_id =
       self#add_row
         [ "Name", String device_name;
@@ -117,7 +117,7 @@ object(self)
           "IPv6 address", String "";
 (*          "IPv6 netmask", String "";
           "IPv6 broadcast", String ""; *) ] in
-    self#update_ports_no device_name ports_no;
+    self#update_ports_no ?port_row_completions device_name ports_no;
     self#collapse_row row_id;
     self#save;
 
@@ -143,7 +143,7 @@ object(self)
       Forest.children_nodes device_row_id !id_forest in
     List.length port_row_ids
 
-  method private add_port device_name =
+  method private add_port ?port_row_completions device_name =
     let device_row_id =
       self#device_row_id device_name in
     let current_ports_no = 
@@ -151,17 +151,27 @@ object(self)
     let port_type =
       match item_to_string (self#get_row_item device_row_id "Type") with
         "machine" | "gateway" -> "machine-port"
+      |  "router"             -> "router-port"
       | _ -> "other-device-port" in
     let port_prefix =
       match item_to_string (self#get_row_item device_row_id "Type") with
         "machine" | "gateway" -> "eth"
       | _ -> "port" in
-    ignore (self#add_row
-              ~parent_row_id:device_row_id
-              [ "Name", String (Printf.sprintf "%s%i" port_prefix current_ports_no);
-                "Type", Icon port_type; ])
-    
-  method update_ports_no device_name new_ports_no =
+    let port_name = (Printf.sprintf "%s%i" port_prefix current_ports_no) in
+    let port_row_standard =
+      [ "Name", String port_name;
+        "Type", Icon port_type; ] in
+    let port_row = match port_row_completions with
+      | None     -> port_row_standard
+      | Some lst ->
+         (try
+           let port_row_specific_settings = (List.assoc port_name lst) in
+           List.append (port_row_standard) (port_row_specific_settings)
+          with Not_found -> port_row_standard)
+    in
+    ignore (self#add_row ~parent_row_id:device_row_id port_row)
+
+  method update_ports_no ?port_row_completions device_name new_ports_no =
     let device_row_id =
       self#device_row_id device_name in
     let port_row_ids =
@@ -171,7 +181,7 @@ object(self)
     let ports_delta = new_ports_no - old_ports_no in
     if ports_delta >= 0 then
       for i = old_ports_no + 1 to new_ports_no do
-        self#add_port device_name
+        self#add_port ?port_row_completions device_name
       done
     else begin
       let reversed_port_row_ids = List.rev port_row_ids in
@@ -195,18 +205,12 @@ object(self)
                                          (fun _ _ _ _ _ _ _ _ _ _ _ _ -> true))
     with _ ->
       false
-  method private is_a_valid_ipv4_address address =
-    try
-      Scanf.sscanf
-        address
-        "%u.%u.%u.%u"
-        (fun o1 o2 o3 o4 -> o1 < 256 && o2 < 256 && o3 < 256 && o4 < 256)
-    with _ ->
-      false
-  method private is_a_valid_ipv4_netmask x =
-    self#is_a_valid_ipv4_address x
+
+  (* FIX IT: the validity depends on the ip and netmask (broadcast must belong the network addresses range). *)
   method private is_a_valid_ipv4_broadcast x =
-    self#is_a_valid_ipv4_address x
+(*    self#is_a_valid_ipv4_address x*)
+   Ipv4.String.is_valid_ipv4 x
+
   method private is_a_valid_ipv6_address address =
     true
     (* This heuristic sucked *too* much. It's better to just accept everything. *)
@@ -268,7 +272,30 @@ object(self)
   method get_port_attribute_by_index device_name port_index column_header =
 (*     Log.printf "network_details: get_port_attribute_by_index\n"; flush_all (); *)
     item_to_string (lookup_alist column_header (self#get_port_data_by_index device_name port_index))
+  
+  (** Update a single port attribute: *)
+  method set_port_attribute_by_index device_name port_index column_header value =
+    let device_row_id = self#device_row_id device_name in
+    let device_port_ids = self#children_of device_row_id in
+    let port_name = Printf.sprintf "port%i" port_index in
+    let filtered_port_data =
+      List.filter
+        (fun row -> lookup_alist "Name" row = String port_name)
+        (List.map self#get_complete_row device_port_ids) in
+    let current_row =
+      match filtered_port_data with
+        | [ complete_row ] -> complete_row
+        | _ -> assert false (* either zero or more than one row matched *) in
+    let row_id =
+      match lookup_alist "_id" current_row with
+        String row_id -> row_id
+      | _ -> assert false in
+    self#set_row_item row_id column_header value
 
+  (** Update a single port attribute of type string: *)
+  method set_port_string_attribute_by_index device_name port_index column_header value =
+    self#set_port_attribute_by_index device_name port_index column_header (String value)
+    
   (** Clear the interface and set the full internal state back to its initial value: *)
   method reset =
     self#clear;
@@ -333,6 +360,7 @@ object(self)
 (*                                "cloud", marionnet_home_images^"treeview-icons/cloud.xpm"; *)
 (*                                "gateway", marionnet_home_images^"treeview-icons/gateway.xpm"; *)
                                "machine-port", marionnet_home_images^"treeview-icons/network-card.xpm";
+                               "router-port",       marionnet_home_images^"treeview-icons/port.xpm";
                                "other-device-port", marionnet_home_images^"treeview-icons/port.xpm";
                              ]
         () in
@@ -361,7 +389,7 @@ object(self)
                     else
                       String "")
         ~constraint_predicate:(fun i -> let s = item_to_string i in
-                                          (self#is_a_valid_ipv4_address s) or s = "")
+                                          (Ipv4.String.is_valid_ipv4 s) or s = "")
         () in
     let _ =
       self#add_editable_string_column
@@ -385,7 +413,7 @@ object(self)
                     else
                       String "")
         ~constraint_predicate:(fun i -> let s = item_to_string i in
-                                          (self#is_a_valid_ipv4_netmask s) or s = "")
+                                          (Ipv4.String.is_valid_netmask s) or s = "")
         () in
     let _ =
       self#add_editable_string_column
@@ -400,11 +428,6 @@ object(self)
                                           (self#is_a_valid_ipv6_address s) or s = "")
         () in
 
-(*     let _ = *)
-(*       self#add_editable_string_column *)
-(*         ~header:"Useless" *)
-(*         ~default:(fun () -> String "") *)
-(*         () in *)
 
   self#add_row_constraint
     ~name:(s_ "you should choose a port to define this parameter")
@@ -412,13 +435,23 @@ object(self)
       let uneditable = item_to_bool (lookup_alist "_uneditable" row) in
       (not uneditable) or
       (List.for_all (fun (name, value) ->
-(*                        Log.printf "[Checking the column %s]\n" name; *)
                        name = "Name" or
                        name = "Type" or
                        name = "_uneditable" or
                        self#is_column_reserved name or
                        value = String "")
                     row));
+
+  self#add_row_constraint
+    ~name:(s_ "the router first port must always have a valid configuration address")
+    (fun row ->
+      let port_name = item_to_string (lookup_alist "Name" row) in
+      let port_type = item_to_string (lookup_alist "Type" row) in
+      let address   = item_to_string (lookup_alist "IPv4 address" row) in
+      let netmask   = item_to_string (lookup_alist "IPv4 netmask" row) in
+      (port_name <> "port0") or
+      (port_type <> "router-port") or
+      ((address <> "") && (netmask <> "")));
 
     self#set_after_update_callback
       (fun row_id ->

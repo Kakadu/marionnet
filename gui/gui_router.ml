@@ -41,7 +41,12 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,eth) = (r#get "name"), (int_of_string (r#get "eth")) in
-      details#add_device name "router" eth;
+      let port_row_completions =
+       [ ("port0",
+              [ "IPv4 address", Row_item.String (r#get "ip");
+                "IPv4 netmask", Row_item.String (r#get "nmask"); ])
+       ] in
+      details#add_device ~port_row_completions name "router" eth;
       defects#add_device name "router" eth;
       let d = (new Mariokit.Netmodel.device ~network:st#network ~name ~label:(r#get "label")
                     ~devkind:Mariokit.Netmodel.Router
@@ -86,6 +91,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Filesystem_history.rename_device oldname name;
       details#rename_device oldname name;
       details#update_ports_no name eth;
+      details#set_port_string_attribute_by_index name 0 "IPv4 address" (r#get "ip");
+      details#set_port_string_attribute_by_index name 0 "IPv4 netmask" (r#get "nmask");
       defects#rename_device oldname name;
       defects#update_ports_no name eth;
       st#update_cable_sensitivity ()

@@ -19,7 +19,7 @@ open Gettext;;
 (** Gui completion for the dialog_ROUTER widget defined with glade. *)
 
 (* Shortcuts *)
-let mkenv = Environment.make_string_env
+let mkenv   = Environment.make_string_env
 
 module Make (State:sig val st:State.globalState end) = struct
 
@@ -55,18 +55,30 @@ module Make (State:sig val st:State.globalState end) = struct
      Tk.Tooltip.set d#spin_dialog_ROUTER_ip_netmask (s_ "Netmask (CIDR notation)" );
     end in
 
+   let set_ip_config_widgets ((ip_a, ip_b, ip_c, ip_d),cidr) =
+     (List.iter (fun (spin,x) -> spin#set_value (float_of_int x))
+        [(d#spin_dialog_ROUTER_ip_a,ip_a);
+         (d#spin_dialog_ROUTER_ip_b,ip_b);
+         (d#spin_dialog_ROUTER_ip_c,ip_c);
+         (d#spin_dialog_ROUTER_ip_d,ip_d);
+         (d#spin_dialog_ROUTER_ip_netmask, cidr)]) in
+
    begin
    match update with
    | None   -> let prefix = "R" in
                d#router_name#set_text (st#network#suggestedName prefix);
-               d#router_name#misc#grab_focus ()
+               d#router_name#misc#grab_focus ();
+               set_ip_config_widgets Initialization.router_port0_default_ipv4_config;
+
    | Some r -> begin
-                d#router_name #set_text   r#get_name                  ;
-                d#router_label#set_text   r#get_label                 ;
+                let details = Network_details_interface.get_network_details_interface () in
+                let name = r#get_name in
+                d#router_name #set_text name                    ;
+                d#router_label#set_text r#get_label             ;
                 d#router_ports#set_value (float_of_int r#get_eth_number);
-(*                List.iter
-                   (fun spin x -> spin#set_value x)
-                   [(d#spin_dialog_ROUTER_ip_a,???); (d#spin_dialog_ROUTER_ip_b,???); (d#spin_dialog_ROUTER_ip_c,???); (d#spin_dialog_ROUTER_ip_d,???)];*)
+                let (ip_a, ip_b, ip_c, ip_d) = Ipv4.ipv4_of_string              (details#get_port_attribute_by_index name 0 "IPv4 address") in
+                let (_, cidr )               = Ipv4.netmask_with_cidr_of_string (details#get_port_attribute_by_index name 0 "IPv4 netmask") in
+                set_ip_config_widgets ((ip_a, ip_b, ip_c, ip_d),cidr);
                 (* The user cannot remove receptacles used by a cable. *)
                 let min_eth = (st#network#maxBusyReceptacleIndex r#get_name Mariokit.Netmodel.Eth)+1 in
                 let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
@@ -80,11 +92,20 @@ module Make (State:sig val st:State.globalState end) = struct
      begin
      let n     = dialog#router_name #text                                                in
      let l     = dialog#router_label#text                                                in
+     let ip_a  = int_of_float dialog#spin_dialog_ROUTER_ip_a#value                       in
+     let ip_b  = int_of_float dialog#spin_dialog_ROUTER_ip_b#value                       in
+     let ip_c  = int_of_float dialog#spin_dialog_ROUTER_ip_c#value                       in
+     let ip_d  = int_of_float dialog#spin_dialog_ROUTER_ip_d#value                       in
+     let ip    = Printf.sprintf "%i.%i.%i.%i" ip_a ip_b ip_c ip_d                        in
+     let cidr  = int_of_float dialog#spin_dialog_ROUTER_ip_netmask#value            in
+     let (nm_a, nm_b, nm_c, nm_d) = Ipv4.netmask_of_cidr cidr in
+     let nmask = Printf.sprintf "%i.%i.%i.%i" nm_a nm_b nm_c nm_d                        in
      let (c,o) = match update with None -> ("add","") | Some h -> ("update",h#name)      in
      let eth   = (string_of_int dialog#router_ports#value_as_int)                        in
 
      if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog
-     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth)]
+     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth);
+                 ("ip",ip);  ("nmask",nmask);]
      end in
 
    (* Call the dialog loop *)

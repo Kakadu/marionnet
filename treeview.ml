@@ -1110,6 +1110,10 @@ object(self)
         complete_forest in
     self#set_complete_forest updated_complete_forest
 
+  (* Just an alias: *)
+  method set_column =
+    self#set_row_item
+
   method remove_row (row_id : string) =
     (* Removing the row from the Gtk+ tree model is a little involved.
        We have to first build an updated version of our internal data

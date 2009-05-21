@@ -41,8 +41,9 @@ let configuration =
                 "MARIONNET_DVI_READER";
                 "MARIONNET_HTML_READER";
                 "MARIONNET_TEXT_EDITOR";
+                "MARIONNET_ROUTER_PORT0_IPV4_DEFAULT";
                 (* *Optional* configuration variables: *)
-				"MARIONNET_TERMINAL";
+		"MARIONNET_TERMINAL";
                 "MARIONNET_PREFIX";
                 "MARIONNET_FILESYSTEMS_PATH";
                 "MARIONNET_KERNELS_PATH";
@@ -125,6 +126,23 @@ let marionnet_home_images =
   marionnet_home^"/images/";;
 let marionnet_home_bin =
   marionnet_home^"/bin/";;
+
+(* Default for the factory-set configuration address for routers.
+   The result is a couple (ip,nm) where ip is the 4-tuple IPv4 and nm is the CIDR netmask. *)
+let router_port0_default_ipv4_config  =
+ let str = configuration_variable_or
+    "MARIONNET_ROUTER_PORT0_DEFAULT_IPV4_CONFIG"
+    "192.168.1.254/24"
+    "type_other"
+ in Scanf.sscanf str "%i.%i.%i.%i/%i" (fun b1 b2 b3 b4 nm -> ((b1, b2, b3, b4), nm))
+;;
+
+(* Useful for setting spin buttons. => ip library ? *)
+let router_port0_default_ipv4_config_float_converted =
+ let f = float_of_int in
+ let ((ip1,ip2,ip3,ip4),nm) = router_port0_default_ipv4_config in
+ (((f ip1),(f ip2),(f ip3),(f ip4)),(f nm))
+;;
 
 (* Enter the right directory: *)
 try

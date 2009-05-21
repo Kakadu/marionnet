@@ -2649,6 +2649,7 @@ Version QQVERSIONQQ, QQDATEQQ
         </child>
         <child>
           <widget class="GtkTable" id="table37">
+            <property name="visible">True</property>
             <property name="border_width">4</property>
             <property name="n_rows">1</property>
             <property name="n_columns">10</property>

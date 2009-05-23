@@ -1,5 +1,5 @@
 # This -*- makefile -*- is part of Marionnet, a virtual network laboratory
-# Copyright (C) 2008  Luca Saiu
+# Copyright (C) 2008, 2009  Luca Saiu
 # Updated in 2008 by Marco Stronati
 # Updated by Jean-Vincent Loddo
 
@@ -138,13 +138,15 @@ _build/marionnet.pot: marionnet.byte
 pot: _build/marionnet.pot
 	cp _build/marionnet.pot po/messages.pot
 
+main-local: pot
+
 # Useful to discover widgets containing translatable strings
 gui.po: gui/gui.xml
 	xml2po $< > /tmp/$@
 	@echo "Generated file: /tmp/$@"
 
-#this could be extracted from po/LINGUAS
-LANGUAGES = it fr
+# We can take the list of supported languages from po/LINGUAS:
+LANGUAGES = `grep -v '^#.*$$' po/LINGUAS`
 
 compile-mo: 
 	@(cd po/; \

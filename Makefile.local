@@ -145,26 +145,27 @@ gui.po: gui/gui.xml
 	xml2po $< > /tmp/$@
 	@echo "Generated file: /tmp/$@"
 
-# We can take the list of supported languages from po/LINGUAS:
-LANGUAGES = `grep -v '^#.*$$' po/LINGUAS`
+# We can take the list of supported languages from po/LINGUAS.
+# Notice that this macro is always invoked from the po/ subdirectory:
+LANGUAGES = $$( grep -v ^\#.*$$ LINGUAS )
 
 compile-mo: 
 	@(cd po/; \
-	for i in $(LANGUAGES); \
+	for i in $(call LANGUAGES); \
 	do (msgfmt $$i.po && mv messages.mo $$i.mo || exit -1) && \
 	echo "Compiled "$$i.mo; \
 	done;)
 
 update-po: pot
 	@(cd po/; \
-	for i in $(LANGUAGES); \
+	for i in $(call LANGUAGES); \
 	do (msgmerge --no-fuzzy-matching --sort-by-file --update $$i.po messages.pot || exit -1) && \
 	echo "Updated "$$i.po; \
 	done;)	
 
 install-mo: compile-mo
 	@(cd po/; \
-	for i in $(LANGUAGES); \
+	for i in $(call LANGUAGES); \
 	do (cp $$i.mo /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo || exit -1) && \
 	echo "Installed "$$i; \
 	done;)
@@ -174,7 +175,7 @@ clean-mo:
 	rm -rf *.mo *~ *.pot;)
 
 uninstall-mo:
-	@(for i in $(LANGUAGES); \
+	@(for i in $(call LANGUAGES); \
 	do rm -f /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; \
 	echo "Uninstalled "$$i; \
 	done;)

@@ -862,6 +862,9 @@ end;;
       class common
  * *************************** *)
 
+(** The shared generator for all unique ids: *)
+let generator = Counter.make_int_generator ();;
+
 (** General-purpose class with common fields as
     - an automatically generated identifier
     - a (mutable) name; i.e. valid string identifier
@@ -882,12 +885,10 @@ class id_name_label = fun ?(name="noname") ?(label="") () ->
         then failwith ("Setting component "^name^": invalid label")
         else (StringExtra.strip x) in
 
-  let fresh_id = Counter.make_int_generator () in
-
   object (self)
 
   (** A component has an immutable identifier. *)
-  val id : int = fresh_id ()
+  val id : int = generator ()
   method id = id
 
   (** A component has a mutable name. *)

@@ -107,7 +107,7 @@ and set parameters for it:\n\
 allow, for example, to know at a glance the Ethernet network realized by the device; \
 this field is exclusively for graphic purposes, is not taken in consideration \
 for the configuration.\n\
-- Nb of Ports: the number of ports of the hub (default 4); this number must \
+- Nb of Ports: the number of ports of the switch (default 4); this number must \
 not be increased without a reason, because the number of processes needed for the \
 device emulation is proportional to his ports number.") in help title msg ;;
 
@@ -119,7 +119,7 @@ and set many parameters for it:\n\
 - Label: a string appearing near the router icon in the network graph; \
 this field is exclusively for graphic purposes, is not taken in consideration \
 for the configuration.\n\
-- Nb of Ports: the number of ports of the hub (default 4); this number must \
+- Nb of Ports: the number of ports of the router (default 4); this number must \
 not be increased without a reason, because the number of processes needed for the \
 device emulation is proportional to his ports number.\n\
 The emulation of this device is realised with the program 'quagga' derived from \
@@ -165,7 +165,7 @@ and set its parameters:\n\
 network graph\n\
 - Devices: the two network devices (machine, hub, ...) linked by the cable and \
 their two connected interfaces\n\
-ATTENTION: this dialog allows to define straight cables even in contexts where \
+ATTENTION: this dialog allows to define crossover cables even in contexts where \
 they won't work (for example between two machines); allowing users to define 'wrong' \
 connections may be of some pedagogical interest.") in help title msg ;;
 

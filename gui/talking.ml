@@ -102,11 +102,11 @@ device emulation is proportional to his ports number.") in help title msg ;;
    let title = (s_ "ADD OR MODIFY A SWITCH") in
    let msg   = (s_ "\
 In this dialog window you can define the name of an Ethernet switch \
-and set parameters for it:\n\
-- Label: a string appearing near the hub icon in the network graph; it may \
+and set parameters for it:\n\n\
+- Label: a string appearing near the switch icon in the network graph; it may \
 allow, for example, to know at a glance the Ethernet network realized by the device; \
 this field is exclusively for graphic purposes, is not taken in consideration \
-for the configuration.\n\
+for the configuration.\n\n\
 - Nb of Ports: the number of ports of the switch (default 4); this number must \
 not be increased without a reason, because the number of processes needed for the \
 device emulation is proportional to his ports number.") in help title msg ;;
@@ -115,25 +115,25 @@ device emulation is proportional to his ports number.") in help title msg ;;
    let title = (s_ "ADD OR MODIFY A ROUTER") in
    let msg   = (s_ "\
 In this dialog window you can define the name of an IP router \
-and set many parameters for it:\n\
+and set many parameters for it:\n\n\
 - Label: a string appearing near the router icon in the network graph; \
 this field is exclusively for graphic purposes, is not taken in consideration \
 for the configuration.\n\
 - Nb of Ports: the number of ports of the router (default 4); this number must \
 not be increased without a reason, because the number of processes needed for the \
-device emulation is proportional to his ports number.\n\
+device emulation is proportional to his ports number.\n\n\
 The emulation of this device is realised with the program 'quagga' derived from \
-the project 'zebra'.\n\
+the project 'zebra'.\n\n\
 Every interface of the router can be configured in the tab \
 'Interfaces'. Once started, the router will answer to the telnet \
-protocol on every configured interface, on the following tcp ports:\n\
+protocol on every configured interface, on the following tcp ports:\n\n\
 zebra\t\t2601/tcp\t\t# zebra vty\n\
 ripd\t\t\t2602/tcp\t\t# RIPd vty\n\
 ripngd\t\t2603/tcp\t\t# RIPngd vty\n\
 ospfd\t\t2604/tcp\t\t# OSPFd vty\n\
 bgpd\t\t2605/tcp\t\t# BGPd vty\n\
 ospf6d\t\t2606/tcp\t\t# OSPF6d vty\n\
-isisd\t\t2608/tcp\t\t# ISISd vty\n\
+isisd\t\t\t2608/tcp\t\t# ISISd vty\n\n\
 Password: zebra") in help title msg ;;
 
  let help_device_insert_update = function
@@ -147,12 +147,12 @@ Password: zebra") in help title msg ;;
    let title = (s_ "ADD OR MODIFY A STRAIGHT CABLE") in
    let msg   = (s_ "\
 In this dialog window you can define the name of a straight Ethernet cable \
-and set its parameters:\n\
+and set its parameters:\n\n\
 - Label: a string appearing near the edge representing the cable in the \
-network graph\n\
+network graph\n\n\
 - Devices: the two network devices (machine, hub, ...) linked by the cable and \
-their two connected interfaces\n\
-ATTENTION: this dialog allows to define straight cables even in contexts where \
+their two connected interfaces\n\n\
+WARNING: this dialog allows to define straight cables even in contexts where \
 they won't work (for example between two machines); allowing users to define 'wrong' \
 connections may be of some pedagogical interest.") in help title msg ;;
 
@@ -160,12 +160,12 @@ connections may be of some pedagogical interest.") in help title msg ;;
    let title = (s_ "ADD OR MODIFY A CROSSOVER CABLE") in
    let msg   = (s_ "\
 In this dialog window you can define the name of a crossover Ethernet cable \
-and set its parameters:\n\
+and set its parameters:\n\n\
 - Label: a string appearing near the edge representing the cable in the \
-network graph\n\
+network graph\n\n\
 - Devices: the two network devices (machine, hub, ...) linked by the cable and \
-their two connected interfaces\n\
-ATTENTION: this dialog allows to define crossover cables even in contexts where \
+their two connected interfaces\n\n\
+WARNING: this dialog allows to define crossover cables even in contexts where \
 they won't work (for example between two machines); allowing users to define 'wrong' \
 connections may be of some pedagogical interest.") in help title msg ;;
 
@@ -189,22 +189,29 @@ frame loss and the other anomalies.") in help title msg ;;
    let msg   = (s_ "\
 In this dialog window you can define the name of an Ethernet socket \
 and set parameters for it. This component allows to connect the virtual \
-network to a Linux bridge whose name is defined by the user via the configuration \
-variable MARIONNET_BRIDGE. \
-If the bridge is correctly set on the host, virtual machines will be able to \
-access the same network services (DHCP, DNS, NFS,...) that the host can access \
-on its local network; if the host is on the Internet then also the virtual \
-machines linked to the socket will be. \
-In such a case, virtual machines will also be able to easily install missing \
-software:\n\
-$ dhclient eth0\n\
-$ apt-get install my-favourite-software\n\
+network to a Linux bridge whose name is defined by the user via the \
+configuration variable called MARIONNET_BRIDGE (in marionnet.conf or provide on \
+the command line).\n\n\
+If the bridge is correctly set on the host (before starting the network), virtual \
+machines will be able to access to the same network services (DHCP, DNS, NFS, \
+...) that the host can access on its local network; if the host is on the Internet \
+then also the virtual machines linked to the socket will be.\n \n \
+To create a bridge on your (real) host using the same network as eth0 (by \
+example) you need to : 1) create a bridge with the name define in marionnet.conf \
+by MARIONNET_BRIDGE, 2) put and configure eth0 (on your real host) in the \
+bridge and 3) put an IP address on the bridge (with dhclient or ifconfig/route).\n\n\
+In such a case, after having start the virtual network in marionnet you can \
+configure an ethernet card of a virtual machines which is connect to the \
+Ethernet socket (or on the same network) in order to give access to your \
+local network to it.\n\n \
 The socket also allows team-work in a network laboratory, by creating a \
-connection between Marionnet instances running on different machines.") in help title msg ;;
+connection between Marionnet instances running on different machines. \
+For more information about bridge et Ethernet socket configuration, please \
+see the Marionnet Wiki on the marionnet.org website.") in help title msg ;;
 
  let error_saving_while_something_up =
   Simple_dialogs.error
-    (s_ "Attention")
+    (s_ "Warning")
    (s_ "The project can't be saved right now. \
 One or more network components are still running. \
 Please stop them before saving.")

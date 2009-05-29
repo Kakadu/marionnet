@@ -17,7 +17,7 @@
 (** Include type definitions of an interface into an implementation.
     Usage (in your .ml):
 
-      #load "include_type_definitions.p4.cmo";;
+      #load "include_type_definitions_p4.cmo";;
       INCLUDE DEFINITIONS "<filename>.mli"
 
     Type definitions are, in outline, mli phrases with '=' or exception definitions.
@@ -29,13 +29,13 @@
     Any other phrase of <filename>.mli will be ignored.
   *)
 
-(* ocamlc -c -pp camlp4of -I +camlp4 include_type_definitions.p4.ml *)
+(* ocamlc -c -pp camlp4of -I +camlp4 include_type_definitions_p4.ml *)
 
 open Camlp4 (* -*- camlp4o -*- *)
 
 module Id = struct
   let name = "Include_type_definitions"
-  let version = "$Id: include_type_definitions.p4.ml,v 0.1 2009/03/18 16:16:16 $"
+  let version = "$Id: include_type_definitions_p4.ml,v 0.1 2009/03/18 16:16:16 $"
 end
 
 module Make (Syntax : Sig.Camlp4Syntax) = struct

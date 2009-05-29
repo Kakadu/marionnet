@@ -1,7 +1,7 @@
 (* ocamlc -pp 'camlp4of chip_pa.cmo' chip_example.ml *)
 (* camlp4of chip_pa.cmo chip_example.ml *)
 
-#load "chip_parser.p4.cmo";;
+#load "chip_parser_p4.cmo";;
  (* Use the "chip" syntax extension. *)
 
 open Chip ;;

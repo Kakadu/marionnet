@@ -22,7 +22,7 @@ DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 C_OBJECTS_TO_LINK += gettext-c-wrapper
 
-PP_OPTION = camlp4of extract_pot.p4.cmo -I chip
+PP_OPTION = camlp4of extract_pot_p4.cmo -I chip
 
 OBJECTS_TO_LINK = gtkThread
 BYTE_PROGRAMS = marionnet.byte chip_example.byte gettext-example.byte
@@ -41,25 +41,25 @@ UNDOCUMENTED=version.ml gui.ml chip_example.expanded.ml chip_example.ml gettext-
 
 # Before building the main targets we have to create the machine-generated
 # sources:
-MANUALLY_PRE_COPY_IN_build = include_type_definitions.p4.ml gettext/extract_pot.p4.ml chip/chip_parser.p4.ml gettext/gettext-c-wrapper.c
-MANUALLY_PRE_MAKE_IN_build = include_type_definitions.p4.cmo extract_pot.p4.cmo chip/chip_parser.p4.cmo chip/chip_example.expanded.ml gettext-c-wrapper.o
+MANUALLY_PRE_COPY_IN_build = include_type_definitions_p4.ml gettext/extract_pot_p4.ml chip/chip_parser_p4.ml gettext/gettext-c-wrapper.c
+MANUALLY_PRE_MAKE_IN_build = include_type_definitions_p4.cmo extract_pot_p4.cmo chip/chip_parser_p4.cmo chip/chip_example.expanded.ml gettext-c-wrapper.o
 MANUALLY_POST_MAKE_IN_build = chip/chip_example.expanded.byte
 
 marionnet.byte marionnet.native : manually_pre_actions version.ml gui.ml
 
 ########## Manually generated targets (not through ocamlbuild)
 
-_build/include_type_definitions.p4.cmo: include_type_definitions.p4.ml
+_build/include_type_definitions_p4.cmo: include_type_definitions_p4.ml
 	ocamlc -c -I +camlp4 -pp camlp4of -o $@ $<
 
-_build/extract_pot.p4.cmo: gettext/extract_pot.p4.ml
+_build/extract_pot_p4.cmo: gettext/extract_pot_p4.ml
 	ocamlc -c -I +camlp4 -pp camlp4of camlp4lib.cma -o $@ $<
 
-_build/chip/chip_parser.p4.cmo: chip/chip_parser.p4.ml
+_build/chip/chip_parser_p4.cmo: chip/chip_parser_p4.ml
 	ocamlc -c -I +camlp4 -pp camlp4of camlp4lib.cma -o $@ $<
 
-_build/chip/chip_example.expanded.ml : chip/chip_example.ml _build/chip/chip_parser.p4.cmo
-	camlp4of -I _build/chip/ -printer Camlp4OCamlRevisedPrinter chip_parser.p4.cmo -o $@ $<
+_build/chip/chip_example.expanded.ml : chip/chip_example.ml _build/chip/chip_parser_p4.cmo
+	camlp4of -I _build/chip/ -printer Camlp4OCamlRevisedPrinter chip_parser_p4.cmo -o $@ $<
 
 _build/chip/chip_example.expanded.byte : _build/chip/chip_example.expanded.ml
 	ocamlc -thread -pp camlp4rf -I _build/chip/ -I +threads threads.cma chip.cmo -o $@ $<

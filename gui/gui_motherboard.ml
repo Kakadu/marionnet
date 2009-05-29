@@ -17,10 +17,10 @@
 
 (** Gui reactive system. *)
 
-#load "include_type_definitions.p4.cmo";;
+#load "include_type_definitions_p4.cmo";;
 INCLUDE DEFINITIONS "gui/gui_motherboard.mli"
 
-#load "chip_parser.p4.cmo";;
+#load "chip_parser_p4.cmo";;
 
 module Make (S : sig val st:State.globalState end) = struct
 

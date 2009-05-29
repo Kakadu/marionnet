@@ -17,7 +17,7 @@
 
 (** Tools for making menus (with or without a menubar). *)
 
-#load "include_type_definitions.p4.cmo";;
+#load "include_type_definitions_p4.cmo";;
 INCLUDE DEFINITIONS "gui/menu_factory.mli"
 
 let fresh_path =

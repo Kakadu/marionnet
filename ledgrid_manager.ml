@@ -19,12 +19,16 @@ open Ledgrid;;
 open Gtk.Tags;;
 
 let blinker_thread_socket_file_name =
+  Log.printf "If you see an exception in the next line of the log don't worry, it's harmess...\n";
   let parent =
     try Some (Global_options.get_project_working_directory ())
     with _ -> None
   in
-  UnixExtra.temp_file ?parent ~prefix:".marionnet-blinker-server-socket-" ()
-;;
+  Log.printf "... From now on exceptions are important again\n";
+  let result =
+    UnixExtra.temp_file ?parent ~prefix:".marionnet-blinker-server-socket-" () in
+  Log.printf "The blinker server socket is %s\n" result;
+  result;;
 
 class ledgrid_manager =
 object (self)

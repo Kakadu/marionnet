@@ -179,7 +179,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Talking.EDialog.ask_question ~help:None ~cancel:false
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
-        ~title:(s_ "Power off")
+        ~title:(s_ "Power-off")
         ~question:(Printf.sprintf (f_ "WARNING: you asked to brutally stop the router,\nlike in a power-off;\n however you can also gracefully stop routers.\n\nDo you want to power-off %s anyway?\n") name)
 
     let reaction r =

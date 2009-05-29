@@ -156,7 +156,7 @@ module Layout_for_network_node_with_state
  
  module Ungracefully_stop' = struct
    include Ungracefully_stop
-   let text  = (s_ "Shutdown")
+   let text  = (s_ "Power-off")
    let stock = `DISCONNECT
    end
 

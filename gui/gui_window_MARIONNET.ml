@@ -96,8 +96,8 @@ let () =
  label#set_label text in
 (set w#label_button_BASE_STARTUP_EVERYTHING (s_ "Start all");
 set w#label_button_BASE_BROADCAST (s_ "Broadcast") ;
-set w#label_button_BASE_POWEROFF_EVERYTHING (s_ "Shutdown all");
-set w#label_button_BASE_SHUTDOWN_EVERYTHING (s_ "Stop all"))
+set w#label_button_BASE_POWEROFF_EVERYTHING (s_ "Power-off all");
+set w#label_button_BASE_SHUTDOWN_EVERYTHING (s_ "Shutdown all"))
 
 (* Tooltips for base buttons *)
 let () = 

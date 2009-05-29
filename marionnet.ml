@@ -181,11 +181,12 @@ let system_or_fail command_line =
 let check_dependency command_line error_message =
   try
     system_or_fail command_line;
-  with e ->
+  with e -> (
+    flush_all ();
     Simple_dialogs.error
       (s_ "Unsatisfied dependency")
       (error_message ^ (s_ "\nContinuing anyway, but *some important features will be missing*."))
-      ()
+      ())
 
 (** Check whether we have UML computer filesystems: *)
 let () = check_dependency
@@ -201,8 +202,8 @@ let () = begin
     "ls -l %s/router-%s &> /dev/null"
     Initialization.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in
   check_dependency
-   command_line
-   ((s_ "You don't have a default filesystem for virtual routers") ^ " (" ^ command_line ^")")
+    command_line
+    ((s_ "You don't have a default filesystem for virtual routers"))
   end
 
 (** Check whether we have UML kernels: *)

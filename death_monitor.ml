@@ -53,59 +53,9 @@ let map_size = ref 0;;
     poll_interval and map_size: *)
 let death_monitor_mutex = Mutex.create ();;
 
-(** Check whether a given process is still alive, using /proc. Only for
-    internal use. Incomparably faster than is_alive_using_ps (even if very
-    kludgish), but it only works for the root user... *)
-let rec is_alive_using_proc pid =
-  (* Only alive processes have a cwd. Zombies have a dead link here. Yeah, it's ugly. *)
-  let directory_name = Printf.sprintf "/proc/%i/cwd" pid in
-  try
-    let handle = Unix.opendir directory_name in
-    Unix.closedir handle; (* free the handle *)
-    true; (* ok, the process exists *)
-  with Unix.Unix_error (Unix.ENOENT, "opendir", _) ->
-    false (* the process doesn't exist any more *)
-  | Unix.Unix_error(error, function_name, parameter) -> begin
-      Log.printf "WARNING: death_monitor: opendir or closedir failed (%s, \"%s\", \"%s\") . Retrying.\n"
-        (Unix.error_message error) function_name parameter;
-      is_alive_using_proc pid;
-  end
-  |_ -> begin
-      (* Is this a signal interruption? *)
-      Log.printf "WARNING: death_monitor: opendir or closedir failed, but not with ENOENT. Retrying.\n";
-      is_alive_using_proc pid;
-    end;;
+let is_alive pid =
+  Does_process_exist.does_process_exist pid;;
 
-(** This is slower than is_alive_using_proc, but also works with non-root users: *)
-let rec is_alive_using_ps pid =
-  let is_process_existing_command_line =
-    Printf.sprintf "LANGUAGE=C LC_ALL=C ps -p %i | grep '%i ' &> /dev/null" pid pid in
-  let is_existing_process_zombie_command_line =
-    Printf.sprintf "LANGUAGE=C LC_ALL=C ps -p %i | grep '%i ' | grep '<defunct>' &> /dev/null" pid pid in
-  if Unix.system is_process_existing_command_line = Unix.WEXITED 0 then
-    if Unix.system is_existing_process_zombie_command_line = Unix.WEXITED 0 then
-      false (* existing, but zombie *)
-    else
-      true (* existing, not zombie *)
-  else
-    false;; (* not existing *)
-
-let is_alive =
-  if (Unix.getuid ()) = 0 then
-    is_alive_using_proc
-  else
-    is_alive_using_ps;;
-
-let rec is_taking_a_whole_cpu pid =
-  let command_line1 =
-    Printf.sprintf "cat /proc/%i/status | tr '\t' 'Q' | grep SleepAVG:Q0%%" pid in
-  let command_line2 =
-    Printf.sprintf
-      "ps -o time -p %i|tail --lines=1|awk -F: '{if($1*3600+$2*60+$2>10)exit 0; else exit -1}'" pid in
-  (try Unix.system command_line1 = (Unix.WEXITED 0) with _ -> false) &&
-  (try Unix.system command_line2 = (Unix.WEXITED 0) with _ -> false)
-  ;;
-  
 (** Return true iff we are currently monitoring the given process. Not thread-safe, only
     for internal use *)
 let __are_we_monitoring pid =
@@ -135,6 +85,14 @@ let start_monitoring ?(predicate=default_predicate) pid name callback =
     processes_to_be_monitored :=
       Map.add pid (name, predicate, callback) !processes_to_be_monitored;
     map_size := !map_size + 1;
+    (* We don't want to create zombies: let's asynchronously call waitpid on the process; this is
+       important, otherwise other implementation of is_process_alive using kill with a 0 value for
+       the signal will see the process as existing. *)
+    let _ =
+      Thread.create
+        (fun () -> Unix.waitpid [] pid)
+        () in
+    ();
   end);
   unlock death_monitor_mutex;;
 

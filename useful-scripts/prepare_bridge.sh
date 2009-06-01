@@ -185,7 +185,7 @@ function fallback_policy {
 #####################
 
 # The name of the unique bridge for Marionnet (several instances will share it)
-BRIDGE=marbre
+BRIDGE=br0
 
 # If the script is called with 'stop' delete the bridge from the system.
 # Note that the user has to manually reconfigure the included interfaces. 
@@ -195,7 +195,7 @@ if [[ "$1" = stop ]]; then
  exit 0
 fi
 
-# If 'marbre' exists and is already configured, exit with success
+# If '$BRIDGE' exists and is already configured, exit with success
 ifconfig "$BRIDGE" &>/dev/null && {
  TMPFILE=$(mktemp /tmp/prepare_bridge.XXXXX)
  ifconfig_dump "$BRIDGE" >"$TMPFILE"

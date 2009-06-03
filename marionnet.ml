@@ -34,7 +34,7 @@ let () = Random.self_init ()
 
 (** The global state containing the main window (st#mainwin) and all relevant dynamic
     attributes of the application *)
-let st = new globalState () 
+let st = new globalState ()
 
 (** Add a global thunk allowing to invoke the sketch refresh method, visible from many
     modules: *)
@@ -121,7 +121,7 @@ let () = Log.print_string "Starting the application\n"
 (* let () = ignore (GtkMain.Main.init ());; *)
 (* let guiThread = GtkThread.start () in (\* start GUI thread *\)  *)
 (* Thread.join guiThread;; *)
-let () = 
+let () =
 (try
   Daemon_client.initialize_daemon_client ();
   Daemon_client.start_thread_sending_keepalives ();

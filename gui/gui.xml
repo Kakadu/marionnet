@@ -151,10 +151,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem254">
@@ -173,10 +169,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem67">
@@ -196,10 +188,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem69">
@@ -219,10 +207,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem68">
@@ -234,10 +218,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem651">
@@ -251,10 +231,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem244">
@@ -275,10 +251,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem246">
@@ -299,10 +271,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem247">
@@ -321,10 +289,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem248">
@@ -404,10 +368,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem249">
@@ -419,10 +379,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem250">
@@ -436,10 +392,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem258">
@@ -458,10 +410,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem261">
@@ -473,10 +421,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem255">
@@ -490,10 +434,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem269">
@@ -512,10 +452,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkToolItem" id="toolitem268">
@@ -527,10 +463,6 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                                       </widget>
                                     </child>
                                   </widget>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="homogeneous">False</property>
-                                  </packing>
                                 </child>
                               </widget>
                               <packing>
@@ -746,6 +678,10 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                   </widget>
                 </child>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="button_BASE_BROADCAST">
@@ -789,6 +725,8 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                 </child>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -833,6 +771,8 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                 </child>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -877,6 +817,8 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                 </child>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">3</property>
               </packing>
             </child>
@@ -934,14 +876,12 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                   <widget class="GtkTable" id="table22">
                     <property name="visible">True</property>
                     <property name="n_rows">2</property>
-                    <property name="n_columns">1</property>
                     <child>
                       <widget class="GtkEntry" id="name">
                         <property name="width_request">120</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="has_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">1</property>
@@ -987,6 +927,24 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                 <property name="n_columns">4</property>
                 <property name="column_spacing">20</property>
                 <property name="row_spacing">10</property>
+                <child>
+                  <widget class="GtkSpinButton" id="eth">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="xalign">1</property>
+                    <property name="adjustment">2 1 5 1 1 10</property>
+                    <property name="climb_rate">1</property>
+                    <property name="numeric">True</property>
+                  </widget>
+                  <packing>
+                    <property name="left_attach">3</property>
+                    <property name="right_attach">4</property>
+                    <property name="top_attach">2</property>
+                    <property name="bottom_attach">3</property>
+                    <property name="x_options"></property>
+                    <property name="y_options"></property>
+                  </packing>
+                </child>
                 <child>
                   <placeholder/>
                 </child>
@@ -1112,24 +1070,6 @@ Ethernet---</property>
                   <packing>
                     <property name="left_attach">2</property>
                     <property name="right_attach">3</property>
-                    <property name="top_attach">2</property>
-                    <property name="bottom_attach">3</property>
-                    <property name="x_options">GTK_EXPAND</property>
-                    <property name="y_options"></property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkSpinButton" id="eth">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="xalign">1</property>
-                    <property name="adjustment">1 1 5 1 1 10</property>
-                    <property name="climb_rate">1</property>
-                    <property name="snap_to_ticks">True</property>
-                  </widget>
-                  <packing>
-                    <property name="left_attach">3</property>
-                    <property name="right_attach">4</property>
                     <property name="top_attach">2</property>
                     <property name="bottom_attach">3</property>
                     <property name="x_options">GTK_EXPAND</property>
@@ -1351,6 +1291,10 @@ Ethernet---</property>
                 <property name="response_id">-11</property>
                 <accelerator key="F1" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="cancelbutton">
@@ -1362,6 +1306,8 @@ Ethernet---</property>
                 <property name="response_id">-6</property>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -1376,6 +1322,8 @@ Ethernet---</property>
                 <accelerator key="Return" modifiers="" signal="clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -1599,6 +1547,10 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-7</property>
                 <accelerator key="Return" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
           </widget>
           <packing>
@@ -1691,6 +1643,10 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-7</property>
                 <accelerator key="Return" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
           </widget>
           <packing>
@@ -1770,6 +1726,10 @@ Version QQVERSIONQQ, QQDATEQQ
                 <accelerator key="n" modifiers="" signal="clicked"/>
                 <accelerator key="N" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="yesbutton">
@@ -1783,6 +1743,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <accelerator key="Y" modifiers="" signal="clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -1830,13 +1792,11 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="visible">True</property>
                     <property name="border_width">10</property>
                     <property name="n_rows">4</property>
-                    <property name="n_columns">1</property>
                     <child>
                       <widget class="GtkEntry" id="hub_label">
                         <property name="width_request">130</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">3</property>
@@ -1850,7 +1810,6 @@ Version QQVERSIONQQ, QQDATEQQ
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="has_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">1</property>
@@ -1900,7 +1859,6 @@ Version QQVERSIONQQ, QQDATEQQ
               <widget class="GtkTable" id="table27">
                 <property name="visible">True</property>
                 <property name="border_width">10</property>
-                <property name="n_rows">1</property>
                 <property name="n_columns">2</property>
                 <property name="column_spacing">25</property>
                 <property name="row_spacing">5</property>
@@ -1961,6 +1919,10 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-11</property>
                 <accelerator key="F1" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="button221">
@@ -1972,6 +1934,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-6</property>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -1986,6 +1950,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <accelerator key="Return" modifiers="" signal="clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -2033,13 +1999,11 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="visible">True</property>
                     <property name="border_width">10</property>
                     <property name="n_rows">4</property>
-                    <property name="n_columns">1</property>
                     <child>
                       <widget class="GtkEntry" id="switch_label">
                         <property name="width_request">130</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">3</property>
@@ -2053,7 +2017,6 @@ Version QQVERSIONQQ, QQDATEQQ
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="has_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">1</property>
@@ -2102,7 +2065,6 @@ Version QQVERSIONQQ, QQDATEQQ
               <widget class="GtkTable" id="table28">
                 <property name="visible">True</property>
                 <property name="border_width">10</property>
-                <property name="n_rows">1</property>
                 <property name="n_columns">2</property>
                 <property name="column_spacing">25</property>
                 <property name="row_spacing">5</property>
@@ -2162,6 +2124,10 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-11</property>
                 <accelerator key="F1" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="button227">
@@ -2173,6 +2139,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-6</property>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -2187,6 +2155,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <accelerator key="Return" modifiers="" signal="clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -2223,7 +2193,6 @@ Version QQVERSIONQQ, QQDATEQQ
                   <widget class="GtkTable" id="cable_image_dialog">
                     <property name="visible">True</property>
                     <property name="n_rows">2</property>
-                    <property name="n_columns">1</property>
                     <child>
                       <widget class="GtkImage" id="image_dialog_CABLE_direct">
                         <property name="visible">True</property>
@@ -2246,13 +2215,11 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="visible">True</property>
                     <property name="border_width">4</property>
                     <property name="n_rows">4</property>
-                    <property name="n_columns">1</property>
                     <child>
                       <widget class="GtkEntry" id="cable_name">
                         <property name="width_request">80</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">1</property>
@@ -2267,7 +2234,6 @@ Version QQVERSIONQQ, QQDATEQQ
                         <property name="visible">True</property>
                         <property name="app_paintable">True</property>
                         <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">3</property>
@@ -2393,7 +2359,6 @@ Version QQVERSIONQQ, QQDATEQQ
                   <widget class="GtkTable" id="table3">
                     <property name="visible">True</property>
                     <property name="n_rows">2</property>
-                    <property name="n_columns">1</property>
                     <child>
                       <widget class="GtkImage" id="image_dialog_CABLE_crossover_link">
                         <property name="pixbuf">ico.cable.crossed.dialog.link.png</property>
@@ -2458,6 +2423,10 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-11</property>
                 <accelerator key="F1" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="button239">
@@ -2469,6 +2438,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-6</property>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -2483,6 +2454,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <accelerator key="Return" modifiers="" signal="clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -2530,13 +2503,11 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="visible">True</property>
                     <property name="border_width">10</property>
                     <property name="n_rows">4</property>
-                    <property name="n_columns">1</property>
                     <child>
                       <widget class="GtkEntry" id="router_label">
                         <property name="width_request">130</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">3</property>
@@ -2550,7 +2521,6 @@ Version QQVERSIONQQ, QQDATEQQ
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="has_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">1</property>
@@ -2600,7 +2570,6 @@ Version QQVERSIONQQ, QQDATEQQ
               <widget class="GtkTable" id="table4">
                 <property name="visible">True</property>
                 <property name="border_width">10</property>
-                <property name="n_rows">1</property>
                 <property name="n_columns">2</property>
                 <property name="column_spacing">25</property>
                 <property name="row_spacing">5</property>
@@ -2651,7 +2620,6 @@ Version QQVERSIONQQ, QQDATEQQ
           <widget class="GtkTable" id="table37">
             <property name="visible">True</property>
             <property name="border_width">4</property>
-            <property name="n_rows">1</property>
             <property name="n_columns">10</property>
             <child>
               <widget class="GtkLabel" id="label_dialog_ROUTER_ip_port0">
@@ -2801,7 +2769,7 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="xalign">1</property>
-                <property name="adjustment">24 0 31 1 8 10</property>
+                <property name="adjustment">21 0 31 1 8 10</property>
                 <property name="climb_rate">1</property>
                 <property name="numeric">True</property>
               </widget>
@@ -2830,6 +2798,10 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-11</property>
                 <accelerator key="F1" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="button2">
@@ -2841,6 +2813,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-6</property>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -2855,6 +2829,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <accelerator key="Return" modifiers="" signal="clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -2902,13 +2878,11 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="visible">True</property>
                     <property name="border_width">10</property>
                     <property name="n_rows">4</property>
-                    <property name="n_columns">1</property>
                     <child>
                       <widget class="GtkEntry" id="cloud_label">
                         <property name="width_request">130</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">3</property>
@@ -2922,7 +2896,6 @@ Version QQVERSIONQQ, QQDATEQQ
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="has_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">1</property>
@@ -2978,6 +2951,10 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-11</property>
                 <accelerator key="F1" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="button5">
@@ -2989,6 +2966,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-6</property>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -3003,6 +2982,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <accelerator key="Return" modifiers="" signal="clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>
@@ -3050,13 +3031,11 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="visible">True</property>
                     <property name="border_width">10</property>
                     <property name="n_rows">4</property>
-                    <property name="n_columns">1</property>
                     <child>
                       <widget class="GtkEntry" id="socket_label">
                         <property name="width_request">130</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">3</property>
@@ -3070,7 +3049,6 @@ Version QQVERSIONQQ, QQDATEQQ
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="has_focus">True</property>
-                        <property name="invisible_char">*</property>
                       </widget>
                       <packing>
                         <property name="top_attach">1</property>
@@ -3117,7 +3095,6 @@ Version QQVERSIONQQ, QQDATEQQ
             <child>
               <widget class="GtkTable" id="table8">
                 <property name="border_width">4</property>
-                <property name="n_rows">1</property>
                 <property name="n_columns">10</property>
                 <child>
                   <widget class="GtkLabel" id="label_dialog_SOCKET_ip">
@@ -3267,7 +3244,7 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">1</property>
-                    <property name="adjustment">24 0 31 1 8 10</property>
+                    <property name="adjustment">21 0 31 1 8 10</property>
                     <property name="climb_rate">1</property>
                     <property name="numeric">True</property>
                   </widget>
@@ -3302,6 +3279,10 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-11</property>
                 <accelerator key="F1" modifiers="" signal="clicked"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="button8">
@@ -3313,6 +3294,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="response_id">-6</property>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
@@ -3327,6 +3310,8 @@ Version QQVERSIONQQ, QQDATEQQ
                 <accelerator key="Return" modifiers="" signal="clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>

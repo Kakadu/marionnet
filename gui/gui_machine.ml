@@ -36,10 +36,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let key      = Some (GdkKeysyms._M)
     let dialog   = let module M = Gui_dialog_MACHINE.Make (State) in M.dialog ~title:(s_ "Add machine") ~update:None
 
-    let reaction r = 
+    let reaction r =
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,eth) = (r#get "name"),(r#get "eth") in
+(*      let (name,eth) = (r#get "name"), "2" in*)
       details#add_device name "machine" (int_of_string eth);
       defects#add_device name "machine" (int_of_string eth);
       let m =

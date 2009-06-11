@@ -34,17 +34,15 @@ ROOT_BYTE_PROGRAMS = marionnet-daemon.byte
 #ROOT_NATIVE_PROGRAMS = marionnet-daemon.native
 
 #ROOT_PROGRAMS = marionnet-daemon.byte marionnet-daemon.native
-OTHER_PROGRAMS_TO_INSTALL = scripts/marionnet-can-directory-host-sparse-files
+OTHER_PROGRAMS_TO_INSTALL =
 
 # menu_factory.ml menu_factory.mli chip.ml are not documented because they get ocamldoc (with -pp camlp4of) confused
 UNDOCUMENTED=version.ml gui.ml chip_example.expanded.ml chip_example.ml gettext-example.ml menu_factory.ml menu_factory.mli chip.ml
 
 # Before building the main targets we have to create the machine-generated
 # sources:
-MANUALLY_PRE_COPY_IN_build = include_type_definitions_p4.ml gettext/extract_pot_p4.ml chip/chip_parser_p4.ml \
-  gettext/gettext-c-wrapper.c does-process-exist/does-process-exist-c-wrapper.c
-MANUALLY_PRE_MAKE_IN_build = include_type_definitions_p4.cmo extract_pot_p4.cmo chip/chip_parser_p4.cmo chip/chip_example.expanded.ml \
-  gettext-c-wrapper.o does-process-exist-c-wrapper.o
+MANUALLY_PRE_COPY_IN_build = include_type_definitions_p4.ml gettext/extract_pot_p4.ml chip/chip_parser_p4.ml gettext/gettext-c-wrapper.c
+MANUALLY_PRE_MAKE_IN_build = include_type_definitions_p4.cmo extract_pot_p4.cmo chip/chip_parser_p4.cmo chip/chip_example.expanded.ml gettext-c-wrapper.o
 MANUALLY_POST_MAKE_IN_build = chip/chip_example.expanded.byte
 
 marionnet.byte marionnet.native : manually_pre_actions version.ml gui.ml
@@ -52,6 +50,9 @@ marionnet.byte marionnet.native : manually_pre_actions version.ml gui.ml
 ########## Manually generated targets (not through ocamlbuild)
 
 _build/include_type_definitions_p4.cmo: include_type_definitions_p4.ml
+	ocamlc -c -I +camlp4 -pp camlp4of -o $@ $<
+
+_build/include_as_string_p4.cmo: include_as_string_p4.ml
 	ocamlc -c -I +camlp4 -pp camlp4of -o $@ $<
 
 _build/extract_pot_p4.cmo: gettext/extract_pot_p4.ml

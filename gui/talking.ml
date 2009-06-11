@@ -19,6 +19,8 @@
 (** All dialogs are implemented here. This module provide the capability for user to talk with the application.
     Specifically, the name "Talking" stands here for "Talking with user". *)
 
+#load "include_as_string_p4.cmo";;
+
 open Simple_dialogs;;
 open Sugar;;
 open StringExtra;;
@@ -434,17 +436,16 @@ let ask_for_file
 (** Return true iff the the given directory exists and is on a filesystem supporting
     sparse files. This function doesn't check whether the directory is writable: *)
 let does_directory_support_sparse_files pathname =
-  (* All the intelligence of this method lies in the external script: *)
+  (* All the intelligence of this method lies in the external script, loaded
+     at preprocessing time: *)
+  let content = INCLUDE_AS_STRING "scripts/can-directory-host-sparse-files.sh" in
   try
-    let command_line =
-      Printf.sprintf
-        "marionnet-can-directory-host-sparse-files '%s'"
-        (check_pathname_validity pathname) in
-    match Unix.system command_line with
-    | Unix.WEXITED 0     -> true
-    | Unix.WEXITED _ | _ -> false
+    match UnixExtra.script content [(check_pathname_validity pathname)] with
+    | (0,_,_) -> true
+    |   _     -> false
   with _ -> false
 ;;
+
 
 (** The edialog asking for an existing and writable directory. *)
 let ask_for_existing_writable_folder_pathname_supporting_sparse_files

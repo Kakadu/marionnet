@@ -41,8 +41,23 @@ UNDOCUMENTED=version.ml gui.ml chip_example.expanded.ml chip_example.ml gettext-
 
 # Before building the main targets we have to create the machine-generated
 # sources:
-MANUALLY_PRE_COPY_IN_build = include_type_definitions_p4.ml gettext/extract_pot_p4.ml chip/chip_parser_p4.ml gettext/gettext-c-wrapper.c
-MANUALLY_PRE_MAKE_IN_build = include_type_definitions_p4.cmo extract_pot_p4.cmo chip/chip_parser_p4.cmo chip/chip_example.expanded.ml gettext-c-wrapper.o
+MANUALLY_PRE_COPY_IN_build =     \
+  include_type_definitions_p4.ml \
+  include_as_string_p4.ml        \
+  gettext/extract_pot_p4.ml      \
+  chip/chip_parser_p4.ml         \
+  gettext/gettext-c-wrapper.c    \
+  does-process-exist/does-process-exist-c-wrapper.c \
+  scripts/can-directory-host-sparse-files.sh
+
+MANUALLY_PRE_MAKE_IN_build =      \
+  include_type_definitions_p4.cmo \
+  include_as_string_p4.cmo        \
+  extract_pot_p4.cmo              \
+  chip/chip_parser_p4.cmo         \
+  chip/chip_example.expanded.ml   \
+  gettext-c-wrapper.o does-process-exist-c-wrapper.o
+
 MANUALLY_POST_MAKE_IN_build = chip/chip_example.expanded.byte
 
 marionnet.byte marionnet.native : manually_pre_actions version.ml gui.ml

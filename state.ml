@@ -17,10 +17,7 @@
 
 (** Provide the class modelling the global state of the application. *)
 
-open Sugar;;
 open Gettext;;
-open Environment;;
-open Mariokit;;
 
 let marionnet_working_directory_prefix =
   "marionnet-";;
@@ -49,13 +46,8 @@ type filename = string;;
 
 (** The class modelling the global state of the application. *)
 class globalState = fun () ->
-  let win        = new Gui.window_MARIONNET ()           in
-  let net        = new Netmodel.network ()               in
-
-  let guiHandler = new Dotoptions.guiHandler win         in
-  let dotoptions = new Dotoptions.network guiHandler net in
-  let     _      = net#set_dotoptions dotoptions         in
-
+  let win           = new Gui.window_MARIONNET () in
+  let net           = new Mariokit.Netmodel.network () in
   let statusbar_ctx = win#statusbar#new_context "global" in
 
   object (self)
@@ -67,7 +59,7 @@ class globalState = fun () ->
   method network = net
 
   (** Access methods for the dot options, used for drawing the virtual network. *)
-  method dotoptions = dotoptions
+  method dotoptions = net#dotoptions
 
   (** Show something on statusbar. *)
   method flash ?(delay:int=2000) (msg:string) = statusbar_ctx#flash ~delay msg
@@ -137,36 +129,16 @@ class globalState = fun () ->
     Log.printf "getDir: exiting with success\n"; flush_all ();
     result
 
-  method tmpDir         =
-    Log.printf "* calling getDir 1\n"; flush_all ();
-    self#getDir "tmp"
-  method patchesDir     =
-    Log.printf "* calling getDir 2\n"; flush_all ();
-    self#getDir "states"
-  method netmodelDir    =
-    Log.printf "* calling getDir 3\n"; flush_all ();
-    self#getDir "netmodel"
-  method scriptsDir     =
-    Log.printf "* calling getDir 4\n"; flush_all ();
-    self#getDir "scripts"
-  method hostfsDir      =
-    Log.printf "* calling getDir 5\n"; flush_all ();
-    self#getDir "hostfs"
-  method classtestDir   =
-    Log.printf "* calling getDir 6\n"; flush_all ();
-    self#getDir "classtest"
-  method dotSketchFile  =
-    Log.printf "* calling getDir 7\n"; flush_all ();
-    self#tmpDir^"sketch.dot"
-  method pngSketchFile  =
-    Log.printf "* calling getDir 8\n"; flush_all ();
-    self#tmpDir^"sketch.png"
-  method networkFile    =
-    Log.printf "* calling getDir 9\n"; flush_all ();
-    self#netmodelDir^"network.xml"
-  method dotoptionsFile =
-    Log.printf "* calling getDir 10\n"; flush_all ();
-    self#netmodelDir^"dotoptions.marshal"
+  method tmpDir         = self#getDir "tmp"
+  method patchesDir     = self#getDir "states"
+  method netmodelDir    = self#getDir "netmodel"
+  method scriptsDir     = self#getDir "scripts"
+  method hostfsDir      = self#getDir "hostfs"
+  method classtestDir   = self#getDir "classtest"
+  method dotSketchFile  = self#tmpDir^"sketch.dot"
+  method pngSketchFile  = self#tmpDir^"sketch.png"
+  method networkFile    = self#netmodelDir^"network.xml"
+  method dotoptionsFile = self#netmodelDir^"dotoptions.marshal"
 
   (** New project which will be saved into the given filename. *)
   method new_project (x:filename)  =
@@ -271,7 +243,7 @@ class globalState = fun () ->
    begin
 
    (* Backup the network. *)
-   let backup = new Netmodel.network () in
+   let backup = new Mariokit.Netmodel.network () in
    backup#copyFrom self#network ;
 
    (* Plan to restore the network if something goes wrong. *)
@@ -283,7 +255,7 @@ class globalState = fun () ->
    (* Read the given file. *)
    (if (Shell.regfile_readable f)
    then try
-       Netmodel.Xml.load_network self#network f ;
+       Mariokit.Netmodel.Xml.load_network self#network f ;
        Log.print_endline ("import_network: network imported"); flush_all ();
    with e -> (emergency e;  raise e)
    else ( emergency (Failure "file not readable"); raise (Failure "state#import_network: cannot open the xml file") ));
@@ -416,7 +388,7 @@ class globalState = fun () ->
     in
 
     (* Write the network xml file *)
-    Netmodel.Xml.save_network self#network self#networkFile ;
+    Mariokit.Netmodel.Xml.save_network self#network self#networkFile ;
 
     (* Save also dotoptions for drawing image. *)
     self#dotoptions#save_to_file self#dotoptionsFile;
@@ -556,7 +528,7 @@ There is no need to restart the application.")
       List.flatten
         (List.map
            (fun node_name ->
-             self#network#freeReceptaclesNamesOfNode node_name Netmodel.Eth)
+             self#network#freeReceptaclesNamesOfNode node_name Mariokit.Netmodel.Eth)
            node_names) in
     let free_ethernet_ports_no = List.length free_ethernet_port_names in
     let condition = (free_ethernet_ports_no >= 2) in

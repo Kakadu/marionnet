@@ -69,7 +69,7 @@ and
  virtual chip ?(name = fresh_chip_name "chip") (system:system) =
   object (self) inherit component ~name system
 
-  (* For chip classification, debugging and drawing purposes *)
+  (* For chip classification (reflection), debugging and drawing purposes *)
   val virtual in_port_names  : string list
   val virtual out_port_names : string list
   method in_port_names  =  in_port_names

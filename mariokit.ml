@@ -172,92 +172,32 @@ end;;
 
 module Dotoptions = struct
 
-(** The iconsize converter float -> string *)
-let iconsize_of_float x =
-     match (int_of_float x) with
-     | 0 -> "small"
-     | 1 -> "med"
-     | 2 -> "large"
-     | 3 -> "xxl"
-     | default -> "large"
-;;
-
-(** The iconsize converter string -> float *)
-let float_of_iconsize s =
-    match s with
-     | "small" -> 0.
-     | "med"   -> 1.
-     | "large" -> 2.
-     | "xxl"   -> 3.
-     | default -> 2.
-;;
-
-(** Handler for reading or setting related widgets *)
-class guiHandler = fun (win:Gui.window_MARIONNET) ->
-
-  object (self)
-
-  (** Handling iconsize adjustment *)
-
-  method get_iconsize : string        =  iconsize_of_float (win#vscale_DOT_TUNING_ICONSIZE#adjustment#value)
-  method set_iconsize (x:string)      =  x => (float_of_iconsize || win#vscale_DOT_TUNING_ICONSIZE#adjustment#set_value)
-
-  (** Handling nodesep adjustment *)
-
-  (* Non-linear (quadratic) adjustment in the range [0,2] inches *)
-  method get_nodesep  : float         =  let formule = fun x -> (((x /. 20.) ** 2.) *. 2.) in
-                                         win#vscale_DOT_TUNING_NODESEP#adjustment#value => formule
-
-  method set_nodesep  (y:float)       =  let inverse = fun y -> 20. *. sqrt (y /. 2.) in
-                                         y => (inverse || win#vscale_DOT_TUNING_NODESEP#adjustment#set_value)
-
-  (** Handling labeldistance adjustment *)
-
-  (* Non-linear (quadratic) adjustment in the range [0,2] inches *)
-  method get_labeldistance  : float   =  let formule = fun x -> (((x /. 20.) ** 2.) *. 2.) in
-                                         win#vscale_DOT_TUNING_LABELDISTANCE#adjustment#value => formule
-
-  method set_labeldistance  (y:float) =  let inverse = fun y -> 20. *. sqrt (y /. 2.) in
-                                         y => (inverse || win#vscale_DOT_TUNING_LABELDISTANCE#adjustment#set_value)
-
-
-  (** Handling extrasize adjustment *)
-
-  method get_extrasize  : float     =  win#vscale_DOT_TUNING_EXTRASIZE#adjustment#value
-  method set_extrasize  (x:float)   =  win#vscale_DOT_TUNING_EXTRASIZE#adjustment#set_value x
-
-  (** Handling the network image *)
-
-  method get_image                =  win#sketch#pixbuf
-  method get_image_current_width  = (GdkPixbuf.get_width  win#sketch#pixbuf)
-  method get_image_current_height = (GdkPixbuf.get_height win#sketch#pixbuf)
-
-  val mutable image_original_width  = None
-  val mutable image_original_height = None
-
-  (** Called in update_sketch () *)
-  method reset_image_size () = image_original_width <- None; image_original_height <- None
-
-  (* Get and affect if need (but only the first time) *)
-  method get_image_original_width   = match image_original_width with
-  | None    -> (let x = self#get_image_current_width in image_original_width <- Some x; x)
-  | Some x  -> x
-
-  (* Get and affect if need (but only the first time) *)
-  method get_image_original_height   = match image_original_height with
-  | None    -> (let x = self#get_image_current_height in image_original_height <- Some x; x)
-  | Some x  -> x
-
-end ;; (* class gui *)
-
-
 
 (* *************************
     class Dotoptions.network
    ************************* *)
 
 type index = int;; (* 0..(length-1) *)
-type shuffler = index list ;; (* represent a permutation of indexes of a list*)
+type shuffler = index list ;; (* represents a permutation of indexes of a list*)
+
+(* This part of the state will be filled loading Gui_toolbar_DOT_TUNING. *)
+class type dot_tuning_high_level_toolbar_driver = 
+ object
+  method get_iconsize              : string
+  method set_iconsize              : string -> unit
+  method get_nodesep               : float
+  method set_nodesep               : float -> unit
+  method get_labeldistance         : float
+  method set_labeldistance         : float -> unit
+  method get_extrasize             : float
+  method set_extrasize             : float -> unit
+  method get_image                 : GdkPixbuf.pixbuf
+  method get_image_current_width   : int
+  method get_image_current_height  : int
+  method reset_image_size          : unit -> unit 
+  method get_image_original_width  : int
+  method get_image_original_height : int
+end (* class type high_level_toolbar_driver *)
 
 (** Dot options for a network *)
 let network_marshaller = new Oomarshal.marshaller;;
@@ -265,9 +205,6 @@ let network_marshaller = new Oomarshal.marshaller;;
 class network =
 
   fun ?(iconsize="large") ?(shuffler=[]) ?(rankdir="TB") ?(nodesep=0.5) ?(labeldistance=1.6) ?(extrasize=0.)
-
-      (* The handler for gui related part *)
-      (gui:guiHandler)
 
       (* The handler for the real network *)
       (net:( < invertedCables:(string list); invertedCableSet:(bool->string->unit); .. > ))  ->
@@ -323,7 +260,7 @@ class network =
 
   method reset_extrasize () =
     begin
-    self#gui#reset_image_size ();
+    self#toolbar_driver#reset_image_size ();
     extrasize <- 0.;
     ()
     end
@@ -338,8 +275,8 @@ class network =
 
   method ratio : string = if (extrasize = 0.) then "ratio=compress;" else
    begin
-    let x = self#gui#get_image_original_width  => Widget.Image.inch_of_pixels in
-    let y = self#gui#get_image_original_height => Widget.Image.inch_of_pixels in
+    let x = self#toolbar_driver#get_image_original_width  => Widget.Image.inch_of_pixels in
+    let y = self#toolbar_driver#get_image_original_height => Widget.Image.inch_of_pixels in
     Log.print_endline ("ratio original x="^(x => string_of_float));
     Log.print_endline ("ratio original y="^(y => string_of_float));
     let area  = x *. y in
@@ -355,21 +292,23 @@ class network =
 
   (** Methods for handling gui (for getting and setting). Inverted cables corresponds to dynamic menus,
       so they not need to be reactualized (the dynamic menus are recalculated each time from self#invertedCables. *)
-  method gui = gui
+  val mutable toolbar_driver : dot_tuning_high_level_toolbar_driver option = None
+  method set_toolbar_driver t = toolbar_driver <- Some t
+  method toolbar_driver = match toolbar_driver with Some t -> t | None -> assert false
 
   (** The value read from gui is used to set the correspondent field of self, then is returned as result *)
 
-  method read_gui_iconsize       () : string = iconsize      <- (self#gui#get_iconsize)       ; iconsize
-  method read_gui_nodesep        () : float  = nodesep       <- (self#gui#get_nodesep)        ; nodesep
-  method read_gui_labeldistance  () : float  = labeldistance <- (self#gui#get_labeldistance)  ; labeldistance
-  method read_gui_extrasize      () : float  = extrasize     <- (self#gui#get_extrasize )     ; extrasize
+  method read_gui_iconsize      () : string = iconsize      <- (self#toolbar_driver#get_iconsize) ; iconsize
+  method read_gui_nodesep       () : float  = nodesep       <- (self#toolbar_driver#get_nodesep)  ; nodesep
+  method read_gui_labeldistance () : float  = labeldistance <- (self#toolbar_driver#get_labeldistance); labeldistance
+  method read_gui_extrasize     () : float  = extrasize     <- (self#toolbar_driver#get_extrasize )     ; extrasize
 
   (** The dotoption gui reactualization *)
 
-  method write_gui_iconsize      () : unit = self#gui#set_iconsize      iconsize
-  method write_gui_nodesep       () : unit = self#gui#set_nodesep       nodesep
-  method write_gui_labeldistance () : unit = self#gui#set_labeldistance labeldistance
-  method write_gui_extrasize     () : unit = self#gui#set_extrasize     extrasize
+  method write_gui_iconsize      () : unit = self#toolbar_driver#set_iconsize      iconsize
+  method write_gui_nodesep       () : unit = self#toolbar_driver#set_nodesep       nodesep
+  method write_gui_labeldistance () : unit = self#toolbar_driver#set_labeldistance labeldistance
+  method write_gui_extrasize     () : unit = self#toolbar_driver#set_extrasize     extrasize
   method write_gui               () : unit =
     begin
       self#disable_gui_callbacks   () ;
@@ -2208,7 +2147,6 @@ class network = fun () ->
  (** Related dot options fro drawing this virtual network.
      This pointer is shared with the project instance. *)
  val mutable dotoptions : (Dotoptions.network option) = None
-
  method      dotoptions   = match dotoptions with Some x -> x | None -> raise (Failure "network#dotoptions")
  method  set_dotoptions x = dotoptions <- Some x
 
@@ -2819,7 +2757,9 @@ edge [headclip=true,minlen=1.6,color=\""^Color.crossover_cable^"\",weight=1];
 
  end (* method dotTrad *)
 
+initializer
 
+ self#set_dotoptions (new Dotoptions.network self);
 
 end
 

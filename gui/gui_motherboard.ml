@@ -42,7 +42,7 @@ module Make (S : sig val st:State.globalState end) = struct
 
   (* Sensitiveness manager *)
 
-  chip virtual sensitiveness_incompleted_manager : (app_state) -> () =
+  chip virtual sensitiveness_incomplete_manager : (app_state) -> () =
     let l1 = self#sensitive_when_Active   in
     let l2 = self#sensitive_when_Runnable in
     let l3 = self#sensitive_when_NoActive in
@@ -61,7 +61,7 @@ module Make (S : sig val st:State.globalState end) = struct
     )
 
   class sensitiveness_manager () = object
-    inherit [State.application_state] sensitiveness_incompleted_manager ~app_state:st#app_state ()
+    inherit [State.application_state] sensitiveness_incomplete_manager ~app_state:st#app_state ()
 
     val mutable sensitive_when_Active   : GObj.widget list = []
     val mutable sensitive_when_Runnable : GObj.widget list = []

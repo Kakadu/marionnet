@@ -19,6 +19,7 @@
 open Gettext
 open Sugar (* for '=>' and '||' *)
 
+(* This functor defines the dot tuning toolbar driver of the global state. *)
 module Make (State : sig val st:State.globalState end)  = struct
 
 open State
@@ -56,7 +57,94 @@ let () = begin
  set w#vscale_DOT_TUNING_EXTRASIZE#coerce  (s_ "Canvas size")
  end
 
-(* Callbacks *)
+(* ******************************* *
+      High-level toolbar driver
+ * ******************************* *)
+
+(** Handlers for reading or setting related widgets in a more abstract way. *)
+class high_level_toolbar_driver () = 
+
+  (* The iconsize converter float -> string *)
+ let iconsize_of_float x =
+     match (int_of_float x) with
+     | 0 -> "small"
+     | 1 -> "med"
+     | 2 -> "large"
+     | 3 -> "xxl"
+     | default -> "large"
+ in
+
+ (* The iconsize converter string -> float *)
+ let float_of_iconsize s =
+    match s with
+     | "small" -> 0.
+     | "med"   -> 1.
+     | "large" -> 2.
+     | "xxl"   -> 3.
+     | default -> 2.
+ in
+
+  object (self)
+
+  (** Handling iconsize adjustment *)
+
+  method get_iconsize : string        =  iconsize_of_float (w#vscale_DOT_TUNING_ICONSIZE#adjustment#value)
+  method set_iconsize (x:string)      =  x => (float_of_iconsize || w#vscale_DOT_TUNING_ICONSIZE#adjustment#set_value)
+
+  (** Handling nodesep adjustment *)
+
+  (* Non-linear (quadratic) adjustment in the range [0,2] inches *)
+  method get_nodesep  : float         =  let formule = fun x -> (((x /. 20.) ** 2.) *. 2.) in
+                                         w#vscale_DOT_TUNING_NODESEP#adjustment#value => formule
+
+  method set_nodesep  (y:float)       =  let inverse = fun y -> 20. *. sqrt (y /. 2.) in
+                                         y => (inverse || w#vscale_DOT_TUNING_NODESEP#adjustment#set_value)
+
+  (** Handling labeldistance adjustment *)
+
+  (* Non-linear (quadratic) adjustment in the range [0,2] inches *)
+  method get_labeldistance  : float   =  let formule = fun x -> (((x /. 20.) ** 2.) *. 2.) in
+                                         w#vscale_DOT_TUNING_LABELDISTANCE#adjustment#value => formule
+
+  method set_labeldistance  (y:float) =  let inverse = fun y -> 20. *. sqrt (y /. 2.) in
+                                         y => (inverse || w#vscale_DOT_TUNING_LABELDISTANCE#adjustment#set_value)
+
+  (** Handling extrasize adjustment *)
+
+  method get_extrasize  : float     =  w#vscale_DOT_TUNING_EXTRASIZE#adjustment#value
+  method set_extrasize  (x:float)   =  w#vscale_DOT_TUNING_EXTRASIZE#adjustment#set_value x
+
+  (** Handling the network image *)
+
+  method get_image                =  w#sketch#pixbuf
+  method get_image_current_width  = (GdkPixbuf.get_width  w#sketch#pixbuf)
+  method get_image_current_height = (GdkPixbuf.get_height w#sketch#pixbuf)
+
+  val mutable image_original_width  = None
+  val mutable image_original_height = None
+
+  (** Called in update_sketch () *)
+  method reset_image_size () = image_original_width <- None; image_original_height <- None
+
+  (* Get and affect if need (but only the first time) *)
+  method get_image_original_width   = match image_original_width with
+  | None    -> (let x = self#get_image_current_width in image_original_width <- Some x; x)
+  | Some x  -> x
+
+  (* Get and affect if need (but only the first time) *)
+  method get_image_original_height   = match image_original_height with
+  | None    -> (let x = self#get_image_current_height in image_original_height <- Some x; x)
+  | Some x  -> x
+
+end;; (* class high_level_toolbar_driver *)
+
+(* Enrich the global state structure with a new toolbar driver. *)
+st#dotoptions#set_toolbar_driver (new high_level_toolbar_driver ())
+
+
+(* ******************************* *
+        Callbacks definition 
+ * ******************************* *)
 
 let (opt,net) = (st#dotoptions, st#network)
 
@@ -130,7 +218,7 @@ let extrasize_react () = if opt#are_gui_callbacks_disable then () else
 let rotate_callback x () =
   begin
    st#network#invertedCableToggle x ;
-   st#flash (Printf.sprintf (f_ "Cable %s (re)inverted") x);
+   st#flash (Printf.sprintf (f_ "Cable %s reverted") x);
    st#refresh_sketch () ;
   end
 

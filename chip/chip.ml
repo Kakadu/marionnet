@@ -228,7 +228,6 @@ and
 
  end
 
-
 (** References are simple examples of wires. *)
 class ['a] wref ?(name = fresh_wire_name "wref") (system:system) (value:'a) =
   object (self) inherit ['a,'a] wire ~name system

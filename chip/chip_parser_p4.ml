@@ -19,6 +19,10 @@ open Camlp4 (* -*- camlp4o -*- *)
 
 (* ocamlc -I +camlp4 -pp camlp4of.opt camlp4lib.cma chip_parser.p4.ml *)
 
+(* For a strange bug, Camlp4of goes in a loop (StackOverflow) when a chip
+   with more than 1 port is declared virtual. Thus, in practice, if the chip
+   is virtual, we are limited to 1 port! *)
+
 module Id = struct
   let name = "Chip_pa"
   let version = "$Id: chip_pa.ml,v 0.1 2009/02/16 16:16:16 $"
@@ -66,6 +70,9 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
   EXTEND Gram
     GLOBAL: str_item;
 
+    where:
+      [ [  "complement"; w = LIST0 class_str_item ; "end" -> w ] ] ;
+
     port_ident:
       [ [  "("; x = LIDENT ; ":"; t = ctyp; ")" -> (x, Some t)
         |       x = LIDENT ; ":"; t = ctyp      -> (x, Some t)
@@ -80,10 +87,13 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
                          | "->"; "unit"; "=" -> []
                          | "="               -> [] ];
 
-          e = expr ->
+          e = expr ; w = OPT where ->
 
           (* Class type *)
           let is_virtual = (virt <> None) in
+
+          (* Are there where clauses: *)
+          let user_complement_section = match w with None -> [] | Some w -> w in
 
           (* Port names (inputs + outputs) *)
           let is_source = (input_ports = []) in
@@ -410,6 +420,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
               get_o             ;
               if is_source then emit else stabilize ;
               if is_source then [] else set       ;
+              user_complement_section ;
             ])
            in
 

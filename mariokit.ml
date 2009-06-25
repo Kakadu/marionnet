@@ -207,25 +207,46 @@ class network =
   fun ?(iconsize="large") ?(shuffler=[]) ?(rankdir="TB") ?(nodesep=0.5) ?(labeldistance=1.6) ?(extrasize=0.)
 
       (* The handler for the real network *)
-      (net:( < invertedCables:(string list); invertedCableSet:(bool->string->unit); .. > ))  ->
+      (network:( < invertedCables:(string list); invertedCableSet:(bool->string->unit); .. > ))  ->
 
   object (self)
   inherit Xforest.interpreter ()
 
-  val mutable iconsize        : string       = iconsize
-  val mutable shuffler        : (index list) = shuffler
-  val mutable rankdir         : string       = rankdir
-  val mutable nodesep         : float        = nodesep
+  val mutable iconsize : string = iconsize
+  method      iconsize = iconsize
+  method      set_iconsize x = iconsize <- x
+  val mutable iconsize_wire = None
+  method      iconsize_wire = match iconsize_wire with Some x -> x | None -> assert false
+
+  val mutable rankdir : string = rankdir
+  method      rankdir = rankdir
+  method      set_rankdir x = rankdir <- x
+  val mutable rankdir_wire = None
+  method      rankdir_wire = match rankdir_wire with Some x -> x | None -> assert false
+
+  val mutable shuffler : (index list) = shuffler
+  method      shuffler = shuffler
+  method      set_shuffler x = shuffler <- x
+  val mutable shuffler_wire = None
+  method      shuffler_wire = match shuffler_wire with Some x -> x | None -> assert false
+
+  val mutable nodesep : float = nodesep
+  method      nodesep = nodesep
+  method      set_nodesep x = nodesep <- x
+  val mutable nodesep_wire = None
+  method      nodesep_wire = match nodesep_wire with Some x -> x | None -> assert false
+
   val mutable labeldistance   : float        = labeldistance
+  method      labeldistance = labeldistance
+  method      set_labeldistance x = labeldistance <- x
+  val mutable labeldistance_wire = None
+  method      labeldistance_wire = match labeldistance_wire with Some x -> x | None -> assert false
+
   val mutable extrasize       : float        = extrasize
-  val mutable gui_callbacks_disable : bool   = false
-
-  method rankdir              = rankdir
-  method labeldistance        = labeldistance
-
-  (** Handlig methods of the real network *)
-  method invertedCables       = net#invertedCables
-  method invertedCableSet     = net#invertedCableSet
+  method      extrasize = extrasize
+  method      set_extrasize x = extrasize <- x
+  val mutable extrasize_wire = None
+  method      extrasize_wire = match extrasize_wire with Some x -> x | None -> assert false
 
   method get_iconsize         = iconsize
   method get_shuffler         = shuffler => ListExtra.asFunction  (* returns the permutation function *)
@@ -234,29 +255,17 @@ class network =
   method get_labeldistance    = "labeldistance="^(string_of_float labeldistance)
 
   (** This is the method used in user gui callbacks (reactions) *)
+  val mutable gui_callbacks_disable : bool   = false
   method are_gui_callbacks_disable   = gui_callbacks_disable
-
+  method get_gui_callbacks_disable   = gui_callbacks_disable
+  method set_gui_callbacks_disable x = gui_callbacks_disable <- x
   method disable_gui_callbacks    () = gui_callbacks_disable <- true
   method enable_gui_callbacks     () =
    begin
    (GMain.Timeout.add ~ms:500 ~callback:(fun () -> gui_callbacks_disable <- false; false)) => ignore
    end
 
-  (** This method must be used with List.shuffleIndexes, for instance :
-      opt#set_shuffler (List.shuffleIndexes (net#nodes)); *)
-  method set_shuffler (l:index list) =  shuffler     <- l
-  method set_rankdir        x        =  rankdir      <- x
-  method reset_shuffler    ()        =  shuffler     <- []
-  method set_extrasize      x        =  extrasize    <- x
-
-  (* Accessors stuff *)
-  method get_iconsize   = iconsize
-  method set_iconsize x = iconsize <- x
-  method set_nodesep x = nodesep <- x
-  method set_labeldistance x = labeldistance <- x
-  method get_gui_callbacks_disable   = gui_callbacks_disable
-  method set_gui_callbacks_disable x = gui_callbacks_disable <- x
-
+  method reset_shuffler () = shuffler <- []
 
   method reset_extrasize () =
     begin
@@ -267,55 +276,43 @@ class network =
 
   method reset_defaults () =
     begin
-      iconsize  <- "large"; shuffler <- []; rankdir <- "TB"; nodesep <- 0.5; labeldistance <- 1.6 ;
-      ListExtra.foreach self#invertedCables (self#invertedCableSet false) ;
+      iconsize <- "large"; shuffler <- []; rankdir <- "TB"; nodesep <- 0.5; labeldistance <- 1.6 ;
+      ListExtra.foreach network#invertedCables (network#invertedCableSet false) ;
       self#reset_extrasize () ;
-      self#write_gui ()
+      self#set_toolbar_widgets ()
     end
 
   method ratio : string = if (extrasize = 0.) then "ratio=compress;" else
    begin
     let x = self#toolbar_driver#get_image_original_width  => Widget.Image.inch_of_pixels in
     let y = self#toolbar_driver#get_image_original_height => Widget.Image.inch_of_pixels in
-    Log.print_endline ("ratio original x="^(x => string_of_float));
-    Log.print_endline ("ratio original y="^(y => string_of_float));
     let area  = x *. y in
     let delta_area = extrasize *. area /. 100. in
     let delta = sqrt( (x+.y)**2. +. 4.*. delta_area  )  -.  (x+.y)  in
     let x = x +. delta => string_of_float in
     let y = y +. delta => string_of_float in
-    Log.print_endline ("ratio x="^x);
-    Log.print_endline ("ratio y="^y);
     "size=\""^x^","^y^
     "\";\nratio=fill;"
    end
 
-  (** Methods for handling gui (for getting and setting). Inverted cables corresponds to dynamic menus,
-      so they not need to be reactualized (the dynamic menus are recalculated each time from self#invertedCables. *)
+  (** Accessor the dot tuning toolbar. This part of the state will be filled
+      loading Gui_toolbar_DOT_TUNING.
+      Inverted cables corresponds to dynamic menus, so they not need to be reactualized
+      (the dynamic menus are recalculated each time from network#invertedCables. *)
+
   val mutable toolbar_driver : dot_tuning_high_level_toolbar_driver option = None
   method set_toolbar_driver t = toolbar_driver <- Some t
   method toolbar_driver = match toolbar_driver with Some t -> t | None -> assert false
 
-  (** The value read from gui is used to set the correspondent field of self, then is returned as result *)
-
-  method read_gui_iconsize      () : string = iconsize      <- (self#toolbar_driver#get_iconsize) ; iconsize
-  method read_gui_nodesep       () : float  = nodesep       <- (self#toolbar_driver#get_nodesep)  ; nodesep
-  method read_gui_labeldistance () : float  = labeldistance <- (self#toolbar_driver#get_labeldistance); labeldistance
-  method read_gui_extrasize     () : float  = extrasize     <- (self#toolbar_driver#get_extrasize )     ; extrasize
-
   (** The dotoption gui reactualization *)
 
-  method write_gui_iconsize      () : unit = self#toolbar_driver#set_iconsize      iconsize
-  method write_gui_nodesep       () : unit = self#toolbar_driver#set_nodesep       nodesep
-  method write_gui_labeldistance () : unit = self#toolbar_driver#set_labeldistance labeldistance
-  method write_gui_extrasize     () : unit = self#toolbar_driver#set_extrasize     extrasize
-  method write_gui               () : unit =
+  method set_toolbar_widgets () : unit =
     begin
       self#disable_gui_callbacks   () ;
-      self#write_gui_iconsize      () ;
-      self#write_gui_nodesep       () ;
-      self#write_gui_labeldistance () ;
-      self#write_gui_extrasize     () ;
+      self#toolbar_driver#set_iconsize iconsize ;
+      self#toolbar_driver#set_nodesep nodesep ;
+      self#toolbar_driver#set_labeldistance labeldistance ;
+      self#toolbar_driver#set_extrasize extrasize ;
       self#enable_gui_callbacks    () ;
       ()
     end
@@ -324,17 +321,15 @@ class network =
       would involve resolving references to Gtk callbacks, which are outside the OCaml heap and
       hence (understandably) not supported by the marshaller. *)
 
-(** {b To do: should I also manage invertedCables and invertedCableSet? Ask Jean} *)
-
   (** Dump the current state of [self] into the given file. *)
   method save_to_file (file_name : string) =
-    Xforest.print_forest net#to_forest;
+    Xforest.print_forest network#to_forest;
     network_marshaller#to_file self#to_forest file_name
 
   (** This method is used just for undumping dotoptions, so is not strict.
       For instance, exceptions provoked by bad cable names are simply ignored. *)
   method set_invertedCables names =
-    ListExtra.foreach names (fun n -> try (self#invertedCableSet true n) with _ -> ())
+    ListExtra.foreach names (fun n -> try (network#invertedCableSet true n) with _ -> ())
 
   (** Undump the state of [self] from the given file. *)
   method load_from_file (file_name : string) =
@@ -354,7 +349,7 @@ class network =
                    ("labeldistance" , (string_of_float labeldistance)) ;
                    ("extrasize"     , (string_of_float extrasize)    ) ;
                    ("gui_callbacks_disable", (string_of_bool gui_callbacks_disable)) ;
-                   ("invertedCables", (Xforest.encode self#invertedCables)) ;
+                   ("invertedCables", (Xforest.encode network#invertedCables)) ;
 	           ])
 
  (** A Dotoption.network has just attributes (no childs) in this version.
@@ -370,6 +365,15 @@ class network =
   | ("gui_callbacks_disable", x ) -> self#set_gui_callbacks_disable (bool_of_string x)
   | ("invertedCables"       , x ) -> self#set_invertedCables (Xforest.decode x)
   | _ -> () (* Forward-comp. *)
+
+initializer
+ rankdir_wire  <- Some (Chip.wire_of_accessors ~name:"rankdir_wire"  ~get:(fun ()-> self#rankdir)  ~set:self#set_rankdir  ());
+ iconsize_wire <- Some (Chip.wire_of_accessors ~name:"iconsize_wire" ~get:(fun ()-> self#iconsize) ~set:self#set_iconsize ());
+ shuffler_wire <- Some (Chip.wire_of_accessors ~name:"shuffler_wire" ~get:(fun ()-> self#shuffler) ~set:self#set_shuffler ());
+ nodesep_wire  <- Some (Chip.wire_of_accessors ~name:"nodesep_wire"  ~get:(fun ()-> self#nodesep)  ~set:self#set_nodesep  ());
+ labeldistance_wire <- Some (Chip.wire_of_accessors ~name:"labeldistance" ~get:(fun ()-> self#labeldistance) ~set:self#set_labeldistance ());
+ extrasize_wire <- Some (Chip.wire_of_accessors ~name:"extrasize_wire" ~get:(fun ()-> self#extrasize) ~set:self#set_extrasize ());
+ ()
 
 end;; (* class Dotoptions.network *)
 
@@ -1065,7 +1069,7 @@ class virtual node = fun
   method dotTrad ?(nodeoptions="") (z:iconsize) =
     let label_line = if self#get_label="" then "" else "<TR><TD><FONT COLOR=\"#3a3936\">"^self#get_label^"</FONT></TD></TR>" in
     let fontsize   = if self#nodekind=Machine then "" else "fontsize=8," in
-    let nodeoption = if nodeoptions = "" then "" else (nodeoptions^",") in
+    let nodeoptions = if nodeoptions = "" then "" else (nodeoptions^",") in
     begin
     self#name^" ["^fontsize^nodeoptions^"shape=plaintext,label=<
 <TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">
@@ -1411,7 +1415,6 @@ object (self)
            | _ -> Some (Printf.sprintf "(id: %i; port: %i)" right_node#id right_port_index) in
          Log.print_string ("left hublet process socket name is " ^ left_hublet_process#get_socket_name ^ "\n");
          Log.print_string ("right hublet process socket name is " ^ right_hublet_process#get_socket_name ^ "\n");
-         let name = self#get_name in
          new Simulated_network.ethernet_cable
            ~name:self#get_name
            ~left_end:left_hublet_process

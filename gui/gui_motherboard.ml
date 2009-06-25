@@ -38,7 +38,10 @@ module Make (S : sig val st:State.globalState end) = struct
     in
     w#window_MARIONNET#set_title title
 
-  let main_window_title_manager = new main_window_title_manager ~prj_filename:st#prj_filename ()
+  let main_window_title_manager =
+    new main_window_title_manager
+      ~name:"main_window_title_manager"
+      ~prj_filename:st#prj_filename ()
 
   (* Sensitiveness manager *)
 
@@ -73,6 +76,46 @@ module Make (S : sig val st:State.globalState end) = struct
     method add_sensitive_when_NoActive x = sensitive_when_NoActive <- x::sensitive_when_NoActive
     end
 
-  let sensitiveness_manager = ((new sensitiveness_manager ~app_state:st#app_state ()) :> sensitiveness_manager_interface)
+  let sensitiveness_manager =
+    ((new sensitiveness_manager
+         ~name:"sensitiveness_manager"
+         ~app_state:st#app_state ()) :> sensitiveness_manager_interface)
+
+  (* Dot tuning manager. Is a toggling chip of arity 6. *)
+  chip dot_tuning_manager : (iconsize      : string  ,
+                             rankdir       : string  ,
+                             shuffler      : int list,
+                             nodesep       : float   ,
+                             labeldistance : float   ,
+                             extrasize     : float   ) -> (y:int) = (let y = self#get in y+1)
+
+  let refresh_sketch_counter = Chip.wref ~name:"refresh_sketch_counter" 0
+
+  let dot_tuning_manager =
+   let d = st#network#dotoptions in
+   new dot_tuning_manager
+        ~name:"dot_tuning_manager"
+   	~iconsize:d#iconsize_wire
+   	~rankdir:d#rankdir_wire
+   	~shuffler:d#shuffler_wire
+   	~nodesep:d#nodesep_wire
+   	~labeldistance:d#labeldistance_wire
+   	~extrasize:d#extrasize_wire
+   	~y:refresh_sketch_counter ()
+
+  chip sketch_refresher : (app_state, x:int) -> () =
+   (* Do not refresh if there isn't an active project *)
+   if (app_state <> State.NoActiveProject) then 
+    begin
+    self#tracing_message "refreshing...";
+    st#refresh_sketch ();
+    end
+
+  let sketch_refresher =
+    new sketch_refresher ~name:"sketch_refresher" ~app_state:st#app_state ~x:refresh_sketch_counter ()
+
+  (* Debugging: press F2 for printing the list of current component to stderr. *)
+  let _ = st#mainwin#toplevel#event#connect#key_press ~callback:
+             (fun k -> (if GdkEvent.Key.keyval k = GdkKeysyms._F2 then system#show_component_list ()); false)
 
 end

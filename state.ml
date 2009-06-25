@@ -48,8 +48,6 @@ type filename = string;;
 class globalState = fun () ->
   let win           = new Gui.window_MARIONNET () in
   let net           = new Mariokit.Netmodel.network () in
-  let statusbar_ctx = win#statusbar#new_context "global" in
-
   object (self)
 
   (** Main window. *)
@@ -62,17 +60,19 @@ class globalState = fun () ->
   method dotoptions = net#dotoptions
 
   (** Show something on statusbar. *)
-  method flash ?(delay:int=2000) (msg:string) = statusbar_ctx#flash ~delay msg
+  method flash ?(delay:int=2000) (msg:string) =
+   let statusbar_ctx = win#statusbar#new_context "global" in
+   statusbar_ctx#flash ~delay msg
 
   (** The state of application.*)
-  val app_state = Chip.wref ~name:"globalState#app_state" NoActiveProject
+  val app_state = Chip.wref ~name:"app_state" NoActiveProject
   method app_state = app_state
 
   (** Are we working with an active project. *)
-  method active_project = (app_state#get <> NoActiveProject)
+  method active_project = (app_state#get_alone <> NoActiveProject)
 
   (** The project filename. *)
-  val prj_filename = Chip.wref ~name:"globalState#prj_filename" None
+  val prj_filename = Chip.wref ~name:"prj_filename" None
   method prj_filename = prj_filename
 
   (** The project name. *)
@@ -121,13 +121,7 @@ class globalState = fun () ->
     Global_options.set_project_working_directory value;
 
   (** Handlers for relevant project directories and files. *)
-  method getDir dir     =
-    Log.printf "getDir: calling get_pwdir\n"; flush_all ();
-    let result =
-      (self#get_pwdir^"/"^(self#get_prj_name)^"/"^dir^"/")
-    in
-    Log.printf "getDir: exiting with success\n"; flush_all ();
-    result
+  method getDir dir = (self#get_pwdir^"/"^(self#get_prj_name)^"/"^dir^"/")
 
   method tmpDir         = self#getDir "tmp"
   method patchesDir     = self#getDir "states"
@@ -195,7 +189,7 @@ class globalState = fun () ->
     (* Destroy whatever the LEDgrid manager is managing: *)
     self#network#ledgrid_manager#reset;
 
-    (if (app_state#get = NoActiveProject) then
+    (if (app_state#get_alone = NoActiveProject) then
        Log.print_string ">>>>>>>>>>(THERE'S NO PROJECT TO CLOSE)<<<<<<<<\n"
      else begin
       self#network#reset ();
@@ -330,7 +324,7 @@ class globalState = fun () ->
         Log.print_endline ("open_project: dotoptions recovered");
        with e -> (Log.print_endline ("open_project: cannot read the dotoptions file => resetting defaults");
                    self#dotoptions#reset_defaults ())) ;
-       self#dotoptions#write_gui ()
+       self#dotoptions#set_toolbar_widgets ()
       end in
 
     Log.print_endline ("open_project: calling import_network");
@@ -540,7 +534,7 @@ There is no need to restart the application.")
       else simply refresh_sketch. *)
   method update_sketch () =
     lock_sketch ();
-    self#dotoptions#reset_shuffler  ();
+    self#dotoptions#reset_shuffler () ;
     self#dotoptions#reset_extrasize ();
     unlock_sketch ();
     Log.print_endline ("*** in update_sketch calling refresh_sketch");
@@ -553,7 +547,7 @@ There is no need to restart the application.")
   method update_state () =
     let old = app_state in
     begin
-    match app_state#get with
+    match app_state#get_alone with
      | NoActiveProject -> ()
      | _ -> app_state#set (if self#network#nodes=[]
                            then ActiveNotRunnableProject

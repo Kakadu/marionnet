@@ -86,30 +86,37 @@ class high_level_toolbar_driver () =
 
   object (self)
 
-  (** Handling iconsize adjustment *)
+  (** iconsize tuning *)
 
-  method get_iconsize : string        =  iconsize_of_float (w#vscale_DOT_TUNING_ICONSIZE#adjustment#value)
-  method set_iconsize (x:string)      =  x => (float_of_iconsize || w#vscale_DOT_TUNING_ICONSIZE#adjustment#set_value)
+  method get_iconsize : string =
+    iconsize_of_float (w#vscale_DOT_TUNING_ICONSIZE#adjustment#value)
 
-  (** Handling nodesep adjustment *)
+  method set_iconsize (x:string) =
+    x => (float_of_iconsize || w#vscale_DOT_TUNING_ICONSIZE#adjustment#set_value)
 
-  (* Non-linear (quadratic) adjustment in the range [0,2] inches *)
-  method get_nodesep  : float         =  let formule = fun x -> (((x /. 20.) ** 2.) *. 2.) in
-                                         w#vscale_DOT_TUNING_NODESEP#adjustment#value => formule
-
-  method set_nodesep  (y:float)       =  let inverse = fun y -> 20. *. sqrt (y /. 2.) in
-                                         y => (inverse || w#vscale_DOT_TUNING_NODESEP#adjustment#set_value)
-
-  (** Handling labeldistance adjustment *)
+  (** nodesep tuning *)
 
   (* Non-linear (quadratic) adjustment in the range [0,2] inches *)
-  method get_labeldistance  : float   =  let formule = fun x -> (((x /. 20.) ** 2.) *. 2.) in
-                                         w#vscale_DOT_TUNING_LABELDISTANCE#adjustment#value => formule
+  method get_nodesep : float =
+   let formule = fun x -> (((x /. 20.) ** 2.) *. 2.) in
+   w#vscale_DOT_TUNING_NODESEP#adjustment#value => formule
 
-  method set_labeldistance  (y:float) =  let inverse = fun y -> 20. *. sqrt (y /. 2.) in
-                                         y => (inverse || w#vscale_DOT_TUNING_LABELDISTANCE#adjustment#set_value)
+  method set_nodesep (y:float) =
+    let inverse = fun y -> 20. *. sqrt (y /. 2.) in
+    y => (inverse || w#vscale_DOT_TUNING_NODESEP#adjustment#set_value)
 
-  (** Handling extrasize adjustment *)
+  (** labeldistance tuning *)
+
+  (* Non-linear (quadratic) adjustment in the range [0,2] inches *)
+  method get_labeldistance : float =
+    let formule = fun x -> (((x /. 20.) ** 2.) *. 2.) in
+    w#vscale_DOT_TUNING_LABELDISTANCE#adjustment#value => formule
+
+  method set_labeldistance (y:float) =
+    let inverse = fun y -> 20. *. sqrt (y /. 2.) in
+    y => (inverse || w#vscale_DOT_TUNING_LABELDISTANCE#adjustment#set_value)
+
+  (** extrasize tuning *)
 
   method get_extrasize  : float     =  w#vscale_DOT_TUNING_EXTRASIZE#adjustment#value
   method set_extrasize  (x:float)   =  w#vscale_DOT_TUNING_EXTRASIZE#adjustment#set_value x
@@ -123,7 +130,7 @@ class high_level_toolbar_driver () =
   val mutable image_original_width  = None
   val mutable image_original_height = None
 
-  (** Called in update_sketch () *)
+  (** Called in update_sketch: *)
   method reset_image_size () = image_original_width <- None; image_original_height <- None
 
   (* Get and affect if need (but only the first time) *)
@@ -154,18 +161,17 @@ let fold_lines = function [] -> "" | l-> List.fold_left (fun x y -> x^" "^y) (Li
 (** Reaction for the iconsize tuning *)
 let iconsize_react () = if opt#are_gui_callbacks_disable then () else
   begin
-   let size = opt#read_gui_iconsize () in
+   let size = opt#toolbar_driver#get_iconsize in
+   opt#iconsize_wire#set size;
    st#flash ~delay:4000 (Printf.sprintf (f_ "The icon size is fixed to value %s (default=large)") size);
-   st#refresh_sketch () ;
   end
 
 (** Reaction for the shuffle tuning *)
 let shuffle_react () =
   begin
-   opt#set_shuffler (ListExtra.shuffleIndexes (net#nodes));
+   opt#shuffler_wire#set (ListExtra.shuffleIndexes (net#nodes));
    let namelist = net#getNodeNames => ( (ListExtra.permute opt#get_shuffler) || fold_lines ) in
    st#flash ~delay:4000 ((s_ "Icons randomly arranged: ")^namelist);
-   st#refresh_sketch () ;
   end
 
 (** Reaction for the unshuffle tuning *)
@@ -174,44 +180,41 @@ let unshuffle_react () =
    opt#reset_shuffler ();
    let namelist = (net#getNodeNames => fold_lines) in
    st#flash ~delay:4000 ((s_ "Default icon arrangement: ")^namelist);
-   st#refresh_sketch () ;
   end
 
 (** Reaction for the rankdir tunings *)
 let rankdir_react x () =
   begin
-   let old = st#dotoptions#rankdir in
-   st#dotoptions#set_rankdir x;
+   st#dotoptions#rankdir_wire#set x;
    let msg = match x with
     | "TB" -> (s_ "Arrange edges top-to-bottom (default)")
     | "LR" -> (s_ "Arrange edges left-to-right")
     | _    -> "Not valid Rankdir" in
    st#flash ~delay:4000 msg;
-   if x<>old then st#refresh_sketch () ;
   end
 
 (** Reaction for the nodesep tuning *)
 let nodesep_react () = if opt#are_gui_callbacks_disable then () else
   begin
-   let y = opt#read_gui_nodesep () in
+   let y = opt#toolbar_driver#get_nodesep in
+   opt#nodesep_wire#set y;
    st#flash (Printf.sprintf (f_ "The minimum edge size (distance between nodes) is fixed to the value %s (default=0.5)") (string_of_float y));
-   st#refresh_sketch () ;
   end
 
 (** Reaction for the labeldistance tuning *)
 let labeldistance_react () = if opt#are_gui_callbacks_disable then () else
   begin
-   let y = opt#read_gui_labeldistance () in
+   let y = opt#toolbar_driver#get_labeldistance in
+   opt#labeldistance_wire#set y;
    st#flash (Printf.sprintf (f_ "The distance between labels and icons is fixed to the value %s (default=1.6)") (string_of_float y));
-   st#refresh_sketch () ;
   end
 
 (** Reaction for the extrasize_x tuning *)
 let extrasize_react () = if opt#are_gui_callbacks_disable then () else
   begin
-   let x = () => (opt#read_gui_extrasize || int_of_float || string_of_int) in
-   st#flash (Printf.sprintf (f_ "The canvas size is fixed to %s%% of the minimun value to contain the graph (default=0%%)") x );
-   st#refresh_sketch () ;
+   let y = opt#toolbar_driver#get_extrasize in
+   opt#extrasize_wire#set y;
+   st#flash (Printf.sprintf (f_ "The canvas size is fixed to %s%% of the minimun value to contain the graph (default=0%%)") (string_of_int (int_of_float y)) );
   end
 
 (** Reaction for a rotate tuning *)

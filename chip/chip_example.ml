@@ -82,17 +82,17 @@ t#emit 9.887 ;;
 (*let w8 = wref true ;;
 let s = new distributor ~x:w1 ~s:w8 ~y1:w7 ~y2:w6 () ;;*)
 
-chip virtual flip_flop_2_incomplete : (a:float) -> () = () (*self#toggle*) ;;
+(* Example of chip complement: *)
 
 class toggle_method () =  object
  val mutable state = false
  method toggle = (state <- not state); state
 end;;
 
-chip flip_flop_2 : (a,b) -> (y:bool) = self#toggle
+chip mychip : (a:int, b:float) -> (y:bool) = self#toggle
  complement
   inherit toggle_method ()
-  method pippo = not self#toggle
-  val mutable pluto = 1
+  method foo = not self#toggle
+  val mutable bar = 1
  end;;
 

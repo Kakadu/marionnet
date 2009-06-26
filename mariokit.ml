@@ -207,82 +207,68 @@ class network =
   fun ?(iconsize="large") ?(shuffler=[]) ?(rankdir="TB") ?(nodesep=0.5) ?(labeldistance=1.6) ?(extrasize=0.)
 
       (* The handler for the real network *)
-      (network:( < invertedCables:(string list); invertedCableSet:(bool->string->unit); .. > ))  ->
+      (network:( < revertedCables:(string list); revertedCableSet:(bool->string->unit); .. > ))  ->
 
   object (self)
   inherit Xforest.interpreter ()
 
-  val mutable iconsize : string = iconsize
-  method      iconsize = iconsize
-  method      set_iconsize x = iconsize <- x
-  val mutable iconsize_wire = None
-  method      iconsize_wire = match iconsize_wire with Some x -> x | None -> assert false
+  val iconsize = Chip.wref ~name:"iconsize" iconsize
+  method iconsize = iconsize
 
-  val mutable rankdir : string = rankdir
-  method      rankdir = rankdir
-  method      set_rankdir x = rankdir <- x
-  val mutable rankdir_wire = None
-  method      rankdir_wire = match rankdir_wire with Some x -> x | None -> assert false
+  val rankdir  = Chip.wref ~name:"rankdir" rankdir
+  method rankdir = rankdir
 
-  val mutable shuffler : (index list) = shuffler
-  method      shuffler = shuffler
-  method      set_shuffler x = shuffler <- x
-  val mutable shuffler_wire = None
-  method      shuffler_wire = match shuffler_wire with Some x -> x | None -> assert false
+  val shuffler = Chip.wref ~name:"shuffler" shuffler
+  method shuffler = shuffler
 
-  val mutable nodesep : float = nodesep
-  method      nodesep = nodesep
-  method      set_nodesep x = nodesep <- x
-  val mutable nodesep_wire = None
-  method      nodesep_wire = match nodesep_wire with Some x -> x | None -> assert false
+  val nodesep = Chip.wref ~name:"nodesep" nodesep
+  method nodesep = nodesep
 
-  val mutable labeldistance   : float        = labeldistance
-  method      labeldistance = labeldistance
-  method      set_labeldistance x = labeldistance <- x
-  val mutable labeldistance_wire = None
-  method      labeldistance_wire = match labeldistance_wire with Some x -> x | None -> assert false
+  val labeldistance = Chip.wref ~name:"labeldistance" labeldistance
+  method labeldistance = labeldistance
 
-  val mutable extrasize       : float        = extrasize
-  method      extrasize = extrasize
-  method      set_extrasize x = extrasize <- x
-  val mutable extrasize_wire = None
-  method      extrasize_wire = match extrasize_wire with Some x -> x | None -> assert false
+  val extrasize = Chip.wref ~name:"extrasize" extrasize
+  method extrasize = extrasize
 
-  method get_iconsize         = iconsize
-  method get_shuffler         = shuffler => ListExtra.asFunction  (* returns the permutation function *)
-  method get_rankdir          = "rankdir="^rankdir^";"
-  method get_nodesep          = let s=(string_of_float nodesep) in ("nodesep="^s^"; ranksep="^s)
-  method get_labeldistance    = "labeldistance="^(string_of_float labeldistance)
+  method iconsize_for_dot  = iconsize#get
+  method shuffler_as_function = shuffler#get => ListExtra.asFunction  (* returns the permutation function *)
+  method rankdir_for_dot   = "rankdir="^(rankdir#get)^";"
+  method nodesep_for_dot   = let s=(string_of_float nodesep#get) in ("nodesep="^s^"; ranksep="^s)
+  method labeldistance_for_dot = "labeldistance="^(string_of_float labeldistance#get)
 
   (** This is the method used in user gui callbacks (reactions) *)
   val mutable gui_callbacks_disable : bool   = false
-  method are_gui_callbacks_disable   = gui_callbacks_disable
-  method get_gui_callbacks_disable   = gui_callbacks_disable
+  method gui_callbacks_disable   = gui_callbacks_disable
   method set_gui_callbacks_disable x = gui_callbacks_disable <- x
   method disable_gui_callbacks    () = gui_callbacks_disable <- true
   method enable_gui_callbacks     () =
-   begin
-   (GMain.Timeout.add ~ms:500 ~callback:(fun () -> gui_callbacks_disable <- false; false)) => ignore
-   end
+   ignore (GMain.Timeout.add ~ms:500 ~callback:(fun () -> gui_callbacks_disable <- false; false))
 
-  method reset_shuffler () = shuffler <- []
+  method reset_shuffler () = shuffler#set []
 
   method reset_extrasize () =
     begin
     self#toolbar_driver#reset_image_size ();
-    extrasize <- 0.;
+    extrasize#set 0.;
     ()
     end
 
+  (* Delete _alone here:  *)
   method reset_defaults () =
     begin
-      iconsize <- "large"; shuffler <- []; rankdir <- "TB"; nodesep <- 0.5; labeldistance <- 1.6 ;
-      ListExtra.foreach network#invertedCables (network#invertedCableSet false) ;
+      iconsize#set "large";
+      shuffler#set [];
+      rankdir#set "TB";
+      nodesep#set 0.5;
+      labeldistance#set 1.6 ;
+      ListExtra.foreach network#revertedCables (network#revertedCableSet false) ;
       self#reset_extrasize () ;
       self#set_toolbar_widgets ()
     end
 
-  method ratio : string = if (extrasize = 0.) then "ratio=compress;" else
+  method ratio : string =
+   let extrasize = extrasize#get in
+   if (extrasize = 0.) then "ratio=compress;" else
    begin
     let x = self#toolbar_driver#get_image_original_width  => Widget.Image.inch_of_pixels in
     let y = self#toolbar_driver#get_image_original_height => Widget.Image.inch_of_pixels in
@@ -298,7 +284,7 @@ class network =
   (** Accessor the dot tuning toolbar. This part of the state will be filled
       loading Gui_toolbar_DOT_TUNING.
       Inverted cables corresponds to dynamic menus, so they not need to be reactualized
-      (the dynamic menus are recalculated each time from network#invertedCables. *)
+      (the dynamic menus are recalculated each time from network#revertedCables. *)
 
   val mutable toolbar_driver : dot_tuning_high_level_toolbar_driver option = None
   method set_toolbar_driver t = toolbar_driver <- Some t
@@ -309,10 +295,10 @@ class network =
   method set_toolbar_widgets () : unit =
     begin
       self#disable_gui_callbacks   () ;
-      self#toolbar_driver#set_iconsize iconsize ;
-      self#toolbar_driver#set_nodesep nodesep ;
-      self#toolbar_driver#set_labeldistance labeldistance ;
-      self#toolbar_driver#set_extrasize extrasize ;
+      self#toolbar_driver#set_iconsize iconsize#get ;
+      self#toolbar_driver#set_nodesep nodesep#get ;
+      self#toolbar_driver#set_labeldistance labeldistance#get ;
+      self#toolbar_driver#set_extrasize extrasize#get ;
       self#enable_gui_callbacks    () ;
       ()
     end
@@ -328,8 +314,8 @@ class network =
 
   (** This method is used just for undumping dotoptions, so is not strict.
       For instance, exceptions provoked by bad cable names are simply ignored. *)
-  method set_invertedCables names =
-    ListExtra.foreach names (fun n -> try (network#invertedCableSet true n) with _ -> ())
+  method set_revertedCables names =
+    ListExtra.foreach names (fun n -> try (network#revertedCableSet true n) with _ -> ())
 
   (** Undump the state of [self] from the given file. *)
   method load_from_file (file_name : string) =
@@ -342,52 +328,41 @@ class network =
  (** Dotoptions to forest encoding. *)
   method to_forest =
    Forest.leaf ("dotoptions", [
-    		   ("iconsize"      , iconsize                       ) ;
-    		   ("shuffler"      , (Xforest.encode shuffler)      ) ;
-                   ("rankdir"       , rankdir                        ) ;
-                   ("nodesep"       , (string_of_float nodesep)      ) ;
-                   ("labeldistance" , (string_of_float labeldistance)) ;
-                   ("extrasize"     , (string_of_float extrasize)    ) ;
+    		   ("iconsize"      , iconsize#get                   ) ;
+    		   ("shuffler"      , (Xforest.encode shuffler#get)  ) ;
+                   ("rankdir"       , rankdir#get                    ) ;
+                   ("nodesep"       , (string_of_float nodesep#get)      ) ;
+                   ("labeldistance" , (string_of_float labeldistance#get)) ;
+                   ("extrasize"     , (string_of_float extrasize#get)    ) ;
                    ("gui_callbacks_disable", (string_of_bool gui_callbacks_disable)) ;
-                   ("invertedCables", (Xforest.encode network#invertedCables)) ;
+                   ("invertedCables", (Xforest.encode network#revertedCables)) ;
 	           ])
 
  (** A Dotoption.network has just attributes (no childs) in this version.
      The Dotoption.network must be undumped AFTER the Netmodel.network in
-     order to have significant cable names (invertedCables). *)
+     order to have significant cable names (revertedCables). *)
  method eval_forest_attribute = function
-  | ("iconsize"             , x ) -> self#set_iconsize       x
-  | ("shuffler"             , x ) -> self#set_shuffler      (Xforest.decode x)
-  | ("rankdir"              , x ) -> self#set_rankdir        x
-  | ("nodesep"              , x ) -> self#set_nodesep       (float_of_string x)
-  | ("labeldistance"        , x ) -> self#set_labeldistance (float_of_string x)
-  | ("extrasize"            , x ) -> self#set_extrasize     (float_of_string x)
+  | ("iconsize"             , x ) -> self#iconsize#set       x
+  | ("shuffler"             , x ) -> self#shuffler#set      (Xforest.decode x)
+  | ("rankdir"              , x ) -> self#rankdir#set        x
+  | ("nodesep"              , x ) -> self#nodesep#set       (float_of_string x)
+  | ("labeldistance"        , x ) -> self#labeldistance#set (float_of_string x)
+  | ("extrasize"            , x ) -> self#extrasize#set     (float_of_string x)
   | ("gui_callbacks_disable", x ) -> self#set_gui_callbacks_disable (bool_of_string x)
-  | ("invertedCables"       , x ) -> self#set_invertedCables (Xforest.decode x)
+  | ("invertedCables"       , x ) -> self#set_revertedCables (Xforest.decode x)
   | _ -> () (* Forward-comp. *)
-
-initializer
- rankdir_wire  <- Some (Chip.wire_of_accessors ~name:"rankdir_wire"  ~get:(fun ()-> self#rankdir)  ~set:self#set_rankdir  ());
- iconsize_wire <- Some (Chip.wire_of_accessors ~name:"iconsize_wire" ~get:(fun ()-> self#iconsize) ~set:self#set_iconsize ());
- shuffler_wire <- Some (Chip.wire_of_accessors ~name:"shuffler_wire" ~get:(fun ()-> self#shuffler) ~set:self#set_shuffler ());
- nodesep_wire  <- Some (Chip.wire_of_accessors ~name:"nodesep_wire"  ~get:(fun ()-> self#nodesep)  ~set:self#set_nodesep  ());
- labeldistance_wire <- Some (Chip.wire_of_accessors ~name:"labeldistance" ~get:(fun ()-> self#labeldistance) ~set:self#set_labeldistance ());
- extrasize_wire <- Some (Chip.wire_of_accessors ~name:"extrasize_wire" ~get:(fun ()-> self#extrasize) ~set:self#set_extrasize ());
- ()
 
 end;; (* class Dotoptions.network *)
 
 
 (** Dot options for a cable *)
-class cable =
-  fun ?(inverted=false)
-      () ->
-object (self)
-   val mutable inverted   = inverted
-   method      inverted   = inverted
-   method  set_inverted x = inverted <- x
-
-end;; (* class Dotoptions.cable *)
+class cable ?(reverted=false) ~(motherboard:State_types.motherboard) ~name () =
+ object (self)
+   val reverted = motherboard#reverted_rj45cables_cable#create_wref ~name:(name^"_reverted") reverted
+   method reverted = reverted
+   method destroy =
+    reverted#destroy
+ end;; (* class Dotoptions.cable *)
 
 
 end;; (* module Dotoptions *)
@@ -1127,18 +1102,17 @@ end;;
 class cable =
    fun
    ~network
+   ~motherboard
    ?(name="nocablename")
    ?(label="")
    ~cablekind
    ~(left :socketname)
    ~(right:socketname)
    () ->
-  let dotoptions = new Dotoptions.cable () in
+  let dotoptions = new Dotoptions.cable ~motherboard ~name () in
   let with_mutex mutex thunk =
-(*     Log.printf "I disabled synchronization here: BEGIN\n"; flush_all (); *)
     try
       let result = thunk () in
-(*       Log.printf "I disabled synchronization here: END\n"; flush_all (); *)
       result
     with e -> begin
       Log.printf "I disabled synchronization here: RE-RAISING %s\n" (Printexc.to_string e); flush_all ();
@@ -1149,6 +1123,11 @@ object (self)
   inherit component ~network ~name ~label ()
   inherit simulated_device as super_simulated_device
 
+  (* Redefinition: *)
+  method destroy =
+    super_simulated_device#destroy;
+    self#dotoptions#destroy
+ 
   val cablekind = cablekind
   method cablekind = cablekind
 
@@ -1262,15 +1241,15 @@ object (self)
   method to_forest =
     with_mutex mutex
       (fun () ->
-        Forest.leaf ("cable",[
-                     ("name"            ,  self#get_name )  ;
-   		     ("label"           ,  self#get_label)  ;
-                     ("kind"            , (string_of_cablekind self#cablekind)) ;
-                     ("leftnodename"    ,  self#get_left.nodename)    ;
-                     ("leftreceptname"  ,  self#get_left.receptname)  ;
-                     ("rightnodename"   ,  self#get_right.nodename)   ;
-                     ("rightreceptname" ,  self#get_right.receptname) ;
-                   ]))
+        Forest.leaf ("cable",
+                       [ ("name"            ,  self#get_name )  ;
+   		         ("label"           ,  self#get_label)  ;
+                         ("kind"            , (string_of_cablekind self#cablekind)) ;
+                         ("leftnodename"    ,  self#get_left.nodename)    ;
+                         ("leftreceptname"  ,  self#get_left.receptname)  ;
+                         ("rightnodename"   ,  self#get_right.nodename)   ;
+                         ("rightreceptname" ,  self#get_right.receptname) ;
+                       ]))
 
   (** A cable has just attributes (no childs) in this version. The attribute "kind" cannot be set,
       must be considered as a constant field of the class. *)
@@ -2088,7 +2067,7 @@ let dotEdgeTrad ?(edgeoptions="") (labeldistance_base) (((n1,r1),c,(n2,r2)):edge
    let (tail, head, taillabel, headlabel) =
 
     (* Invert left and right sides of the cable if required *)
-    let (n1,r1,n2,r2) = if c#dotoptions#inverted then (n2,r2,n1,r1) else (n1,r1,n2,r2) in
+    let (n1,r1,n2,r2) = if c#dotoptions#reverted#get then (n2,r2,n1,r1) else (n1,r1,n2,r2) in
 
      match (n1#nodekind, c#cablekind, n2#nodekind, n1#get_label, n2#get_label) with
 
@@ -2124,10 +2103,15 @@ open Edge;;
  * *************************** *)
 
 (** Class modelling the virtual network *)
-class network = fun () ->
+class network () =
 
  object (self)
  inherit Xforest.interpreter ()
+
+ (** Motherboard is set in Gui_motherboard. *)
+ val mutable motherboard : State_types.motherboard option = None
+ method motherboard = match motherboard with Some x -> x | None -> assert false
+ method set_motherboard m = motherboard <- Some m
 
  val mutable machines : (machine list) = []
  val mutable devices  : (device  list) = []
@@ -2250,7 +2234,7 @@ class network = fun () ->
       let left  = { nodename=ln; receptname=lr }  in
       let right = { nodename=rn; receptname=rr }  in
       let cablekind = cablekind_of_string ck      in
-      let x = new cable ~cablekind ~network:self ~left ~right () in
+      let x = new cable ~motherboard:self#motherboard ~cablekind ~network:self ~left ~right () in
       x#from_forest ("cable", attrs) childs ;
       self#addCable x;
 
@@ -2630,22 +2614,14 @@ class network = fun () ->
 
  (** Starting and showing the network *)
 
- (** List of inverted cables (used only for drawing network) *)
- method invertedCables : (string list) =
-   let clist= List.filter (fun x->x#dotoptions#inverted) cables in
+ (** List of reverted cables (used only for drawing network) *)
+ method revertedCables : (string list) =
+   let clist= List.filter (fun x->x#dotoptions#reverted#get) cables in
    List.map (fun x->x#name) clist
 
- (** Set the inverted dotoptions field of a cable of the network (identified by name) *)
- method invertedCableSet (x:bool) (cname:string) =
-   (self#getCableByName cname)#dotoptions#set_inverted x
-
- (** Toggle the inverted dotoptions field of a cable of the network (identified by name) *)
- method invertedCableToggle (cname:string) =
-   let c = (self#getCableByName cname) in c#dotoptions#set_inverted (not c#dotoptions#inverted)
-
-
- (* The network start commnand *)
- (*method startCmd = String.synthesis (^) (List.map (fun m->m#startCmd) machines) *)
+ (** Set the reverted dotoptions field of a cable of the network (identified by name) *)
+ method revertedCableSet (x:bool) (cname:string) =
+   (self#getCableByName cname)#dotoptions#reverted#set x
 
  (** Show network topology *)
  method show =
@@ -2706,13 +2682,15 @@ class network = fun () ->
 (* ex colore dei cavi incrociati "#52504c" *)
 
  (** Network translation into the dot language *)
- method dotTrad () = let opt = self#dotoptions in
+ method dotTrad () =
+ let opt = self#dotoptions in
+ let labeldistance = opt#labeldistance#get in
  begin
 "digraph plan {
 
 "^opt#ratio^"
-"^opt#get_rankdir^"
-"^opt#get_nodesep^";"^"
+"^opt#rankdir_for_dot^"
+"^opt#nodesep_for_dot^";"^"
 
 /* ***************
         NODES
@@ -2721,8 +2699,8 @@ class network = fun () ->
 "^
 (StringExtra.Text.to_string
    (List.map
-     (fun (n:node)->n#dotTrad opt#get_iconsize)
-     (ListExtra.permute opt#get_shuffler self#nodes)
+     (fun (n:node)->n#dotTrad opt#iconsize_for_dot)
+     (ListExtra.permute opt#shuffler_as_function self#nodes)
    ))
 ^"
 /* ***********************
@@ -2731,11 +2709,11 @@ class network = fun () ->
 
 
 edge [dir=none,color=\""^Color.direct_cable^"\",fontsize=8,labelfontsize=8,minlen=1.6,"^
-opt#get_labeldistance^",tailclip=true];
+opt#labeldistance_for_dot^",tailclip=true];
 
 "^
 (StringExtra.Text.to_string
-   (List.map (dotEdgeTrad opt#labeldistance) (self#edgesOfKind None (Some Direct) None)))
+   (List.map (dotEdgeTrad labeldistance) (self#edgesOfKind None (Some Direct) None)))
 
 ^"
 /* *********************************
@@ -2747,12 +2725,12 @@ edge [headclip=true,minlen=1.6,color=\""^Color.crossover_cable^"\",weight=1];
 
 "^
 (StringExtra.Text.to_string
-   (List.map (dotEdgeTrad opt#labeldistance) (self#edgesOfKind None (Some Crossover) None)))
+   (List.map (dotEdgeTrad labeldistance) (self#edgesOfKind None (Some Crossover) None)))
 
 ^
 (StringExtra.Text.to_string
    (List.map
-      (dotEdgeTrad ~edgeoptions:"style=bold" opt#labeldistance)
+      (dotEdgeTrad ~edgeoptions:"style=bold" labeldistance)
       (self#edgesOfKind None (Some NullModem) None)
    ))
 

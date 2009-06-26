@@ -159,18 +159,18 @@ let (opt,net) = (st#dotoptions, st#network)
 let fold_lines = function [] -> "" | l-> List.fold_left (fun x y -> x^" "^y) (List.hd l) (List.tl l)
 
 (** Reaction for the iconsize tuning *)
-let iconsize_react () = if opt#are_gui_callbacks_disable then () else
+let iconsize_react () = if opt#gui_callbacks_disable then () else
   begin
    let size = opt#toolbar_driver#get_iconsize in
-   opt#iconsize_wire#set size;
+   opt#iconsize#set size;
    st#flash ~delay:4000 (Printf.sprintf (f_ "The icon size is fixed to value %s (default=large)") size);
   end
 
 (** Reaction for the shuffle tuning *)
 let shuffle_react () =
   begin
-   opt#shuffler_wire#set (ListExtra.shuffleIndexes (net#nodes));
-   let namelist = net#getNodeNames => ( (ListExtra.permute opt#get_shuffler) || fold_lines ) in
+   opt#shuffler#set (ListExtra.shuffleIndexes (net#nodes));
+   let namelist = net#getNodeNames => ( (ListExtra.permute opt#shuffler_as_function) || fold_lines ) in
    st#flash ~delay:4000 ((s_ "Icons randomly arranged: ")^namelist);
   end
 
@@ -185,7 +185,7 @@ let unshuffle_react () =
 (** Reaction for the rankdir tunings *)
 let rankdir_react x () =
   begin
-   st#dotoptions#rankdir_wire#set x;
+   st#dotoptions#rankdir#set x;
    let msg = match x with
     | "TB" -> (s_ "Arrange edges top-to-bottom (default)")
     | "LR" -> (s_ "Arrange edges left-to-right")
@@ -194,35 +194,35 @@ let rankdir_react x () =
   end
 
 (** Reaction for the nodesep tuning *)
-let nodesep_react () = if opt#are_gui_callbacks_disable then () else
+let nodesep_react () = if opt#gui_callbacks_disable then () else
   begin
    let y = opt#toolbar_driver#get_nodesep in
-   opt#nodesep_wire#set y;
+   opt#nodesep#set y;
    st#flash (Printf.sprintf (f_ "The minimum edge size (distance between nodes) is fixed to the value %s (default=0.5)") (string_of_float y));
   end
 
 (** Reaction for the labeldistance tuning *)
-let labeldistance_react () = if opt#are_gui_callbacks_disable then () else
+let labeldistance_react () = if opt#gui_callbacks_disable then () else
   begin
    let y = opt#toolbar_driver#get_labeldistance in
-   opt#labeldistance_wire#set y;
+   opt#labeldistance#set y;
    st#flash (Printf.sprintf (f_ "The distance between labels and icons is fixed to the value %s (default=1.6)") (string_of_float y));
   end
 
 (** Reaction for the extrasize_x tuning *)
-let extrasize_react () = if opt#are_gui_callbacks_disable then () else
+let extrasize_react () = if opt#gui_callbacks_disable then () else
   begin
    let y = opt#toolbar_driver#get_extrasize in
-   opt#extrasize_wire#set y;
+   opt#extrasize#set y;
    st#flash (Printf.sprintf (f_ "The canvas size is fixed to %s%% of the minimun value to contain the graph (default=0%%)") (string_of_int (int_of_float y)) );
   end
 
 (** Reaction for a rotate tuning *)
-let rotate_callback x () =
+let reverse_edge_callback x () =
   begin
-   st#network#invertedCableToggle x ;
+   let c = (st#network#getCableByName x) in
+   c#dotoptions#reverted#set (not c#dotoptions#reverted#get);
    st#flash (Printf.sprintf (f_ "Cable %s reverted") x);
-   st#refresh_sketch () ;
   end
 
 (* Connections *)
@@ -238,13 +238,13 @@ let _ = w#vscale_DOT_TUNING_EXTRASIZE#connect#value_changed       extrasize_reac
 
 (** Generic connect function for rotate menus. *)
 let connect_rotate_menu ~widget ~widget_menu ~dynList = begin
- let set_active cname = (List.mem cname st#network#invertedCables) in
+ let set_active cname = (List.mem cname st#network#revertedCables) in
  (Widget.DynamicSubmenu.make
    ~set_active
    ~submenu:widget_menu
    ~menu:widget
    ~dynList
-   ~action:rotate_callback ()) ;   ()
+   ~action:reverse_edge_callback ()) ;   ()
  end
 
 (* Connect INVERT_DIRECT *)

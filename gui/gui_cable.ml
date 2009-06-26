@@ -76,7 +76,8 @@ module Make_menus
       let (left, right, left_endpoint_name, right_endpoint_name) = define_endpoints r in
       let (name,label) = (r#get "name"),(r#get "label") in
       defects#add_cable name (Netmodel.string_of_cablekind cablekind) left_endpoint_name right_endpoint_name;
-      let c = (new Netmodel.cable ~network:st#network ~name ~label ~cablekind ~left ~right ()) in
+      let c = (new Netmodel.cable ~motherboard:st#motherboard ~network:st#network ~name ~label ~cablekind ~left ~right ()) in
+(*      st#motherboard#reverted_rj45cables_cable#add_wire c#dotoptions#inverted_wire;*)
       st#network#addCable c;
       st#refresh_sketch () ;
       st#update_cable_sensitivity ();
@@ -103,7 +104,7 @@ module Make_menus
       st#network#delCable oldname;
       (* Make a new cable; it should have a different identity from the old one, and it's
          important that it's initialized anew, to get the reference counter right: *)
-      let c = (new Netmodel.cable ~network:st#network ~name ~label ~cablekind ~left ~right ()) in
+      let c = (new Netmodel.cable ~motherboard:st#motherboard ~network:st#network ~name ~label ~cablekind ~left ~right ()) in
       st#network#addCable c;
       st#refresh_sketch () ;
       st#update_cable_sensitivity ()

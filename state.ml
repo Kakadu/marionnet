@@ -46,8 +46,9 @@ type filename = string;;
 
 (** The class modelling the global state of the application. *)
 class globalState = fun () ->
-  let win           = new Gui.window_MARIONNET () in
-  let net           = new Mariokit.Netmodel.network () in
+  let system = new Chip.system ~name:"motherboard" () in
+  let win    = new Gui.window_MARIONNET () in
+  let net    = new Mariokit.Netmodel.network () in
   object (self)
 
   (** Main window. *)
@@ -55,6 +56,13 @@ class globalState = fun () ->
 
   (** Virtual network. *)
   method network = net
+
+  (** Motherboard is set in Gui_motherboard. *)
+  val mutable motherboard : State_types.motherboard option = None
+  method motherboard = match motherboard with Some x -> x | None -> assert false
+  method set_motherboard m = motherboard <- Some m
+
+  method system = system
 
   (** Access methods for the dot options, used for drawing the virtual network. *)
   method dotoptions = net#dotoptions
@@ -79,14 +87,14 @@ class globalState = fun () ->
   val mutable prj_name : string option = None
 
   (** Get the project filename. *)
-  method get_prj_filename = match prj_filename#get with | Some x -> x | None -> ""
+  method extract_prj_filename = match prj_filename#get with | Some x -> x | None -> ""
 
   (** Get the project name. *)
   method get_prj_name     = match prj_name with | Some x -> x | None -> ""
 
   (** by default, the name of the project is the basename of filename without extension. *)
   method default_prj_name ?(arg=None) () =
-    let arg = (match arg with None -> self#get_prj_filename | Some x -> x) in
+    let arg = (match arg with None -> self#extract_prj_filename | Some x -> x) in
     let base = (Filename.basename arg) in
     try
       (Filename.chop_extension base)
@@ -284,7 +292,7 @@ class globalState = fun () ->
     self#set_pwdir (Some working_directory);
 
     (* Extract the mar file into the pwdir *)
-    Shell.tgz_extract self#get_prj_filename self#get_pwdir;
+    Shell.tgz_extract self#extract_prj_filename self#get_pwdir;
 
     (* Look for the name of the root directory of the mar file. Some checks here. *)
     let rootname =
@@ -353,6 +361,9 @@ class globalState = fun () ->
     if self#active_project then begin
     Log.print_string ">>>>>>>>>>SAVING THE PROJECT: BEGIN<<<<<<<<\n";
 
+    (* The motherboard is read by the father *)
+    let filename = self#extract_prj_filename in
+
     (* Progress bar periodic callback. *)
     let fill =
       (* disk usage (in kb) with the unix command *)
@@ -365,7 +376,7 @@ class globalState = fun () ->
       let round x = float_of_string (Printf.sprintf "%.2f" (if x<1. then x else 1.)) (* workaround strange lablgtk behaviour *) in
       match (du self#get_pwdir) with
       | Some kb_flatten ->
-         fun () -> (match du_file_in_kb self#get_prj_filename with
+         fun () -> (match du_file_in_kb filename with
                     | Some kb_compressed -> round (0.05 +. (kb_compressed *. 8.) /. kb_flatten)
                     | None -> 0.5)
       | None -> fun () -> 0.5
@@ -377,7 +388,7 @@ class globalState = fun () ->
        ~title:("Marionnet")
        ~kind:(Progress_bar.Fill fill)
        ~text_on_label:("<big><b>Sauvegarde</b></big>")
-       ~text_on_sub_label:("<tt><small>"^self#get_prj_filename^"</small></tt>")
+       ~text_on_sub_label:("<tt><small>"^filename^"</small></tt>")
        ()
     in
 
@@ -395,7 +406,7 @@ class globalState = fun () ->
     (Texts_interface.get_texts_interface ())#save;
 
     (* (Re)write the .mar file *)
-    let cmd = ("tar -cSvzf "^(self#get_prj_filename)^" -C "^self#get_pwdir^" --exclude tmp "^(self#get_prj_name)) in
+    let cmd = ("tar -cSvzf "^filename^" -C "^self#get_pwdir^" --exclude tmp "^(self#get_prj_name)) in
     let _ = Task_runner.the_task_runner#schedule (fun () -> ignore (Unix.system cmd)) in
     let _ = Task_runner.the_task_runner#schedule (fun () -> Progress_bar.destroy_progress_bar_dialog window) in
 
@@ -567,7 +578,7 @@ There is no need to restart the application.")
  method debugging () =
    Log.print_endline ("st.wdir="^wdir);
    Log.print_endline ("st.pwdir="^(try self#get_pwdir with _ ->""));
-   Log.print_endline ("st.prj_filename="^self#get_prj_filename);
+   Log.print_endline ("st.prj_filename="^self#extract_prj_filename);
    Log.print_endline ("st.prj_name="^self#get_prj_name)
 
  (* Begin of methods moved from talking.ml *)

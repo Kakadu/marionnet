@@ -22,12 +22,13 @@ INCLUDE DEFINITIONS "gui/gui_motherboard.mli"
 
 #load "chip_parser_p4.cmo";;
 
+open Gettext;;
+
 module Make (S : sig val st:State.globalState end) = struct
 
  open S
  let w = st#mainwin
-
- let system = Chip.get_or_initialize_current_system ()
+ let system = st#system
 
  (* Main window title manager *)
 
@@ -82,39 +83,75 @@ module Make (S : sig val st:State.globalState end) = struct
          ~app_state:st#app_state ()) :> sensitiveness_manager_interface)
 
   (* Dot tuning manager. Is a toggling chip of arity 6. *)
-  chip dot_tuning_manager : (iconsize      : string  ,
-                             rankdir       : string  ,
-                             shuffler      : int list,
-                             nodesep       : float   ,
-                             labeldistance : float   ,
-                             extrasize     : float   ) -> (y:int) = (let y = self#get in y+1)
+  chip dot_tuning_manager :
+    (iconsize      : string  ,
+     rankdir       : string  ,
+     shuffler      : int list,
+     nodesep       : float   ,
+     labeldistance : float   ,
+     extrasize     : float   ,
+     reverted_list : (int * bool) list
+     ) -> (y:int)
+     = (let y = self#get in y+1)
 
-  let refresh_sketch_counter = Chip.wref ~name:"refresh_sketch_counter" 0
+  let refresh_sketch_counter    = Chip.wref  ~name:"refresh_sketch_counter" 0
+  let reverted_rj45cables_cable = Chip.cable ~name:"reverted_rj45cables_cable" ()
+
+  let () =
+   let m = (object method reverted_rj45cables_cable = reverted_rj45cables_cable end) in
+   begin
+    st#set_motherboard m;
+    st#network#set_motherboard m;
+   end
 
   let dot_tuning_manager =
    let d = st#network#dotoptions in
    new dot_tuning_manager
         ~name:"dot_tuning_manager"
-   	~iconsize:d#iconsize_wire
-   	~rankdir:d#rankdir_wire
-   	~shuffler:d#shuffler_wire
-   	~nodesep:d#nodesep_wire
-   	~labeldistance:d#labeldistance_wire
-   	~extrasize:d#extrasize_wire
+   	~iconsize:d#iconsize
+   	~rankdir:d#rankdir
+   	~shuffler:d#shuffler
+   	~nodesep:d#nodesep
+   	~labeldistance:d#labeldistance
+   	~extrasize:d#extrasize
+   	~reverted_list:(reverted_rj45cables_cable :> (int * bool, (int * bool) list) Chip.wire)
    	~y:refresh_sketch_counter ()
 
   chip sketch_refresher : (app_state, x:int) -> () =
-   (* Do not refresh if there isn't an active project *)
+   (* Do not refresh if there isn't an active project. This is not correct in general. FIX IT *)
    if (app_state <> State.NoActiveProject) then 
     begin
     self#tracing_message "refreshing...";
-    st#refresh_sketch ();
+    (* Similar to State.globalState#refresh_sketch but without locking sketch. *)
+    let fs = st#dotSketchFile in
+    let ft = st#pngSketchFile in
+    let ch = open_out fs in
+    output_string ch (st#network#dotTrad ());
+    close_out ch;
+    let command_line =
+      "dot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
+    self#tracing_message "The dot command line is";
+    self#tracing_message command_line;
+    let exit_code = Sys.command command_line in
+    self#tracing_message (Printf.sprintf "dot exited with exit code %i" exit_code);
+    st#mainwin#sketch#set_file st#pngSketchFile ;
+    (if not (exit_code = 0) then
+      Simple_dialogs.error
+        (s_ "dot failed")
+        (Printf.sprintf
+           (f_ "Invoking dot failed. Did you install graphviz?\n\
+The command line is\n%s\nand the exit code is %i.\n\
+Marionnet will work, but you will not see the network graph picture until you fix the problem.\n\
+There is no need to restart the application.")
+           command_line
+           exit_code)
+        ());
     end
 
   let sketch_refresher =
     new sketch_refresher ~name:"sketch_refresher" ~app_state:st#app_state ~x:refresh_sketch_counter ()
 
-  (* Debugging: press F2 for printing the list of current component to stderr. *)
+  (* Debugging: press F2 for printing the list of current components to stderr. *)
   let _ = st#mainwin#toplevel#event#connect#key_press ~callback:
              (fun k -> (if GdkEvent.Key.keyval k = GdkKeysyms._F2 then system#show_component_list ()); false)
 

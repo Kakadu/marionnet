@@ -80,7 +80,7 @@ _build/chip/chip_example.expanded.ml : chip/chip_example.ml _build/chip/chip_par
 	camlp4of -I _build/chip/ -printer Camlp4OCamlRevisedPrinter chip_parser_p4.cmo -o $@ $<
 
 _build/chip/chip_example.expanded.byte : _build/chip/chip_example.expanded.ml
-	ocamlc -thread -pp camlp4rf -I _build/chip/ -I +threads threads.cma chip.cmo -o $@ $<
+	ocamlc -thread -pp camlp4rf -I _build/ -I _build/chip/ -I +threads threads.cma recursive_mutex.cmo chip.cmo -o $@ $<
 
 
 run: marionnet.byte

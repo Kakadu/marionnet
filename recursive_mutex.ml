@@ -54,6 +54,8 @@ let rec lock (the_mutex, fields_mutex, owning_thread_ref, lock_counter_ref) =
   | Some _ -> begin
       Mutex.unlock fields_mutex;
       (* the_mutex is locked. Passively wait for someone to free it: *)
+      (Printf.eprintf "Thread %d: mutex locked. Waiting for someone to free it..." (Thread.id my_thread));
+      flush stderr;
       Mutex.lock the_mutex;
       Mutex.unlock the_mutex;
       (* Try again: *)
@@ -87,7 +89,7 @@ let unlock (the_mutex, fields_mutex, owning_thread_ref, lock_counter_ref) =
 (** Execute thunk in a synchronized block, and return the value returned
     by the thunk. If executing thunk raises an exception the same exception
     is propagated, after correctly unlocking the mutex: *)
-let with_mutex mutex thunk =
+let with_mutex ?(prefix="Recursive_mutex.with_mutex: ") mutex thunk =
   lock mutex;
   try
     let result = thunk () in
@@ -96,7 +98,8 @@ let with_mutex mutex thunk =
   with e -> begin
     unlock mutex;
     Printf.printf
-      "Recursive_mutex.with_mutex: exception %s raised in critical section.\n  Unlocking and re-raising.\n"
+      "%sexception %s raised in critical section. Unlocking and re-raising."
+      prefix
       (Printexc.to_string e);
     flush_all ();
     raise e;

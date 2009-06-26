@@ -56,13 +56,13 @@ let ask_the_server request =
   with_mutex the_daemon_client_mutex
     (fun () ->
       try
-        Log.printf "I am about to send %s\n" (string_of_daemon_request request);
-        flush_all ();
+(*        Log.printf "I am about to send %s\n" (string_of_daemon_request request);
+        flush_all ();*)
         if can_we_communicate_with_the_daemon () then begin
           let buffer = String.make message_length 'x' in
           let request_as_string = print_request request in
-          Log.printf "The request is %s\n" (string_of_daemon_request request);
-          flush_all ();
+(*          Log.printf "The request is %s\n" (string_of_daemon_request request);
+          flush_all ();*)
           let sent_bytes_no = Unix.send the_daemon_client_socket request_as_string 0 message_length [] in
           (if not (sent_bytes_no == sent_bytes_no) then
             failwith "send() failed");
@@ -71,8 +71,8 @@ let ask_the_server request =
           (if received_bytes_no < message_length then
             failwith "recv() failed, or the message is ill-formed");
           let response = parse_response buffer in
-          Log.printf "The response is %s\n" (string_of_daemon_response response);
-          flush_all ();
+(*          Log.printf "The response is %s\n" (string_of_daemon_response response);
+          flush_all ();*)
           response
         end else
           (Error "the socket to the daemon is down");

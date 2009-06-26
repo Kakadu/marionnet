@@ -96,3 +96,22 @@ chip mychip : (a:int, b:float) -> (y:bool) = self#toggle
   val mutable bar = 1
  end;;
 
+
+class foo iconsize = object (self)
+
+  (* val wired iconsize = iconsize *)
+  val mutable iconsize : string = iconsize
+  method      private iconsize = iconsize
+  method      private set_iconsize x = iconsize <- x
+  val mutable iconsize_wire = None
+  method      iconsize_wire = match iconsize_wire with Some x -> x | None -> assert false
+
+initializer
+
+ iconsize_wire <-
+   Some (Chip.wire_of_accessors
+           ~name:"iconsize_wire"
+           ~get:(fun ()-> self#iconsize)
+           ~set:self#set_iconsize ());
+end
+

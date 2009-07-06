@@ -34,7 +34,7 @@ type performed = Performed of bool
 let max_number_of_iterations = 1024
 let current_system = ref None
 
-type tracing_policy = 
+type tracing_policy =
  | Top_tracing_policy (** If the system is traced, all components are traced. *)
  | Bot_tracing_policy (** Each component decides individually. *)
 
@@ -322,7 +322,7 @@ and
 
 and
 
- (** A wire is a sort of pipe that is constantly stabilized? The common example is a reference.
+ (** A wire is a sort of pipe that is constantly stabilized. The common example is a reference.
      You can get and set its value by methods #get and #set_alone (virtual).
      The #set method is the sequence of two actions: the individually set of the wires
      followed by the global set of its system. *)
@@ -366,20 +366,15 @@ class ['a] wire_of_accessors
  ?(name = fresh_wire_name "wire_of_accessors") (system:system) get_alone set_alone =
  object (self)
   inherit ['a,'a] wire ~name system
-  val mutable get_alone = get_alone
-  val mutable set_alone = set_alone
   method get_alone = get_alone ()
   method set_alone = set_alone
-(*  (* Accessor may be redefined furtherly: *)
-  method set_accessor_get_alone f = get_alone <- f
-  method set_accessor_set_alone f = set_alone <- f*)
  end
 
 (** A cable is a system of homogeneous wires. *)
 class ['a,'b] cable
- ?(name = fresh_wire_name "cable") 
+ ?(name = fresh_wire_name "cable")
  ?(tracing = tracing_enable) (* on stderr *)
- (system:system) = 
+ (system:system) =
  object (cable)
   inherit tracing_methods ~name ~tracing
   inherit [(int * 'a), (int * 'b) list] wire ~name system
@@ -395,9 +390,9 @@ class ['a,'b] cable
      begin
       cable#tracing_message "wire identifier not found in cable...";
       raise e
-     end 
+     end
 
-   method add_wire (w:('a,'b) wire) =
+  method add_wire (w:('a,'b) wire) =
    w#tracing_lparen "cable adding me as wire...";
    let action () = begin
      wire_list <- w :: wire_list;

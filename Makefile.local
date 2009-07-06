@@ -80,7 +80,7 @@ _build/chip/chip_example.expanded.ml : chip/chip_example.ml _build/chip/chip_par
 	camlp4of -I _build/chip/ -printer Camlp4OCamlRevisedPrinter chip_parser_p4.cmo -o $@ $<
 
 _build/chip/chip_example.expanded.byte : _build/chip/chip_example.expanded.ml
-	ocamlc -thread -pp camlp4rf -I _build/ -I _build/chip/ -I +threads threads.cma recursive_mutex.cmo chip.cmo -o $@ $<
+	ocamlc -thread -pp camlp4rf -I _build/ -I _build/chip/ -I +threads unix.cma threads.cma recursive_mutex.cmo chip.cmo -o $@ $<
 
 
 run: marionnet.byte
@@ -170,7 +170,7 @@ gui.po: gui/gui.xml
 # Notice that this macro is always invoked from the po/ subdirectory:
 LANGUAGES = $$( grep -v ^\#.*$$ LINGUAS )
 
-compile-mo: 
+compile-mo:
 	@(cd po/; \
 	for i in $(call LANGUAGES); \
 	do (msgfmt $$i.po && mv messages.mo $$i.mo || exit -1) && \
@@ -182,7 +182,7 @@ update-po: pot
 	for i in $(call LANGUAGES); \
 	do (msgmerge --no-fuzzy-matching --sort-by-file --update $$i.po messages.pot || exit -1) && \
 	echo "Updated "$$i.po; \
-	done;)	
+	done;)
 
 install-mo: compile-mo
 	@(cd po/; \
@@ -216,7 +216,7 @@ documentation-html-split:
 	  makeinfo --html --force --no-validate \
 	   documentation.texi -o ../doc/documentation/; \
 	  cp -r img/ ../doc/documentation/; \
-	  cd ..;) 
+	  cd ..;)
 
 #one page html output
 documentation-html-no-split:
@@ -224,7 +224,7 @@ documentation-html-no-split:
 	  makeinfo --html --force --no-validate --no-split \
            documentation.texi -o ../doc/documentation.html; \
 	  cp -r img/ ../doc/; \
-	  cd ..;) 
+	  cd ..;)
 
 #pdf output
 documentation-pdf:

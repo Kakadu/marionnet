@@ -58,7 +58,7 @@ MANUALLY_PRE_MAKE_IN_build =      \
   chip/chip_example.expanded.ml   \
   gettext-c-wrapper.o does-process-exist-c-wrapper.o
 
-MANUALLY_POST_MAKE_IN_build = chip/chip_example.expanded.byte
+#MANUALLY_POST_MAKE_IN_build = chip/chip_example.expanded.byte
 
 marionnet.byte marionnet.native : manually_pre_actions version.ml gui.ml
 

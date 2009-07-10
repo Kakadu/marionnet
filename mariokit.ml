@@ -181,7 +181,7 @@ type index = int;; (* 0..(length-1) *)
 type shuffler = index list ;; (* represents a permutation of indexes of a list*)
 
 (* This part of the state will be filled loading Gui_toolbar_DOT_TUNING. *)
-class type dot_tuning_high_level_toolbar_driver = 
+class type dot_tuning_high_level_toolbar_driver =
  object
   method get_iconsize              : string
   method set_iconsize              : string -> unit
@@ -194,7 +194,7 @@ class type dot_tuning_high_level_toolbar_driver =
   method get_image                 : GdkPixbuf.pixbuf
   method get_image_current_width   : int
   method get_image_current_height  : int
-  method reset_image_size          : unit -> unit 
+  method reset_image_size          : unit -> unit
   method get_image_original_width  : int
   method get_image_original_height : int
 end (* class type high_level_toolbar_driver *)
@@ -358,7 +358,8 @@ end;; (* class Dotoptions.network *)
 (** Dot options for a cable *)
 class cable ?(reverted=false) ~(motherboard:State_types.motherboard) ~name () =
  object (self)
-   val reverted = motherboard#reverted_rj45cables_cable#create_wref ~name:(name^"_reverted") reverted
+(*   val reverted = motherboard#reverted_rj45cables_cable#create_wref ~name:(name^"_reverted") reverted*)
+   val reverted = Chip.wref_in_cable ~name:(name^"_reverted") ~cable:motherboard#reverted_rj45cables_cable reverted
    method reverted = reverted
    method destroy =
     reverted#destroy
@@ -1127,7 +1128,7 @@ object (self)
   method destroy =
     super_simulated_device#destroy;
     self#dotoptions#destroy
- 
+
   val cablekind = cablekind
   method cablekind = cablekind
 

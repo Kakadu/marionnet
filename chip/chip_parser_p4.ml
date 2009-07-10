@@ -349,11 +349,11 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 
             [ <:class_str_item<
              method emit $lid:arg$ =
-                 let actions () = 
+                 let actions () =
                    let $binding:output_bindings$ in
                    $set_actions$ ;
                    self#system#stabilize
-                 in self#system#with_mutex actions
+                 in self#system#mutex_methods#with_mutex actions
             >>]
 
           in

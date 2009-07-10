@@ -17,6 +17,8 @@
 
 (** Runtime support for the "chip" syntax extension. *)
 
+(* Fresh name generators. *)
+
 let fresh_id = let x = ref 0 in
  fun () -> (incr x); !x
 
@@ -41,22 +43,62 @@ type tracing_policy =
 let tracing_enable = true
 let tracing_policy = Top_tracing_policy
 
-class
-
- (* Wires perform their operations (get,set) preventing from effects of other threads.
-     In a single-thread application this support is unnecessary. *)
- mutex_methods ~(name:string) =
+(** Containers of components. When a component which belongs a container is destroyed,
+    it is automatically removed from the container. *)
+class ['a] container ~(list_name:string) ~(owner:string) ~(with_mutex: (unit->unit) -> unit) =
   object (self)
-  val mutex     = Recursive_mutex.create ()
+
+  constraint 'a = < tracing_lparen : string -> unit;
+                    tracing_rparen : string -> unit;
+                    add_destroy_callback : (unit->unit) -> unit;
+                    .. >
+
+  val mutable content : 'a list = []
+  method content = content
+
+  method add (x:'a) =
+   x#tracing_lparen ("subscribing to the "^owner^"'s list of "^list_name^"...");
+   let action () = begin
+     content <- x :: content;
+     x#add_destroy_callback (fun () -> self#remove x);
+     x#tracing_rparen "done."
+    end in
+   with_mutex action
+
+  method remove (x:'a) =
+   x#tracing_lparen ("unsubscribing from the "^owner^"'s list of "^list_name^"...");
+   let action () = begin
+     content <- List.filter (fun y -> y!=x) content;
+     x#tracing_rparen "done."
+    end in
+   with_mutex action
+
+ end
+
+(** Wires perform their operations (set/get) preventing from effects of other threads.
+    In a single-thread application this support is unnecessary. *)
+class mutex_methods ?(mutex=Recursive_mutex.create ()) ~(user:string) () =
+  object (self)
+  method mutex  = mutex
   method lock   = Recursive_mutex.lock   mutex
   method unlock = Recursive_mutex.unlock mutex
   method with_mutex : 'a. ( unit -> 'a) -> 'a =
-    Recursive_mutex.with_mutex ~prefix:(name^": ") mutex
-  end (* object *)
+    Recursive_mutex.with_mutex ~prefix:(user^": ") mutex
+  end (* mutex_methods *)
 
-and
+(** Support for managing the component garbage. *)
+class virtual destroy_methods () =
+  object (self)
+  val mutable destroy_callbacks = []
+  method add_destroy_callback f = (destroy_callbacks <- f::destroy_callbacks)
+  method destroy =
+   let () = self#tracing_lparen "destroying me..." in
+   let () = List.iter (fun f -> f ()) destroy_callbacks in
+   let () = self#tracing_rparen "destroyed." in ()
+  end (* destroy_methods *)
 
- tracing_methods ~(name:string) ~(tracing:bool) =
+(** Support for tracing system's and component's activities. *)
+class tracing_methods ~(name:string) ~(tracing:bool) =
   object (self)
 
   val mutable tracing = tracing
@@ -83,7 +125,7 @@ and
      self#tracing_message_with_prompt '-' msg;
     end
 
-  method tracing_message_with_prompt prompt msg =
+  method private tracing_message_with_prompt prompt msg =
    if tracing = false then () else
     begin
      Printf.eprintf "%s%s: %s\n" (self#tracing_tab prompt) name msg;
@@ -95,23 +137,22 @@ and
 
   end (* object *)
 
-and
-
- virtual tracing_methods_for_components ~(name:string) system =
+(** Support for tracing component's activities. *)
+class virtual tracing_methods_for_components ~(name:string) system =
+  let format_message id msg = (Printf.sprintf "%s (%d): %s" name id msg) in
   object (self)
    inherit tracing_methods ~name ~tracing:system#tracing as super
    method tracing = match tracing_policy with
     | Top_tracing_policy -> tracing || system#tracing
     | Bot_tracing_policy -> tracing
    method tracing_level = system#tracing_level + tracing_level
-   method private format_message  msg = (Printf.sprintf "%s (%d): %s" name self#id msg)
-   method tracing_lparen  msg = system#tracing_lparen  (self#format_message msg)
-   method tracing_rparen  msg = system#tracing_rparen  (self#format_message msg)
-   method tracing_message msg = system#tracing_message (self#format_message msg)
+   method tracing_lparen  msg = system#tracing_lparen  (format_message self#id msg)
+   method tracing_rparen  msg = system#tracing_rparen  (format_message self#id msg)
+   method tracing_message msg = system#tracing_message (format_message self#id msg)
    method virtual id : int
   end
 
-and
+class
 
  (** Common features for chips, wires and systems. *)
  common ~(name:string) =
@@ -123,19 +164,19 @@ and
 
 and
 
- (** Common features for chips and wires. This class just performs the system subscription. *)
- component ~(name:string) system =
+ (** Common features for chips and wires.
+     This class collect common methods and performs the system subscription. *)
+ component ~(name:string) (system:system) =
   object (self)
   inherit common ~name
   inherit tracing_methods_for_components ~name system
+  inherit destroy_methods ()
+
   val mutable system = system
   method system = system
-  method destroy =
-    self#tracing_message "destroying as component";
-    system#remove_component (self :> component)
 
   initializer
-   system#add_component (self :> component)
+   system#component_list#add (self :> component)
  end
 
 and
@@ -181,7 +222,7 @@ and
      of wires connected to input ports. *)
  virtual reactive ?(name = fresh_chip_name "reactive") (system:system) =
   object (self)
-  inherit chip ~name system
+  inherit chip ~name system as self_as_chip
 
   method virtual stabilize : performed
 
@@ -198,12 +239,8 @@ and
       result
     end
 
-  method destroy =
-   self#tracing_message "destroying as reactive";
-   system#remove_reactive (self :> reactive)
-
   initializer
-   system#add_reactive (self :> reactive)
+   system#reactive_list#add (self :> reactive)
  end
 
 and
@@ -230,60 +267,38 @@ and
 
  (** A system is a container of chips and wires. *)
  system
+  ?(father: system option)
   ?(name = fresh_system_name "system")
   ?(max_number_of_iterations = max_number_of_iterations)
   ?(tracing = tracing_enable) (* on stderr *)
   ?(set_default_system=true)
   ()
-  = object (self)
+  =
+ let mutex_methods = match father with
+   | None   -> new mutex_methods ~user:name ()
+   | Some s -> new mutex_methods ~mutex:s#mutex_methods#mutex ~user:name ()
+ in
+ object (self)
   inherit common ~name
   inherit tracing_methods ~name ~tracing
-  inherit mutex_methods ~name
+  method mutex_methods = mutex_methods
 
-  val mutable reactive_list : reactive list = []
-  val mutable component_list : component list = []
+  val reactive_list : reactive container =
+   new container ~list_name:"reactive components" ~owner:name ~with_mutex:mutex_methods#with_mutex
 
-  method add_reactive r =
-   r#tracing_lparen "system adding me as reactive component...";
-   let action () = begin
-     reactive_list <- r :: reactive_list;
-     r#tracing_rparen "added.";
-    end in
-   self#with_mutex action
+  val component_list : component container =
+   new container ~list_name:"components" ~owner:name ~with_mutex:mutex_methods#with_mutex
 
-  method add_component (c:component) =
-   c#tracing_lparen "system adding me as component...";
-   let action () = begin
-     component_list <- c :: component_list;
-     c#tracing_rparen "added.";
-    end in
-   self#with_mutex action
-
-  method remove_component (c:component) =
-   c#tracing_lparen "system removing me from components...";
-   let action () = begin
-     component_list <- List.filter (fun x -> x#id != c#id) component_list;
-     c#tracing_rparen "removed.";
-    end in
-   self#with_mutex action
-
-  method remove_reactive (r:reactive) =
-   r#tracing_lparen "system removing me from reactive components...";
-   let action () = begin
-    reactive_list  <- List.filter (fun x -> x!=r) reactive_list;
-    component_list <- List.filter (fun x -> x#id != r#id) component_list;
-    r#tracing_rparen "removed.";
-   end in
-   self#with_mutex action
-
-  method relay_list : reactive list = List.filter (fun c->c#kind=`Relay) reactive_list
-  method sink_list  : reactive list = List.filter (fun c->c#kind=`Sink)  reactive_list
+  method component_list = component_list
+  method reactive_list = reactive_list
+  method relay_list : reactive list = List.filter (fun c->c#kind=`Relay) reactive_list#content
+  method sink_list  : reactive list = List.filter (fun c->c#kind=`Sink)  reactive_list#content
 
   (* For debugging: *)
   method show_component_list () =
    begin
     Printf.eprintf "System: %s\n" name;
-    List.iter (fun c -> Printf.eprintf "\t* %s (%d)\n" c#name c#id) component_list;
+    List.iter (fun c -> Printf.eprintf "\t* %s (%d)\n" c#name c#id) component_list#content;
     Printf.eprintf "\t Relays: ";
     List.iter (fun c -> Printf.eprintf "%s (%d) " c#name c#id) self#relay_list;
     Printf.eprintf "\n\t Sinks: ";
@@ -337,7 +352,7 @@ and
   method get : 'b =
    self#tracing_message "reading wire (get)";
    let action () = self#get_alone in
-   self#system#with_mutex action
+   self#system#mutex_methods#with_mutex action
 
   (** This would be a final method. *)
   method set (x:'a) : unit =
@@ -348,7 +363,7 @@ and
      ignore (self#system#stabilize);
      self#tracing_rparen "wire set.";
      end
-   in self#system#with_mutex action
+   in self#system#mutex_methods#with_mutex action
 
  end
 
@@ -370,69 +385,31 @@ class ['a] wire_of_accessors
   method set_alone = set_alone
  end
 
-(** A cable is a system of homogeneous wires. *)
+(** A cable is a wire containing and managing some homogeneous wires. *)
 class ['a,'b] cable
  ?(name = fresh_wire_name "cable")
  ?(tracing = tracing_enable) (* on stderr *)
  (system:system) =
+ let given_system = system in
  object (cable)
   inherit tracing_methods ~name ~tracing
   inherit [(int * 'a), (int * 'b) list] wire ~name system
 
-  val mutable wire_list : ('a,'b) wire list = []
+  val wire_list : ('a,'b) wire container =
+   new container ~list_name:"wires" ~owner:name ~with_mutex:given_system#mutex_methods#with_mutex
 
-  method get_alone       = List.map (fun c -> (c#id, c#get_alone)) wire_list
+  method wire_list = wire_list
+
+  method get_alone       = List.map (fun c -> (c#id, c#get_alone)) wire_list#content
   method set_alone (i,v) =
    try
-    let w = List.find (fun w->w#id = i) wire_list in
+    let w = List.find (fun w->w#id = i) wire_list#content in
     w#set_alone v
    with Not_found as e ->
      begin
       cable#tracing_message "wire identifier not found in cable...";
       raise e
      end
-
-  method add_wire (w:('a,'b) wire) =
-   w#tracing_lparen "cable adding me as wire...";
-   let action () = begin
-     wire_list <- w :: wire_list;
-     w#tracing_rparen "added.";
-    end in
-   cable#system#with_mutex action
-
-  method remove_wire (w:('a,'b) wire) =
-   w#tracing_lparen "cable removing me from wires...";
-   let action () = begin
-     wire_list <- List.filter (fun x -> x!=w) wire_list;
-     w#tracing_rparen "removed.";
-    end in
-   cable#system#with_mutex action;
-
-  method create_wref ?(name= fresh_wire_name "cable_wire") (v:'a) =
-   let result =
-     object (wire)
-      inherit ['a] wref ~name cable#system v as w
-
-      (* I redefine get and set in order to access to cable. *)
-      method get =
-       wire#tracing_message "reading wire in cable (get)";
-       List.assoc w#id cable#get
-
-      method set x =
-       wire#tracing_message "setting wire in cable";
-       cable#set (w#id, x)
-
-      (* Destroy means remove wire from both cable and system lists. *)
-      method destroy =
-       wire#tracing_lparen "destroying wire in cable...";
-       cable#remove_wire wire;
-       w#destroy;
-       wire#tracing_rparen "wire destroyed."
-
-     end (* object *)
-   in
-   (cable#add_wire result);
-   result
 
 end (* cable *)
 
@@ -488,11 +465,10 @@ let wref
  ?(system=(get_or_initialize_current_system ())) x =
  new wref ~name system x
 
-(** Simplified constructor. *)
 let wire_of_accessors
  ?(name = fresh_wire_name "wire_of_accessors")
- ?(system=(get_or_initialize_current_system ())) ~(get:unit -> 'a) ~(set:'a->unit) () =
- ((new wire_of_accessors ~name system get set) :> ('a,'a) wire)
+ ?(system:system=(get_or_initialize_current_system ())) ~(get:unit -> 'b) ~(set:'a->unit) () =
+ ((new wire_of_accessors ~name system get set) :> ('a,'b) wire)
 
 (** Simplified constructor. *)
 let cable
@@ -500,3 +476,11 @@ let cable
  ?(system=(get_or_initialize_current_system ())) () =
  new cable ~name system
 (*  ((new cable ~name system) :>  (int * 'a, 'a list) wire) *)
+
+let wref_in_cable
+ ?(name = fresh_wire_name "wref_in_cable")
+ ~(cable:('a,'a) cable)
+ (x:'a) =
+ let result = new wref ~name cable#system x in
+ let () = cable#wire_list#add result in
+ result

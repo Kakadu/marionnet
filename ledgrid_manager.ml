@@ -32,7 +32,7 @@ let blinker_thread_socket_file_name =
 
 class ledgrid_manager =
 object (self)
-  (** Synchornization is automatically managed by methods, thus making 
+  (** Synchornization is automatically managed by methods, thus making
       ledgrid_manager a monitor *)
   val mutex = Mutex.create ()
   method private lock   = Mutex.lock mutex
@@ -71,18 +71,18 @@ object (self)
   method private id_to_connected_ports (id : int) =
     let _, _, _, connected_ports = self#lookup id in
     connected_ports
-  
+
   method get_connected_ports ~id () =
     self#lock;
     let result = self#id_to_connected_ports id in
     self#unlock;
     result
-  
+
   (** This is {e unlocked}! *)
   method private update_connected_ports (id : int) new_connected_ports =
     let window, device, name, _ = self#lookup id in
     Hashmap.replace id_to_data id (window, device, name, new_connected_ports)
-  
+
   (** Make the given ledgrid window always on top, and visible (this is a harmless side
       effect of the implementation; we always need the window to be visible anyway when
       calling this method) *)
@@ -110,9 +110,9 @@ object (self)
         () in
     let frame = GBin.frame ~label (* ~shadow_type:`ETCHED_OUT *) ~packing:window#add () in
 (*     let box = GPack.box `HORIZONTAL ~packing:frame#add () in  *)
-    let vbox = GPack.box `VERTICAL ~packing:frame#add () in 
-    let box = GPack.box `HORIZONTAL ~packing:vbox#add () in 
-    let always_on_top_box = GPack.box `HORIZONTAL ~packing:vbox#add () in     
+    let vbox = GPack.box `VERTICAL ~packing:frame#add () in
+    let box = GPack.box `HORIZONTAL ~packing:vbox#add () in
+    let always_on_top_box = GPack.box `HORIZONTAL ~packing:vbox#add () in
     let check_button =
       GButton.check_button (*~stock:`CUT*) ~label:"Always on top" ~packing:always_on_top_box#add () in
     ignore (check_button#connect#clicked
@@ -136,17 +136,17 @@ object (self)
       (* Note how the window is {e not} shown by default: it's appropriate
          to show it only when the device is started up. *)
       window, device
-  
-  method make_device_ledgrid ~id ~title ~label ~ports_no ~image_directory 
+
+  method make_device_ledgrid ~id ~title ~label ~ports_no ~image_directory
       ?connected_ports:(connected_ports=[])() =
     self#lock;
     Log.print_string ("Making a ledgrid with title '" ^ title ^ "' (the device has id " ^
                   (string_of_int id) ^ "), with " ^ (string_of_int ports_no) ^
                   " ports\n");
-    let ledgrid_widget, window_widget = 
+    let ledgrid_widget, window_widget =
       self#make_widget ~id ~ports_no ~title ~label ~image_directory () in
     Hashmap.add id_to_data id (ledgrid_widget, window_widget, title, connected_ports);
-    ignore (List.map 
+    ignore (List.map
               (fun port -> self#set_port_connection_state ~id ~port ~value:true ())
               connected_ports);
     Log.print_string "Ok, done.\n";
@@ -193,7 +193,7 @@ object (self)
         Log.print_string ("  (id is "^(string_of_int id)^",\n")));
     self#unlock
 
-  method set_port_connection_state ~id ~port ~value () = 
+  method set_port_connection_state ~id ~port ~value () =
     self#lock;
     Log.print_string ("Making the port " ^ (string_of_int port) ^ " of device " ^
                   (string_of_int id) ^ (if value then " connected" else " disconnected") ^
@@ -211,8 +211,8 @@ object (self)
        Log.print_string ("  (id is "^(string_of_int id)^",\n");
        Log.print_string ("   port is "^(string_of_int port)^")\n")));
     self#unlock
-      
-  method flash ~id ~port () = 
+
+  method flash ~id ~port () =
     self#lock;
     (try
 (*       Log.print_string ("Flashing port " ^ (string_of_int port) ^ " of device " ^ *)
@@ -288,7 +288,7 @@ object (self)
           let length = try String.index buffer '\n' with _ -> 0 in
           let message = String.sub buffer 0 length in
           try
-            let id1, port1, id2, port2 = 
+            let id1, port1, id2, port2 =
               (** This long formatted string is passed to VDE as a cable identifier. This allows us
                   to easily understand which LEDs to work on when we receive a blinking command. *)
               Scanf.sscanf message "((id: %i; port: %i)(id: %i; port: %i))" (fun id1 port1 id2 port2 -> (id1, port1, id2, port2))
@@ -297,8 +297,8 @@ object (self)
             self#flash ~id:id2 ~port:port2 ();
           (* ==== End of the unreasonable version ==== *)
           with _ ->
-            try 
-              let _ = 
+            try
+              let _ =
                 Scanf.sscanf message "please-die" (fun x -> x)
               in
               Log.print_string ("Exiting the LEDgrid manager blinker thread\n");
@@ -311,7 +311,7 @@ object (self)
               Log.print_string ("Warning: can't understand the message >" ^ message ^ "<\n"); flush_all ();
         done)
       ()
-  
+
   initializer
     blinker_thread := Some self#make_blinker_thread
 
@@ -350,5 +350,5 @@ object (self)
 end;;
 
 (** There must be exactly one instance of ledgrid_manager: *)
-let the_one_and_only_ledgrid_manager = 
+let the_one_and_only_ledgrid_manager =
   new ledgrid_manager;;

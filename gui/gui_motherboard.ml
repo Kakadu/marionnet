@@ -119,9 +119,9 @@ module Make (S : sig val st:State.globalState end) = struct
 
   chip sketch_refresher : (app_state, x:int) -> () =
    (* Do not refresh if there isn't an active project. This is not correct in general. FIX IT *)
-   if (app_state <> State.NoActiveProject) then 
+   if (app_state <> State.NoActiveProject) then
     begin
-    self#tracing_message "refreshing...";
+    self#tracing#message "refreshing...";
     (* Similar to State.globalState#refresh_sketch but without locking sketch. *)
     let fs = st#dotSketchFile in
     let ft = st#pngSketchFile in
@@ -130,10 +130,10 @@ module Make (S : sig val st:State.globalState end) = struct
     close_out ch;
     let command_line =
       "dot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
-    self#tracing_message "The dot command line is";
-    self#tracing_message command_line;
+    self#tracing#message "The dot command line is";
+    self#tracing#message command_line;
     let exit_code = Sys.command command_line in
-    self#tracing_message (Printf.sprintf "dot exited with exit code %i" exit_code);
+    self#tracing#message (Printf.sprintf "dot exited with exit code %i" exit_code);
     st#mainwin#sketch#set_file st#pngSketchFile ;
     (if not (exit_code = 0) then
       Simple_dialogs.error

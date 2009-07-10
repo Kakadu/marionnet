@@ -43,13 +43,23 @@ type tracing_policy =
 let tracing_enable = true
 let tracing_policy = Top_tracing_policy
 
+class type tracing_methods =
+  object
+    method is_enable : bool
+    method set : bool -> unit
+    method level : int
+    method lparen : string -> unit
+    method message : string -> unit
+    method rparen : string -> unit
+    method tab : char -> string
+  end
+
 (** Containers of components. When a component which belongs a container is destroyed,
     it is automatically removed from the container. *)
 class ['a] container ~(list_name:string) ~(owner:string) ~(with_mutex: (unit->unit) -> unit) =
   object (self)
 
-  constraint 'a = < tracing_lparen : string -> unit;
-                    tracing_rparen : string -> unit;
+  constraint 'a = < tracing : tracing_methods;
                     add_destroy_callback : (unit->unit) -> unit;
                     .. >
 
@@ -57,19 +67,19 @@ class ['a] container ~(list_name:string) ~(owner:string) ~(with_mutex: (unit->un
   method content = content
 
   method add (x:'a) =
-   x#tracing_lparen ("subscribing to the "^owner^"'s list of "^list_name^"...");
+   x#tracing#lparen ("subscribing to the "^owner^"'s list of "^list_name^"...");
    let action () = begin
      content <- x :: content;
      x#add_destroy_callback (fun () -> self#remove x);
-     x#tracing_rparen "done."
+     x#tracing#rparen "done."
     end in
    with_mutex action
 
   method remove (x:'a) =
-   x#tracing_lparen ("unsubscribing from the "^owner^"'s list of "^list_name^"...");
+   x#tracing#lparen ("unsubscribing from the "^owner^"'s list of "^list_name^"...");
    let action () = begin
      content <- List.filter (fun y -> y!=x) content;
-     x#tracing_rparen "done."
+     x#tracing#rparen "done."
     end in
    with_mutex action
 
@@ -92,72 +102,71 @@ class virtual destroy_methods () =
   val mutable destroy_callbacks = []
   method add_destroy_callback f = (destroy_callbacks <- f::destroy_callbacks)
   method destroy =
-   let () = self#tracing_lparen "destroying me..." in
+   let () = self#tracing#lparen "destroying me..." in
    let () = List.iter (fun f -> f ()) destroy_callbacks in
-   let () = self#tracing_rparen "destroyed." in ()
+   let () = self#tracing#rparen "destroyed." in ()
+  method private virtual tracing : tracing_methods
   end (* destroy_methods *)
 
-(** Support for tracing system's and component's activities. *)
-class tracing_methods ~(name:string) ~(tracing:bool) =
+(** Support for tracing system's activities. *)
+class tracing_methods_for_systems ~(name:string) ~(tracing:bool) =
   object (self)
 
   val mutable tracing = tracing
-  method tracing = tracing
-  method set_tracing x = tracing <- x
+  method is_enable = tracing
+  method set x = tracing <- x
 
-  val mutable tracing_level = 0
-  method tracing_level = tracing_level
-  method tracing_tab prompt =
-   let n = self#tracing_level in
+  val mutable level = 0
+  method level = level
+  method tab prompt =
+   let n = self#level in
    (String.make n ' ')^(String.make (n+1) prompt)^" "
 
-  method tracing_lparen msg =
+  method lparen msg =
    if tracing = false then () else
     begin
-     self#tracing_message_with_prompt '+' msg;
-     tracing_level <- tracing_level + 1 ;
+     self#message_with_prompt '+' msg;
+     level <- level + 1 ;
     end
 
-  method tracing_rparen msg =
+  method rparen msg =
    if tracing = false then () else
     begin
-     tracing_level <- tracing_level - 1 ;
-     self#tracing_message_with_prompt '-' msg;
+     level <- level - 1 ;
+     self#message_with_prompt '-' msg;
     end
 
-  method private tracing_message_with_prompt prompt msg =
+  method private message_with_prompt prompt msg =
    if tracing = false then () else
     begin
-     Printf.eprintf "%s%s: %s\n" (self#tracing_tab prompt) name msg;
+     Printf.eprintf "%s%s: %s\n" (self#tab prompt) name msg;
      flush stderr
     end
 
-  method tracing_message msg =
-   if tracing = false then () else self#tracing_message_with_prompt '*' msg
+  method message msg =
+   if tracing = false then () else self#message_with_prompt '*' msg
 
   end (* object *)
 
 (** Support for tracing component's activities. *)
-class virtual tracing_methods_for_components ~(name:string) system =
-  let format_message id msg = (Printf.sprintf "%s (%d): %s" name id msg) in
+class tracing_methods_for_components ~(id:int) ~(name:string) system =
+  let format_message msg = (Printf.sprintf "%s (%d): %s" name id msg) in
   object (self)
-   inherit tracing_methods ~name ~tracing:system#tracing as super
-   method tracing = match tracing_policy with
-    | Top_tracing_policy -> tracing || system#tracing
+   inherit tracing_methods_for_systems ~name ~tracing:system#tracing#is_enable as super
+   method is_enable = match tracing_policy with
+    | Top_tracing_policy -> tracing || system#tracing#is_enable
     | Bot_tracing_policy -> tracing
-   method tracing_level = system#tracing_level + tracing_level
-   method tracing_lparen  msg = system#tracing_lparen  (format_message self#id msg)
-   method tracing_rparen  msg = system#tracing_rparen  (format_message self#id msg)
-   method tracing_message msg = system#tracing_message (format_message self#id msg)
-   method virtual id : int
+   method level = system#tracing#level + level
+   method lparen  msg = system#tracing#lparen  (format_message msg)
+   method rparen  msg = system#tracing#rparen  (format_message msg)
+   method message msg = system#tracing#message (format_message msg)
   end
 
 class
 
  (** Common features for chips, wires and systems. *)
- common ~(name:string) =
+ common ?(id=fresh_id ()) ~(name:string) () =
   object (self)
-   val id = fresh_id ()
    method id = id
    method name = name
  end
@@ -167,13 +176,14 @@ and
  (** Common features for chips and wires.
      This class collect common methods and performs the system subscription. *)
  component ~(name:string) (system:system) =
+  let id = fresh_id () in
+  let tracing_methods = new tracing_methods_for_components ~id ~name system in
   object (self)
-  inherit common ~name
-  inherit tracing_methods_for_components ~name system
+  inherit common ~id ~name ()
   inherit destroy_methods ()
 
-  val mutable system = system
   method system = system
+  method tracing = tracing_methods
 
   initializer
    system#component_list#add (self :> component)
@@ -227,15 +237,15 @@ and
   method virtual stabilize : performed
 
   method traced_stabilize =
-   if self#tracing = false then self#stabilize else
+   if self#tracing#is_enable = false then self#stabilize else
     begin
-      self#tracing_lparen "stabilization...";
+      self#tracing#lparen "stabilization...";
       let result = self#stabilize in
       let msg = match result with
        | Performed false -> "chip already stabilized."
        | Performed true  -> "stabilized."
       in
-      self#tracing_rparen msg;
+      self#tracing#rparen msg;
       result
     end
 
@@ -278,10 +288,11 @@ and
    | None   -> new mutex_methods ~user:name ()
    | Some s -> new mutex_methods ~mutex:s#mutex_methods#mutex ~user:name ()
  in
+ let tracing_methods = new tracing_methods_for_systems ~name ~tracing in
  object (self)
-  inherit common ~name
-  inherit tracing_methods ~name ~tracing
+  inherit common ~name ()
   method mutex_methods = mutex_methods
+  method tracing = tracing_methods
 
   val reactive_list : reactive container =
    new container ~list_name:"reactive components" ~owner:name ~with_mutex:mutex_methods#with_mutex
@@ -320,15 +331,15 @@ and
       if List.exists ((=)(Performed true)) performed_list then loop (acc+1) else acc
      end
   in
-  self#tracing_lparen "system stabilization...";
-  self#tracing_lparen "relays' stabilization...";
+  self#tracing#lparen "system stabilization...";
+  self#tracing#lparen "relays' stabilization...";
   let loops = loop 0 in
-  self#tracing_rparen "relays' stabilized.";
-  self#tracing_lparen "sinks' stabilization...";
+  self#tracing#rparen "relays' stabilized.";
+  self#tracing#lparen "sinks' stabilization...";
   let sink_results = List.map (fun (x:reactive) -> x#traced_stabilize) self#sink_list in
   let result = (loops > 0) || (List.exists ((=)(Performed true)) sink_results) in
-  self#tracing_rparen "sinks' stabilized.";
-  self#tracing_rparen "system stabilized.";
+  self#tracing#rparen "sinks' stabilized.";
+  self#tracing#rparen "system stabilized.";
   (Performed result)
 
  initializer
@@ -350,18 +361,18 @@ and
 
   (** This would be a final method. *)
   method get : 'b =
-   self#tracing_message "reading wire (get)";
+   self#tracing#message "reading wire (get)";
    let action () = self#get_alone in
    self#system#mutex_methods#with_mutex action
 
   (** This would be a final method. *)
   method set (x:'a) : unit =
-   self#tracing_lparen "setting wire...";
+   self#tracing#lparen "setting wire...";
    let action () =
      begin
      (self#set_alone x);
      ignore (self#system#stabilize);
-     self#tracing_rparen "wire set.";
+     self#tracing#rparen "wire set.";
      end
    in self#system#mutex_methods#with_mutex action
 
@@ -392,7 +403,6 @@ class ['a,'b] cable
  (system:system) =
  let given_system = system in
  object (cable)
-  inherit tracing_methods ~name ~tracing
   inherit [(int * 'a), (int * 'b) list] wire ~name system
 
   val wire_list : ('a,'b) wire container =
@@ -407,7 +417,7 @@ class ['a,'b] cable
     w#set_alone v
    with Not_found as e ->
      begin
-      cable#tracing_message "wire identifier not found in cable...";
+      cable#tracing#message "wire identifier not found in cable...";
       raise e
      end
 

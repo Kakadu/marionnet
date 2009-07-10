@@ -132,7 +132,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           in
 
           (* Inherit section *)
-          let inherit_section =  [ <:class_str_item< inherit $lid:ancestor$ ~name system >> ] in
+          let inherit_section =  [ <:class_str_item< inherit $lid:ancestor$ ?name system >> ] in
 
           (* Tool for creating a pattern depending on the length of a list of identifiers
              encoded by strings. If the list is empty, the pattern () is built. If the list is
@@ -433,7 +433,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           (* Class expression with optional parameters *)
           let cop_list = List.map (fun i -> Ast.PaOlb (_loc, i, <:patt< >>)) port_names in
           let cewop = List.fold_right (fun op ce -> <:class_expr< fun $op$ -> $ce$ >>) cop_list ce in
-          let cewop = <:class_expr< fun ?(name=fresh_chip_name "chip") ?(equality=(Pervasives.(=))) -> $cewop$ >> in
+          let cewop = <:class_expr< fun ?name ?(equality=(Pervasives.(=))) -> $cewop$ >> in
           let cewop_with_user_parameters = lambda_class_expr _loc user_parameters cewop in
           let internal_module_name = ("Chip_class_definition_"^class_name) in
           let class_def = match is_virtual with

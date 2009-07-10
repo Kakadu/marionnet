@@ -193,7 +193,8 @@ and
 
 (** A chip is a box with some input ports, some output ports and possibly an internal state.
     Each port is a reference that can be dynamically linked to a wire. *)
- virtual chip ?(name = fresh_chip_name "chip") (system:system) =
+ virtual chip ?name (system:system) =
+  let name = match name with None -> fresh_chip_name "chip" | Some x -> x in
   object (self) inherit component ~name system
 
   (* For chip classification (reflection), debugging and drawing purposes *)
@@ -218,7 +219,8 @@ and
  (** A source is a chip with 0 in-degree. In other words, is an active (not reactive) system.
      Each instance of this class has a method 'emit' with a specific signature allowing the
      user to set several wires at the same time. *)
- virtual source ?(name = fresh_source_name "source") (system:system) =
+ virtual source ?name (system:system) =
+  let name = match name with None -> fresh_source_name "source" | Some x -> x in
   object (self) inherit chip ~name system
   initializer
    (* Run-time type checking *)
@@ -230,9 +232,9 @@ and
  (** A reactive chip is a chip with non zero in-degree. Such chips have a stabilization method
      that perform internal transitions and/or output ports setting with the current value
      of wires connected to input ports. *)
- virtual reactive ?(name = fresh_chip_name "reactive") (system:system) =
+ virtual reactive ?name (system:system) =
   object (self)
-  inherit chip ~name system as self_as_chip
+  inherit chip ?name system as self_as_chip
 
   method virtual stabilize : performed
 
@@ -256,7 +258,8 @@ and
 and
 
  (** A relay is a reactive chip with non zero in-degree and non zero out-degree. *)
- virtual relay ?(name = fresh_relay_name "relay") (system:system) =
+ virtual relay ?name (system:system) =
+  let name = match name with None -> fresh_relay_name "relay" | Some x -> x in
   object (self) inherit reactive ~name system
   initializer
    (* Run-time type checking *)
@@ -266,7 +269,8 @@ and
 and
 
  (* A sink is a reactive chip with 0 out-degree. *)
- virtual sink ?(name = fresh_sink_name "sink") (system:system) =
+ virtual sink ?name (system:system) =
+  let name = match name with None -> fresh_sink_name "sink" | Some x -> x in
   object (self) inherit reactive ~name system
   initializer
    (* Run-time type checking *)
@@ -278,12 +282,13 @@ and
  (** A system is a container of chips and wires. *)
  system
   ?(father: system option)
-  ?(name = fresh_system_name "system")
+  ?name
   ?(max_number_of_iterations = max_number_of_iterations)
   ?(tracing = tracing_enable) (* on stderr *)
   ?(set_default_system=true)
   ()
   =
+ let name = match name with None -> fresh_system_name "system" | Some x -> x in
  let mutex_methods = match father with
    | None   -> new mutex_methods ~user:name ()
    | Some s -> new mutex_methods ~mutex:s#mutex_methods#mutex ~user:name ()
@@ -352,7 +357,8 @@ and
      You can get and set its value by methods #get and #set_alone (virtual).
      The #set method is the sequence of two actions: the individually set of the wires
      followed by the global set of its system. *)
- virtual ['a,'b] wire ?(name = fresh_wire_name "wire") (system:system) =
+ virtual ['a,'b] wire ?name (system:system) =
+  let name = match name with None -> fresh_wire_name "wire" | Some x -> x in
   object (self)
   inherit component ~name system
 
@@ -379,8 +385,8 @@ and
  end
 
 (** References are simple examples of wires. *)
-class ['a] wref
- ?(name = fresh_wire_name "wref") (system:system) (value:'a) =
+class ['a] wref ?name (system:system) (value:'a) =
+ let name = match name with None -> fresh_wire_name "wire" | Some x -> x in
  object (self)
   inherit ['a,'a] wire ~name system
   val mutable content = value
@@ -388,8 +394,8 @@ class ['a] wref
   method set_alone v = (content <- v)
  end
 
-class ['a] wire_of_accessors
- ?(name = fresh_wire_name "wire_of_accessors") (system:system) get_alone set_alone =
+class ['a] wire_of_accessors ?name (system:system) get_alone set_alone =
+ let name = match name with None -> fresh_wire_name "wire_of_accessors" | Some x -> x in
  object (self)
   inherit ['a,'a] wire ~name system
   method get_alone = get_alone ()
@@ -398,9 +404,10 @@ class ['a] wire_of_accessors
 
 (** A cable is a wire containing and managing some homogeneous wires. *)
 class ['a,'b] cable
- ?(name = fresh_wire_name "cable")
+ ?name
  ?(tracing = tracing_enable) (* on stderr *)
  (system:system) =
+ let name = match name with None -> fresh_wire_name "cable" | Some x -> x in
  let given_system = system in
  object (cable)
   inherit [(int * 'a), (int * 'b) list] wire ~name system
@@ -471,26 +478,26 @@ let get_or_initialize_current_system () = match !current_system with
 
 (** Simplified constructor. *)
 let wref
- ?(name = fresh_wire_name "wref")
+ ?name
  ?(system=(get_or_initialize_current_system ())) x =
- new wref ~name system x
+ new wref ?name system x
 
 let wire_of_accessors
- ?(name = fresh_wire_name "wire_of_accessors")
+ ?name
  ?(system:system=(get_or_initialize_current_system ())) ~(get:unit -> 'b) ~(set:'a->unit) () =
- ((new wire_of_accessors ~name system get set) :> ('a,'b) wire)
+ ((new wire_of_accessors ?name system get set) :> ('a,'b) wire)
 
 (** Simplified constructor. *)
 let cable
- ?(name = fresh_wire_name "wref")
+ ?name
  ?(system=(get_or_initialize_current_system ())) () =
- new cable ~name system
+ new cable ?name system
 (*  ((new cable ~name system) :>  (int * 'a, 'a list) wire) *)
 
 let wref_in_cable
- ?(name = fresh_wire_name "wref_in_cable")
+ ?name
  ~(cable:('a,'a) cable)
  (x:'a) =
- let result = new wref ~name cable#system x in
+ let result = new wref ?name cable#system x in
  let () = cable#wire_list#add result in
  result

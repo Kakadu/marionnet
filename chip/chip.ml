@@ -54,6 +54,12 @@ class type tracing_methods =
     method tab : char -> string
   end
 
+(** Tool for dot traduction. *)
+let dot_record_of_port_names (xs:string list) =
+ if xs = [] then "" else
+ let args = (List.map (fun x-> Printf.sprintf "<%s> %s" x x) xs) in
+ List.fold_left (fun x y -> x^" | "^y) (List.hd args) (List.tl args)
+
 (** Containers of components. When a component which belongs a container is destroyed,
     it is automatically removed from the container. *)
 class ['a] container ~(list_name:string) ~(owner:string) ~(with_mutex: (unit->unit) -> unit) =
@@ -164,29 +170,48 @@ class tracing_methods_for_components ~(id:int) ~(name:string) system =
 
 class
 
- (** Common features for chips, wires and systems. *)
- common ?(id=fresh_id ()) ~(name:string) () =
+ (** Common features for chips, wires and systems. Components have a parent,
+     systems may not. *)
+ common ?(id=fresh_id ()) ~(name:string) ?parent () =
   object (self)
    method id = id
    method name = name
+
+   method parent : common option = parent
+   method parent_list =
+     match self#parent with
+     | None   -> []
+     | Some p -> p :: (p#parent_list)
+
+   method as_common = (self :> common)
+
+   (* parent_list=[y;z] => dot_reference=y:x (where x is the self#id and z is the system) *)
+   method dot_reference : string =
+    let pl = List.tl (List.rev ((self#as_common)::self#parent_list)) in
+    let pl = List.map (fun p -> string_of_int p#id) pl in
+    List.fold_left (fun x y -> x^":"^y) (List.hd pl) (List.tl pl)
+
  end
 
 and
 
- (** Common features for chips and wires.
-     This class collect common methods and performs the system subscription. *)
- component ~(name:string) (system:system) =
+ (** Common features for system components (chips and wires).
+     This class collect common methods and performs the system subscription
+     (only when the parent is the system). *)
+ virtual component ~(name:string) ~(parent:common) (system:system) =
   let id = fresh_id () in
   let tracing_methods = new tracing_methods_for_components ~id ~name system in
   object (self)
-  inherit common ~id ~name ()
+  inherit common ~id ~name ~parent ()
   inherit destroy_methods ()
 
   method system = system
   method tracing = tracing_methods
+  method virtual to_dot : string
 
   initializer
-   system#component_list#add (self :> component)
+  (* Subscribe to the component list if the system is also the parent: *)
+   if parent#id = system#id then system#component_list#add (self :> component)
  end
 
 and
@@ -195,7 +220,8 @@ and
     Each port is a reference that can be dynamically linked to a wire. *)
  virtual chip ?name (system:system) =
   let name = match name with None -> fresh_chip_name "chip" | Some x -> x in
-  object (self) inherit component ~name system
+  object (self)
+  inherit component ~name ~parent:system#as_common system
 
   (* For chip classification (reflection), debugging and drawing purposes *)
   val virtual in_port_names  : string list
@@ -203,6 +229,16 @@ and
   method in_port_names  =  in_port_names
   method out_port_names = out_port_names
   method port_names = List.append in_port_names out_port_names
+  method virtual input_wire_connections  : (string * (common option)) list
+  method virtual output_wire_connections : (string * (common option)) list
+
+  (* This method performs a part of the work: wire connections are translated into dot edges (->). *)
+  method to_dot : string =
+   let xs = List.filter (function (p,x) -> x<>None) self#input_wire_connections  in
+   let ys = List.filter (function (p,x) -> x<>None) self#output_wire_connections in
+   let xs = List.map    (function (p, Some w) -> (Printf.sprintf " %s -> %d:%s;\n" w#dot_reference self#id p) | _ -> assert false) xs in
+   let ys = List.map    (function (p, Some w) -> (Printf.sprintf " %d:%s -> %s;\n" self#id p w#dot_reference) | _ -> assert false) ys in
+   List.fold_left (^) "" (xs@ys)
 
   method kind : [ `Source | `Sink | `Relay ] =
    match in_port_names, out_port_names with
@@ -221,7 +257,15 @@ and
      user to set several wires at the same time. *)
  virtual source ?name (system:system) =
   let name = match name with None -> fresh_source_name "source" | Some x -> x in
-  object (self) inherit chip ~name system
+  object (self) inherit chip ~name system as self_as_chip
+  method to_dot =
+   Printf.sprintf "%d [fillcolor=\"#FFDAB9\", label=\"%s (%d) | { \\ | {%s} }\"];\n%s"
+     self#id
+     self#name
+     self#id
+     (dot_record_of_port_names self#out_port_names)
+     self_as_chip#to_dot
+
   initializer
    (* Run-time type checking *)
    assert (self#kind = `Source)
@@ -260,7 +304,17 @@ and
  (** A relay is a reactive chip with non zero in-degree and non zero out-degree. *)
  virtual relay ?name (system:system) =
   let name = match name with None -> fresh_relay_name "relay" | Some x -> x in
-  object (self) inherit reactive ~name system
+  object (self) inherit reactive ~name system as self_as_chip
+
+  method to_dot =
+   Printf.sprintf "%d [fillcolor=\"#F0F8FF\", label=\"%s (%d) | { {%s} | \\ | {%s} }\"];\n%s"
+     self#id
+     self#name
+     self#id
+     (dot_record_of_port_names self#in_port_names)
+     (dot_record_of_port_names self#out_port_names)
+     self_as_chip#to_dot
+
   initializer
    (* Run-time type checking *)
    assert (self#kind = `Relay)
@@ -271,7 +325,16 @@ and
  (* A sink is a reactive chip with 0 out-degree. *)
  virtual sink ?name (system:system) =
   let name = match name with None -> fresh_sink_name "sink" | Some x -> x in
-  object (self) inherit reactive ~name system
+  object (self) inherit reactive ~name system as self_as_chip
+
+  method to_dot =
+   Printf.sprintf "%d [fillcolor=\"#F5F5DC\", label=\"%s (%d) | { {%s} | \\  }\"];\n%s"
+     self#id
+     self#name
+     self#id
+     (dot_record_of_port_names self#in_port_names)
+     self_as_chip#to_dot
+
   initializer
    (* Run-time type checking *)
    assert (self#kind = `Sink)
@@ -347,6 +410,16 @@ and
   self#tracing#rparen "system stabilized.";
   (Performed result)
 
+ method to_dot =
+ let components = List.fold_left (fun x y -> x^"\n  "^y) "" (List.map (fun c->c#to_dot) component_list#content)
+ in Printf.sprintf "
+digraph system_%s_%d {
+ node [style=filled, shape=Mrecord, fontsize=8];
+ edge [arrowtail=inv, arrowsize=0.7];
+ rankdir=LR;
+ %s
+}\n" self#name self#id components
+
  initializer
   if set_default_system then current_system := Some (self :> system) else ()
  end
@@ -357,10 +430,11 @@ and
      You can get and set its value by methods #get and #set_alone (virtual).
      The #set method is the sequence of two actions: the individually set of the wires
      followed by the global set of its system. *)
- virtual ['a,'b] wire ?name (system:system) =
+ virtual ['a,'b] wire ?name ?parent (system:system) =
   let name = match name with None -> fresh_wire_name "wire" | Some x -> x in
+  let parent = match parent with None -> system#as_common | Some p -> p in
   object (self)
-  inherit component ~name system
+  inherit component ~name ~parent system
 
   method virtual get_alone : 'b
   method virtual set_alone : 'a -> unit
@@ -382,22 +456,28 @@ and
      end
    in self#system#mutex_methods#with_mutex action
 
+  method to_dot =
+   Printf.sprintf "%d [shape=record, label=\"%s (%d)\"];"
+     self#id
+     self#name
+     self#id
+
  end
 
 (** References are simple examples of wires. *)
-class ['a] wref ?name (system:system) (value:'a) =
+class ['a] wref ?name ?parent (system:system) (value:'a) =
  let name = match name with None -> fresh_wire_name "wire" | Some x -> x in
  object (self)
-  inherit ['a,'a] wire ~name system
+  inherit ['a,'a] wire ~name ?parent system
   val mutable content = value
   method get_alone   = content
   method set_alone v = (content <- v)
  end
 
-class ['a] wire_of_accessors ?name (system:system) get_alone set_alone =
+class ['a,'b] wire_of_accessors ?name ?parent (system:system) get_alone set_alone =
  let name = match name with None -> fresh_wire_name "wire_of_accessors" | Some x -> x in
  object (self)
-  inherit ['a,'a] wire ~name system
+  inherit ['a,'b] wire ~name ?parent system
   method get_alone = get_alone ()
   method set_alone = set_alone
  end
@@ -406,11 +486,12 @@ class ['a] wire_of_accessors ?name (system:system) get_alone set_alone =
 class ['a,'b] cable
  ?name
  ?(tracing = tracing_enable) (* on stderr *)
+ ?parent
  (system:system) =
  let name = match name with None -> fresh_wire_name "cable" | Some x -> x in
  let given_system = system in
  object (cable)
-  inherit [(int * 'a), (int * 'b) list] wire ~name system
+  inherit [(int * 'a), (int * 'b) list] wire ~name ?parent system
 
   val wire_list : ('a,'b) wire container =
    new container ~list_name:"wires" ~owner:name ~with_mutex:given_system#mutex_methods#with_mutex
@@ -428,12 +509,22 @@ class ['a,'b] cable
       raise e
      end
 
+  method to_dot =
+   Printf.sprintf "%d [shape=record, label=\"%s (%d) | {|{%s}|}\"];"
+     cable#id
+     cable#name
+     cable#id
+     (dot_record_of_port_names (List.map (fun w->w#name) cable#wire_list#content))
+
 end (* cable *)
 
 type ('b,'a) in_port  = (('b,'a) wire * 'a) option
 type ('a,'b) out_port = ('a,'b) wire option
 
 let in_port_of_wire_option = function None -> None | Some w -> Some (w,None)
+let wire_option_of_in_port = function None -> None | Some (w,_) -> Some w
+let wire_as_common_option_of_in_port = function None -> None | Some (w,_) -> Some (w#as_common)
+let wire_as_common_option_of_out_port = function None -> None | Some w -> Some (w#as_common)
 
 let extract ?caller = function
  | Some x -> x
@@ -479,25 +570,28 @@ let get_or_initialize_current_system () = match !current_system with
 (** Simplified constructor. *)
 let wref
  ?name
+ ?parent
  ?(system=(get_or_initialize_current_system ())) x =
- new wref ?name system x
+ new wref ?name ?parent system x
 
 let wire_of_accessors
  ?name
+ ?parent
  ?(system:system=(get_or_initialize_current_system ())) ~(get:unit -> 'b) ~(set:'a->unit) () =
- ((new wire_of_accessors ?name system get set) :> ('a,'b) wire)
+ ((new wire_of_accessors ?name ?parent system get set) :> ('a,'b) wire)
 
 (** Simplified constructor. *)
 let cable
  ?name
+ ?parent
  ?(system=(get_or_initialize_current_system ())) () =
- new cable ?name system
-(*  ((new cable ~name system) :>  (int * 'a, 'a list) wire) *)
+ new cable ?name ?parent system
 
+(** A wire in a cable do not belong to the component list of the system. *)
 let wref_in_cable
  ?name
  ~(cable:('a,'a) cable)
  (x:'a) =
- let result = new wref ?name cable#system x in
+ let result = new wref ?name ~parent:cable#as_common cable#system x in
  let () = cable#wire_list#add result in
  result

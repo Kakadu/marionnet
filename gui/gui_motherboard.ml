@@ -155,4 +155,19 @@ There is no need to restart the application.")
   let _ = st#mainwin#toplevel#event#connect#key_press ~callback:
              (fun k -> (if GdkEvent.Key.keyval k = GdkKeysyms._F2 then system#show_component_list ()); false)
 
+  (* Debugging: press F3 to display the dot representation of the motherboard. *)
+  let _ =
+   let display () =
+    begin
+    let fs = "/tmp/gui_motherboard.dot" in
+    let ft = "/tmp/gui_motherboard.png" in
+    let ch = open_out fs in
+    output_string ch (system#to_dot);
+    close_out ch;
+    ignore (Sys.command ("dot -Tpng -o "^ft^" "^fs^" && display "^ft^" &"))
+    end
+   in
+   st#mainwin#toplevel#event#connect#key_press ~callback:
+             (fun k -> (if GdkEvent.Key.keyval k = GdkKeysyms._F3 then display ()); false)
+
 end

@@ -40,6 +40,10 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
    | []    -> <:expr< [] >>
    | x::xs -> let xs' = string_list_of_string_list _loc xs in <:expr< $str:x$ :: $xs'$>>
 
+  let rec expr_of_expr_list _loc = function
+   | []    -> <:expr< [] >>
+   | x::xs -> let xs' = expr_of_expr_list _loc xs in <:expr< $x$ :: $xs'$>>
+
   (* Make a multiple abstraction to a class_expr. *)
   let lambda_class_expr _loc xs body = List.fold_right (fun x b -> <:class_expr< fun $x$ -> $b$>>) xs body
 
@@ -263,6 +267,23 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
             List.map mill outputs
           in
 
+          let get_wire_connections =
+            let connections_i =
+             let mill a =
+              <:expr< ($str:a$, wire_as_common_option_of_in_port $lid:a$) >> in
+             List.map mill inputs
+            in
+            let connections_o =
+             let mill a =
+              <:expr< ($str:a$, wire_as_common_option_of_out_port $lid:a$) >> in
+             List.map mill outputs
+            in
+            let il = expr_of_expr_list _loc connections_i in
+            let ol = expr_of_expr_list _loc connections_o in
+            [ <:class_str_item< method $lid:"input_wire_connections"$  = $il$ >> ;
+              <:class_str_item< method $lid:"output_wire_connections"$ = $ol$ >> ]
+          in
+
           (* set_in_port_? methods *)
           let set_in_port_i =
             let mill a =
@@ -412,6 +433,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
               disconnect        ;
               get_wire_i        ;
               get_wire_o        ;
+              get_wire_connections;
               set_in_port_i     ;
               set_alone_i       ;
               set_alone_o       ;

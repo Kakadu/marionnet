@@ -2117,11 +2117,17 @@ class network () =
  val mutable machines : (machine list) = []
  val mutable devices  : (device  list) = []
  val mutable cables   : (cable   list) = []
-
  val mutable clouds   : (cloud   list) = []
  val mutable gateways : (gateway list) = []
 
  val ledgrid_manager = Ledgrid_manager.the_one_and_only_ledgrid_manager
+
+ (** Buffers to backup/restore data. *)
+ val mutable machines_buffer : (machine list) = []
+ val mutable devices_buffer  : (device  list) = []
+ val mutable cables_buffer   : (cable   list) = []
+ val mutable clouds_buffer   : (cloud   list) = []
+ val mutable gateways_buffer : (gateway list) = []
 
  (** Accessors *)
 
@@ -2188,13 +2194,24 @@ class network () =
 
    Log.print_string "reset: end (success)\n";
 
- method copyFrom (net:network) =
+ method restore_from_buffers =
+  begin
    self#reset ();
-   machines <- net#machines ;
-   devices  <- net#devices  ;
-   clouds   <- net#clouds   ;
-   gateways <- net#gateways ;
-   cables   <- net#cables
+   machines <- machines_buffer ;
+   devices  <- devices_buffer  ;
+   clouds   <- clouds_buffer   ;
+   gateways <- gateways_buffer ;
+   cables   <- cables_buffer
+ end
+
+ method save_to_buffers =
+  begin
+   machines_buffer <- machines ;
+   devices_buffer  <- devices  ;
+   clouds_buffer   <- clouds   ;
+   gateways_buffer <- gateways ;
+   cables_buffer   <- cables
+  end
 
  method to_forest =
    let l = List.map (fun x->x#to_forest) self#components in

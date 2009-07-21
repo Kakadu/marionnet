@@ -245,13 +245,12 @@ class globalState = fun () ->
    begin
 
    (* Backup the network. *)
-   let backup = new Mariokit.Netmodel.network () in
-   backup#copyFrom self#network ;
+   self#network#save_to_buffers;
 
    (* Plan to restore the network if something goes wrong. *)
    let emergency = fun e ->
          Log.printf "import_network: emergency (%s)!!!\n" (Printexc.to_string e); flush_all ();
-         self#network#copyFrom backup;
+	 self#network#restore_from_buffers;
          emergency () in
 
    (* Read the given file. *)
@@ -458,7 +457,7 @@ class globalState = fun () ->
 
         (* Reset names ensuring synchronisation *)
         Task_runner.the_task_runner#schedule
-          (fun () -> 
+          (fun () ->
            (* Reset names to their old values: *)
            self#change_prj_name original_prj_name;
            prj_filename#set original_filename);

@@ -474,6 +474,16 @@ class ['a] wref ?name ?parent (system:system) (value:'a) =
   method set_alone v = (content <- v)
  end
 
+(** Counters as wires: "set" means "incr". *)
+class wcounter ?name ?parent (system:system) =
+ let name = match name with None -> fresh_wire_name "wcounter" | Some x -> x in
+ object (self)
+  inherit [unit,int] wire ~name ?parent system
+  val mutable content = 0
+  method get_alone    = content
+  method set_alone () = (content <- content + 1)
+ end
+
 class ['a,'b] wire_of_accessors ?name ?parent (system:system) get_alone set_alone =
  let name = match name with None -> fresh_wire_name "wire_of_accessors" | Some x -> x in
  object (self)
@@ -573,6 +583,12 @@ let wref
  ?parent
  ?(system=(get_or_initialize_current_system ())) x =
  new wref ?name ?parent system x
+
+let wcounter
+ ?name
+ ?parent
+ ?(system=(get_or_initialize_current_system ())) () =
+ new wcounter ?name ?parent system
 
 let wire_of_accessors
  ?name

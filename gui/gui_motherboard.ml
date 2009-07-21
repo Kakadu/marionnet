@@ -91,11 +91,12 @@ module Make (S : sig val st:State.globalState end) = struct
      labeldistance : float   ,
      extrasize     : float   ,
      reverted_list : (int * bool) list
-     ) -> (y:int)
-     = (let y = self#get in y+1)
+     ) -> (y)
+     = () ;;
+  (*let y = self#get in y+1*)
 
-  let refresh_sketch_counter    = Chip.wref  ~name:"refresh_sketch_counter" 0
-  let reverted_rj45cables_cable = Chip.cable ~name:"reverted_rj45cables_cable" ()
+  let refresh_sketch_counter    = Chip.wcounter ~name:"refresh_sketch_counter" ()
+  let reverted_rj45cables_cable = Chip.cable    ~name:"reverted_rj45cables_cable" ()
 
   let () =
    let m = (object method reverted_rj45cables_cable = reverted_rj45cables_cable end) in

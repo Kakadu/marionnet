@@ -61,14 +61,14 @@ let s = new selector ~x1:w1 ~x2:w2 ~s:w8 ~y:w7 () ;;
   | (y1,y2) -> (if s then (x,y2) else (y1,x))
 ;;*)
 
-chip distributor : (x:int list,s) -> (y1,y2,y3:int list,y4) =
+(*chip distributor : (x:int list,s) -> (y1,y2,y3:int list,y4) =
   let (y1,y2,_,_) = self#get in
   if s then (x,y2,x,x) else (y1,x,x,x)
-;;
+;;*)
 
-chip virtual tata : (x:int list) -> () =
+(*chip virtual tata : (x:int list) -> () =
   let () = self#get in ()
-;;
+;;*)
 
 chip titi : () -> (z:float, w:int) =
    fun x -> (x *. 3.14, int_of_float x)
@@ -114,4 +114,11 @@ initializer
            ~get:(fun ()-> self#iconsize)
            ~set:self#set_iconsize ());
 end
+;;
+
+(*chip sink_of_function f : () -> (y:int) =
+   (function () -> (f ()))
+;;
+
+let s = new sink_of_function (fun () -> 42) ~y:w1 ;;*)
 

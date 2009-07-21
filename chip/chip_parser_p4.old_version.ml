@@ -128,6 +128,21 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
           let connect_application    a = <:expr< self#$lid:"connect_"   ^a$ $lid:a$ >>  in
           let disconnect_application a = <:expr< self#$lid:"disconnect_"^a$ >>          in
 
+          let (pat_w, exp_w) =
+            let str = (fresh_var_name ~blacklist:port_names ~prefix:"w") in
+            (<:patt< $lid:str$ >> , <:expr< $lid:str$ >>)
+          in
+
+          let (pat_v, exp_v) =
+            let str = (fresh_var_name ~blacklist:port_names ~prefix:"v") in
+            (<:patt< $lid:str$ >> , <:expr< $lid:str$ >>)
+          in
+
+          let (pat_s, exp_s) =
+            let str = (fresh_var_name ~blacklist:port_names ~prefix:"s") in
+            (<:patt< $lid:str$ >> , <:expr< $lid:str$ >>)
+          in
+
 	  (* Class type variables *)
           let ctv =
             let type_variables = List.map (fun i -> <:ctyp< '$lid:i$ >>) port_names in
@@ -145,6 +160,14 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
            | []  -> <:patt< () >>
  	   | [x] -> <:patt< $lid:x$>>
  	   |  l  -> Ast.PaTup (_loc, Ast.paCom_of_list (List.map (fun x-> <:patt< $lid:x$>>) l))
+          in
+
+          (* Similar to pattern_of_string_list, but for making an expression from a list of
+             sub-expressions. *)
+          let expression_of_expr_list = function
+           | []  -> <:expr< () >>
+ 	   | [e] -> e
+ 	   |  l  -> Ast.ExTup (_loc, Ast.exCom_of_list l)
           in
 
           let type_of_ctyp_list = function
@@ -181,13 +204,13 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 
           (* in_port fields section *)
           let in_port_fields =
-            let mill a = <:class_str_item< val $lid:a$ = (new in_port ~name:$str:a$ ?wire:$lid:a$ ()) >> in
+            let mill a = <:class_str_item< val mutable $lid:a$ = in_port_of_wire_option $lid:a$ >> in
             List.map mill inputs
           in
 
           (* out_port fields section *)
           let out_port_fields =
-            let mill x = <:class_str_item< val $lid:x$ = (let wire = $lid:x$ in new out_port ~name:$str:x$ ?wire ()) >> in
+            let mill x = <:class_str_item< val mutable $lid:x$ = out_port_of_wire_option $lid:x$ >> in
             List.map mill outputs
           in
 
@@ -206,7 +229,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
              let tv'= <:ctyp< '$lid:b$ >> in
 	     let t  = <:ctyp< ($tv'$,$tv$) wire -> unit >> in
 	     let method_type = Ast.TyPol (_loc, Ast.TyQuo(_loc,b), t) in
-             <:class_str_item< method $lid:"connect_"^a$ : $method_type$ = $lid:a$#connect >> in
+             <:class_str_item< method $lid:"connect_"^a$ : $method_type$ = function $pat_w$ -> ($lid:a$ <- in_port_of_wire $exp_w$) >> in
             List.map mill inputs
           in
 
@@ -218,7 +241,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
              let tv'= <:ctyp< '$lid:b$ >> in
 	     let t   = <:ctyp< ($tv$,$tv'$) wire -> unit >> in
 	     let method_type = Ast.TyPol (_loc, Ast.TyQuo(_loc,b), t) in
-             <:class_str_item< method $lid:"connect_"^a$ : $method_type$ = $lid:a$#connect >> in
+             <:class_str_item< method $lid:"connect_"^a$ : $method_type$ = function $pat_w$ -> ($lid:a$ <- out_port_of_wire $exp_w$) >> in
             List.map mill outputs
           in
 
@@ -259,7 +282,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 
 	  (* disconnect_? methods for all ports *)
           let disconnect_x =
-            let mill a = <:class_str_item< method $lid:"disconnect_"^a$ = $lid:a$#disconnect >> in
+            let mill a = <:class_str_item< method $lid:"disconnect_"^a$ = $lid:a$ <- None >> in
             List.map mill port_names
           in
 
@@ -271,17 +294,34 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
              method disconnect =
               begin $disconnect_actions$ end
             >> ]
+
+          in
+
+          (* get_wire_? methods for input ports *)
+          let get_wire_i =
+            let mill a =
+             let str = <:expr< $str:class_name^"#get_wire_"^a$ >> in
+             <:class_str_item< method $lid:"get_wire_"^a$ = fst_of_triple (extract ~caller:$str$ $lid:a$) >> in
+            List.map mill inputs
+          in
+
+          (* get_wire_? methods for output ports *)
+          let get_wire_o =
+            let mill a =
+             let str = <:expr< $str:class_name^"#get_wire_"^a$ >> in
+             <:class_str_item< method $lid:"get_wire_"^a$ = extract ~caller:$str$ $lid:a$ >> in
+            List.map mill outputs
           in
 
           let get_wire_connections =
             let connections_i =
              let mill a =
-              <:expr< ($str:a$, $lid:a$#connection#map (fun x -> x#readonly_wire#as_common)) >> in
+              <:expr< ($str:a$, wire_as_common_option_of_in_port $lid:a$) >> in
              List.map mill inputs
             in
             let connections_o =
              let mill a =
-              <:expr< ($str:a$, $lid:a$#connection#map (fun x -> x#writeonly_wire#as_common)) >> in
+              <:expr< ($str:a$, wire_as_common_option_of_out_port $lid:a$) >> in
              List.map mill outputs
             in
             let il = expr_of_expr_list _loc connections_i in
@@ -290,22 +330,42 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
               <:class_str_item< method $lid:"output_wire_connections"$ = $ol$ >> ]
           in
 
+          (* set_in_port_? methods *)
+          let set_in_port_i =
+            let mill a =
+             <:class_str_item< method $lid:"set_in_port_"^a$  $pat_w$ $pat_v$ $pat_s$ = $lid:a$ <- Some ($exp_w$,(Some $exp_v$),$exp_s$) >> in
+            List.map mill inputs
+          in
+
+          (* set_alone_? methods for input ports *)
+          let set_alone_i =
+            let mill a =
+             let str = <:expr< $str:class_name^"#set_alone_"^a$ >> in
+             <:class_str_item< method $lid:"set_alone_"^a$ $pat_v$ = (fst (extract ~caller:$str$ $lid:a$))#set_alone $exp_v$ >> in
+            List.map mill inputs
+          in
+
           (* set_alone_? methods for output ports *)
           let set_alone_o =
             let mill a =
-             <:class_str_item< method private $lid:"set_alone_"^a$ = $lid:a$#connection#extract#writeonly_wire#set_alone >> in
+             let str = <:expr< $str:class_name^"#set_alone_"^a$ >> in
+             <:class_str_item< method $lid:"set_alone_"^a$ v = (extract ~caller:$str$ $lid:a$)#set_alone v >> in
             List.map mill outputs
           in
 
           (* stabilize method section *)
           let stabilize =
+            let str = <:expr< $str:class_name^"#stabilize"$ >> in
+
+	    let winputs          = List.map (fun a -> fresh_var_name ~blacklist:port_names ~prefix:("w"^a)) inputs in
 	    let unchanged_inputs = List.map (fun a -> fresh_var_name ~blacklist:port_names ~prefix:("unchanged_"^a)) inputs in
+	    let sensitiveness_inputs = List.map (fun a -> fresh_var_name ~blacklist:port_names ~prefix:("sens_"^a)) inputs in
 
             let input_bindings =
-              let mill (a,unchanged_a) =
-                let p = <:patt< ($lid:a$ , $lid:unchanged_a$) >> in
-                <:binding< $p$ = ($lid:a$#read_and_compare) >>
-              in Ast.biAnd_of_list (List.map mill (List.combine inputs unchanged_inputs))
+              let mill (wa,a,sa,unchanged_a) =
+                let p = <:patt< ($lid:wa$, $lid:a$ , $lid:sa$ , $lid:unchanged_a$) >> in
+                <:binding< $p$ = (extract_and_compare $str$ $lid:"equality"$ $lid:a$) >>
+              in Ast.biAnd_of_list (List.map mill (combine4 winputs inputs sensitiveness_inputs unchanged_inputs))
             in
 
             let unchanged_test =
@@ -321,7 +381,9 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
             in
 
             let set_actions =
-             Ast.exSem_of_list (List.map set_alone_application outputs)
+             let set_in_port_application (wa,a,sa) = <:expr< self#$lid:"set_in_port_"^a$ $lid:wa$ $lid:a$ $lid:sa$ >> in
+             Ast.exSem_of_list ((List.map set_in_port_application (combine3 winputs inputs sensitiveness_inputs))
+                               @(List.map set_alone_application outputs))
             in
 
             [ <:class_str_item<
@@ -364,6 +426,45 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
 
           in
 
+          (* set method section *)
+          let set =
+      	   let input_pattern = pattern_of_string_list inputs in
+           let set_alone_actions = Ast.exSem_of_list (List.map set_alone_application inputs)
+            in
+            [ <:class_str_item<
+             method set $input_pattern$ =
+              $set_alone_actions$ ;
+              self#system#stabilize
+            >> ]
+
+          in
+
+          (* get method section (outputs) *)
+          let get =
+           let mill a =
+            let str = <:expr< $str:class_name^"#get (reading "^a^")"$ >> in
+            <:expr< (extract ~caller:$str$ $lid:a$)#get_alone >> in
+           let output_expression = expression_of_expr_list (List.map mill outputs)
+           in [ <:class_str_item< method get = $output_expression$ >> ]
+
+          in
+
+          (* get_? methods for inputs *)
+          let get_i =
+            let mill a =
+             let str = <:expr< $str:class_name^"#get_"^a$ >> in
+             <:class_str_item< method $lid:"get_"^a$ = (fst_of_triple (extract ~caller:$str$ $lid:a$))#get_alone >> in
+            List.map mill inputs
+          in
+
+          (* get_? methods for outputs *)
+          let get_o =
+            let mill a =
+             let str = <:expr< $str:class_name^"#get_"^a$ >> in
+             <:class_str_item< method $lid:"get_"^a$ = (extract ~caller:$str$ $lid:a$)#get_alone >> in
+            List.map mill outputs
+          in
+
           (* Merging sections *)
           let cst = Ast.crSem_of_list
            (List.concat
@@ -377,9 +478,17 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
               connect           ;
               disconnect_x      ;
               disconnect        ;
+              get_wire_i        ;
+              get_wire_o        ;
               get_wire_connections;
+              set_in_port_i     ;
+(*              set_alone_i       ;*)
               set_alone_o       ;
+(*              get               ;*)
+              get_i             ;
+(*              get_o             ;*)
               if is_source then emit else stabilize ;
+(*              if is_source then [] else set       ;*)
               user_complement_section ;
             ])
            in

@@ -519,6 +519,9 @@ class ['a,'b] cable
       raise e
      end
 
+  (* Note that this method do not recursively call the method #to_dot of its components.
+     This limitation is due to the non-compositional syntax of dot and the consequence
+     is that a system can be represented from the top to, at most, the second level of depth. *)
   method to_dot =
    Printf.sprintf "%d [shape=record, label=\"%s (%d) | {|{%s}|}\"];"
      cable#id
@@ -528,13 +531,39 @@ class ['a,'b] cable
 
 end (* cable *)
 
-type ('b,'a) in_port  = (('b,'a) wire * 'a) option
-type ('a,'b) out_port = ('a,'b) wire option
+class type ['a] writeonly_wire =
+  object
+    method id : int
+    method name : string
+    method parent : common option
+    method parent_list : common list
+    method as_common : common
+    method dot_reference : string
+    method system : system
+    method destroy : unit
+    method add_destroy_callback : (unit -> unit) -> unit
+    method tracing : tracing_methods
+    method to_dot : string
+    method set : 'a -> unit
+    method set_alone : 'a -> unit
+  end
 
-let in_port_of_wire_option = function None -> None | Some w -> Some (w,None)
-let wire_option_of_in_port = function None -> None | Some (w,_) -> Some w
-let wire_as_common_option_of_in_port = function None -> None | Some (w,_) -> Some (w#as_common)
-let wire_as_common_option_of_out_port = function None -> None | Some w -> Some (w#as_common)
+class type ['b] readonly_wire =
+  object
+    method id : int
+    method name : string
+    method parent : common option
+    method parent_list : common list
+    method as_common : common
+    method dot_reference : string
+    method system : system
+    method destroy : unit
+    method add_destroy_callback : (unit -> unit) -> unit
+    method tracing : tracing_methods
+    method to_dot : string
+    method get : 'b
+    method get_alone : 'b
+  end
 
 let extract ?caller = function
  | Some x -> x
@@ -543,19 +572,97 @@ let extract ?caller = function
               | Some c -> failwith ("extract called by "^c)
               )
 
-(** Extract the value of the wire connected to a port comparing it with its previous value. *)
-let extract_and_compare
-  (caller:string)
-   equality (* :'a -> 'a -> bool *)
-  (port:((('b,'a) wire as 'w) * 'a option) option) : 'w * 'a * bool
- =
- let (w, vo) = extract ~caller port in
- let v' = w#get_alone in
- let unchanged = match vo with
-  | None   -> false
-  | Some v -> (Obj.magic equality) v v'
- in (w, v', unchanged)
+class ['a] option_obj ?name ?owner (x:'a option) =
+ let name  = match name  with Some x -> x     | None -> "option_obj" in
+ let owner = match owner with Some x -> x^"#" | None -> "" in
+ let extract_notification = Printf.sprintf "%s%s#extract" owner name in
+ object
+  val mutable content = x
+  method get = content
+  method set x = content <- x
 
+  method extract = match content with
+    | Some x -> x
+    | None   -> failwith extract_notification
+
+  method map : 'b. ('a -> 'b) -> 'b option =
+   fun f -> match content with
+   | None   -> None
+   | Some x -> Some (f x)
+
+  method bind : 'b. ('a -> 'b option) -> 'b option =
+   fun f -> match content with
+   | None   -> None
+   | Some x -> (f x)
+
+ end
+
+class ['b] in_port_connection ~(equality:('b->'b->bool)) (w: ('a,'b) wire) =
+ let readonly_wire = (w : ('a,'b) wire :> 'b readonly_wire) in
+ object
+  method readonly_wire = readonly_wire
+  val mutable previous_value = None
+
+  method read_and_compare sensitiveness =
+   let v' = readonly_wire#get_alone in
+   let unchanged = (not sensitiveness) ||
+     (match previous_value with
+     | None   -> false
+     | Some v -> equality v v'
+     ) in
+   let () = (previous_value <- Some v') in
+   (v', unchanged)
+
+ end
+
+class ['b] in_port ?(sensitiveness=true) ?(equality:('b->'b->bool) option) ~(name:string) ?(wire: ('a,'b) wire option) () =
+ let equality = match equality with None -> (=) | Some eq -> eq in
+ let connection =
+   let connection_opt = match wire with
+    | None -> None
+    | Some w -> Some (new in_port_connection ~equality w) in
+   new option_obj ~name:"connection" ~owner:name connection_opt in
+ object (self)
+  method name = name
+
+  val mutable sensitiveness = sensitiveness
+  method sensitiveness = sensitiveness
+  method set_sensitiveness x = sensitiveness <- x
+
+  val mutable equality = equality
+  method equality = equality
+  method set_equality x = equality <- x
+
+  method connection = connection
+  method connect : 'a. ('a,'b) wire -> unit =
+   fun w -> connection#set (Some (new in_port_connection ~equality w))
+  method disconnect : unit = connection#set None
+
+  method read_and_compare =
+   self#connection#extract#read_and_compare sensitiveness
+
+ end
+
+class ['a] out_port_connection (w: ('a,'b) wire) =
+ let writeonly_wire = (w : ('a,'b) wire :> 'a writeonly_wire) in
+ object
+  method writeonly_wire = writeonly_wire
+ end
+
+class ['a] out_port ~(name:string) ?(wire: ('a,'b) wire option) () =
+ let connection =
+   let connection_opt = match wire with None -> None | Some w -> Some (new out_port_connection w) in
+   new option_obj ~name:"connection" ~owner:name connection_opt in
+ object (self)
+  method name = name
+
+  method connection = connection
+  method connect : 'b. ('a,'b) wire -> unit =
+   fun w -> connection#set (Some (new out_port_connection w))
+
+  method disconnect : unit = connection#set None
+
+ end
 
 let teach_ocamldep = ()
 

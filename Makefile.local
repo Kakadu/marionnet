@@ -58,7 +58,7 @@ MANUALLY_PRE_MAKE_IN_build =      \
   chip/chip_example.expanded.ml   \
   gettext-c-wrapper.o does-process-exist-c-wrapper.o
 
-MANUALLY_POST_MAKE_IN_build = chip/chip_example.expanded.byte
+MANUALLY_POST_MAKE_IN_build = chip/chip_example.expanded.byte chip/chip_example.expanded.mli
 
 marionnet.byte marionnet.native : manually_pre_actions version.ml gui.ml
 
@@ -82,6 +82,8 @@ _build/chip/chip_example.expanded.ml : chip/chip_example.ml _build/chip/chip_par
 _build/chip/chip_example.expanded.byte : _build/chip/chip_example.expanded.ml
 	ocamlc -thread -pp camlp4rf -I _build/ -I _build/chip/ -I +threads unix.cma threads.cma recursive_mutex.cmo chip.cmo -o $@ $<
 
+_build/chip/chip_example.expanded.mli : _build/chip/chip_example.expanded.ml
+	ocamlc -i -thread -pp camlp4rf -I _build/ -I _build/chip/ -I +threads unix.cma threads.cma recursive_mutex.cmo chip.cmo $< >$@
 
 run: marionnet.byte
 	(export WORKING=`pwd`; OCAMLRUNPARAM="b" $$WORKING/_build/marionnet.byte) | tee /tmp/LOG

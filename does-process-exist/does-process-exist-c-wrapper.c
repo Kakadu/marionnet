@@ -23,11 +23,11 @@
 #include <errno.h>
 #include <assert.h>
 
-#include <caml/memory.h>
-#include <caml/mlvalues.h>
+#include <memory.h>
+#include <mlvalues.h>
 /* If I don't #include caml/alloc.h then this module compiles fine, but then crashes
    at runtime. Funny, isn't it? */
-#include <caml/alloc.h>
+#include <alloc.h>
 
 /* Return true iff the process identified by the given pid exists. The idea is just to
    call kill with 0 as a signal, which is easy in C but impossible in OCaml: */

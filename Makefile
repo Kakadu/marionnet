@@ -908,7 +908,9 @@ meta.ml: META
 	echo -e "let documentationprefix = \"$$documentationprefix\";;" >> $@ && \
 	echo "Success.")
 
+
 ###########################################################################
 # Include the project-dependant file (if any) which implements the '-local'
 # targets:
 -include Makefile.local
+-include RPMS/Makefile

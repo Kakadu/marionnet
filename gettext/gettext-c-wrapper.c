@@ -21,11 +21,11 @@
 #include <unistd.h>
 #include <libintl.h>
 
-#include "caml/mlvalues.h"
+#include "mlvalues.h"
 /* If I don't #include caml/alloc.h then this module compiles fine, but then crashes
    at runtime. Funny, isn't it? */
-#include "caml/alloc.h"
-#include "caml/memory.h"
+#include "alloc.h"
+#include "memory.h"
 //#include "caml/fail.h"
 //#include "caml/callback.h"
 //#include "caml/custom.h"

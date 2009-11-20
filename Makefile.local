@@ -147,11 +147,14 @@ gettext-example.byte : gettext/gettext-example.ml
 
 # How to build C modules:
 _build/gettext-c-wrapper.o: gettext/gettext-c-wrapper.c
+	$(call READ_CONFIG, ocaml_sources); \
 	(mkdir _build &> /dev/null || true) && \
-	gcc -g -O3 -o $@ -c $^
+	gcc -g -O3 -I $$ocaml_sources -o $@ -c $^
+
 _build/does-process-exist-c-wrapper.o: does-process-exist/does-process-exist-c-wrapper.c
+	$(call READ_CONFIG, ocaml_sources); \
 	(mkdir _build &> /dev/null || true) && \
-	gcc -g -O3 -o $@ -c $^
+	gcc -g -O3 -I $$ocaml_sources -o $@ -c $^
 
 _build/marionnet.pot: marionnet.byte
 	msgcat --use-first $(shell find _build/ -name "*.ml.pot") > $@
@@ -185,9 +188,10 @@ update-po: pot
 	done;)
 
 install-mo: compile-mo
-	@(cd po/; \
+	@($(call READ_CONFIG,localeprefix); \
+	cd po/; \
 	for i in $(call LANGUAGES); \
-	do (cp $$i.mo /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo || exit -1) && \
+	do ((mkdir -p $$localeprefix/$$i/LC_MESSAGES && cp $$i.mo $$localeprefix/$$i/LC_MESSAGES/marionnet.mo) || exit -1) && \
 	echo "Installed "$$i; \
 	done;)
 
@@ -196,8 +200,9 @@ clean-mo:
 	rm -rf *.mo *~ *.pot;)
 
 uninstall-mo:
-	@(for i in $(call LANGUAGES); \
-	do rm -f /usr/share/locale/$$i/LC_MESSAGES/marionnet.mo; \
+	@($(call READ_CONFIG,localeprefix); \
+	for i in $(call LANGUAGES); \
+	do rm -f $$localeprefix/$$i/LC_MESSAGES/marionnet.mo; \
 	echo "Uninstalled "$$i; \
 	done;)
 

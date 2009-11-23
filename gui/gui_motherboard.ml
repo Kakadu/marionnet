@@ -93,7 +93,6 @@ module Make (S : sig val st:State.globalState end) = struct
      reverted_list : (int * bool) list
      ) -> (y)
      = () ;;
-  (*let y = self#get in y+1*)
 
   let refresh_sketch_counter    = Chip.wcounter ~name:"refresh_sketch_counter" ()
   let reverted_rj45cables_cable = Chip.cable    ~name:"reverted_rj45cables_cable" ()
@@ -170,5 +169,11 @@ There is no need to restart the application.")
    in
    st#mainwin#toplevel#event#connect#key_press ~callback:
              (fun k -> (if GdkEvent.Key.keyval k = GdkKeysyms._F3 then display ()); false)
+
+(*  let pippo = WGButton.button ~name:"button_pippo" system ~label:"PIPPO" ~packing:(st#mainwin#hbuttonbox_BASE#pack) ()
+
+  chip f_class : (x:int) -> (y) = () ;;
+  let f = new f_class ~x:pippo#wire#enter ~y:refresh_sketch_counter ()*)
+
 
 end

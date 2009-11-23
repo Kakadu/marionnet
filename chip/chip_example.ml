@@ -4,6 +4,8 @@
 #load "chip_parser_p4.cmo";;
  (* Use the "chip" syntax extension. *)
 
+open WGButton;;
+
 open Chip ;;
  (* if you wan't Chip opened, you can alternatively call:
     Chip.teach_ocamldep;;   - in order to teach ocamldep on Chip dependency, or

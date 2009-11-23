@@ -107,7 +107,7 @@ class virtual destroy_methods () =
   object (self)
   val mutable destroy_callbacks = []
   method add_destroy_callback f = (destroy_callbacks <- f::destroy_callbacks)
-  method destroy =
+  method destroy () =
    let () = self#tracing#lparen "destroying me..." in
    let () = List.iter (fun f -> f ()) destroy_callbacks in
    let () = self#tracing#rparen "destroyed." in ()
@@ -177,7 +177,9 @@ class
    method id = id
    method name = name
 
+   val mutable parent = parent
    method parent : common option = parent
+   method set_parent x = parent <- x
    method parent_list =
      match self#parent with
      | None   -> []
@@ -201,6 +203,7 @@ and
  virtual component ~(name:string) ~(parent:common) (system:system) =
   let id = fresh_id () in
   let tracing_methods = new tracing_methods_for_components ~id ~name system in
+  let given_parent = parent in
   object (self)
   inherit common ~id ~name ~parent ()
   inherit destroy_methods ()
@@ -209,9 +212,20 @@ and
   method tracing = tracing_methods
   method virtual to_dot : string
 
+  method set_parent new_parent =
+   begin
+   let old_parent = self#parent in
+   (match new_parent, old_parent with
+   | (Some np) , (Some op) when (op#id = system#id) && (op#id <> np#id)
+       -> system#component_list#remove (self :> component)
+   | _ -> ()
+   );
+   parent <- new_parent
+   end
+
   initializer
   (* Subscribe to the component list if the system is also the parent: *)
-   if parent#id = system#id then system#component_list#add (self :> component)
+   if given_parent#id = system#id then system#component_list#add (self :> component)
  end
 
 and
@@ -536,11 +550,12 @@ class type ['a] writeonly_wire =
     method id : int
     method name : string
     method parent : common option
+    method set_parent : common option -> unit
     method parent_list : common list
     method as_common : common
     method dot_reference : string
     method system : system
-    method destroy : unit
+    method destroy : unit -> unit
     method add_destroy_callback : (unit -> unit) -> unit
     method tracing : tracing_methods
     method to_dot : string
@@ -553,11 +568,12 @@ class type ['b] readonly_wire =
     method id : int
     method name : string
     method parent : common option
+    method set_parent : common option -> unit
     method parent_list : common list
     method as_common : common
     method dot_reference : string
     method system : system
-    method destroy : unit
+    method destroy : unit -> unit
     method add_destroy_callback : (unit -> unit) -> unit
     method tracing : tracing_methods
     method to_dot : string
@@ -636,6 +652,7 @@ class ['b] in_port ?(sensitiveness=true) ?(equality:('b->'b->bool) option) ~(nam
   method connection = connection
   method connect : 'a. ('a,'b) wire -> unit =
    fun w -> connection#set (Some (new in_port_connection ~equality w))
+
   method disconnect : unit = connection#set None
 
   method read_and_compare =

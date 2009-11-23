@@ -1127,7 +1127,7 @@ object (self)
   (* Redefinition: *)
   method destroy =
     super_simulated_device#destroy;
-    self#dotoptions#destroy
+    self#dotoptions#destroy ()
 
   val cablekind = cablekind
   method cablekind = cablekind

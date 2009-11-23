@@ -49,7 +49,7 @@ c-modules:
 	for x in $(C_OBJECTS_TO_LINK); do \
 	  make _build/$$x.o; \
 	done
-	
+
 BUILD_FROM_STUFF = \
 	@( echo "Building $(1)..."; \
 	shopt -s execfail; set -e; \
@@ -872,6 +872,9 @@ myocamlbuild.ml:
 	echo -en "let our_native_link_options = our_include_options @ [ " >> $@; \
 	for x in $(LIBRARIES_TO_LINK); do \
 		echo -en "A \"$$x.cmxa\"; " >> $@; \
+	done; \
+	for x in $(OBJECTS_TO_LINK); do \
+		echo -en "A \"$$x.cmx\"; " >> $@; \
 	done; \
 	echo -e "];;\n" >> $@; \
 	echo -e "dispatch (function After_rules ->" >> $@; \

@@ -58,7 +58,7 @@ let cwd_at_startup_time =
 
 (* We can not use Log.printf here because Initialization is a top file 
    use by Log (and  others), do that creates circular dependencies *)
-Printf.printf "Setting up directory path names for Marionnet...\n";; 
+(*Printf.printf "Setting up directory path names for Marionnet...\n";; *)
 
 (** Return the value of the given configuration variable, if it's defined as 
     a non-empty string; otherwise return the second argument, third argument
@@ -89,7 +89,7 @@ let configuration_variable_or_ variable_name default_value var_type =
     of a given variable during its initialization *) 
 let configuration_variable_or variable_name default_value var_type =
   let result = configuration_variable_or_ variable_name default_value var_type in
-  Printf.printf "\n %s (%s) = %s\n" variable_name default_value result;
+(*  Printf.printf "\n %s (%s) = %s\n" variable_name default_value result;*)
   result;;
 
 (* Here we initialze some variables with user or default value *)

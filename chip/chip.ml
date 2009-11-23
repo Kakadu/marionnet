@@ -40,12 +40,12 @@ type tracing_policy =
  | Top_tracing_policy (** If the system is traced, all components are traced. *)
  | Bot_tracing_policy (** Each component decides individually. *)
 
-let tracing_enable = true
+let tracing_enable = Global_options.get_debug_mode
 let tracing_policy = Top_tracing_policy
 
 class type tracing_methods =
   object
-    method is_enable : bool
+    method is_enabled : bool
     method set : bool -> unit
     method level : int
     method lparen : string -> unit
@@ -115,12 +115,11 @@ class virtual destroy_methods () =
   end (* destroy_methods *)
 
 (** Support for tracing system's activities. *)
-class tracing_methods_for_systems ~(name:string) ~(tracing:bool) =
+class tracing_methods_for_systems ~(name:string) ~(tracing:unit->bool) =
   object (self)
 
-  val mutable tracing = tracing
-  method is_enable = tracing
-  method set x = tracing <- x
+  method is_enabled = tracing ()
+  method set x = Global_options.set_debug_mode x
 
   val mutable level = 0
   method level = level
@@ -129,28 +128,28 @@ class tracing_methods_for_systems ~(name:string) ~(tracing:bool) =
    (String.make n ' ')^(String.make (n+1) prompt)^" "
 
   method lparen msg =
-   if tracing = false then () else
+   if not self#is_enabled then () else
     begin
      self#message_with_prompt '+' msg;
      level <- level + 1 ;
     end
 
   method rparen msg =
-   if tracing = false then () else
+   if not self#is_enabled then () else
     begin
      level <- level - 1 ;
      self#message_with_prompt '-' msg;
     end
 
   method private message_with_prompt prompt msg =
-   if tracing = false then () else
+   if not self#is_enabled then () else
     begin
      Printf.eprintf "%s%s: %s\n" (self#tab prompt) name msg;
      flush stderr
     end
 
   method message msg =
-   if tracing = false then () else self#message_with_prompt '*' msg
+   if not self#is_enabled then () else self#message_with_prompt '*' msg
 
   end (* object *)
 
@@ -158,10 +157,10 @@ class tracing_methods_for_systems ~(name:string) ~(tracing:bool) =
 class tracing_methods_for_components ~(id:int) ~(name:string) system =
   let format_message msg = (Printf.sprintf "%s (%d): %s" name id msg) in
   object (self)
-   inherit tracing_methods_for_systems ~name ~tracing:system#tracing#is_enable as super
-   method is_enable = match tracing_policy with
-    | Top_tracing_policy -> tracing || system#tracing#is_enable
-    | Bot_tracing_policy -> tracing
+   inherit tracing_methods_for_systems ~name ~tracing:(fun () -> system#tracing#is_enabled) as super
+   method is_enabled = match tracing_policy with
+    | Top_tracing_policy -> super#is_enabled || system#tracing#is_enabled
+    | Bot_tracing_policy -> super#is_enabled
    method level = system#tracing#level + level
    method lparen  msg = system#tracing#lparen  (format_message msg)
    method rparen  msg = system#tracing#rparen  (format_message msg)
@@ -297,7 +296,7 @@ and
   method virtual stabilize : performed
 
   method traced_stabilize =
-   if self#tracing#is_enable = false then self#stabilize else
+   if self#tracing#is_enabled = false then self#stabilize else
     begin
       self#tracing#lparen "stabilization...";
       let result = self#stabilize in

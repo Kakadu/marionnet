@@ -79,11 +79,15 @@ _build/chip/chip_parser_p4.cmo: chip/chip_parser_p4.ml
 _build/chip/chip_example.expanded.ml : chip/chip_example.ml _build/chip/chip_parser_p4.cmo
 	camlp4of -I _build/chip/ -printer Camlp4OCamlRevisedPrinter chip_parser_p4.cmo -o $@ $<
 
+CHIP_CMDLINE=-custom -I _build/chip/ -I _build/gettext/ -I +threads unix.cma threads.cma \
+  -I +ocamlbricks ocamlbricks.cma _build/gettext-c-wrapper.o recursive_mutex.cmo gettext.cmo \
+  meta.cmo initialization.cmo global_options.cmo chip.cmo
+
 _build/chip/chip_example.expanded.byte : _build/chip/chip_example.expanded.ml
-	ocamlc -thread -pp camlp4rf -I _build/ -I _build/chip/ -I +threads unix.cma threads.cma recursive_mutex.cmo chip.cmo -o $@ $<
+	ocamlc -thread -pp camlp4rf -I _build/ $(CHIP_CMDLINE) -o $@ $<
 
 _build/chip/chip_example.expanded.mli : _build/chip/chip_example.expanded.ml
-	ocamlc -i -thread -pp camlp4rf -I _build/ -I _build/chip/ -I +threads unix.cma threads.cma recursive_mutex.cmo chip.cmo $< >$@
+	ocamlc -i -thread -pp camlp4rf -I _build/ $(CHIP_CMDLINE) $< >$@
 
 run: marionnet.byte
 	(export WORKING=`pwd`; OCAMLRUNPARAM="b" $$WORKING/_build/marionnet.byte) | tee /tmp/LOG

@@ -79,7 +79,10 @@ module Make (M: Parents) = struct
  (* Now tools: *)
  
  let not_implemented_yet _ = (Printf.eprintf "NOT IMPLEMENTED YET!!!!!\n"; (flush stderr))
- let monitor label _       = (Printf.eprintf "Menu entry with label \"%s\" selected by user\n" label; (flush stderr))
+ let monitor label _       =
+   if Global_options.get_debug_mode () then
+   (Printf.eprintf "Menu entry with label \"%s\" selected by user\n" label; (flush stderr))
+   else ()
 
  let add_item ?(menu = get_current_menu ()) ?submenu ?(key=0) label ?(callback=(monitor label)) () =
    let result = menu#add_item label ~key ~callback in

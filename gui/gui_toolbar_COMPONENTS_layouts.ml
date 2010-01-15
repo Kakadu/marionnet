@@ -19,29 +19,21 @@ open Gettext;;
 
 (** Layouts for component-related menus. See the file gui_machine.ml for an example of application. *)
 
-(** Function for insert or append entries to the toolbar_COMPONENTS *)
+(** Function to append entries to the toolbar_COMPONENTS *)
 module Toolbar = struct
 
  (* Note that ~label:"" is very important in the call of GMenu.image_menu_item. Actually, it is a workaround
     of something that resemble to a bug in lablgtk: if not present, another external function is internally
     called by this function and the result is a menu entry with an horizontal line in background... *)
- let insert_image_menu pos (toolbar:GButton.toolbar) filename tooltip =
-  let item = GButton.tool_item () in
-  let menubar = GMenu.menu_bar ~border_width:0 ~width:0 ~height:60 ~packing:(item#add) () in
-  let image_menu_item =
-    let image = GMisc.image ~xalign:0.5 ~yalign:0.5 ~xpad:0 ~ypad:0 ~file:(Initialization.marionnet_home_images^filename) () in
-    GMenu.image_menu_item ~label:"" ~image ~packing:menubar#add () in
-  (* The call to insert_widget generates a GTK warning "Mixing deprecated and non-deprecated GtkToolbar API is not allowed".
-     We consider it harmless. *)
-  let () = toolbar#insert_widget ~tooltip ~pos item#coerce 
-  in image_menu_item
-
- let append_image_menu =
-  let pos = ref 0 in
-  fun toolbar filename tooltip ->
-   let result = insert_image_menu !pos toolbar filename tooltip in
-   let () = incr pos in
-   result
+ let append_image_menu (toolbar:GButton.toolbar) filename tooltip =
+  let slot    = GButton.tool_item ~packing:toolbar#insert () in
+  let menubar = GMenu.menu_bar ~border_width:0 ~width:0 ~height:60 ~packing:(slot#add) () in
+  let image   = GMisc.image ~xalign:0.5 ~yalign:0.5 ~xpad:0 ~ypad:0 ~file:(Initialization.marionnet_home_images^filename) () in
+  let result  = GMenu.image_menu_item ~label:"" ~image ~packing:menubar#add () in
+  let set_tooltip w text = (GData.tooltips ())#set_tip w ~text in
+  result#image#misc#show ();
+  set_tooltip slot#coerce tooltip;
+  result
 
 end (* module Toolbar *)
 

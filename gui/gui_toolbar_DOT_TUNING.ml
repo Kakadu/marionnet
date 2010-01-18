@@ -247,6 +247,9 @@ let connect_rotate_menu ~widget ~widget_menu ~dynList = begin
    ~action:reverse_edge_callback ()) ;   ()
  end
 
+(* Ensure that the image will be shown (in spite of a possibly opposite Gnome/Ubuntu global setting) *)
+let () = st#mainwin#imagemenuitem_DOT_TUNING_INVERT#image#misc#show ()
+
 (* Connect INVERT_DIRECT *)
 let _ =
   connect_rotate_menu

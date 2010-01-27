@@ -1,6 +1,6 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007, 2008  Luca Saiu
-   Updared in 2009 by Luca Saiu
+   Updated in 2009 by Luca Saiu
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -83,13 +83,6 @@ object(self)
         Log.printf "* Cancel\n"; flush_all ();
         failwith "You cancelled");
 
-  (** Return true iff the given file exists: *)
-  method private does_file_exists pathname =
-    let command_line =
-      Printf.sprintf "file '%s' &> /dev/null" pathname in
-    match Unix.system command_line with
-      Unix.WEXITED 0 -> true
-    | _ -> false
 
   method private file_to_format pathname =
     if Filename.check_suffix pathname ".html" or
@@ -150,20 +143,21 @@ object(self)
         UnixExtra.temp_file ~parent:self#get_working_directory ~prefix:"document-" () in
       let fresh_name = 
         Filename.basename fresh_pathname in
+      let redirection =
+        Global_options.debug_mode_redirection () in
+      let program =
+        if move then "mv" else "cp -a" in
       let command_line =
-        if move then
           Printf.sprintf
-            "mv '%s' '%s' &> /dev/null && chmod a-w '%s'" pathname fresh_pathname fresh_pathname
-        else
-          Printf.sprintf
-            "cp -a '%s' '%s' &> /dev/null && chmod a-w '%s'" pathname fresh_pathname fresh_pathname in
+            "%s '%s' '%s' %s && chmod a-w '%s'" program pathname fresh_pathname redirection fresh_pathname
+      in
       (match Unix.system command_line with
         Unix.WEXITED 0 ->
           fresh_name, format
       | _ -> begin
           (* Copying failed: remove any partial copy which may have been created: *)
           let rm_command_line =
-            Printf.sprintf "rm -f '%s' &> /dev/null" fresh_pathname in
+            Printf.sprintf "rm -f '%s' %s" fresh_pathname redirection in
           ignore (Unix.system rm_command_line);
           failwith ("The copy of \n\"" ^ pathname ^ "\"\n in \n\""^ fresh_pathname ^"\"\nfailed")
         end)

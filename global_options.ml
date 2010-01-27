@@ -39,6 +39,10 @@ let get_debug_mode () =
 (*      Log.printf "Are we in debug mode? %s\n" (if result then "YES" else "NO"); flush_all ();*)
       result);;
 
+(** Interpret the value of debug_mode as suffix to append to shell commands. *)
+let debug_mode_redirection () : string =
+    if get_debug_mode () then "" else " >/dev/null 2>/dev/null " ;;
+
 (** Automatically generate IP addresses: *)
 let autogenerate_ip_addresses_default =
   false (*false*);;

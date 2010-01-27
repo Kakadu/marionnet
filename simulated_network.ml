@@ -319,8 +319,9 @@ object(self)
   method spawn =
     Log.printf "Spawning a hub_or_switch_process\n"; flush_all ();
     super#spawn;
+    let redirection = Global_options.debug_mode_redirection () in
     let command_line =
-      Printf.sprintf "grep \"%s\" /proc/net/unix &> /dev/null" socket_name in
+      Printf.sprintf "grep \"%s\" /proc/net/unix %s" socket_name redirection in
     (* We also check that the process is alive: if spawning it failed than the death
        monitor will take care of everything it's needed and destroy the device: in
        this case we just exit and let the death monitor clean up after us. *)
@@ -761,20 +762,25 @@ object(self)
 
   method create_swap_file =
     try
+      let redirection = Global_options.debug_mode_redirection () in
       let dd_command_line =
         Printf.sprintf
-          "dd if=/dev/zero bs=1024 seek=%i count=1 of=%s &> /dev/null"
+          "dd if=/dev/zero bs=1024 seek=%i count=1 of=%s %s"
           swap_file_size
-          swap_file_name in
+          swap_file_name
+          redirection
+      in
       system_or_fail dd_command_line;
       Log.printf "Created the swap file %s.\n" swap_file_name;
       let mkswap_command_line =
-        Printf.sprintf "export PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin; mkswap %s &> /dev/null" swap_file_name in
+        Printf.sprintf "export PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin; mkswap %s %s"
+           swap_file_name
+           redirection
+      in
       system_or_fail mkswap_command_line;
       Log.printf "Executed mkswap on the swap file %s.\n" swap_file_name;
     with e -> begin
       Log.printf "WARNING: creating the swap file %s failed (this might be serious).\n" swap_file_name;
-      flush_all ();
     end
 
   method delete_swap_file =
@@ -789,17 +795,18 @@ object(self)
 (*   (\** There is a specific and better way to stop a UML processes, using *)
 (*       mconsole. We (transparently, thanks to late binding) support it *\) *)
 (*   method stop = *)
-(*     ignore (Unix.system ("uml_mconsole " ^ umid ^ " stop &> /dev/null")); *)
+(*     ignore (Unix.system ("uml_mconsole " ^ umid ^ " stop 1>/dev/null 2>/dev/null")); *)
 
 (*   (\** There is a specific and better way to continue a UML processes, using *)
 (*       mconsole. We (transparently, thanks to late binding) support it *\) *)
 (*   method continue = *)
-(*     ignore (Unix.system ("uml_mconsole " ^ umid ^ " go &> /dev/null")); *)
+(*     ignore (Unix.system ("uml_mconsole " ^ umid ^ " go 1>/dev/null 2>/dev/null")); *)
 
   method private gracefully_terminate_with_mconsole =
     self#stop_monitoring;
     ignore (Daemon_client.ask_the_server (Destroy (Tap tap_name)));
-    Unix.system ("uml_mconsole " ^ umid ^ " cad &> /dev/null");
+    let redirection = Global_options.debug_mode_redirection () in
+    Unix.system ("uml_mconsole " ^ umid ^ " cad "^redirection)
 
   (** There is a specific and better way to terminate a UML processes, using
       mconsole. Note that terminate (not overridden here) remains useful as a
@@ -855,11 +862,12 @@ object(self)
   method terminate =
     self#revoke_host_x_server_access;
     self#delete_swap_file;
+    let redirection = Global_options.debug_mode_redirection () in
     match !pid with
       Some p -> begin
         self#stop_monitoring;
         (* Tell the process to halt immediately, without cleanup: *)
-        (try ignore (Unix.system ("uml_mconsole " ^ umid ^ " halt &> /dev/null")) with _ -> ());
+        (try ignore (Unix.system ("uml_mconsole " ^ umid ^ " halt "^redirection)) with _ -> ());
         self#allow_for_some_seconds_to_die 2.0;
         (* The process has not complied yet after interval seconds. Kill it the hard way: *)
         (try
@@ -919,15 +927,17 @@ object(self)
     ()
 
   method private grant_host_x_server_access =
+    let redirection = Global_options.debug_mode_redirection () in
     try
-      ignore (Unix.system ("xhost +" ^ ip42 ^ " &> /dev/null"))
+      ignore (Unix.system ("xhost +" ^ ip42 ^ " " ^ redirection))
     with _ -> begin
       Log.printf "WARNING: granting host X server access to %s failed.\n" ip42
     end
 
   method private revoke_host_x_server_access =
+    let redirection = Global_options.debug_mode_redirection () in
     try
-      ignore (Unix.system ("xhost -" ^ ip42 ^ " &> /dev/null"))
+      ignore (Unix.system ("xhost -" ^ ip42 ^ " " ^redirection))
     with _ -> begin
       Log.printf "WARNING: revoking host X server access to %s failed.\n" ip42
     end

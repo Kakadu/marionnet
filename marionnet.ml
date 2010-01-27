@@ -168,7 +168,6 @@ end
     return unit on success. *)
 let system_or_fail command_line =
   Log.printf "Executing \'%s\'...\n" command_line;
-  flush_all ();
   match Unix.system command_line with
     Unix.WEXITED 0 ->
       ()
@@ -179,8 +178,9 @@ let system_or_fail command_line =
 
 (** Make sure that the user installed all the needed software: *)
 let check_dependency command_line error_message =
+  let redirection = Global_options.debug_mode_redirection () in
   try
-    system_or_fail command_line;
+    system_or_fail (command_line^" "^redirection);
   with e -> (
     flush_all ();
     Simple_dialogs.error
@@ -189,39 +189,44 @@ let check_dependency command_line error_message =
       ())
 
 (** Check whether we have UML computer filesystems: *)
-let () = check_dependency
-  (Printf.sprintf
-    "ls -l %s/machine-default &> /dev/null"
-    Initialization.marionnet_home_filesystems)
-  (s_ "You don't have a default filesystem for virtual computers")
+let () =
+  check_dependency
+    (Printf.sprintf
+       "ls -l %s/machine-default"
+       Initialization.marionnet_home_filesystems)
+    (s_ "You don't have a default filesystem for virtual computers")
 
 (** Check whether we have UML router filesystems: *)
 let () = begin
  let command_line =
-  (Printf.sprintf
-    "ls -l %s/router-%s &> /dev/null"
-    Initialization.marionnet_home_filesystems Strings.router_unprefixed_filesystem) in
-  check_dependency
+   (Printf.sprintf
+     "ls -l %s/router-%s"
+     Initialization.marionnet_home_filesystems Strings.router_unprefixed_filesystem)
+ in
+ check_dependency
     command_line
     ((s_ "You don't have a default filesystem for virtual routers"))
   end
 
 (** Check whether we have UML kernels: *)
-let () = check_dependency
-  (Printf.sprintf
-    "ls -l %s/linux-default &> /dev/null"
-    Initialization.marionnet_home_kernels)
-  (s_ "You don't have a default UML kernel")
+let () =
+  check_dependency
+    (Printf.sprintf
+       "ls -l %s/linux-default"
+       Initialization.marionnet_home_kernels)
+    (s_ "You don't have a default UML kernel")
 
 (** Check whether we have (our patched) VDE: *)
-let () = check_dependency
-  ("which `basename " ^ Initialization.vde_prefix ^ "vde_switch` &> /dev/null")
-  (s_ "You don't have VDE")
+let () =
+  check_dependency
+    ("which `basename " ^ Initialization.vde_prefix ^ "vde_switch`")
+    (s_ "You don't have VDE")
 
 (** Check whether we have Graphviz: *)
-let () = check_dependency
-  "which dot &> /dev/null"
-  (s_ "You don't have Graphviz")
+let () =
+  check_dependency
+    "which dot"
+    (s_ "You don't have Graphviz")
 
 let () = begin
 

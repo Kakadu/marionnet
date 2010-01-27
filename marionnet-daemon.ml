@@ -91,8 +91,7 @@ let system_or_fail command_line =
 (** Actaully make a tap at the OS level: *)
 let make_system_tap (tap_name : tap_name) uid ip_address =
   Log.printf "Making the tap %s...\n" tap_name;
-  let redirection =
-    if Global_options.get_debug_mode () then "" else "&> /dev/null" in
+  let redirection = Global_options.debug_mode_redirection () in
   let command_line =
     Printf.sprintf
       "tunctl -u %i -t %s %s && ifconfig %s 172.23.0.254 netmask 255.255.255.255 up; route add %s %s"
@@ -104,8 +103,7 @@ let make_system_tap (tap_name : tap_name) uid ip_address =
 (** Actaully make a gateway tap at the OS level: *)
 let make_system_gateway_tap (tap_name : tap_name) uid bridge_name =
   Log.printf "Making the tap %s...\n" tap_name;
-  let redirection =
-    if Global_options.get_debug_mode () then "" else "&> /dev/null" in
+  let redirection = Global_options.debug_mode_redirection () in
   let command_line =
     Printf.sprintf
       "tunctl -u %i -t %s %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s"
@@ -121,8 +119,7 @@ let make_system_gateway_tap (tap_name : tap_name) uid bridge_name =
 (** Actaully destroy a tap at the OS level: *)
 let destroy_system_tap (tap_name : tap_name) =
   Log.printf "Destroying the tap %s...\n" tap_name;
-  let redirection =
-    if Global_options.get_debug_mode () then "" else "&> /dev/null" in
+  let redirection = Global_options.debug_mode_redirection () in
   let command_line =
     Printf.sprintf
       "while ! (ifconfig %s down && tunctl -d %s %s); do echo 'I can not destroy %s yet %s...'; sleep 1; done&"
@@ -134,8 +131,7 @@ let destroy_system_tap (tap_name : tap_name) =
 (** Actaully destroy a gateway tap at the OS level: *)
 let destroy_system_gateway_tap (tap_name : tap_name) uid bridge_name =
   Log.printf "Destroying the gateway tap %s...\n" tap_name;
-  let redirection =
-    if Global_options.get_debug_mode () then "" else "&> /dev/null" in
+  let redirection = Global_options.debug_mode_redirection () in
   let command_line =
     (* This is currently disabled. We have to decide what to do about this: *)
     Printf.sprintf

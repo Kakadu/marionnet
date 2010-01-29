@@ -74,47 +74,30 @@ let make_fresh_tap_name () =
 let make_fresh_gateway_tap_name () =
   make_fresh_name "gwtap";;
 
-(* To do: move this into UnixExtra or something like that: *)
-(** Run system with the given argument, and raise exception in case of failure;
-    return unit on success. *)
-let system_or_fail command_line =
-  Log.printf "Executing \'%s\'...\n" command_line;
-  flush_all ();
-  match Unix.system command_line with
-    Unix.WEXITED 0 ->
-      ()
-  | Unix.WEXITED n ->
-      failwith (Printf.sprintf "Unix.system: the process exited with %i" n)
-  | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
-      failwith "Unix.system: the process was signaled or stopped";;
-
 (** Actaully make a tap at the OS level: *)
 let make_system_tap (tap_name : tap_name) uid ip_address =
   Log.printf "Making the tap %s...\n" tap_name;
-  let redirection = Global_options.debug_mode_redirection () in
   let command_line =
     Printf.sprintf
-      "tunctl -u %i -t %s %s && ifconfig %s 172.23.0.254 netmask 255.255.255.255 up; route add %s %s"
-      uid tap_name redirection tap_name ip_address tap_name in
-  system_or_fail command_line;
-  Log.printf "The tap %s was created with success\n" tap_name;
-  flush_all ();;
+      "{ tunctl -u %i -t %s && ifconfig %s 172.23.0.254 netmask 255.255.255.255 up; route add %s %s; }"
+      uid tap_name tap_name ip_address tap_name in
+  Log.system_or_fail command_line;
+  Log.printf "The tap %s was created with success\n" tap_name
+  ;;
 
 (** Actaully make a gateway tap at the OS level: *)
 let make_system_gateway_tap (tap_name : tap_name) uid bridge_name =
   Log.printf "Making the tap %s...\n" tap_name;
-  let redirection = Global_options.debug_mode_redirection () in
   let command_line =
     Printf.sprintf
-      "tunctl -u %i -t %s %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s"
+      "{ tunctl -u %i -t %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s; }"
       uid
       tap_name
-      redirection
       tap_name
       bridge_name tap_name in
-  system_or_fail command_line;
-  Log.printf "The tap %s was created with success\n" tap_name;
-  flush_all ();;
+  Log.system_or_fail command_line;
+  Log.printf "The tap %s was created with success\n" tap_name
+  ;;
 
 (** Actaully destroy a tap at the OS level: *)
 let destroy_system_tap (tap_name : tap_name) =
@@ -124,22 +107,21 @@ let destroy_system_tap (tap_name : tap_name) =
     Printf.sprintf
       "while ! (ifconfig %s down && tunctl -d %s %s); do echo 'I can not destroy %s yet %s...'; sleep 1; done&"
       tap_name tap_name redirection tap_name redirection  in
-  system_or_fail command_line;
-  Log.printf "The tap %s was destroyed with success\n" tap_name;
-  flush_all ();;
+  Log.system_or_fail ~hide_output:false ~hide_errors:false command_line;
+  Log.printf "The tap %s was destroyed with success\n" tap_name
+  ;;
 
 (** Actaully destroy a gateway tap at the OS level: *)
 let destroy_system_gateway_tap (tap_name : tap_name) uid bridge_name =
   Log.printf "Destroying the gateway tap %s...\n" tap_name;
-  let redirection = Global_options.debug_mode_redirection () in
   let command_line =
     (* This is currently disabled. We have to decide what to do about this: *)
     Printf.sprintf
-      "ifconfig %s down %s && brctl delif %s %s %s && tunctl -d %s %s"
-      tap_name redirection bridge_name tap_name redirection tap_name redirection in
-  system_or_fail command_line;  
+      "{ ifconfig %s down && brctl delif %s %s && tunctl -d %s; }"
+      tap_name bridge_name tap_name tap_name in
+  Log.system_or_fail command_line;  
   Log.printf "The gateway tap %s was destroyed with success\n" tap_name;
-  flush_all ();;
+  ;;
 
 (** Instantiate the given pattern, actually create the system object, and return
     the instantiated resource: *)

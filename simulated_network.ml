@@ -69,19 +69,9 @@ fun program
       (Some _) ->
         raise (ProcessIsntInTheRightState "spawn")
     | None ->
-(* ----------------------- *)
-        Log.printf "The command line for %s is:\n%s " program program;
-        List.iter
-          (fun string ->
-            Log.printf "%s " string)
-          arguments;
-        Log.printf "\n";
-(* ----------------------- *)
-
-        Log.print_string "About to spawn\n";
-        Log.print_string (program ^ " ");
-        List.iter (fun x -> Log.print_string (x ^ " ")) arguments;
-        Log.print_string "\n";
+        let cmdline = StringExtra.Fold.blankcat (program::arguments) in
+        let basename = Filename.basename program in
+        Log.printf "spawning process: the command line for %s is:\n---\n%s\n---\n" basename cmdline;
         let new_pid = (Unix.create_process
                          program
                          (Array.of_list (program :: arguments))
@@ -91,8 +81,8 @@ fun program
         pid := (Some new_pid);
         Death_monitor.start_monitoring new_pid program unexpected_death_callback;
         Log.printf
-          "A process (%s) was just spawned. Its pid is %i.\n"
-          (Filename.basename program)
+          "spawning process: a process (%s) was just spawned (pid %i).\n"
+          basename
           new_pid
 
   method stop_monitoring =
@@ -648,18 +638,6 @@ let create_swap_file_name () =
     ~prefix:"sparse-swap-"
     ();;
 
-(* To do: move this into UnixExtra or something like that: *)
-(** Run system with the given argument, and raise exception in case of failure;
-    return unit on success. *)
-let system_or_fail command_line =
-  match Unix.system command_line with
-    Unix.WEXITED 0 ->
-      ()
-  | Unix.WEXITED n ->
-      failwith (Printf.sprintf "Unix.system: the process exited with %i" n)
-  | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
-      failwith "Unix.system: the process was signaled or stopped";;
-
 (** The UML process used to implement machines and routers: *)
 class uml_process =
   fun ~(kernel_file_name)
@@ -762,22 +740,18 @@ object(self)
 
   method create_swap_file =
     try
-      let redirection = Global_options.debug_mode_redirection () in
       let dd_command_line =
         Printf.sprintf
-          "dd if=/dev/zero bs=1024 seek=%i count=1 of=%s %s"
+          "dd if=/dev/zero bs=1024 seek=%i count=1 of=%s"
           swap_file_size
           swap_file_name
-          redirection
       in
-      system_or_fail dd_command_line;
+      Log.system_or_fail dd_command_line;
       Log.printf "Created the swap file %s.\n" swap_file_name;
       let mkswap_command_line =
-        Printf.sprintf "export PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin; mkswap %s %s"
-           swap_file_name
-           redirection
+        Printf.sprintf "export PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin; mkswap %s" swap_file_name
       in
-      system_or_fail mkswap_command_line;
+      Log.system_or_fail mkswap_command_line;
       Log.printf "Executed mkswap on the swap file %s.\n" swap_file_name;
     with e -> begin
       Log.printf "WARNING: creating the swap file %s failed (this might be serious).\n" swap_file_name;
@@ -785,11 +759,10 @@ object(self)
 
   method delete_swap_file =
     try
-      system_or_fail (Printf.sprintf "rm -f %s" swap_file_name);
+      Log.system_or_fail (Printf.sprintf "rm -f %s" swap_file_name);
       Log.printf "Deleted the swap file %s.\n" swap_file_name;
     with e -> begin
       Log.printf "WARNING: removing the swap file %s failed.\n" swap_file_name;
-      flush_all ();
     end
 
 (*   (\** There is a specific and better way to stop a UML processes, using *)

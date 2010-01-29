@@ -45,7 +45,7 @@ main: ocamlbuild-stuff manually_pre_actions main-local data libraries programs m
 
 # Build C modules (no one, by default):
 c-modules:
-	(mkdir _build &> /dev/null || true) && \
+	@(mkdir _build &> /dev/null || true) && \
 	for x in $(C_OBJECTS_TO_LINK); do \
 	  make _build/$$x.o; \
 	done

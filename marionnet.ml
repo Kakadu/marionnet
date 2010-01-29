@@ -163,24 +163,10 @@ if (Unix.getuid ()) = 0 then begin
 end
 end
 
-(* To do: move this into UnixExtra or something like that: *)
-(** Run system with the given argument, and raise exception in case of failure;
-    return unit on success. *)
-let system_or_fail command_line =
-  Log.printf "Executing \'%s\'...\n" command_line;
-  match Unix.system command_line with
-    Unix.WEXITED 0 ->
-      ()
-  | Unix.WEXITED n ->
-      failwith (Printf.sprintf "Unix.system: the process exited with %i" n)
-  | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
-      failwith "Unix.system: the process was signaled or stopped"
-
 (** Make sure that the user installed all the needed software: *)
 let check_dependency command_line error_message =
-  let redirection = Global_options.debug_mode_redirection () in
   try
-    system_or_fail (command_line^" "^redirection);
+    Log.system_or_fail command_line
   with e -> (
     flush_all ();
     Simple_dialogs.error

@@ -24,7 +24,7 @@ open Gettext;;
 class texts_interface =
 fun ~packing
 (*    ~after_user_edit_callback *)
-    () -> 
+    () ->
 object(self)
   inherit
     treeview
@@ -32,7 +32,7 @@ object(self)
       ~hide_reserved_fields:true
       ()
   as super
-      
+
   (** Return the full pathname of the current working directory. Fail if it isn't set: *)
   method private get_working_directory =
     Filename.dirname self#file_name
@@ -44,7 +44,8 @@ object(self)
     let file_name = item_to_string (self#get_row_item row_id "FileName") in
     let command_line =
       Printf.sprintf "%s '%s/%s'&" reader self#get_working_directory file_name in
-    ignore (Unix.system command_line)
+    (* Here ~force:true would be useless, because of '&' (the shell well exit in any case). *)
+    Log.system_or_ignore command_line
 
   val error_message =
     (s_ "You should select an existing document in PDF, Postscript, DVI, HTML or text format.")
@@ -52,9 +53,9 @@ object(self)
   (** Ask the user to choose a file, and return its pathname. Fail if the user doesn't
       choose a file or cancels: *)
   method private ask_file =
-    let dialog = GWindow.file_chooser_dialog 
+    let dialog = GWindow.file_chooser_dialog
         ~icon:Icon.icon_pixbuf
-        ~action:`OPEN 
+        ~action:`OPEN
         ~title:((*utf8*)(s_ "Choose the document to import"))
         ~modal:true () in
     dialog#add_button_stock `CANCEL `CANCEL;
@@ -112,7 +113,7 @@ object(self)
       "pdf"
     else
       failwith ("I cannot recognize the file type of " ^ pathname);
-    
+
   method private format_to_reader format =
     match format with
     | "pdf" ->
@@ -141,7 +142,7 @@ object(self)
         self#file_to_format pathname in
       let fresh_pathname =
         UnixExtra.temp_file ~parent:self#get_working_directory ~prefix:"document-" () in
-      let fresh_name = 
+      let fresh_name =
         Filename.basename fresh_pathname in
       let redirection =
         Global_options.debug_mode_redirection () in

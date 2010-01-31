@@ -138,31 +138,25 @@ object(self)
       copied. *)
   method private import_file ?(move=false) pathname =
     try
-      let format =
-        self#file_to_format pathname in
-      let fresh_pathname =
-        UnixExtra.temp_file ~parent:self#get_working_directory ~prefix:"document-" () in
-      let fresh_name =
-        Filename.basename fresh_pathname in
-      let redirection =
-        Global_options.debug_mode_redirection () in
-      let program =
-        if move then "mv" else "cp -a" in
-      let command_line =
-          Printf.sprintf
-            "%s '%s' '%s' %s && chmod a-w '%s'" program pathname fresh_pathname redirection fresh_pathname
-      in
-      (match Unix.system command_line with
-        Unix.WEXITED 0 ->
-          fresh_name, format
-      | _ -> begin
-          (* Copying failed: remove any partial copy which may have been created: *)
-          let rm_command_line =
-            Printf.sprintf "rm -f '%s' %s" fresh_pathname redirection in
-          ignore (Unix.system rm_command_line);
-          failwith ("The copy of \n\"" ^ pathname ^ "\"\n in \n\""^ fresh_pathname ^"\"\nfailed")
-        end)
-    with (Failure title) as e -> begin
+      let file_format    = self#file_to_format pathname in
+      let parent         = self#get_working_directory in
+      let fresh_pathname = UnixExtra.temp_file ~parent ~prefix:"document-" () in
+      let fresh_name     = Filename.basename fresh_pathname in
+      let result         = (fresh_name, file_format) in
+     (try
+      (match move with
+      | false -> UnixExtra.file_copy pathname fresh_pathname
+      | true  -> UnixExtra.file_move pathname fresh_pathname
+      );
+      result
+      with Unix.Unix_error (_,_, _) ->
+       begin
+         UnixExtra.apply_ignoring_Unix_error Unix.unlink fresh_pathname;
+         let title =
+           Printf.sprintf "Failed copying the file \n\"%s\"\n" pathname in
+         failwith title;
+       end)
+     with (Failure title) as e -> begin
       Simple_dialogs.error title error_message ();
       raise e (* Re-raise *)
     end

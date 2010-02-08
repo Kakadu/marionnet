@@ -52,7 +52,7 @@ let system_or_ignore ?hide_output ?hide_errors command_line =
   system_or_fail ?hide_output ?hide_errors command_line
  with e ->
    begin
-   let fmt = format_of_string "ignoring exception: %s\n" in
+   let fmt = format_of_string "Ignoring exception: %s\n" in
    let msg = Printexc.to_string e in
    (match hide_errors with
     | None       -> printf fmt msg
@@ -60,3 +60,10 @@ let system_or_ignore ?hide_output ?hide_errors command_line =
     | Some true  -> ()
     )
     end
+
+(** Wrappers for system_or_ignore: the command is performed by Unix.system
+    with logging features. In case of failure, the function doesn't produce
+    any exception, but print the event on the log channel. *)
+module Command = struct
+ let ll pathname = system_or_ignore ("ls -l "^pathname)
+end

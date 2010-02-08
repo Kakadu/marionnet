@@ -16,24 +16,11 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-(** All dialogs are implemented here. This module provide the capability for user to talk with the application.
-    Specifically, the name "Talking" stands here for "Talking with user". *)
+(** All dialogs are implemented here. This module provide the capability for user
+    to talk with the application. Specifically, the name "Talking" stands here
+    for "Talking with user". *)
 
 #load "include_as_string_p4.cmo";;
-
-open Simple_dialogs;;
-open Sugar;;
-open StringExtra;;
-open StrExtra;;
-open UnixExtra;;
-open StrExtra;;
-open Environment;;
-open Mariokit;;
-open State;;
-open Simulated_network;;
-open Network_details_interface;;
-open Defects_interface;;
-open Gettext;;
 
 (* Shortcuts *)
 let mkenv = Environment.make_string_env ;;
@@ -59,7 +46,7 @@ module Msg = struct
 Every file created in the directory will be deleted at exit time. \
 If the program is run from the Marionnet live DVD, you are advised to \
 use a persistent directory (in /mnt/hd*), in order to not waste \
-your system physical memory.") in help title msg ;;
+your system physical memory.") in Simple_dialogs.help title msg ;;
 
 let help_machine_insert_update =
    let title = (s_ "ADD OR MODIFY A VIRTUAL MACHINE") in
@@ -85,7 +72,8 @@ SECTION 'UML':\n\n\
 allows to run graphic applications from a text terminal where the user \
 can operate the virtual machine (with user 'root' and password 'root'); \
 the second allows to have a real graphic server reserved for the virtual \
-machine, with independent windows manager and desktops environments.") in help title msg ;;
+machine, with independent windows manager and desktops environments.")
+   in Simple_dialogs.help title msg ;;
 
 let help_hub_insert_update =
    let title = (s_ "ADD OR MODIFY A HUB") in
@@ -98,7 +86,8 @@ this field is exclusively for graphic purposes, is not taken in consideration \
 for the configuration.\n\
 - Nb of Ports: the number of ports of the hub (default 4); this number must \
 not be increased without a reason, because the number of processes needed for the \
-device emulation is proportional to his ports number.") in help title msg ;;
+device emulation is proportional to his ports number.")
+   in Simple_dialogs.help title msg ;;
 
  let help_switch_insert_update =
    let title = (s_ "ADD OR MODIFY A SWITCH") in
@@ -111,7 +100,8 @@ this field is exclusively for graphic purposes, is not taken in consideration \
 for the configuration.\n\n\
 - Nb of Ports: the number of ports of the switch (default 4); this number must \
 not be increased without a reason, because the number of processes needed for the \
-device emulation is proportional to his ports number.") in help title msg ;;
+device emulation is proportional to his ports number.")
+   in Simple_dialogs.help title msg ;;
 
  let help_router_insert_update =
    let title = (s_ "ADD OR MODIFY A ROUTER") in
@@ -136,12 +126,13 @@ ospfd\t\t2604/tcp\t\t# OSPFd vty\n\
 bgpd\t\t2605/tcp\t\t# BGPd vty\n\
 ospf6d\t\t2606/tcp\t\t# OSPF6d vty\n\
 isisd\t\t\t2608/tcp\t\t# ISISd vty\n\n\
-Password: zebra") in help title msg ;;
+Password: zebra")
+   in Simple_dialogs.help title msg ;;
 
  let help_device_insert_update = function
-  | Netmodel.Hub    -> help_hub_insert_update
-  | Netmodel.Switch -> help_switch_insert_update
-  | Netmodel.Router -> help_router_insert_update
+  | Mariokit.Netmodel.Hub    -> help_hub_insert_update
+  | Mariokit.Netmodel.Switch -> help_switch_insert_update
+  | Mariokit.Netmodel.Router -> help_router_insert_update
   | _ -> ignore
  ;;
 
@@ -156,7 +147,8 @@ network graph\n\n\
 their two connected interfaces\n\n\
 WARNING: this dialog allows to define straight cables even in contexts where \
 they won't work (for example between two machines); allowing users to define 'wrong' \
-connections may be of some pedagogical interest.") in help title msg ;;
+connections may be of some pedagogical interest.")
+   in Simple_dialogs.help title msg ;;
 
  let help_cable_crossover_insert_update =
    let title = (s_ "ADD OR MODIFY A CROSSOVER CABLE") in
@@ -169,11 +161,12 @@ network graph\n\n\
 their two connected interfaces\n\n\
 WARNING: this dialog allows to define crossover cables even in contexts where \
 they won't work (for example between two machines); allowing users to define 'wrong' \
-connections may be of some pedagogical interest.") in help title msg ;;
+connections may be of some pedagogical interest.")
+   in Simple_dialogs.help title msg ;;
 
  let help_cable_insert_update = function
-  | Netmodel.Direct    -> help_cable_direct_insert_update
-  | Netmodel.Crossover -> help_cable_crossover_insert_update
+  | Mariokit.Netmodel.Direct    -> help_cable_direct_insert_update
+  | Mariokit.Netmodel.Crossover -> help_cable_crossover_insert_update
   | _ -> ignore
  ;;
 
@@ -184,7 +177,8 @@ This component is an Ethernet network with an unknown internal \
 structure introducing delays and other anomalies when packets \
 pass through.\n\
 Once the cloud is defined, use the tab 'Anomalies' to control delays, \
-frame loss and the other anomalies.") in help title msg ;;
+frame loss and the other anomalies.")
+   in Simple_dialogs.help title msg ;;
 
  let help_socket_insert_update =
    let title = (s_ "ADD OR MODIFY AN ETHERNET SOCKET") in
@@ -209,7 +203,8 @@ local network to it.\n\n \
 The socket also allows team-work in a network laboratory, by creating a \
 connection between Marionnet instances running on different machines. \
 For more information about bridge et Ethernet socket configuration, please \
-see the Marionnet Wiki on the marionnet.org website.") in help title msg ;;
+see the Marionnet Wiki on the marionnet.org website.")
+   in Simple_dialogs.help title msg ;;
 
  let error_saving_while_something_up =
   Simple_dialogs.error
@@ -225,7 +220,7 @@ Please stop them before saving.")
    let msg   = (s_ "\
 Marionnet saves every files belonging to a project in a file with extension .mar. \
 It is a standard gzipped tarball which can also be opened with standard tools.")
-   in help title msg ;;
+   in Simple_dialogs.help title msg ;;
 end;; (* module Msg *)
 
 (** Return the given pathname as it is, if it doesn't contain funny characters
@@ -312,15 +307,15 @@ name must start with a letter and can contain letters, numbers, dashes ('-') and
 module EDialog = struct
 
 (** An edialog is a dialog which returns an env as result if succeed *)
-type edialog = unit -> ((string string_env) option) ;;
+type edialog = unit -> ((string Environment.string_env) option) ;;
 
 (** Dialog related exceptions. *)
 exception BadDialog     of string * string;;
-exception StrangeDialog of string * string * (string string_env);;
+exception StrangeDialog of string * string * (string Environment.string_env);;
 exception IncompleteDialog;;
 
 (** The (and) composition of edialogs is again an env option *)
-let rec compose (dl:edialog list) () : ((('a,'b) env) option) =
+let rec compose (dl:edialog list) () : ((('a,'b) Environment.env) option) =
   match dl with
   | []  -> raise (Failure "EDialog.compose")
   | [d] -> d ()
@@ -341,13 +336,6 @@ let sequence = compose;;
 let default d = function | None -> d | Some v -> v
 ;;
 
-(** To do: Spostare in ListExtra? *)
-let is_string_prefix s1 s2 =
-  let l1 = String.length s1 in
-  let l2 = String.length s2 in
-  l1 <= l2 && s1 = String.sub s2 0 l1
-;;
-
 (** Filters  *)
 
 let image_filter () =
@@ -355,7 +343,7 @@ let image_filter () =
   f#add_custom [ `MIME_TYPE ]
     (fun info ->
       let mime = List.assoc `MIME_TYPE info in
-      is_string_prefix "image/" mime) ;
+      StringExtra.is_prefix "image/" mime) ;
   f
 ;;
 
@@ -399,7 +387,7 @@ let ask_for_file
   let dialog = GWindow.file_chooser_dialog
       ~icon:Icon.icon_pixbuf
       ~action:action
-      ~title:(utf8 title)
+      ~title
       ~modal:true () in
 
   dialog#unselect_all ;
@@ -477,7 +465,7 @@ let ask_for_fresh_writable_filename
 
   let valid = fun x ->
     if (Sys.file_exists x)
-    then ((Simple_dialogs.error 
+    then ((Simple_dialogs.error
              (s_ "Name choice")
              (s_ "A file with the same name already exists!\n\nChoose another name for your file.")
              ()); false)
@@ -492,7 +480,7 @@ let ask_for_existing_filename ?(enrich=mkenv []) ~title ?(filters = allfilters) 
 
   let valid = fun x ->
     if not (Sys.file_exists x)
-    then ((Simple_dialogs.error 
+    then ((Simple_dialogs.error
              (s_ "File choice")
              (s_ "The file doesn't exists!\nYou must choose an exiting file name.")
              ()); false)

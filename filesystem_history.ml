@@ -218,19 +218,16 @@ object(self)
         ()
     with _ -> begin
       (* Remove any partial copy: *)
-      (try
-        Unix.unlink new_variant_pathname
-      with _ ->
-        ());
+      UnixExtra.apply_ignoring_Unix_error Unix.unlink new_variant_pathname;
       Simple_dialogs.error
         (s_ "Error")
         (Printf.sprintf (f_ "\
 The variant couldn't be exported to the file \"%s\".\n\n\
 Many reasons are possible:\n - you don't have write access to this directory\n\
  - the machine was never started\n - you didn't select the machine disk but \n\
-the machine itself (you should expand the tree).") new_variant_pathname) 
+the machine itself (you should expand the tree).") new_variant_pathname)
         ()
-      end)
+      end
 
   initializer
     (* Make columns: *)
@@ -286,7 +283,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
 
     (* Make internal data structures: no more columns can be added now: *)
     self#create_store_and_view;
-    
+
     (* Make the contextual menu: *)
     let get = raise_when_none in (* just a convenient alias *)
     self#set_contextual_menu_title "Filesystem history operations";
@@ -334,7 +331,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
         let row_id = get selected_rowid_if_any in
         self#delete_state row_id);
 end;;
-  
+
 (** The one and only states interface object, with my usual OCaml kludge
     enabling me to set it at runtime: *)
 let the_states_interface =
@@ -432,7 +429,7 @@ let save_states () =
 
 let get_forest () =
   let states_interface = get_states_interface () in
-  states_interface#get_forest   
+  states_interface#get_forest
 
 let add_row
     ~name
@@ -455,7 +452,7 @@ let add_row
       "Timestamp", String date;
       "Prefixed filesystem", String prefixed_filesystem;
       "File name", String file_name ] in
-  let result = 
+  let result =
     states_interface#add_row ?parent_row_id:parent row
   in
   result
@@ -514,7 +511,7 @@ let remove_device_tree name =
   let states_interface = get_states_interface () in
   Log.printf "Removing the device tree for %s\n" name;
   (* Remove cow's: *)
-  let rows_to_remove = 
+  let rows_to_remove =
     Forest.nodes_such_that
       (fun complete_row ->
         (lookup_alist "Name" complete_row) = String name)

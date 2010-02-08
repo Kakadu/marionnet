@@ -15,9 +15,14 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+(* Authors:
+ * - Luca Saiu: initial version
+ * - Jean-Vincent Loddo: Unix.system calls replaced by UnixExtra's functions
+     calls, and some other minor changes
+ *)
+
 open Treeview;;
 open Initialization;;
-open Sugar;;
 open Row_item;;
 open Gettext;;
 
@@ -148,6 +153,8 @@ object(self)
       | false -> UnixExtra.file_copy pathname fresh_pathname
       | true  -> UnixExtra.file_move pathname fresh_pathname
       );
+      UnixExtra.set_perm ~a:() ~w:false fresh_pathname;
+      Log.Command.ll fresh_pathname;
       result
       with Unix.Unix_error (_,_, _) ->
        begin
@@ -240,7 +247,7 @@ object(self)
 
     (* Setup the contextual menu: *)
     self#set_contextual_menu_title "Texts operations";
-    let get = raise_when_none in (* just a convenient alias *)
+    let get = Sugar.raise_when_none in (* just a convenient alias *)
     self#add_menu_item
       (s_ "Import a document")
       (fun _ -> true)
@@ -249,7 +256,7 @@ object(self)
 
     self#add_menu_item
       (s_ "Display this document")
-      is_some
+      Sugar.is_some
       (fun selected_rowid_if_any ->
         let row_id = get selected_rowid_if_any in
         self#display row_id);
@@ -257,13 +264,12 @@ object(self)
 
     self#add_menu_item
       (s_ "Remove this document")
-      is_some
+      Sugar.is_some
       (fun selected_rowid_if_any ->
         let row_id = get selected_rowid_if_any in
         let file_name = item_to_string (self#get_row_item row_id "FileName") in
-        let command_line =
-          Printf.sprintf "rm -f \"%s/%s\"&" self#get_working_directory file_name in
-        ignore (Unix.system command_line);
+        let pathname = Printf.sprintf "%s/%s" self#get_working_directory file_name in
+        UnixExtra.apply_ignoring_Unix_error Unix.unlink pathname;
         self#remove_row row_id;
         self#save);
 end;;

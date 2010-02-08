@@ -41,7 +41,7 @@ libraryprefix=`ocamlc -where || exit -1`
 #libraryprefix=/mystrangepath
 
 # This may be useful for distributions of linux that do not have ocaml sources
-# OCAML sources: 
+# OCAML sources:
 #ocaml_sources=/home/butelle/TestPrograms/marionnet/ocaml-3.11.0/byterun
 ocaml_sources=/usr/include/caml
 
@@ -53,7 +53,7 @@ prefix=/usr/local
 # default setting:
 configurationprefix=/etc
 
-# Prefix for the locale files 
+# Prefix for the locale files
 localeprefix=/usr/share/locale
 
 # Prefix for documentation files; you should probably keep the

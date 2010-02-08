@@ -38,6 +38,7 @@
 SHELL=/bin/bash
 
 OCAMLBUILD = $$( $(call OCAMLBUILD_COMMAND_LINE) )
+LIBRARYPREFIX=$(shell $(call READ_CONFIG, libraryprefix); echo $$libraryprefix)
 
 # The main target. Its implementation is entirely project-dependant:
 main: ocamlbuild-stuff manually_pre_actions main-local data libraries programs manually_post_actions
@@ -214,7 +215,7 @@ documentation: world documentation-local
 doc: documentation
 
 INDEX_HTML=_build/doc/html/index.html
-browse: 
+browse:
 	test -f  $(INDEX_HTML) || make documentation
 	test -n "$$BROWSER" && $$BROWSER $(INDEX_HTML)
 
@@ -673,7 +674,7 @@ OCAMLBUILD_COMMAND_LINE = \
 # Macro extracting, via source, the value associated to some keys
 # $(2),..,$(9) in a file $(1).
 #
-# Example: 
+# Example:
 #	$(call SOURCE_AND_TEST,CONFIGME,prefix);
 #	$(call SOURCE_AND_TEST,CONFIGME,prefix,libraryprefix);
 SOURCE_AND_TEST = \
@@ -694,9 +695,9 @@ SOURCE_AND_TEST = \
 # Macro extracting, via grep, the value associated to keys
 # $(2),..,$(9) in a file $(1).
 #
-# Examples: 
-#	$(call GREP_AND_TEST,META,name); 
-#	$(call GREP_AND_TEST,META,name,version); 
+# Examples:
+#	$(call GREP_AND_TEST,META,name);
+#	$(call GREP_AND_TEST,META,name,version);
 GREP_AND_TEST = \
 	for i in $(2) $(3) $(4) $(5) $(6) $(7) $(8) $(9); do 	\
 		if ! CMD=`grep "^$$i=" $(1)`; then                 	\
@@ -707,7 +708,7 @@ GREP_AND_TEST = \
 	done;							\
 	unset CMD i
 
-# Instance of SOURCE_AND_TEST: source the file "CONFIGME" and test 
+# Instance of SOURCE_AND_TEST: source the file "CONFIGME" and test
 # if the given names are defined
 #
 # Example:
@@ -720,7 +721,7 @@ READ_CONFIG = \
 # for all given names
 #
 # Example:
-#	$(call READ_META,name,version); 		
+#	$(call READ_META,name,version);
 #
 READ_META = \
 	$(call GREP_AND_TEST,META,$(1),$(2),$(3),$(4),$(5),$(6),$(7),$(8),$(9))

@@ -68,7 +68,7 @@ let get_variants_path prefixed_filesystem =
 
 class states_interface =
 fun ~packing
-    () -> 
+    () ->
 object(self)
   inherit
     treeview
@@ -92,7 +92,7 @@ object(self)
       (fun () ->
         self#set_row_item row_id "Timestamp" (String correct_date));
     self#save
-  
+
   method delete_state row_id =
     let name = item_to_string (self#get_row_item row_id "Name") in
     let file_name = item_to_string (self#get_row_item row_id "File name") in
@@ -123,12 +123,6 @@ object(self)
       forest in
     let relevant_states =
       Forest.linearize relevant_forest in (* the forest should be a tree *)
-(*
-    List.iter
-      (fun row ->
-        Log.printf "** Candidate most recent: %s\n"
-          (item_to_string (lookup_alist "Timestamp" row));
-        flush_all ()); *)
     Log.printf "Relevant states for %s are %i\n" name (List.length relevant_states);
     assert ((List.length relevant_states) > 0);
     let result =
@@ -163,7 +157,7 @@ object(self)
 
   method export_as_router_variant row_id =
     self#export_as_variant ~router:true row_id
-    
+
   method private export_as_variant ~router row_id =
     let device_name = item_to_string (self#get_row_item row_id "Name") in
     let can_startup, _ = get_startup_functions () in
@@ -216,14 +210,13 @@ object(self)
         cow_path cow_name
         cow_path cow_name
         new_variant_pathname in
-    (match Unix.system command_line with
-      (Unix.WEXITED 0) ->
-        (* Ok, everything went smooth. *)
-        Simple_dialogs.info
-          (s_ "Success")
-          ((s_ "The variant has been exported to the file") ^ " \"" ^ new_variant_pathname ^ "\".")
-          ()
-    | _ -> begin
+    try
+      Log.system_or_fail command_line;
+      Simple_dialogs.info
+        (s_ "Success")
+        ((s_ "The variant has been exported to the file") ^ " \"" ^ new_variant_pathname ^ "\".")
+        ()
+    with _ -> begin
       (* Remove any partial copy: *)
       (try
         Unix.unlink new_variant_pathname

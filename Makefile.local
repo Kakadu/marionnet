@@ -16,16 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 COMPILE_OPTIONS += -g
 DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
-C_OBJECTS_TO_LINK += gettext-c-wrapper does-process-exist-c-wrapper
+C_OBJECTS_TO_LINK += does-process-exist-c-wrapper
 
-PP_OPTION = camlp4of extract_pot_p4.cmo -I chip
+OCAMLBRICS=$(LIBRARYPREFIX)/ocamlbricks
+PP_OPTION = camlp4of -I $(OCAMLBRICS) gettext_extract_pot_p4.cmo -I chip
 
 OBJECTS_TO_LINK = gtkThread
-BYTE_PROGRAMS = marionnet.byte chip_example.byte gettext-example.byte
+BYTE_PROGRAMS = marionnet.byte chip_example.byte
 ROOT_BYTE_PROGRAMS = marionnet-daemon.byte
 
 # To do: these should be enabled for release, but they take too long to
@@ -36,27 +36,26 @@ ROOT_BYTE_PROGRAMS = marionnet-daemon.byte
 #ROOT_PROGRAMS = marionnet-daemon.byte marionnet-daemon.native
 OTHER_PROGRAMS_TO_INSTALL =
 
-# menu_factory.ml menu_factory.mli chip.ml are not documented because they get ocamldoc (with -pp camlp4of) confused
-UNDOCUMENTED=version.ml gui.ml chip_example.expanded.ml chip_example.ml gettext-example.ml menu_factory.ml menu_factory.mli chip.ml
+# menu_factory.ml menu_factory.mli chip.ml are not documented because they
+# get ocamldoc (with -pp camlp4of) confused
+UNDOCUMENTED=version.ml gui.ml chip_example.expanded.ml chip_example.ml menu_factory.ml menu_factory.mli chip.ml
 
 # Before building the main targets we have to create the machine-generated
 # sources:
 MANUALLY_PRE_COPY_IN_build =     \
+  gettext_extract_pot_p4.conf    \
   include_type_definitions_p4.ml \
   include_as_string_p4.ml        \
-  gettext/extract_pot_p4.ml      \
   chip/chip_parser_p4.ml         \
-  gettext/gettext-c-wrapper.c    \
   does-process-exist/does-process-exist-c-wrapper.c \
   scripts/can-directory-host-sparse-files.sh
 
 MANUALLY_PRE_MAKE_IN_build =      \
   include_type_definitions_p4.cmo \
   include_as_string_p4.cmo        \
-  extract_pot_p4.cmo              \
   chip/chip_parser_p4.cmo         \
   chip/chip_example.expanded.ml   \
-  gettext-c-wrapper.o does-process-exist-c-wrapper.o
+  does-process-exist-c-wrapper.o
 
 MANUALLY_POST_MAKE_IN_build = chip/chip_example.expanded.byte chip/chip_example.expanded.mli
 
@@ -70,8 +69,8 @@ _build/include_type_definitions_p4.cmo: include_type_definitions_p4.ml
 _build/include_as_string_p4.cmo: include_as_string_p4.ml
 	ocamlc -c -I +camlp4 -pp camlp4of -o $@ $<
 
-_build/extract_pot_p4.cmo: gettext/extract_pot_p4.ml
-	ocamlc -c -I +camlp4 -pp camlp4of camlp4lib.cma -o $@ $<
+# _build/extract_pot_p4.cmo: gettext/extract_pot_p4.ml
+# 	ocamlc -c -I +camlp4 -pp camlp4of camlp4lib.cma -o $@ $<
 
 _build/chip/chip_parser_p4.cmo: chip/chip_parser_p4.ml
 	ocamlc -c -I +camlp4 -pp camlp4of camlp4lib.cma -o $@ $<
@@ -80,7 +79,7 @@ _build/chip/chip_example.expanded.ml : chip/chip_example.ml _build/chip/chip_par
 	camlp4of -I _build/chip/ -printer Camlp4OCamlRevisedPrinter chip_parser_p4.cmo -o $@ $<
 
 CHIP_CMDLINE=-custom -I _build/chip/ -I _build/gettext/ -I +threads unix.cma threads.cma \
-  -I +ocamlbricks ocamlbricks.cma _build/gettext-c-wrapper.o recursive_mutex.cmo gettext.cmo \
+  -I +ocamlbricks ocamlbricks.cma recursive_mutex.cmo \
   meta.cmo initialization.cmo global_options.cmo chip.cmo
 
 _build/chip/chip_example.expanded.byte : _build/chip/chip_example.expanded.ml
@@ -148,17 +147,9 @@ clean-local: clean-mo clean-doc
 install-local: install-mo
 uninstall-local: uninstall-mo
 
-# A trivial example of how to use our gettext wrapper:
-gettext-example.byte : gettext/gettext-example.ml
-
 # How to build C modules:
-_build/gettext-c-wrapper.o: gettext/gettext-c-wrapper.c
-	$(call READ_CONFIG, ocaml_sources); \
-	(mkdir _build &> /dev/null || true) && \
-	gcc -g -O3 -I $$ocaml_sources -o $@ -c $^
-
 _build/does-process-exist-c-wrapper.o: does-process-exist/does-process-exist-c-wrapper.c
-	$(call READ_CONFIG, ocaml_sources); \
+	@$(call READ_CONFIG, ocaml_sources); \
 	(mkdir _build &> /dev/null || true) && \
 	gcc -g -O3 -I $$ocaml_sources -o $@ -c $^
 

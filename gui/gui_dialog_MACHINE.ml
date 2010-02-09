@@ -87,8 +87,10 @@ module Make (State:sig val st:State.globalState end) = struct
 
    (* Set defaults. If we are updating, defaults are the old values. *)
    begin
+   terminal#box#misc#set_sensitive false;  (* en attendant de l'implementer ou de l'eliminer... *)
    match update with
    | None   -> distrib#set_active_value "default";
+               kernel#set_active_value  "default"; (* !!!!!!!!!!! *)
                dialog#name#set_text (st#network#suggestedName "m");
                dialog#name#misc#grab_focus ()
 

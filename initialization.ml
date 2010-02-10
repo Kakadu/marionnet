@@ -151,4 +151,4 @@ with _ ->
   failwith ("Could not enter the directory (" ^ marionnet_home ^ ")");;
 
 (* inizialize gettext with marionnet as textdomain and the default path where to find .mo files *)
-initialize_gettext "marionnet" "/usr/share/locale";;
+(* initialize_gettext "marionnet" "/usr/share/locale";; *)

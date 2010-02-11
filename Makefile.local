@@ -19,7 +19,7 @@
 COMPILE_OPTIONS += -g
 DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
-C_OBJECTS_TO_LINK += does-process-exist-c-wrapper
+C_OBJECTS_TO_LINK +=
 
 OCAMLBRICS=$(LIBRARYPREFIX)/ocamlbricks
 PP_OPTION = camlp4of -I $(OCAMLBRICS) gettext_extract_pot_p4.cmo -I chip
@@ -47,7 +47,6 @@ MANUALLY_PRE_COPY_IN_build =     \
   include_type_definitions_p4.ml \
   include_as_string_p4.ml        \
   chip/chip_parser_p4.ml         \
-  does-process-exist/does-process-exist-c-wrapper.c \
   scripts/can-directory-host-sparse-files.sh
 
 MANUALLY_PRE_MAKE_IN_build =      \
@@ -55,7 +54,6 @@ MANUALLY_PRE_MAKE_IN_build =      \
   include_as_string_p4.cmo        \
   chip/chip_parser_p4.cmo         \
   chip/chip_example.expanded.ml   \
-  does-process-exist-c-wrapper.o
 
 MANUALLY_POST_MAKE_IN_build = chip/chip_example.expanded.byte chip/chip_example.expanded.mli
 
@@ -146,12 +144,6 @@ clean-local: clean-mo clean-doc
 
 install-local: install-mo
 uninstall-local: uninstall-mo
-
-# How to build C modules:
-_build/does-process-exist-c-wrapper.o: does-process-exist/does-process-exist-c-wrapper.c
-	@$(call READ_CONFIG, ocaml_sources); \
-	(mkdir _build &> /dev/null || true) && \
-	gcc -g -O3 -I $$ocaml_sources -o $@ -c $^
 
 _build/marionnet.pot: marionnet.byte
 	msgcat --use-first $(shell find _build/ -name "*.ml.pot") > $@

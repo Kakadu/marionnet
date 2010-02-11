@@ -99,7 +99,7 @@ fun program
       process, independently from the automaton state: *)
   method is_alive =
     try
-      Death_monitor.is_alive self#get_pid
+      UnixExtra.is_process_alive self#get_pid
     with _ ->
       false (* self#get_pid failed *)
 

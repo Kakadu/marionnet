@@ -53,9 +53,6 @@ let map_size = ref 0;;
     poll_interval and map_size: *)
 let death_monitor_mutex = Mutex.create ();;
 
-let is_alive pid =
-  Does_process_exist.does_process_exist pid;;
-
 (** Return true iff we are currently monitoring the given process. Not thread-safe, only
     for internal use *)
 let __are_we_monitoring pid =
@@ -70,7 +67,7 @@ let are_we_monitoring pid =
 
 (** The predefined predicate returning true if we should invoke the callback: *)
 let default_predicate pid =
-   not (is_alive pid);;
+   not (UnixExtra.is_process_alive pid);;
 
 (** Start monitoring the process with the given pid. Call the given function if
     it ever dies, using the pid and process name as its parameters. This is 

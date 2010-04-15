@@ -222,7 +222,7 @@ let reverse_edge_callback x () =
   begin
    let c = (st#network#getCableByName x) in
    c#dotoptions#reverted#set (not c#dotoptions#reverted#get);
-   st#flash (Printf.sprintf (f_ "Cable %s reverted") x);
+   st#flash (Printf.sprintf (f_ "Cable %s reversed") x);
   end
 
 (* Connections *)

@@ -2067,14 +2067,14 @@ msgstr "Tout développer"
 msgid "Collapse all"
 msgstr "Tout réduire"
 
-#~ msgid "Cable %s (re)inverted"
-#~ msgstr "Cable %s (re)inversé"
-
-#~ msgid "Report bugs to <%s>.\n"
-#~ msgstr "Reportez les bugs à <%s>.\n"
+#~ msgid "hello, world\n"
+#~ msgstr "hello, world (in french ;)\n"
 
 #~ msgid "Try `%s --help' for more information.\n"
 #~ msgstr "Éssayez `%s --help' pour plus d'information\n"
 
-#~ msgid "hello, world\n"
-#~ msgstr "hello, world (in french ;)\n"
+#~ msgid "Report bugs to <%s>.\n"
+#~ msgstr "Reportez les bugs à <%s>.\n"
+
+#~ msgid "Cable %s (re)inverted"
+#~ msgstr "Cable %s (re)inversé"

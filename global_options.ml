@@ -14,8 +14,9 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Recursive_mutex;;
-let mutex = create ();;
+module Recursive_mutex = MutexExtra.Recursive ;;
+
+let mutex = Recursive_mutex.create ();;
 
 (** Here we only use one mutex; let's not specify it every time: *)
 let with_mutex thunk =

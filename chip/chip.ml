@@ -17,6 +17,8 @@
 
 (** Runtime support for the "chip" syntax extension. *)
 
+module Recursive_mutex = MutexExtra.Recursive ;;
+
 (* Fresh name generators. *)
 
 let fresh_id = let x = ref 0 in
@@ -99,7 +101,7 @@ class mutex_methods ?(mutex=Recursive_mutex.create ()) ~(user:string) () =
   method lock   = Recursive_mutex.lock   mutex
   method unlock = Recursive_mutex.unlock mutex
   method with_mutex : 'a. ( unit -> 'a) -> 'a =
-    Recursive_mutex.with_mutex ~prefix:(user^": ") mutex
+    Recursive_mutex.with_mutex mutex
   end (* mutex_methods *)
 
 (** Support for managing the component garbage. *)

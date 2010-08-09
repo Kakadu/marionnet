@@ -19,8 +19,9 @@
 
 open Daemon_language;;
 open Daemon_parameters;;
-open Recursive_mutex;;
 open Gettext;;
+
+module Recursive_mutex = MutexExtra.Recursive ;;
 
 let socket_name =
   Initialization.configuration#string "MARIONNET_SOCKET_NAME";;
@@ -38,13 +39,13 @@ let the_daemon_client_socket =
 let can_we_communicate_with_the_daemon_bool_ref =
   ref true;;
 let can_we_communicate_with_the_daemon () =
-  with_mutex the_daemon_client_mutex
+  Recursive_mutex.with_mutex the_daemon_client_mutex
     (fun () ->
       !can_we_communicate_with_the_daemon_bool_ref);;
 
 (** Stop trying to communicate with the daemon: *)
 let disable_daemon_support () =
-  with_mutex the_daemon_client_mutex
+  Recursive_mutex.with_mutex the_daemon_client_mutex
     (fun () ->
       can_we_communicate_with_the_daemon_bool_ref := false);;
 
@@ -53,7 +54,7 @@ let disable_daemon_support () =
     Synchronization is correctly performed *within* this function, so the
     caller doesn't need to worry about it: *)
 let ask_the_server request =
-  with_mutex the_daemon_client_mutex
+  Recursive_mutex.with_mutex the_daemon_client_mutex
     (fun () ->
       try
 (*        Log.printf "I am about to send %s\n" (string_of_daemon_request request);
@@ -88,7 +89,7 @@ let ask_the_server request =
       end);;
 
 (** The thunk implementing the thread which periodically sends keepalives: *)
-let thread_sending_keepalives_thunk () = 
+let thread_sending_keepalives_thunk () =
   try
     while true do
       let _ = ask_the_server IAmAlive in

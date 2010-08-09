@@ -25,8 +25,9 @@ open Environment;;
 open Oomarshal;;
 open Task_runner;;
 open Simple_dialogs;;
-open Recursive_mutex;;
 open Gettext;;
+
+module Recursive_mutex = MutexExtra.Recursive ;;
 
 (** Some constants for drawing with colors. *)
 module Color = struct
@@ -589,7 +590,7 @@ class virtual simulated_device = object(self)
     self#enqueue_task_with_progress_bar (s_ "Shutting down") (fun () -> if self#can_poweroff then self#poweroff_right_now)
 
   method (*private*) create_right_now =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.print_string ("+ About to create the simulated device " ^ (self#get_name) ^ "\n");
         Log.print_string ("  (it's connected to " ^
@@ -610,7 +611,7 @@ class virtual simulated_device = object(self)
   (** The unit parameter is needed: see how it's used in simulated_network: *)
   method private destroy_because_of_unexpected_death () =
     Log.printf "You don't deadlock here %s, do you? -1\n" self#get_name; flush_all ();
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.printf "You don't deadlock here %s, do you? 0\n" self#get_name;
         flush_all ();
@@ -623,7 +624,7 @@ class virtual simulated_device = object(self)
           self#set_next_simulated_device_state None)); (* don't show next-state icons for this *)
 
   method (*private*) destroy_right_now =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.print_string ("- About to destroy the simulated device " ^ (self#get_name) ^ "\n");
         match !automaton_state, !simulated_device with
@@ -657,7 +658,7 @@ class virtual simulated_device = object(self)
 
 
   method (*private*) startup_right_now =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         (* Don't startup ``incorrect'' devices. This is currently limited to cables of the
            wrong crossoverness which the user has defined by mistake: *)
@@ -678,7 +679,7 @@ class virtual simulated_device = object(self)
         end)
 
   method (*private*) suspend_right_now =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.print_string ("|| Suspending up the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
@@ -688,7 +689,7 @@ class virtual simulated_device = object(self)
         | _ -> raise ForbiddenTransition)
 
   method (*private*) resume_right_now =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.print_string ("|> Resuming the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
@@ -698,7 +699,7 @@ class virtual simulated_device = object(self)
         | _ -> raise ForbiddenTransition)
 
   method (*private*) gracefully_shutdown_right_now =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.print_string ("* Gracefully shutting down the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
@@ -710,7 +711,7 @@ class virtual simulated_device = object(self)
         | _ -> raise ForbiddenTransition)
 
   method (*private*) poweroff_right_now =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.print_string ("* Powering off the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
@@ -722,7 +723,7 @@ class virtual simulated_device = object(self)
         | _ -> raise ForbiddenTransition)
 
   method set_hublet_processes_no n =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.print_string ("* Updating the number of hublets of the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
@@ -733,31 +734,31 @@ class virtual simulated_device = object(self)
 
   (** Return true iff the current state allows to 'startup' the device from the GUI. *)
   method can_startup =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         match !automaton_state with NoDevice | DeviceOff -> true | _ -> false)
 
   (** Return true iff the current state allows to 'shutdown' a device from the GUI. *)
   method can_gracefully_shutdown =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         match !automaton_state with DeviceOn | DeviceSleeping -> true | _ -> false)
 
   (** Return true iff the current state allows to 'power off' a device from the GUI. *)
   method can_poweroff =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         match !automaton_state with NoDevice | DeviceOff -> false | _ -> true)
 
   (** Return true iff the current state allows to 'suspend' a device from the GUI. *)
   method can_suspend =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         match !automaton_state with DeviceOn -> true | _ -> false)
 
   (** Return true iff the current state allows to 'resume' a device from the GUI. *)
   method can_resume =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         match !automaton_state with DeviceSleeping -> true | _ -> false)
 
@@ -767,11 +768,11 @@ class virtual simulated_device = object(self)
   val is_correct =
     ref true (* devices are ``correct'' by default *)
   method is_correct =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         !is_correct)
   method set_correctness correctness =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         is_correct := correctness)
 end;;

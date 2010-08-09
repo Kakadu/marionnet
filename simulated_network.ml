@@ -15,10 +15,11 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Defects_interface;;
-open Recursive_mutex;;
 open Daemon_language;;
 open X;; (* Not really needed: this works around a problem with OCamlBuild 3.10.0 *)
 open Gettext;;
+
+module Recursive_mutex = MutexExtra.Recursive ;;
 
 (** Fork a process which just sleeps forever without doing any output. Its stdout is
     perfect to be used as stdin for processes created with create_process which wait
@@ -95,7 +96,7 @@ fun program
     with _ ->
       () (* We allow to 'stop monitoring' a process more than once *)
 
-  (** Return true iff the process is currently alive; this checks the actual running 
+  (** Return true iff the process is currently alive; this checks the actual running
       process, independently from the automaton state: *)
   method is_alive =
     try
@@ -117,7 +118,7 @@ fun program
 
   (** Kill the process with a SIGINT. This forbids any
       interaction, until the process is started again: *)
-  method terminate = 
+  method terminate =
     match !pid with
       Some p ->
         self#stop_monitoring;
@@ -141,7 +142,7 @@ fun program
     with _ ->
       Log.printf "WARNING: terminating the process with pid %i failed.\n" p);
     (* Wait for the subprocess to die, so that no zombie processes remain: *)
-    Log.print_string "OK-W 3\n"; flush_all (); 
+    Log.print_string "OK-W 3\n"; flush_all ();
     (try
       Thread.delay 0.05;
       ignore (ThreadUnix.waitpid [Unix.WNOHANG] p);
@@ -156,7 +157,7 @@ fun program
   method gracefully_terminate =
     self#terminate
 
-  (** Stop the process with a SIGSTOP. This forbids any interaction, until 
+  (** Stop the process with a SIGSTOP. This forbids any interaction, until
       self#continue is called: *)
   method stop =
     match !pid with
@@ -253,7 +254,7 @@ object(self)
       ~unexpected_death_callback
       ()
       as super
-  
+
   method display_string_as_client =
     Printf.sprintf "%s:%s.%s" host_name_as_client display_as_client screen_as_client
 
@@ -482,21 +483,21 @@ object(self)
   val mutex = Recursive_mutex.create ()
   val automatic_reboot_thread = ref None
   method private get_automatic_reboot_thread =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () -> !automatic_reboot_thread)
   method private set_automatic_reboot_thread t =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () -> automatic_reboot_thread := Some t)
   method private unset_automatic_reboot_thread =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () -> automatic_reboot_thread := None)
-      
+
   method private stop_automatic_reboot_thread =
     (* Do nothing. This is not needed any more, as the reboot thread now checks
-       whether it should re-install another thread like itself before dying. *)      
+       whether it should re-install another thread like itself before dying. *)
     ()
   method private start_automatic_reboot_thread =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         match self#get_automatic_reboot_thread with
           Some thread ->
@@ -510,11 +511,11 @@ object(self)
                    (* Sleep for a randomized amount of time; we don't want all automatic
                       reboot threads to wake up together: *)
                    Thread.delay (Random.float (Global_options.automatic_reboot_thread_interval *. 2.0));
-                   with_mutex mutex
-                     (fun () -> 
+                   Recursive_mutex.with_mutex mutex
+                     (fun () ->
                        (* I want to avoid the loop because this makes exiting the
                           thread easier.
-                          First unconditionally uninstall the thread... *)                         
+                          First unconditionally uninstall the thread... *)
                        self#unset_automatic_reboot_thread;
                        (* Now check whether we should re-install it: *)
                        (match self#get_pid_option with
@@ -531,40 +532,40 @@ object(self)
                        | None ->
                            ())))
                  ()))
-      
+
   (** We have to override this in order to be able to manage automatic restarts: *)
   method spawn =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         super#spawn;
         self#start_automatic_reboot_thread)
 
   (** We have to override this in order to be able to manage automatic restarts: *)
   method terminate =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         super#terminate;
         self#stop_automatic_reboot_thread)
 
   (** We have to override this in order to be able to manage automatic restarts: *)
   method gracefully_terminate =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         super#gracefully_terminate;
         self#stop_automatic_reboot_thread)
 
   (** We have to override these just to add synchronization: *)
   method get_pid_option =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         super#get_pid_option)
   method stop =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         super#stop;
         self#stop_automatic_reboot_thread)
   method continue =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         super#continue;
         self#stop_automatic_reboot_thread)
@@ -603,7 +604,7 @@ let ethernet_interface_to_uml_command_line_argument umid port_index hublet =
 
 let zip xs ys =
   let rec zip' xs ys acc =
-    match xs, ys with 
+    match xs, ys with
       [], [] -> List.rev acc
     | (_, []) | ([], _) -> failwith "lists have different length"
     | (x :: rest_of_xs), (y :: rest_of_ys) -> zip' rest_of_xs rest_of_ys ((x, y) :: acc)
@@ -612,7 +613,7 @@ let zip xs ys =
 
 let zip3 xs ys zs =
   let rec zip3' xs ys zs acc =
-    match xs, ys, zs with 
+    match xs, ys, zs with
       [], [], [] ->
         List.rev acc
     | ([], _, _) | (_, [], _) | (_, _, []) ->
@@ -646,7 +647,7 @@ class uml_process =
       ?(swap_file_name=create_swap_file_name ())
       ~(ethernet_interfaces_no)
       ~(hublet_processes)
-      ~(memory) (* in megabytes *)      
+      ~(memory) (* in megabytes *)
       ~(console)
       ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
       ~id
@@ -664,7 +665,7 @@ class uml_process =
       match xnest_display_number with
         Some xnest_display_number -> "none"
       | None -> console in
-  let hostfs_pathname = 
+  let hostfs_pathname =
     Printf.sprintf "%s/hostfs/%i" (Filename.dirname (Filename.dirname cow_file_name)) id in
   let boot_parameters_pathname =
     Printf.sprintf "%s/boot_parameters" hostfs_pathname in
@@ -718,7 +719,7 @@ class uml_process =
     | Some keyboard_layout ->
         ("keyboard_layout="^keyboard_layout) :: command_line_arguments in
   let command_line_arguments =
-    command_line_arguments @ 
+    command_line_arguments @
     ["con0=none"; "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none";
      "ssl0="^console; "ssl1=none"; "ssl2=none"; "ssl3=none"; "ssl4=none"; "ssl5=none"; "ssl6=none";
      "console=ttyS0"] in
@@ -787,7 +788,7 @@ object(self)
   method gracefully_terminate =
     self#revoke_host_x_server_access;
     self#delete_swap_file;
-    Log.printf "About to gracefully terminate the UML process with pid %i...\n" (self#get_pid); 
+    Log.printf "About to gracefully terminate the UML process with pid %i...\n" (self#get_pid);
     (* Tell UML to terminate, cleanly: *)
     let did_we_succeed_immediately = ref true in
     while not (self#gracefully_terminate_with_mconsole = (Unix.WEXITED 0)) do
@@ -856,7 +857,7 @@ object(self)
       end
     | None ->
         raise (ProcessIsntInTheRightState "terminate")
-    
+
   method hostfs_directory_pathname =
     hostfs_pathname
 
@@ -872,7 +873,7 @@ object(self)
     (* Fill it: *)
     let descriptor =
       Unix.openfile boot_parameters_pathname [Unix.O_WRONLY; Unix.O_CREAT] 0o777 in
-    let out_channel = 
+    let out_channel =
       Unix.out_channel_of_descr descriptor in
     List.iter
       (fun (name, value) -> Printf.fprintf out_channel "%s='%s'\n" name value)
@@ -892,7 +893,7 @@ object(self)
       close_out out_channel;
       Unix.close descriptor; (* To do: understand which one is really needed. *)
     with _ -> ())
-  
+
   (** Destroy the host directory shared by hostfs. This should only be called at machine
      deletion time. *)
   method remove_hostfs_directory =
@@ -958,7 +959,7 @@ class virtual device =
 object(self)
   (** The internal state, as a DFA state *)
   val state = ref Off
-  
+
   (** Hublet processes are mutable: *)
   val current_hublet_processes =
     ref []
@@ -975,7 +976,7 @@ object(self)
 
   (* We have to use the inizializer instead of binding 'hublet_processes' before
      'object', just because we need to use 'self' for unexpected_death_callback: *)
-  initializer 
+  initializer
     let hublet_processes =
       self#make_hublet_processes
         ~unexpected_death_callback:self#execute_the_unexpected_death_callback
@@ -1029,7 +1030,7 @@ object(self)
         self#continue_processes
     | _ ->
        failwith "can't resume a non-sleeping device"
-      
+
   (** Terminate all processes including hublets, and set the device state in an
       unescapable 'destroyed' state. This is useful when the device is modified in
       a way that alter connections with other devices, and a simple restart is not
@@ -1058,7 +1059,7 @@ object(self)
 
   method private execute_the_unexpected_death_callback pid process_name =
     let process_name = Filename.basename process_name in
-    let title = 
+    let title =
       Printf.sprintf
         "Un processus (%s) permettant la simulation de\n%s est mort de façon inattendue"
         process_name
@@ -1094,13 +1095,13 @@ object(self)
         Scanf.sscanf name "eth%i" (fun q -> q)
       with _ ->
         Scanf.sscanf name "port%i" (fun q -> q)
-    in    
+    in
     self#get_hublet_process n
-    
+
   (** Return the current number of hublets *)
   method get_hublets_no =
     List.length (self#get_hublet_processes)
-      
+
   (** Return all the device hublet processes *)
   method get_hublet_processes =
     ! current_hublet_processes
@@ -1138,7 +1139,7 @@ object(self)
                       (string_of_int new_hublets_no) ^ ": success\n");
     | _ ->
         failwith "can't update the hublets number for a non-off device"
-  
+
   (** Work with the 'main' processes implementing the device. This may be
       complex for some devices, and sometimes more than a single process
       is involved; what should be done varies according to how the device
@@ -1186,7 +1187,7 @@ object(self)
     match !ethernet_cable_process with
       Some ethernet_cable_process -> ethernet_cable_process
     | None -> failwith "ethernet_cable: get_ethernet_cable_process was called when there is no such process"
-  initializer 
+  initializer
     let defects = get_defects_interface () in
     ethernet_cable_process :=
       Some(new ethernet_cable_process
@@ -1245,10 +1246,10 @@ object(self)
               ~ports_no:hublets_no
               ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ())
-        
-  val internal_cable_processes = ref []        
-        
-  (** Switches and hubs are stateless from the point of view of the user, and it makes no 
+
+  val internal_cable_processes = ref []
+
+  (** Switches and hubs are stateless from the point of view of the user, and it makes no
       sense to "suspend" them. This also helps implementation :-) *)
   method spawn_processes =
     (* Spawn the main switch process, and wait to be sure it's started: *)
@@ -1352,7 +1353,7 @@ let rec from_to first_index last_index list =
         failwith "from_to: out of bounds"
       else if last_index = 0 then
         [x]
-      else 
+      else
         x :: (from_to 0 (last_index - 1) xs)
   | n, (_::xs) ->
       from_to (first_index - 1) (last_index - 1) xs;;
@@ -1388,7 +1389,7 @@ object(self)
 
   (* Inner hublets interface the UML process with the outer hublets; the cables in
      between simulate port defects in the user-level network: *)
-  val inner_hublet_processes = ref [] 
+  val inner_hublet_processes = ref []
   method private get_inner_hublet_processes = !inner_hublet_processes
 
   val outer_hublet_processes = ref []
@@ -1449,7 +1450,7 @@ object(self)
   method continue_processes = self#get_uml_process#continue
 
   val internal_cable_processes = ref []
-        
+
   method spawn_processes =
     (* Create the Xnest, if we have to support it: *)
     (if xnest then
@@ -1601,12 +1602,12 @@ object(self)
       Some gateway_hub_process -> gateway_hub_process
     | None -> failwith "gateway: get_gateway_hub_process was called when there is no such process"
 
-  val the_gateway_tap_name = ref None 
+  val the_gateway_tap_name = ref None
   method private get_gateway_tap_name =
     match !the_gateway_tap_name with
       None -> failwith "gateway_tap_name: non existing tap"
     | Some result -> result
-    
+
   (** Create a gateway tap via the daemon, and return its name. Fail if a the gateway tap
       already exists: *)
   method private make_gateway_tap =
@@ -1684,7 +1685,7 @@ object(self)
         () in
     internal_cable_process := Some the_internal_cable_process;
     the_internal_cable_process#spawn
-      
+
   method terminate_processes =
     (* Terminate the internal cable process and the hub process: *)
     (match !internal_cable_process with
@@ -1699,7 +1700,7 @@ object(self)
     (* Unreference everything: *)
     internal_cable_process := None;
     gateway_hub_process := None;
-    
+
   (** As gateways are stateless from the point of view of the user, stop/continue
       aren't distinguishable from terminate/spawn: *)
   method stop_processes = self#terminate_processes
@@ -1756,7 +1757,7 @@ object(self)
     (try self#get_internal_cable_process#terminate with _ -> ());
     (* Unreference it: *)
     internal_cable_process := None;
-    
+
   (** As clouds are stateless from the point of view of the user, stop/continue
       aren't distinguishable from terminate/spawn: *)
   method stop_processes = self#terminate_processes

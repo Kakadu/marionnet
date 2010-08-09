@@ -18,9 +18,10 @@
 open Daemon_language;;
 open Daemon_parameters;;
 open Thread;;
-open Recursive_mutex;;
 open Hashmap;;
 open Hashmmap;;
+
+module Recursive_mutex = MutexExtra.Recursive ;;
 
 (** Read configuration files: *)
 let configuration =
@@ -119,7 +120,7 @@ let destroy_system_gateway_tap (tap_name : tap_name) uid bridge_name =
     Printf.sprintf
       "{ ifconfig %s down && brctl delif %s %s && tunctl -d %s; }"
       tap_name bridge_name tap_name tap_name in
-  Log.system_or_fail command_line;  
+  Log.system_or_fail command_line;
   Log.printf "The gateway tap %s was destroyed with success\n" tap_name;
   ;;
 
@@ -148,7 +149,7 @@ let destroy_system_resource resource =
     Synchronization is performed inside this function, hence the caller doesn't need
     to worry about it: *)
 let make_resource client resource_pattern =
-  with_mutex the_daemon_mutex
+  Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       try
         (* Create a resource satisfying the given specification, and return it: *)
@@ -171,7 +172,7 @@ let make_resource client resource_pattern =
 (** Destroy the given resource. Synchronization is performed inside this function,
     hence the caller doesn't need to worry about it: *)
 let destroy_resource client resource =
-  with_mutex the_daemon_mutex
+  Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       try
         Log.printf "Removing %s %s\n" (string_of_client client) (string_of_daemon_resource resource);
@@ -189,7 +190,7 @@ let destroy_resource client resource =
       end);;
 
 let destroy_all_client_resources client =
-  with_mutex the_daemon_mutex
+  Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       try
         Log.printf "Removing all %s's resources:\n" (string_of_client client);
@@ -205,7 +206,7 @@ let destroy_all_client_resources client =
       end);;
 
 let destroy_all_resources () =
-  with_mutex the_daemon_mutex
+  Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       List.iter
         (fun (client, _) ->
@@ -219,7 +220,7 @@ let destroy_all_resources () =
         client_death_time_map#to_list;;
 
 let keep_alive_client client =
-  with_mutex the_daemon_mutex
+  Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       try
         (* Immediately raise an exception if the client is not alive: *)
@@ -248,7 +249,7 @@ let keep_alive_client client =
 let clients_no = ref 0;;
 let the_resources_if_any = ref None;;
 let global_resources () =
-  with_mutex the_daemon_mutex
+  Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       match !the_resources_if_any with
       | None ->
@@ -268,7 +269,7 @@ let destroy_global_resources_unlocked_ () =
       flush_all ();
   end;;
 let increment_clients_no () =
-  with_mutex the_daemon_mutex
+  Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       (if !clients_no = 0 then begin
         Log.printf "There is at least one client now. Creating global resources...\n";
@@ -278,7 +279,7 @@ let increment_clients_no () =
       end);
       clients_no := !clients_no + 1);;
 let decrement_clients_no () =
-  with_mutex the_daemon_mutex
+  Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       clients_no := !clients_no - 1;
       (if !clients_no = 0 then begin
@@ -290,10 +291,10 @@ let decrement_clients_no () =
 
 (** Create a new client on which we're going to interact with the given socket,
     and return its identifier: *)
-let make_client = 
+let make_client =
   let next_client_no = ref 1 in
   fun socket ->
-    with_mutex the_daemon_mutex
+    Recursive_mutex.with_mutex the_daemon_mutex
       (fun () ->
         (* Generate a new unique identifier: *)
         let result = !next_client_no in
@@ -309,7 +310,7 @@ let make_client =
         result);;
 
 let destroy_client client =
-  with_mutex the_daemon_mutex
+  Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       Log.printf "Killing %s.\n" (string_of_client client); flush_all ();
       (try client_death_time_map#remove client with _ -> ());
@@ -332,7 +333,7 @@ let destroy_client client =
 let debugging_thread_thunk () =
   while true do
     Thread.delay debug_interval;
-    with_mutex the_daemon_mutex
+    Recursive_mutex.with_mutex the_daemon_mutex
       (fun () ->
         Log.printf "--------------------------------------------\n";
         Log.printf "Currently existing non-global resources are:\n";
@@ -344,7 +345,7 @@ let debugging_thread_thunk () =
         flush_all ();
         );
     flush_all ();
-  done;;  
+  done;;
 
 (** The 'timeout thread' wakes up every timeout_interval seconds and kills
     all clients whose death time is past. *)
@@ -355,8 +356,8 @@ let timeout_thread_thunk () =
 
     (* Some variables are shared, so we have to synchronize this block; it's not
        a problem as this should be very quick: *)
-    with_mutex the_daemon_mutex
-      (fun () -> 
+    Recursive_mutex.with_mutex the_daemon_mutex
+      (fun () ->
         (* Get up-to-date death time information for all clients: *)
         let current_time = Unix.time () in
         let client_death_times = client_death_time_map#to_list in
@@ -471,7 +472,7 @@ let signal_handler signal =
   destroy_all_resources ();
   Log.printf "Ok, all resources were destroyed.\n";
   Log.printf "Removing the socket file...\n";
-  remove_socket_file_if_any (); 
+  remove_socket_file_if_any ();
   Log.printf "Ok, the socket file was removed.\n";
   flush_all ();
   raise Exit;;
@@ -507,7 +508,7 @@ let the_server_main_thread =
   Unix.chmod socket_name 438 (* a+rw *);
   Log.printf "I am waiting on %s.\n" socket_name; flush_all ();
   Unix.listen accepting_socket connections_no_limit;
-  while true do 
+  while true do
     try
       Log.printf "Waiting for the next connection...\n"; flush_all ();
       let (socket_to_client, socket_to_client_address) = Unix.accept accepting_socket in

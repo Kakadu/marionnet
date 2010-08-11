@@ -71,9 +71,10 @@ let make_fresh_name prefix =
 let make_fresh_tap_name () =
    make_fresh_name "tap";;
 
-(** Generate a random name, very probably unique, for a new gateway tap: *)
-let make_fresh_gateway_tap_name () =
-  make_fresh_name "gwtap";;
+(** Generate a random name, very probably unique, for a new tap
+    for the socket component: *)
+let make_fresh_tap_name_for_socket () =
+  make_fresh_name "sktap";;
 
 (** Actaully make a tap at the OS level: *)
 let make_system_tap (tap_name : tap_name) uid ip_address =
@@ -86,8 +87,8 @@ let make_system_tap (tap_name : tap_name) uid ip_address =
   Log.printf "The tap %s was created with success\n" tap_name
   ;;
 
-(** Actaully make a gateway tap at the OS level: *)
-let make_system_gateway_tap (tap_name : tap_name) uid bridge_name =
+(** Actually make a tap at the OS level for the bridge socket component: *)
+let make_system_tap_for_socket (tap_name : tap_name) uid bridge_name =
   Log.printf "Making the tap %s...\n" tap_name;
   let command_line =
     Printf.sprintf
@@ -112,16 +113,16 @@ let destroy_system_tap (tap_name : tap_name) =
   Log.printf "The tap %s was destroyed with success\n" tap_name
   ;;
 
-(** Actaully destroy a gateway tap at the OS level: *)
-let destroy_system_gateway_tap (tap_name : tap_name) uid bridge_name =
-  Log.printf "Destroying the gateway tap %s...\n" tap_name;
+(** Actually destroy a tap at the OS level for the socket component: *)
+let destroy_system_tap_for_socket (tap_name : tap_name) uid bridge_name =
+  Log.printf "Destroying the tap %s...\n" tap_name;
   let command_line =
     (* This is currently disabled. We have to decide what to do about this: *)
     Printf.sprintf
       "{ ifconfig %s down && brctl delif %s %s && tunctl -d %s; }"
       tap_name bridge_name tap_name tap_name in
   Log.system_or_fail command_line;
-  Log.printf "The gateway tap %s was destroyed with success\n" tap_name;
+  Log.printf "The tap %s was destroyed with success\n" tap_name;
   ;;
 
 (** Instantiate the given pattern, actually create the system object, and return
@@ -132,18 +133,18 @@ let make_system_resource resource_pattern =
       let tap_name = make_fresh_tap_name () in
       make_system_tap tap_name uid ip_address;
       Tap tap_name
-  | AnyGatewayTap(uid, bridge_name) ->
-      let tap_name = make_fresh_gateway_tap_name () in
-      make_system_gateway_tap tap_name uid bridge_name;
-      GatewayTap(tap_name, uid, bridge_name);;
+  | AnySocketTap(uid, bridge_name) ->
+      let tap_name = make_fresh_tap_name_for_socket () in
+      make_system_tap_for_socket tap_name uid bridge_name;
+      SocketTap(tap_name, uid, bridge_name);;
 
 (** Actually destroyed the system object named by the given resource: *)
 let destroy_system_resource resource =
   match resource with
   | Tap tap_name ->
       destroy_system_tap tap_name
-  | GatewayTap(tap_name, uid, bridge_name) ->
-      destroy_system_gateway_tap tap_name uid bridge_name;;
+  | SocketTap(tap_name, uid, bridge_name) ->
+      destroy_system_tap_for_socket tap_name uid bridge_name;;
 
 (** Create a suitable resource matching the given pattern, and return it.
     Synchronization is performed inside this function, hence the caller doesn't need

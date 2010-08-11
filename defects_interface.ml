@@ -50,7 +50,7 @@ let rec take n xs =
 class defects_interface =
 fun ~packing
     ~after_user_edit_callback
-    () -> 
+    () ->
 object(self)
   inherit
     treeview
@@ -58,7 +58,7 @@ object(self)
       ~hide_reserved_fields:true
       ()
   as super
-  
+
   val non_defective_defaults =
     [ "Loss %", String "0";
       "Duplication %", String "0";
@@ -93,7 +93,7 @@ object(self)
       | "direct"     -> "straight-cable"
       | "crossover"  -> "crossover-cable"
       | "nullmodem"  -> assert false
-      | _ -> assert false in 
+      | _ -> assert false in
     let cable_row_id =
       self#add_row
         [ "Name", String cable_name;
@@ -109,7 +109,7 @@ object(self)
     ignore
       (self#add_row
          ~parent_row_id:cable_row_id
-         (List.append 
+         (List.append
             ["Name", String right_endpoint_name;
              "Type", Icon "rightward"]
             non_defective_defaults));
@@ -143,7 +143,7 @@ object(self)
             | Icon i -> Log.printf "%s" i)
           row);
     flush_all (); *)
-    let result = 
+    let result =
       self#row_id_such_that (fun row -> (lookup_alist "Name" row) = String device_name) in
 (*     print_string "!!!!B1 treeview: row_such_that: end\n"; flush_all (); *)
     result
@@ -160,15 +160,17 @@ object(self)
       if defective_by_default then defective_defaults else non_defective_defaults in
     let device_row_id =
       self#device_or_cable_row_id device_name in
-    let current_ports_no = 
+    let current_ports_no =
       self#ports_no_of device_name in
     let port_type =
       match item_to_string (self#get_row_item device_row_id "Type") with
-        "machine" | "gateway" -> "machine-port"
+      | "machine" | "socket" -> "machine-port"
+      | "gateway" (* retro-compatibility *) -> "machine-port"
       | _ -> "other-device-port" in
     let port_prefix =
       match item_to_string (self#get_row_item device_row_id "Type") with
-        "machine" | "gateway" -> "eth"
+      | "machine" | "socket" -> "eth"
+      | "gateway" (* retro-compatibility *) -> "eth"
       | _ -> "port" in
     let port_row_id =
       self#add_row
@@ -186,7 +188,7 @@ object(self)
     let outward_row_id =
       (self#add_row
          ~parent_row_id:port_row_id
-         (List.append 
+         (List.append
             ["Name", String "outward";
              "Type", Icon "outward"]
             defaults)) in
@@ -273,7 +275,7 @@ object(self)
       "Name"
       (String right_endpoint_name);
     self#save;
-      
+
   (** Return a single port attribute as an item: *)
   method get_port_attribute device_name port_name port_direction column_header =
 (*     Log.printf "defects: get_port_attribute\n"; flush_all (); *)
@@ -290,7 +292,7 @@ object(self)
     let port_name = Printf.sprintf "eth%i" port_index in
     try
       self#get_port_attribute device_name port_name port_direction column_header
-    with _ -> 
+    with _ ->
       (* We failed. Ok, now try with the "port" prefix, before bailing
          out: *)
       let port_name = Printf.sprintf "port%i" port_index in
@@ -332,7 +334,7 @@ object(self)
   method private is_defective ?minimum_delay ?maximum_delay row_id =
     let row =
       List.filter
-        (fun (header, _) -> 
+        (fun (header, _) ->
           let c = String.get header ((String.length header) - 1) in
           ((c = ')' or c = '%') && (* we're interested in percentages and times *)
           (match minimum_delay with
@@ -342,7 +344,7 @@ object(self)
             None -> true
           | Some _ -> not (header = "Maximum delay (ms)"))))
         (self#get_row row_id) in
-    let values = 
+    let values =
       List.map
         (fun (_, i) -> let s = item_to_string i in try float_of_string s with _ -> 0.0)
         row in
@@ -403,22 +405,24 @@ object(self)
       self#add_icon_column
         ~header:"Type"
         ~shown_header:(s_ "Type")
-        ~strings_and_pixbufs:[ "machine", marionnet_home_images^"treeview-icons/machine.xpm";
-                               "hub", marionnet_home_images^"treeview-icons/hub.xpm";
-                               "switch", marionnet_home_images^"treeview-icons/switch.xpm";
-                               "router", marionnet_home_images^"treeview-icons/router.xpm";
-                               "cloud", marionnet_home_images^"treeview-icons/cloud.xpm";
-                               "gateway", marionnet_home_images^"treeview-icons/gateway.xpm";
-                               "straight-cable", marionnet_home_images^"treeview-icons/cable-grey.xpm";
-                               "crossover-cable", marionnet_home_images^"treeview-icons/cable-blue.xpm";
-                               "machine-port", marionnet_home_images^"treeview-icons/network-card.xpm";
-                               "other-device-port", marionnet_home_images^"treeview-icons/port.xpm";
+        ~strings_and_pixbufs:[
+	    "machine", marionnet_home_images^"treeview-icons/machine.xpm";
+	    "hub",     marionnet_home_images^"treeview-icons/hub.xpm";
+	    "switch",  marionnet_home_images^"treeview-icons/switch.xpm";
+	    "router",  marionnet_home_images^"treeview-icons/router.xpm";
+	    "cloud",   marionnet_home_images^"treeview-icons/cloud.xpm";
+	    "socket",  marionnet_home_images^"treeview-icons/socket.xpm";
+	    "gateway" (* retro-compatibility: *),  marionnet_home_images^"treeview-icons/socket.xpm";
+	    "straight-cable",    marionnet_home_images^"treeview-icons/cable-grey.xpm";
+	    "crossover-cable",   marionnet_home_images^"treeview-icons/cable-blue.xpm";
+	    "machine-port",      marionnet_home_images^"treeview-icons/network-card.xpm";
+	    "other-device-port", marionnet_home_images^"treeview-icons/port.xpm";
 
-                               "rightward", marionnet_home_images^"treeview-icons/left-to-right.xpm";
-                               "leftward", marionnet_home_images^"treeview-icons/right-to-left.xpm";
-                               "outward", marionnet_home_images^"treeview-icons/in-to-out.xpm";
-                               "inward", marionnet_home_images^"treeview-icons/out-to-in.xpm";
-                             ]
+	    "rightward", marionnet_home_images^"treeview-icons/left-to-right.xpm";
+	    "leftward",  marionnet_home_images^"treeview-icons/right-to-left.xpm";
+	    "outward",   marionnet_home_images^"treeview-icons/in-to-out.xpm";
+	    "inward",    marionnet_home_images^"treeview-icons/out-to-in.xpm";
+            ]
         () in
     let loss =
       self#add_editable_string_column

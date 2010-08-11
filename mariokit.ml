@@ -391,7 +391,7 @@ type portkind  = Eth | TtyS ;;
 
 (** A node is a Machine, a Device, a Cloud or a GwInternet.
     Cable are edge in the network, which is a graph of these nodes. *)
-type nodekind  = Machine | Device | Cloud | Gateway ;;
+type nodekind  = Machine | Device | Cloud | Bridge_socket ;;
 
 (** String conversion for a devkind. *)
 let string_of_devkind = function
@@ -1031,11 +1031,11 @@ class virtual node = fun
   method virtual dotImg : iconsize -> string
 
   (** Returns the label to use for cable representation.
-      This method may be redefined (for instance in [gateway]). *)
+      This method may be redefined (for instance in [bridge_socket]). *)
   method dotLabelForEdges (receptname:string) = self#get_label
 
   (** Returns the port to use for cable representation.
-      This method may be redefined (for instance in [gateway]). *)
+      This method may be redefined (for instance in [bridge_socket]). *)
   method dotPortForEdges (receptname:string)  = receptname
 
   (** A node is represented in dot with an HTML label which is a table
@@ -1519,12 +1519,6 @@ let is_there_a_router_variant () =
   let result =
     List.mem "default" (MSys.variant_list_of ("router-" ^ router_unprefixed_filesystem) ())
   in
-(*
-  Log.printf "is_there_a_router_variant (): %b\n" result; flush_all ();
-  List.iter
-    (fun s -> Log.printf "* %s\n" s; flush_all ())
-    (MSys.variant_list_of ("router-" ^ router_unprefixed_filesystem) ());
-*)
   result;;
 
 (** A device is a nodes s.t. nodekind=Device. Defects may be added after the creation. *)
@@ -1617,6 +1611,11 @@ class device =
         "About to start the router %s with the cow file %s\n"
         self#name
         cow_file_name;
+      Log.printf "=================================\n";
+      (let cmd=Printf.sprintf "ls -l %s" cow_file_name in
+       Sys.command cmd);
+      flush_all;
+      Log.printf "=================================\n";
       new Simulated_network.router
         ~name:self#get_name
         ~kernel_file_name:(MSys.marionnet_home_kernels ^ "linux-default")
@@ -1668,13 +1667,6 @@ class device =
           ~pathname:(hostfs_directory_pathname ^ "/report.html")
           ();
         Log.printf "Added the report on %s to the texts interface\n" self#name; flush_all ();
-        (* (* We don't export the shell history for routers *)
-        Log.printf "Adding the history on %s to the texts interface\n" self#name; flush_all ();
-        texts_interface#import_history
-          ~machine_or_router_name:self#name
-          ~pathname:(hostfs_directory_pathname ^ "/bash_history.text")
-          ();
-        Log.printf "Added the history on %s to the texts interface\n" self#name; flush_all (); *)
       end);
       (* ...And destroy, so that the next time we have to re-create the process command line
          can use a new cow file (see the make_simulated_device method) *)
@@ -1909,7 +1901,7 @@ end;;
         class cloud
  * *************************** *)
 
-(** A cloud is an unknown network with some gateways. *)
+(** A cloud is an unknown network with some entry points. *)
 class cloud =
   fun ~network
       ?(name="nocloudname")
@@ -1964,14 +1956,14 @@ end;; (* cloud *)
 
 
 (* *************************** *
-        class gateway
+        class bridge_socket
  * *************************** *)
 
-(** An internet gateway is simply a node with a single receptacle and an associated IP number. *)
-class gateway =
+(** A bridge_socket has a single receptacle and an associated IP number. *)
+class bridge_socket =
 
   fun ~network
-      ?(name="nogatewayname")
+      ?(name="nobridge_socketname")
       ?(label="")
       () ->
 
@@ -1979,12 +1971,12 @@ class gateway =
 
   object (self)
 
-  inherit node ~network ~name ~label ~nodekind:Gateway ~rlist:intialReceptacles ()
+  inherit node ~network ~name ~label ~nodekind:Bridge_socket ~rlist:intialReceptacles ()
 
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity = MDI_X
 
-  method show = (self#name^" (gateway)")
+  method show = (self#name^" (bridge socket)")
 
   (** Dot adjustments *)
 
@@ -2001,22 +1993,22 @@ class gateway =
   method dotPortForEdges receptname = ""
 
   method to_forest =
-   Forest.leaf ("gateway", [
+   Forest.leaf ("bridge_socket", [
                   ("name", self#get_name);
                   ])
 
-  (** A gateway has just attributes (no childs) in this version. *)
+  (** A bridge_socket has just attributes (no childs) in this version. *)
   method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x
 
   (** Create the simulated device *)
   method private make_simulated_device =
-    new Simulated_network.gateway
+    new Simulated_network.bridge_socket
       ~name:self#get_name
       ~bridge_name:Global_options.ethernet_socket_bridge_name
       ~unexpected_death_callback:self#destroy_because_of_unexpected_death
       ()
-end;; (* gwinternet *)
+end;; (* bridge_socket *)
 
 
 (*********************
@@ -2119,7 +2111,7 @@ class network () =
  val mutable devices  : (device  list) = []
  val mutable cables   : (cable   list) = []
  val mutable clouds   : (cloud   list) = []
- val mutable gateways : (gateway list) = []
+ val mutable bridge_sockets : (bridge_socket list) = []
 
  val ledgrid_manager = Ledgrid_manager.the_one_and_only_ledgrid_manager
 
@@ -2128,7 +2120,7 @@ class network () =
  val mutable devices_buffer  : (device  list) = []
  val mutable cables_buffer   : (cable   list) = []
  val mutable clouds_buffer   : (cloud   list) = []
- val mutable gateways_buffer : (gateway list) = []
+ val mutable bridge_sockets_buffer : (bridge_socket list) = []
 
  (** Accessors *)
 
@@ -2136,7 +2128,7 @@ class network () =
  method devices         = devices
  method cables          = cables
  method clouds          = clouds
- method gateways        = gateways
+ method bridge_sockets  = bridge_sockets
  method ledgrid_manager = ledgrid_manager
 
  (** Related dot options fro drawing this virtual network.
@@ -2149,8 +2141,8 @@ class network () =
    ((machines :> component list) @
     (devices  :> component list) @
     (clouds   :> component list) @
-    (gateways :> component list) @
-    (cables   :> component list)    (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
+    (bridge_sockets :> component list) @
+    (cables   :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
     )
 
  (** Setter *)
@@ -2174,10 +2166,10 @@ class network () =
    (List.iter
       (fun cloud -> try cloud#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       clouds);
-   Log.print_string "destroying all gateways...\n";
+   Log.print_string "destroying all bridge sockets...\n";
    (List.iter
-      (fun gateway -> try gateway#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
-      gateways);
+      (fun bridge_socket -> try bridge_socket#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
+      bridge_sockets);
    Log.print_string "Synchronously wait that everything terminates...\n";
    Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
 
@@ -2185,7 +2177,7 @@ class network () =
    machines <- [] ;
    devices  <- [] ;
    clouds   <- [] ;
-   gateways <- [] ;
+   bridge_sockets <- [] ;
    cables   <- [] ;
 
    Log.print_string "Wait for all devices to terminate...\n"; flush_all ();
@@ -2201,7 +2193,7 @@ class network () =
    machines <- machines_buffer ;
    devices  <- devices_buffer  ;
    clouds   <- clouds_buffer   ;
-   gateways <- gateways_buffer ;
+   bridge_sockets <- bridge_sockets_buffer ;
    cables   <- cables_buffer
  end
 
@@ -2210,7 +2202,7 @@ class network () =
    machines_buffer <- machines ;
    devices_buffer  <- devices  ;
    clouds_buffer   <- clouds   ;
-   gateways_buffer <- gateways ;
+   bridge_sockets_buffer <- bridge_sockets ;
    cables_buffer   <- cables
   end
 
@@ -2238,10 +2230,11 @@ class network () =
       x#from_forest ("cloud", attrs) childs ;
       self#addCloud x;
 
- | Forest.NonEmpty (("gateway", attrs) , childs , Forest.Empty) ->
-      let x = new gateway ~network:self () in
-      x#from_forest ("gateway", attrs) childs  ;
-      self#addGateway x;
+ | Forest.NonEmpty (("bridge_socket", attrs) , childs , Forest.Empty)
+ | Forest.NonEmpty (("gateway" (* retro-compatibility *) , attrs) , childs , Forest.Empty) ->
+      let x = new bridge_socket ~network:self () in
+      x#from_forest ("bridge_socket", attrs) childs  ;
+      self#addBridge_socket x;
 
  | Forest.NonEmpty (("cable", attrs) , childs , Forest.Empty) ->
       (* Cables represent a special case: they must be builded knowing their endpoints. *)
@@ -2279,7 +2272,7 @@ class network () =
 
  method nodes : (node list) =
    ((machines :> node list) @ (devices  :> node list) @
-    (clouds   :> node list) @ (gateways :> node list) )
+    (clouds   :> node list) @ (bridge_sockets :> node list) )
 
  method names = (List.map (fun x->x#name) self#components)
 
@@ -2296,7 +2289,8 @@ class network () =
  method getDeviceByName  n = try List.find (fun x->x#name=n) devices    with _ -> failwith ("getDeviceByName "^n)
  method getCableByName   n = try List.find (fun x->x#name=n) cables     with _ -> failwith ("getCableByName "^n)
  method getCloudByName   n = try List.find (fun x->x#name=n) clouds     with _ -> failwith ("getCloudByName "^n)
- method getGatewayByName n = try List.find (fun x->x#name=n) gateways   with _ -> failwith ("getGatewayByName "^n)
+ method getBridge_socketByName n =
+   try List.find (fun x->x#name=n) bridge_sockets with _ -> failwith ("getBridge_socketByName "^n)
  method getNodeByName    n = try List.find (fun x->x#name=n) self#nodes with _ -> failwith ("getNodeByName \""^n^"\"")
 
  (** Managing socketnames *)
@@ -2362,7 +2356,7 @@ class network () =
  method deviceExists  n = let f=(fun x->x#name=n) in (List.exists f devices )
  method cableExists   n = let f=(fun x->x#name=n) in (List.exists f cables  )
  method cloudExists   n = let f=(fun x->x#name=n) in (List.exists f clouds  )
- method gatewayExists n = let f=(fun x->x#name=n) in (List.exists f gateways)
+ method bridge_socketExists n = let f=(fun x->x#name=n) in (List.exists f bridge_sockets)
  method nameExists    n = List.mem n self#names
 
  (** What kind of node is it ? *)
@@ -2399,7 +2393,7 @@ class network () =
  (** Devices must have a unique name in the network *)
  method addDevice (d:device) =
     if (self#nameExists d#name) then
-      raise (Failure "addDevice : name already used in the network")
+      raise (Failure "addDevice: name already used in the network")
     else begin
       devices  <- (devices@[d]);
       self#make_device_ledgrid d;
@@ -2415,7 +2409,7 @@ class network () =
  (** Machines must have a unique name in the network *)
  method addMachine (m:machine) =
    if (self#nameExists m#name) then
-     raise (Failure ("addMachine : name "^m#name^" already used in the network"))
+     raise (Failure ("addMachine: name "^m#name^" already used in the network"))
    else begin
      (* Ok, we have fixed the variant name. Now just prepend the machine to the
         appropriate list: *)
@@ -2424,7 +2418,7 @@ class network () =
  (** Cable must connect free socketnames  *)
  method addCable (c:cable) =
     if (self#nameExists c#name)
-    then raise (Failure "addCable : name already used in the network")
+    then raise (Failure "addCable: name already used in the network")
     else
       if (self#isSocketnameFree c#get_left) && (self#isSocketnameFree c#get_right)
       then begin
@@ -2449,24 +2443,25 @@ class network () =
             ~value:true
             ();
       end else
-        raise (Failure ("addCable : left and/or right socketname busy or nonexistent for "^(c#show "")))
+        raise (Failure ("addCable: left and/or right socketname busy or nonexistent for "^(c#show "")))
 
  (** Clouds must have a unique name in the network *)
  method addCloud (c:cloud) =
     if (self#nameExists c#name)
-          then raise (Failure ("addCloud : name "^c#name^" already used in the network"))
+          then raise (Failure ("addCloud: name "^c#name^" already used in the network"))
           else clouds  <- (clouds@[c])
 
- (** Gateways must have a unique name in the network *)
- method addGateway (g:gateway) =
-    if (self#nameExists g#name)
-          then raise (Failure ("addGateway : name "^g#name^" already used in the network"))
-          else gateways  <- (gateways@[g])
+ (** Bridge sockets must have a unique name in the network *)
+ method addBridge_socket (b:bridge_socket) =
+    if (self#nameExists b#name)
+          then raise (Failure ("addBridge_socket: name "^b#name^" already used in the network"))
+          else bridge_sockets  <- (bridge_sockets@[b])
 
 
  (** Removing components *)
 
- (** Remove a machine from the network. Remove it from the [machines] list and remove all related cables *)
+ (** Remove a machine from the network.
+     Remove it from the [machines] list and remove all related cables *)
  method delMachine mname =
      let m  = self#getMachineByName mname in
      (* Destroy cables first, from the network and from the defects treeview (cables are not
@@ -2547,9 +2542,10 @@ class network () =
      cl#destroy;(*      cl#destroy_right_now; *) (* This was here before the radical synchronization changes *)
      clouds  <- List.filter (fun x->not (x=cl)) clouds
 
- (** Remove a gateway from the network. Remove it from the [gateways] list and remove all related cables *)
- method delGateway gname =
-     let g  = self#getGatewayByName gname in
+ (** Remove a bridge_socket from the network.
+     Remove it from the [bridge_sockets] list and remove all related cables *)
+ method delBridge_socket gname =
+     let g  = self#getBridge_socketByName gname in
      (* Destroy cables first: they refer what we're removing... *)
      let cables_to_remove = List.filter (fun c->c#isNodeinvolved gname) cables in
      let defects = Defects_interface.get_defects_interface () in
@@ -2559,7 +2555,7 @@ class network () =
          self#delCable cable#name)
        cables_to_remove;
      g#destroy;(*      g#destroy_right_now; *) (* This was here before the radical synchronization changes *)
-     gateways  <- List.filter (fun x->not (x=g)) gateways
+     bridge_sockets  <- List.filter (fun x->not (x=g)) bridge_sockets
 
  (** Change the name of a node => change all cable socketnames refering this node *)
  method changeNodeName oldname newname =
@@ -2627,9 +2623,9 @@ class network () =
  method getCloudNames     =
    List.map (fun x->x#name) clouds
 
- (** List of gateway names in the network *)
- method getGatewayNames     =
-   List.map (fun x->x#name) gateways
+ (** List of bridge_socket names in the network *)
+ method getBridge_socketNames     =
+   List.map (fun x->x#name) bridge_sockets
 
  (** Starting and showing the network *)
 
@@ -2661,11 +2657,11 @@ class network () =
         (StringExtra.Fold.commacat (List.map (fun c->c#show) clouds))
         with _ -> ""
    in Log.print_endline ("Clouds \r\t\t: "^msg);
-   (* show gateways *)
+   (* show bridge_sockets *)
    let msg=try
-        (StringExtra.Fold.commacat (List.map (fun c->c#show) gateways))
+        (StringExtra.Fold.commacat (List.map (fun c->c#show) bridge_sockets))
         with _ -> ""
-   in Log.print_endline ("Gateways \r\t\t: "^msg);
+   in Log.print_endline ("Bridge_sockets \r\t\t: "^msg);
    (* show links *)
    let msg=try
         (StringExtra.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables))

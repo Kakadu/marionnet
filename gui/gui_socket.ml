@@ -42,9 +42,9 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
       let (name,label) = (r#get "name"),(r#get "label") in
-      defects#add_device name "gateway" 1;
-      let g = (new Mariokit.Netmodel.gateway ~network:st#network ~name ~label ()) in
-      st#network#addGateway g;
+      defects#add_device name "socket" 1;
+      let g = (new Mariokit.Netmodel.bridge_socket ~network:st#network ~name ~label ()) in
+      st#network#addBridge_socket g;
       st#update_sketch () ;
       st#update_state  ();
       st#update_cable_sensitivity ()
@@ -55,11 +55,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-        (fun x -> (st#network#getGatewayByName x)#can_startup)
-        (st#network#getGatewayNames)
+        (fun x -> (st#network#getBridge_socketByName x)#can_startup)
+        (st#network#getBridge_socketNames)
 
     let dialog =
-     fun name -> let m = (st#network#getGatewayByName name) in
+     fun name -> let m = (st#network#getBridge_socketByName name) in
                  let title = (s_ "Modify socket") in
                  let module M = Gui_dialog_SOCKET.Make (State) in
                  M.dialog ~title:(title^" "^name) ~update:(Some m)
@@ -67,7 +67,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
       let (name,oldname) = (r#get "name"),(r#get "oldname") in
-      let g = st#network#getGatewayByName oldname in
+      let g = st#network#getBridge_socketByName oldname in
       st#network#changeNodeName oldname name  ;
       g#set_label (r#get "label")             ;
       st#refresh_sketch () ;
@@ -81,7 +81,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Remove = struct
 
     let dynlist     = Properties.dynlist
-    let dialog name = 
+    let dialog name =
       Talking.EDialog.ask_question ~help:None ~cancel:false
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
@@ -92,7 +92,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       let (name,answer) = r#get("name"),r#get("answer") in
       if (answer="yes") then begin
-        (st#network#delGateway name);
+        (st#network#delBridge_socket name);
         st#update_sketch ();
         st#update_state  ();
         defects#remove_device name;
@@ -106,7 +106,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog
-    let reaction r = (st#network#getGatewayByName (r#get "name"))#startup
+    let reaction r = (st#network#getBridge_socketByName (r#get "name"))#startup
 
   end
 
@@ -114,22 +114,22 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getGatewayByName x)#can_gracefully_shutdown)
-       (st#network#getGatewayNames)
+       (fun x -> (st#network#getBridge_socketByName x)#can_gracefully_shutdown)
+       (st#network#getBridge_socketNames)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getGatewayByName (r#get "name"))#gracefully_shutdown
+    let reaction r = (st#network#getBridge_socketByName (r#get "name"))#gracefully_shutdown
   end
 
   module Suspend = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getGatewayByName x)#can_suspend)
-       (st#network#getGatewayNames)
+       (fun x -> (st#network#getBridge_socketByName x)#can_suspend)
+       (st#network#getBridge_socketNames)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getGatewayByName (r#get "name"))#suspend
+    let reaction r = (st#network#getBridge_socketByName (r#get "name"))#suspend
 
   end
 
@@ -137,11 +137,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getGatewayByName x)#can_resume)
-       (st#network#getGatewayNames)
+       (fun x -> (st#network#getBridge_socketByName x)#can_resume)
+       (st#network#getBridge_socketNames)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getGatewayByName (r#get "name"))#resume
+    let reaction r = (st#network#getBridge_socketByName (r#get "name"))#resume
 
   end
 

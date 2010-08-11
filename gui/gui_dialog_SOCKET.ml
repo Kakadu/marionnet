@@ -26,7 +26,7 @@ module Make (State:sig val st:State.globalState end) = struct
   open State
 
   (* User handler for dialog completion. *)
-  let dialog ~title ~(update:Mariokit.Netmodel.gateway option) () =
+  let dialog ~title ~(update:Mariokit.Netmodel.bridge_socket option) () =
 
    let dialog = new Gui.dialog_SOCKET () in
    dialog#toplevel#set_title title;

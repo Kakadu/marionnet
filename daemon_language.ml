@@ -32,10 +32,10 @@ type uid =
 (** The abstract syntax of requests, responses and parameters: *)
 type resource_pattern =
   | AnyTap of uid * ip_address
-  | AnyGatewayTap of uid * bridge_name
+  | AnySocketTap of uid * bridge_name
 type resource =
   | Tap of tap_name
-  | GatewayTap of tap_name * uid * bridge_name
+  | SocketTap of tap_name * uid * bridge_name
 and daemon_request =
   | IAmAlive
   | Make of resource_pattern
@@ -52,14 +52,14 @@ let rec string_of_daemon_resource resource =
   match resource with
   | Tap tap_name ->
       Printf.sprintf "(tap %s)" tap_name
-  | GatewayTap(tap_name, uid, bridge_name) ->
-      Printf.sprintf "(gateway-tap %s %i %s)" tap_name uid bridge_name
+  | SocketTap(tap_name, uid, bridge_name) ->
+      Printf.sprintf "(socket-tap %s %i %s)" tap_name uid bridge_name
 let rec string_of_daemon_resource_pattern resource_pattern =
   match resource_pattern with
   | AnyTap(uid, ip_address) ->
       Printf.sprintf "(any-tap %i %s)" uid ip_address
-  | AnyGatewayTap(uid, bridge_name) ->
-      Printf.sprintf "(any-gateway-tap %i %s)" uid bridge_name
+  | AnySocketTap(uid, bridge_name) ->
+      Printf.sprintf "(any-socket-tap %i %s)" uid bridge_name
 and string_of_daemon_request request =
   match request with
   | IAmAlive ->
@@ -108,11 +108,11 @@ let print_request request =
       make_fixed_length_message 'i' ""
   | Make AnyTap(uid, ip_address) ->
       make_fixed_length_message 'c' (Printf.sprintf "%i %s" uid ip_address)
-  | Make (AnyGatewayTap(uid, bridge_name)) ->
+  | Make (AnySocketTap(uid, bridge_name)) ->
       make_fixed_length_message 'g' (Printf.sprintf "%i %s" uid bridge_name)
   | Destroy (Tap tap_name) ->
-      make_fixed_length_message 'd' tap_name 
-  | Destroy (GatewayTap(tap_name, uid, bridge_name)) ->
+      make_fixed_length_message 'd' tap_name
+  | Destroy (SocketTap(tap_name, uid, bridge_name)) ->
       make_fixed_length_message 'D' (Printf.sprintf "%s %i %s" tap_name uid bridge_name)
   | DestroyAllMyResources ->
       make_fixed_length_message '!' "";;
@@ -127,7 +127,7 @@ let print_response response =
       make_fixed_length_message 'e' message
   | Created (Tap tap_name) ->
       make_fixed_length_message 'c' tap_name
-  | Created (GatewayTap(tap_name, uid, bridge_name)) ->
+  | Created (SocketTap(tap_name, uid, bridge_name)) ->
       make_fixed_length_message
         'C'
         (Printf.sprintf "%s %i %s" tap_name uid bridge_name)
@@ -166,7 +166,7 @@ let parse_request request =
   | 'c' ->
       Scanf.sscanf parameter "%i %s" (fun uid ip_address -> Make (AnyTap(uid, ip_address)))
   | 'g' ->
-      Scanf.sscanf parameter "%i %s" (fun uid bridge_name -> Make (AnyGatewayTap(uid, bridge_name)))
+      Scanf.sscanf parameter "%i %s" (fun uid bridge_name -> Make (AnySocketTap(uid, bridge_name)))
   | 'd' ->
       Destroy (Tap parameter)
   | 'D' ->
@@ -174,7 +174,7 @@ let parse_request request =
         parameter
         "%s %i %s"
         (fun tap_name uid bridge_name ->
-          Destroy (GatewayTap(tap_name, uid, bridge_name)))
+          Destroy (SocketTap(tap_name, uid, bridge_name)))
   | '!' ->
       DestroyAllMyResources
   | _ ->
@@ -191,7 +191,7 @@ let parse_response response  =
         parameter
         "%s %i %s"
         (fun tap_name uid bridge_name ->
-          Created (GatewayTap(tap_name, uid, bridge_name)))
+          Created (SocketTap(tap_name, uid, bridge_name)))
   | '!' -> SorryIThoughtYouWereDead
   | _ -> failwith ("Could not parse the response \"" ^ response ^ "\"");;
 

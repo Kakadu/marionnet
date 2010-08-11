@@ -378,9 +378,9 @@ object(self)
       as super
 end;;
 
-(** A Gateway Hub process is just a Hub process with exactly two ports,
+(** A Bridge Socket Hub process is just a Hub process with exactly two ports,
     of which the first one is connected to the given host tun/tap interface: *)
-class gateway_hub_process =
+class bridge_socket_hub_process =
   fun ~tap_name
       ~unexpected_death_callback
       () ->
@@ -1575,7 +1575,7 @@ object(self)
   method device_type = "router"
 end;;
 
-class gateway =
+class bridge_socket =
   fun (* ~id *)
       ~name
       ~bridge_name
@@ -1588,58 +1588,55 @@ object(self)
       ~unexpected_death_callback
       ()
       as super
-  method device_type = "gateway"
+  method device_type = "bridge_socket"
 
   val the_hublet_process = ref None
   method private get_the_hublet_process = (* the method get_hublet_process exists and is different... *)
     match !the_hublet_process with
       Some the_hublet_process -> the_hublet_process
-    | None -> failwith "gateway: get_the_hublet_process was called when there is no such process"
+    | None -> failwith "bridge_socket: get_the_hublet_process was called when there is no such process"
 
-  val gateway_hub_process = ref None
-  method private get_gateway_hub_process =
-    match !gateway_hub_process with
-      Some gateway_hub_process -> gateway_hub_process
-    | None -> failwith "gateway: get_gateway_hub_process was called when there is no such process"
+  val bridge_socket_hub_process = ref None
+  method private get_bridge_socket_hub_process =
+    match !bridge_socket_hub_process with
+    | Some p -> p
+    | None -> failwith "bridge_socket: get_bridge_socket_hub_process was called when there is no such process"
 
-  val the_gateway_tap_name = ref None
-  method private get_gateway_tap_name =
-    match !the_gateway_tap_name with
-      None -> failwith "gateway_tap_name: non existing tap"
-    | Some result -> result
+  val bridge_socket_tap_name = ref None
+  method private get_bridge_socket_tap_name =
+    match !bridge_socket_tap_name with
+    | Some t -> t
+    | None -> failwith "bridge_socket_tap_name: non existing tap"
 
-  (** Create a gateway tap via the daemon, and return its name. Fail if a the gateway tap
-      already exists: *)
-  method private make_gateway_tap =
-    match !the_gateway_tap_name with
+  (** Create the tap via the daemon, and return its name.
+      Fail if a the tap already exists: *)
+  method private make_bridge_socket_tap =
+    match !bridge_socket_tap_name with
       None ->
-        let gateway_tap_name =
+        let tap_name =
           let server_response =
             Daemon_client.ask_the_server
-              (Make (AnyGatewayTap((Unix.getuid ()), bridge_name))) in
+              (Make (AnySocketTap((Unix.getuid ()), bridge_name))) in
           (match server_response with
-          | Created (GatewayTap(gateway_tap_name, _, _)) ->
-              gateway_tap_name
-          | _ -> begin
-              "non-existing-tap"
-          end) in
-        the_gateway_tap_name := Some gateway_tap_name;
-        gateway_tap_name
+          | Created (SocketTap(tap_name, _, _)) -> tap_name
+          | _ -> "non-existing-tap") in
+        bridge_socket_tap_name := Some tap_name;
+        tap_name
     | Some _ ->
-        failwith "a gateway tap already exists"
+        failwith "a bridge socket tap already exists"
 
-  method private destroy_gateway_tap =
+  method private destroy_bridge_socket_tap =
     (try
       ignore (Daemon_client.ask_the_server
-                (Destroy (GatewayTap(self#get_gateway_tap_name,
+                (Destroy (SocketTap(self#get_bridge_socket_tap_name,
                                      (Unix.getuid ()),
                                      bridge_name))));
     with e -> begin
       Log.printf
-        "WARNING: Failed in destroying a gateway host tap: %s\n"
+        "WARNING: Failed in destroying a host tap for a bridge socket : %s\n"
         (Printexc.to_string e);
     end);
-    the_gateway_tap_name := None
+    bridge_socket_tap_name := None
 
   val internal_cable_process = ref None
 
@@ -1647,24 +1644,24 @@ object(self)
     assert ((List.length self#get_hublet_processes) = 1);
     the_hublet_process :=
       Some (self#get_hublet_process 0);
-    gateway_hub_process :=
-      Some self#make_gateway_hub_process
+    bridge_socket_hub_process :=
+      Some self#make_bridge_socket_hub_process
 
-  method private make_gateway_hub_process =
-    new gateway_hub_process
-      ~tap_name:self#make_gateway_tap
+  method private make_bridge_socket_hub_process =
+    new bridge_socket_hub_process
+      ~tap_name:self#make_bridge_socket_tap
       ~unexpected_death_callback:self#execute_the_unexpected_death_callback
       ()
 
   method spawn_processes =
-    (match !gateway_hub_process with
+    (match !bridge_socket_hub_process with
     | None ->
-        gateway_hub_process := Some self#make_gateway_hub_process
-    | Some the_gateway_hub_process ->
+        bridge_socket_hub_process := Some self#make_bridge_socket_hub_process
+    | Some the_bridge_socket_hub_process ->
         ());
-    (* Spawn the gateway hub process, and wait to be sure it's started: *)
-    self#get_gateway_hub_process#spawn;
-    (* Create the internal cable process from the single hublet to the gateway hub,
+    (* Spawn the hub process, and wait to be sure it's started: *)
+    self#get_bridge_socket_hub_process#spawn;
+    (* Create the internal cable process from the single hublet to the hub,
        and spawn it: *)
     let the_internal_cable_process =
       let defects = get_defects_interface () in
@@ -1679,7 +1676,7 @@ object(self)
         ~leftward_flip:(defects#get_port_attribute_by_index name 0 OutToIn "Flipped bits %")
         ~leftward_min_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Minimum delay (ms)")
         ~leftward_max_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Maximum delay (ms)")
-        ~left_end:self#get_gateway_hub_process
+        ~left_end:self#get_bridge_socket_hub_process
         ~right_end:self#get_the_hublet_process
         ~unexpected_death_callback:self#execute_the_unexpected_death_callback
         () in
@@ -1692,16 +1689,16 @@ object(self)
       Some the_internal_cable_process ->
         Task_runner.do_in_parallel
           [ (fun () -> the_internal_cable_process#terminate);
-            (fun () -> self#get_gateway_hub_process#terminate) ]
+            (fun () -> self#get_bridge_socket_hub_process#terminate) ]
     | None ->
         assert false);
-    (* Destroy the gateway tap, via the daemon: *)
-    self#destroy_gateway_tap;
+    (* Destroy the tap, via the daemon: *)
+    self#destroy_bridge_socket_tap;
     (* Unreference everything: *)
     internal_cable_process := None;
-    gateway_hub_process := None;
+    bridge_socket_hub_process := None;
 
-  (** As gateways are stateless from the point of view of the user, stop/continue
+  (** As bridge sockets are stateless from the point of view of the user, stop/continue
       aren't distinguishable from terminate/spawn: *)
   method stop_processes = self#terminate_processes
   method continue_processes = self#spawn_processes

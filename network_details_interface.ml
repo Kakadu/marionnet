@@ -33,7 +33,7 @@ let rec take n xs =
 class network_details_interface =
 fun ~packing
     ~after_user_edit_callback
-    () -> 
+    () ->
 object(self)
   inherit
     treeview
@@ -41,7 +41,7 @@ object(self)
       ~hide_reserved_fields:true
       ()
   as super
-  
+
   (** The three leftmost octects are used as the trailing part of
       automatically-generated MAC addresses.
       Interesting side note: we can't use four because of OCaml
@@ -132,7 +132,7 @@ object(self)
       ()
 
   method private device_row_id device_name =
-    let result = 
+    let result =
     self#row_id_such_that (fun row -> (lookup_alist "Name" row) = String device_name) in
     result
 
@@ -146,16 +146,18 @@ object(self)
   method private add_port ?port_row_completions device_name =
     let device_row_id =
       self#device_row_id device_name in
-    let current_ports_no = 
+    let current_ports_no =
       self#ports_no_of device_name in
     let port_type =
       match item_to_string (self#get_row_item device_row_id "Type") with
-        "machine" | "gateway" -> "machine-port"
-      |  "router"             -> "router-port"
-      | _ -> "other-device-port" in
+      | "machine" | "socket" -> "machine-port"
+      | "gateway" (* retro-compatibility *) -> "machine-port"
+      | "router"             -> "router-port"
+      | _                    -> "other-device-port" in
     let port_prefix =
       match item_to_string (self#get_row_item device_row_id "Type") with
-        "machine" | "gateway" -> "eth"
+        "machine" | "socket" -> "eth"
+      | "gateway" (* retro-compatibility *) -> "eth"
       | _ -> "port" in
     let port_name = (Printf.sprintf "%s%i" port_prefix current_ports_no) in
     let port_row_standard =
@@ -257,7 +259,7 @@ object(self)
     let port_name = Printf.sprintf "eth%i" port_index in
     try
       self#get_port_data device_name port_name
-    with _ -> 
+    with _ ->
       (* We failed. Ok, now try with the "port" prefix, before bailing
          out: *)
       let port_name = Printf.sprintf "port%i" port_index in
@@ -272,7 +274,7 @@ object(self)
   method get_port_attribute_by_index device_name port_index column_header =
 (*     Log.printf "network_details: get_port_attribute_by_index\n"; flush_all (); *)
     item_to_string (lookup_alist column_header (self#get_port_data_by_index device_name port_index))
-  
+
   (** Update a single port attribute: *)
   method set_port_attribute_by_index device_name port_index column_header value =
     let device_row_id = self#device_row_id device_name in
@@ -295,7 +297,7 @@ object(self)
   (** Update a single port attribute of type string: *)
   method set_port_string_attribute_by_index device_name port_index column_header value =
     self#set_port_attribute_by_index device_name port_index column_header (String value)
-    
+
   (** Clear the interface and set the full internal state back to its initial value: *)
   method reset =
     self#clear;
@@ -304,7 +306,7 @@ object(self)
     next_ipv6_address_as_int := Int64.one
 
   val counters_marshaler = new Oomarshal.marshaller
-  
+
   method save =
     (* Save the forest, as usual: *)
     super#save;
@@ -313,7 +315,7 @@ object(self)
     counters_marshaler#to_file
       (!next_mac_address_as_int, !next_ipv4_address_as_int, !next_ipv6_address_as_int)
       counters_file_name;
-    
+
   method load =
     (* Load the forest, as usual: *)
     super#load;
@@ -323,7 +325,7 @@ object(self)
       counters_marshaler#from_file counters_file_name in
     next_mac_address_as_int := the_next_mac_address_as_int;
     next_ipv4_address_as_int := the_next_ipv4_address_as_int;
-    next_ipv6_address_as_int := the_next_ipv6_address_as_int    
+    next_ipv6_address_as_int := the_next_ipv6_address_as_int
 
   method private relevant_device_name_for_row_id row_id =
     let id_forest = self#get_id_forest in
@@ -355,14 +357,15 @@ object(self)
       self#add_icon_column
         ~header:"Type"
         ~shown_header:(s_ "Type")
-        ~strings_and_pixbufs:[ "machine", marionnet_home_images^"treeview-icons/machine.xpm";
-                               "router", marionnet_home_images^"treeview-icons/router.xpm";
-(*                                "cloud", marionnet_home_images^"treeview-icons/cloud.xpm"; *)
-(*                                "gateway", marionnet_home_images^"treeview-icons/gateway.xpm"; *)
-                               "machine-port", marionnet_home_images^"treeview-icons/network-card.xpm";
-                               "router-port",       marionnet_home_images^"treeview-icons/port.xpm";
-                               "other-device-port", marionnet_home_images^"treeview-icons/port.xpm";
-                             ]
+        ~strings_and_pixbufs:[
+           "machine", marionnet_home_images^"treeview-icons/machine.xpm";
+           "router",  marionnet_home_images^"treeview-icons/router.xpm";
+        (* "cloud",   marionnet_home_images^"treeview-icons/cloud.xpm";  *)
+        (* "socket",  marionnet_home_images^"treeview-icons/socket.xpm"; *)
+           "machine-port", marionnet_home_images^"treeview-icons/network-card.xpm";
+           "router-port",  marionnet_home_images^"treeview-icons/port.xpm";
+           "other-device-port", marionnet_home_images^"treeview-icons/port.xpm";
+            ]
         () in
     let _ =
       self#add_editable_string_column

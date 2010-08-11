@@ -30,26 +30,34 @@ include Log_builder.Make_simple (struct
     this behaviour, the function provides the optional parameters ?hide_output
     and ?hide_errors: setting both these parameters to false, you ensure that
     nothing will be appended to the command (in debug mode or not). *)
-let system_or_fail ?hide_output ?hide_errors command_line =
+let system_or_fail ?on_error ?hide_output ?hide_errors command_line =
   let extract_hide_decision h = match h with
   | None          -> not (Global_options.get_debug_mode ())
   | Some decision -> decision in
   let hide_output = extract_hide_decision hide_output in
   let hide_errors = extract_hide_decision hide_errors in
   printf "Executing: %s\n" command_line;
-  UnixExtra.system_or_fail ~hide_output ~hide_errors command_line
-
-
+  try
+    UnixExtra.system_or_fail ~hide_output ~hide_errors command_line
+  with e ->
+   begin
+    (match on_error with
+    | None         -> ()
+    | Some command ->
+        try UnixExtra.system_or_fail ~hide_output ~hide_errors command with _ -> ()
+    );
+    raise e
+   end
 (** Equivalent to [ignore (Unix.system command_line)] but with
-    logging feautures. Notice that if the command_line terminates
+    logging features. Notice that if the command_line terminates
     with '&' (background), no exceptions will be raised.
     Thus, using '&', there is no effect in setting [~force:true], because the
     shell well exit in any case. However, Log.system_or_ignore
     is preferable with respect to [(ignore (Unix.system command_line))]
     because it shows shell errors only in the debug mode. *)
-let system_or_ignore ?hide_output ?hide_errors command_line =
+let system_or_ignore ?on_error ?hide_output ?hide_errors command_line =
  try
-  system_or_fail ?hide_output ?hide_errors command_line
+  system_or_fail ?on_error ?hide_output ?hide_errors command_line
  with e ->
    begin
    let fmt = format_of_string "Ignoring exception: %s\n" in

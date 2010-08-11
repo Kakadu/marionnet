@@ -97,7 +97,8 @@ let make_system_tap_for_socket (tap_name : tap_name) uid bridge_name =
       tap_name
       tap_name
       bridge_name tap_name in
-  Log.system_or_fail command_line;
+  let on_error = Printf.sprintf "tunctl -d %s" tap_name in
+  Log.system_or_fail ~on_error command_line;
   Log.printf "The tap %s was created with success\n" tap_name
   ;;
 

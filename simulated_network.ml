@@ -418,6 +418,36 @@ object(self)
       as super
 end;;
 
+(** This is used to implement the gateway component. *)
+class slirpvde_process =
+  fun ?network
+      ?dhcp
+      ~unexpected_death_callback
+      () ->
+
+  let network = match network with None -> [] | Some n  -> [n (* default 10.0.2.0 *)] in
+  let dhcp    = match dhcp    with None -> [] | Some () -> ["--dhcp" (* turn on the DHCP server *)] in
+  let arguments = List.concat [
+       [ "--mod"; "777"; (* To do: find a reasonable value for this *) ];
+       [ "--daemon";     (* detach from terminal and run slirpvde in background. *)];
+       network;
+       dhcp;
+       ] in
+
+  object(self)
+   inherit process_with_socket
+      (Initialization.vde_prefix ^ "slirpvde")
+      arguments
+      ~stdin:an_input_descriptor_never_sending_anything
+      ~stdout:dev_null_out
+      ~stderr:dev_null_out
+      ~socket_name_prefix:"slirpvde-socket-"
+      ~unexpected_death_callback
+      ()
+  initializer
+    self#append_arguments ["-unix"; self#get_socket_name]
+end;; (* class slirpvde_process *)
+
 (** Return a list of option arguments to be passed to wirefilter in order to implement
     the given defects: *)
 let defects_to_command_line_options
@@ -1218,12 +1248,10 @@ object(self)
   method continue_processes = self#get_ethernet_cable_process#continue
 end;;
 
-(** This class implements {e either} a hub or a switch; their implementation
-    is nearly identical, so this is convenient. *)
-class virtual hub_or_switch =
+(** The common schema for user-level hubs, switches and real-world-gateways: *)
+class virtual main_process_with_n_hublets_and_cables =
   fun ~name
       ~hublets_no
-      ~(hub:bool)
       ~unexpected_death_callback
       () ->
 object(self)
@@ -1234,19 +1262,11 @@ object(self)
       ()
       as super
 
-  val main_switch_process = ref None
-  method private get_main_switch_process =
-    match !main_switch_process with
-      Some main_switch_process -> main_switch_process
-    | None -> failwith "hub_or_switch: get_main_switch_process was called when there is no such process"
-
-  initializer
-    main_switch_process :=
-      Some (new hub_or_switch_process
-              ~hub
-              ~ports_no:hublets_no
-              ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-              ())
+  val mutable main_process = None
+  method private get_main_process =
+    match main_process with
+    | Some p -> p
+    | None -> assert false
 
   val internal_cable_processes = ref []
 
@@ -1254,8 +1274,7 @@ object(self)
       sense to "suspend" them. This also helps implementation :-) *)
   method spawn_processes =
     (* Spawn the main switch process, and wait to be sure it's started: *)
-    self#get_main_switch_process#spawn;
-(*     Thread.delay 2.0; *)
+    self#get_main_process#spawn;
     (* Create internal cable processes from main switch to hublets, and spawn them: *)
     (internal_cable_processes :=
       let hublets = self#get_hublet_processes in
@@ -1263,7 +1282,7 @@ object(self)
       List.map
         (fun (i, hublet_process) ->
           new ethernet_cable_process
-            ~left_end:self#get_main_switch_process
+            ~left_end:self#get_main_process
             ~right_end:hublet_process
             ~rightward_loss:(defects#get_port_attribute_by_index name i InToOut "Loss %")
             ~rightward_duplication:(defects#get_port_attribute_by_index name i InToOut "Duplication %")
@@ -1288,7 +1307,7 @@ object(self)
   method terminate_processes =
     (* Terminate internal cables and the main switch process: *)
     Task_runner.do_in_parallel
-      ((fun () -> self#get_main_switch_process#terminate)
+      ((fun () -> self#get_main_process#terminate)
        ::
        (List.map (* here map returns a list of thunks *)
           (fun internal_cable_process () -> internal_cable_process#terminate)
@@ -1303,6 +1322,34 @@ object(self)
   (** Stop/continue aren't distinguishable from terminate/spawn from the user's point
       of view: *)
   method continue_processes = self#spawn_processes
+end;; (* class main_process_with_n_hublets_and_cables *)
+
+
+(** This class implements {e either} a hub or a switch; their implementation
+    is nearly identical, so this is convenient. *)
+class virtual hub_or_switch =
+  fun ~name
+      ~hublets_no
+      ~(hub:bool)
+      ~unexpected_death_callback
+      () ->
+ object(self)
+
+  inherit main_process_with_n_hublets_and_cables
+      ~name
+      ~hublets_no
+      ~unexpected_death_callback
+      ()
+      as super
+
+  initializer
+    main_process <-
+      Some (new hub_or_switch_process
+              ~hub
+              ~ports_no:hublets_no
+              ~unexpected_death_callback:self#execute_the_unexpected_death_callback
+              ())
+
 end;;
 
 (** A hub: just a [hub_or_switch] with [hub = true] *)
@@ -1337,6 +1384,34 @@ object(self)
       ()
       as super
   method device_type = "switch"
+end;;
+
+(** This class implements the real-world-gateway component. *)
+class real_world_gateway =
+  fun ~name
+      ?(network:string option) (* default 10.0.2.0 *)
+      ?(dhcp:unit option)
+      ~unexpected_death_callback
+      () ->
+ object(self)
+
+  inherit main_process_with_n_hublets_and_cables
+      ~name
+      ~hublets_no:1
+      ~unexpected_death_callback
+      ()
+      as super
+
+  initializer
+    main_process <-
+      Some (new slirpvde_process
+              ?network
+              ?dhcp
+              ~unexpected_death_callback:self#execute_the_unexpected_death_callback
+              ())
+
+  method device_type = "real_world_gateway"
+
 end;;
 
 (** {2 machine and router implementation} *)

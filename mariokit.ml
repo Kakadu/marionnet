@@ -389,7 +389,7 @@ type cablekind = Direct | Crossover | NullModem ;;
 (** A port (of machine or device) may Eth (ethernet) or Ttys (serial). *)
 type portkind  = Eth | TtyS ;;
 
-(** A node is a Machine, a Device, a Cloud or a GwInternet.
+(** A node is a Machine, a Device, a Cloud or a Bridge_socket.
     Cable are edge in the network, which is a graph of these nodes. *)
 type nodekind  = Machine | Device | Cloud | Bridge_socket ;;
 

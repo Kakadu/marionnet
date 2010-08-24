@@ -102,7 +102,7 @@ let make_system_tap_for_socket (tap_name : tap_name) uid bridge_name =
   Log.printf "The tap %s was created with success\n" tap_name
   ;;
 
-(** Actaully destroy a tap at the OS level: *)
+(** Actually destroy a tap at the OS level: *)
 let destroy_system_tap (tap_name : tap_name) =
   Log.printf "Destroying the tap %s...\n" tap_name;
   let redirection = Global_options.debug_mode_redirection () in

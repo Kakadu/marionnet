@@ -29,7 +29,7 @@ class identifier_generator =
 let initial_next_identifier = 0 in
 object(self)
   val next_identifier = ref initial_next_identifier
-  
+
   method reset_identifier =
     self#set_next_identifier initial_next_identifier
   method get_next_identifier =
@@ -180,7 +180,7 @@ fun ~treeview
     ?constraint_predicate:(constraint_predicate = (fun (_ : row_item) -> true))
     () -> object(self)
   inherit column ~hidden ~reserved ?default ~treeview ~header ?shown_header ~constraint_predicate () as super
-          
+
   method can_contain x =
     constraint_predicate x
   val gtree_column : ('a GTree.column) =
@@ -208,7 +208,7 @@ fun ~treeview
     let _ = view#append_column col in
     col#set_resizable true;
     self#set_gtree_view_column col
-      
+
   method get row_id =
     let tree_iter = treeview#id_to_iter row_id in
     let store = (treeview#store :> GTree.tree_store) in
@@ -482,7 +482,7 @@ object(self)
            `MODE `ACTIVATABLE ]) in
     let icon_renderer =
       GTree.cell_renderer_pixbuf [ (* `CELL_BACKGROUND highlight_background_color; *) ] in
-    
+
 (*  ~callback:(fun path new_content -> self#on_edit path new_content) *)
     let col = GTree.view_column
         ~title:self#shown_header
@@ -524,12 +524,6 @@ object(self)
         failwith (Printf.sprintf "set: wrong datum type for icon column %s" self#header)
 end;;
 
-let rec zip xs ys =
-  match xs, ys with
-    [], [] -> []
-  | (x::xs),(y::ys) -> (x,y)::(zip xs ys)
-  | _ -> failwith "zip: xs and ys have different lengths";;
-
 exception RowConstraintViolated of (* constraint name*)string;;
 exception ColumnConstraintViolated of (* column header *)string;;
 
@@ -552,25 +546,25 @@ let view =
     ~packing:(hbox#pack ~expand:true ~padding:0)
     ~reorderable:false (* Drag 'n drop for lines would be very cool, but here we need *)
                        (* to keep our internal forest data structure consistent with the UI *)
-    ~enable_search:false 
+    ~enable_search:false
     ~headers_visible:true
     ~headers_clickable:true
     ~rules_hint:true
     () in
 let _ =
   GRange.scrollbar
-    `VERTICAL 
+    `VERTICAL
     ~adjustment:view#vadjustment
     ~packing:(hbox#pack ~expand:false ~padding:0)
     () in
 let _ =
   GRange.scrollbar
-    `HORIZONTAL 
+    `HORIZONTAL
     ~adjustment:view#hadjustment
     ~packing:(vbox#pack ~expand:false ~padding:0)
     () in
 object(self)
-  inherit identifier_generator 
+  inherit identifier_generator
 
   method gtree_column_list : GTree.column_list = gtree_column_list
 
@@ -607,7 +601,7 @@ object(self)
     ref None
 
   val after_update_callback = ref (fun _ -> ())
-  
+
   method set_after_update_callback f =
     after_update_callback := f
 
@@ -691,7 +685,7 @@ object(self)
   method unselect =
     view#selection#unselect_all ()
 
-  method select_row row_id = 
+  method select_row row_id =
     view#selection#select_path (self#id_to_path row_id)
 
   method selected_row_id =
@@ -768,14 +762,14 @@ object(self)
                            end else
                              false (* we didn't handle the event *)));
     view#set_model (Some the_tree_store#coerce)
-    
+
   method store =
     match !tree_store with
       None ->
         failwith "called store before create_store_and_view"
     | (Some the_tree_store) ->
         the_tree_store
-    
+
   method file_name =
     match !file_name with
       None -> failwith "No file name is currently set"
@@ -794,7 +788,7 @@ object(self)
 
   method add_string_column ~header ?shown_header
                            ?italic:(italic=false) ?bold:(bold=false)
-                           ?hidden:(hidden=false) ?reserved:(reserved=false) ?default 
+                           ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
                            ?constraint_predicate () =
     let column = new string_column ~italic ~bold
                                    ~treeview:self ~hidden ~reserved ?default ~header
@@ -803,14 +797,14 @@ object(self)
     ((self#add_column (column :> column)) :> string_column)
   method add_editable_string_column ~header ?shown_header
                                     ?italic:(italic=false) ?bold:(bold=false)
-                                    ?hidden:(hidden=false) ?reserved:(reserved=false) ?default 
+                                    ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
                                     ?constraint_predicate () =
     let column = new editable_string_column ~italic ~bold
                                             ~hidden ~reserved ?default ~treeview:self
                                             ~header ?shown_header ?constraint_predicate () in
     ((Obj.magic (self#add_column (column :> column))) :> editable_string_column)
   method add_checkbox_column ~header ?shown_header
-                             ?hidden:(hidden=false) ?reserved:(reserved=false) ?default 
+                             ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
                              ?constraint_predicate () =
     let column = new checkbox_column ~treeview:(Obj.magic self) ~header ?shown_header ~hidden
                                      ~reserved ?default ?constraint_predicate() in
@@ -978,7 +972,7 @@ object(self)
       (fun row_id ->
          self#get_complete_row row_id)
       !id_forest;
-  
+
   (** Completely clear the state, and set it to the given forest. *)
   method set_forest (forest : row forest) =
     self#set_complete_forest
@@ -1066,7 +1060,7 @@ object(self)
         self#clear;
         let file_name = self#file_name in (* this failwiths if no filename was set *)
         try
-          let next_identifier, complete_forest = 
+          let next_identifier, complete_forest =
             (next_identifier_and_content_forest_marshaler#from_file file_name) in
           self#set_next_identifier next_identifier;
           self#set_complete_forest complete_forest;
@@ -1077,7 +1071,7 @@ object(self)
         end);
     (* This must be executed with the view attached, as it operates on the GUI: *)
     self#collapse_everything;
-            
+
   (** Also return reserved items: *)
   method get_complete_row row_id =
     Hashtbl.find id_to_row row_id
@@ -1104,7 +1098,7 @@ object(self)
       Forest.map
         (fun complete_row ->
           if (lookup_alist "_id" complete_row) = String row_id then
-            bind_or_replace_in_alist column_header new_item complete_row 
+            bind_or_replace_in_alist column_header new_item complete_row
           else
             complete_row)
         complete_forest in
@@ -1210,7 +1204,7 @@ object(self)
     Hashtbl.clear id_to_row;
     Hashtbl.clear expanded_row_ids;
     self#store#clear ();
- 
+
   method iter_to_id (iter:Gtk.tree_iter) : string =
     self#store#get ~row:iter ~column:(self#get_column "_id")#gtree_column
 
@@ -1232,7 +1226,7 @@ object(self)
 
   method id_to_path (id:string) =
     self#iter_to_path (self#id_to_iter id)
-  
+
   method for_all_rows f =
     let iter_first = self#store#get_iter_first in
     self#iter_on_forest f iter_first
@@ -1297,7 +1291,7 @@ object(self)
 
   method row_such_that predicate =
     Log.print_string "!!!!A1 treeview: row_such_that: begin\n"; flush_all ();
-    let result = 
+    let result =
     self#get_row (self#row_id_such_that predicate) in
     Log.print_string "!!!!A1 treeview: row_such_that: end (success)\n"; flush_all ();
     result

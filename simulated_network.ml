@@ -626,27 +626,6 @@ let ethernet_interface_to_uml_command_line_argument umid port_index hublet =
   (details#get_port_attribute_by_index umid port_index "MAC address") ^
   ",unix," ^ (hublet#get_socket_name) ^ "/ctl";;
 
-let zip xs ys =
-  let rec zip' xs ys acc =
-    match xs, ys with
-      [], [] -> List.rev acc
-    | (_, []) | ([], _) -> failwith "lists have different length"
-    | (x :: rest_of_xs), (y :: rest_of_ys) -> zip' rest_of_xs rest_of_ys ((x, y) :: acc)
-  in
-  zip' xs ys [];;
-
-let zip3 xs ys zs =
-  let rec zip3' xs ys zs acc =
-    match xs, ys, zs with
-      [], [], [] ->
-        List.rev acc
-    | ([], _, _) | (_, [], _) | (_, _, []) ->
-        failwith "lists have different length"
-    | (x :: rest_of_xs), (y :: rest_of_ys), (z :: rest_of_zs) ->
-        zip3' rest_of_xs rest_of_ys rest_of_zs ((x, y, z) :: acc)
-  in
-  zip3' xs ys zs [];;
-
 let random_ghost_mac_address () =
   let octet0 = "42" in
   let octet1 = "42" in
@@ -710,10 +689,9 @@ class uml_process =
     List.append
       (List.map
          (fun (ei, h) -> ethernet_interface_to_uml_command_line_argument umid ei h)
-         (zip (ListExtra.range 0 (ethernet_interfaces_no - 1)) hublet_processes))
+         (List.combine (ListExtra.range 0 (ethernet_interfaces_no - 1)) hublet_processes))
       [
        "ubd0s=" ^ cow_file_name ^ "," ^ filesystem_file_name;
-(*        "ubd0s=" ^ filesystem_file_name;  *)
        "ubdb=" ^ swap_file_name;
        "umid=" ^ umid;
        "mem=" ^ (string_of_int memory) ^ "M";
@@ -722,7 +700,6 @@ class uml_process =
        "hostname="^umid;
        "xterm="^Initialization.marionnet_terminal;
        (* Ghost interface configuration. The IP address is relative to a *host* tap: *)
-       (* "eth42=tuntap,,"^(random_ghost_mac_address ())^",172.23.0.254"; *)
        "eth42=tuntap,"^tap_name^","^(random_ghost_mac_address ())^",172.23.0.254";
      ] in
   let command_line_arguments =
@@ -906,7 +883,7 @@ object(self)
           (List.flatten
              (List.map
                 (fun (ei, h) -> ethernet_interface_to_boot_parameters_bindings umid ei h)
-                (zip (ListExtra.range 0 (ethernet_interfaces_no - 1)) hublet_processes)))
+                (List.combine (ListExtra.range 0 (ethernet_interfaces_no - 1)) hublet_processes)))
           [(* A non-standard binding we use to identify the IP address of eth42 in the guest: *)
            "ip42", ip42;
            (* A non-standard binding we use to pass the virtual machine name to the guest: *)
@@ -1300,7 +1277,7 @@ object(self)
             ~leftward_max_delay:(defects#get_port_attribute_by_index name i OutToIn "Maximum delay (ms)")
             ~unexpected_death_callback:self#execute_the_unexpected_death_callback
             ())
-        (zip
+        (List.combine
            (ListExtra.range 0 ((List.length hublets) - 1))
            hublets));
     Task_runner.do_in_parallel
@@ -1501,7 +1478,7 @@ object(self)
             ~leftward_max_delay:(defects#get_port_attribute_by_index name i OutToIn "Maximum delay (ms)")
             ~unexpected_death_callback:self#execute_the_unexpected_death_callback
             ())
-        (zip3
+        (ListExtra.combine3
            (ListExtra.range 0 (half_hublets_no - 1))
            self#get_inner_hublet_processes
            self#get_outer_hublet_processes));

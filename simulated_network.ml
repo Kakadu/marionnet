@@ -51,6 +51,10 @@ fun program
     ~unexpected_death_callback
     ()
   -> object(self)
+
+  val mutable arguments = arguments
+  method append_arguments xs = (arguments <- List.append arguments xs)
+
   val pid : int option ref = ref None
 
   (** Get the spawn process pid, or fail if the process has
@@ -262,43 +266,30 @@ object(self)
     display_number_as_server
 end;;
 
-(** This is used to implement Switch, Hub, Hublet and Gateway Hub processes.
-    Only Unix socket is used as a transport if no tap_name is specified: *)
-class hub_or_switch_process =
-  fun ?hub:(hub:bool=false)
-      ?ports_no:(ports_no:int=32)
-      ?tap_name
-      ~unexpected_death_callback
-      () ->
-(* Make a unique socket name: *)
-let socket_name =
+(** Process using a socket. Spawning and terminating methods are specific. *)
+class virtual process_with_socket =
+ fun program
+    (arguments : string list)
+    ?stdin
+    ?stdout
+    ?stderr
+    ?(socket_name_prefix="socket-")
+    ~unexpected_death_callback
+    () ->
+
+ (* Make a unique socket name: *)
+ let socket_name =
   UnixExtra.temp_file
     ~parent:(Global_options.get_project_working_directory ())
-    ~prefix:"hub-or-switch-"
+    ~prefix:socket_name_prefix
     () in
-let _ =
+ let _ =
   Log.print_string ("Making a socket at " ^ socket_name ^ "...\n");
   (try Unix.unlink socket_name with _ -> ()) in
-object(self)
-  inherit process
-      (Initialization.vde_prefix ^ "vde_switch")
-      (List.append
-         (match tap_name with
-           None ->
-             []
-         | Some tap_name ->
-             ["-tap"; tap_name])
-         (List.append
-            (if hub then ["-x"] else [])
-            ["-n"; (string_of_int (ports_no + 1));
-             "-mod"; "777" (* To do: find a reasonable value for this *);
-             "-unix"; socket_name]))
-      ~stdin:an_input_descriptor_never_sending_anything
-      ~stdout:dev_null_out
-      ~stderr:dev_null_out
-      ~unexpected_death_callback
-      ()
-      as super
+
+ object(self)
+  inherit process program arguments ?stdin ?stdout ?stderr ~unexpected_death_callback () as super
+
   (** Return the automatically-generated Unix socket name. The name is generated
       once and for all at initialization time, so this method can be safely used
       also before spawning the process. *)
@@ -308,7 +299,7 @@ object(self)
   (** hub_or_switch_processes need to be up before we connect cables or UMLs to
       them, so they have to be spawned in a *synchronous* way: *)
   method spawn =
-    Log.printf "Spawning a hub_or_switch_process\n"; flush_all ();
+    Log.printf "Spawning a process with a socket\n"; flush_all ();
     super#spawn;
     let redirection = Global_options.debug_mode_redirection () in
     let command_line =
@@ -316,12 +307,11 @@ object(self)
     (* We also check that the process is alive: if spawning it failed than the death
        monitor will take care of everything it's needed and destroy the device: in
        this case we just exit and let the death monitor clean up after us. *)
-(*     Log.printf "Waiting for the socket to show up.\n"; flush_all (); *)
     while self#is_alive && not (Unix.system command_line = (Unix.WEXITED 0)) do
       (* The socket is not ready yet, but the process is up: let's wait and then
          check again: *)
       Thread.delay 0.05;
-      Log.printf "The hub_or_switch_process has not created the socket yet.\n"; flush_all ();
+      Log.printf "The process has not created the socket yet.\n"; flush_all ();
     done;
     Log.printf "Ok, the socket now exists. Spawning succeeded.\n"; flush_all ();
     (* This should not be needed, but we want to play it super-safe for the first public
@@ -336,7 +326,41 @@ object(self)
     let command_line =
       Printf.sprintf "rm -f '%s'" self#get_socket_name in
     ignore (Unix.system command_line)
-end;;
+
+end;; (* class process_with_socket *)
+
+(** This is used to implement Switch, Hub, Hublet and Gateway Hub processes.
+    Only Unix socket is used as a transport if no tap_name is specified: *)
+class hub_or_switch_process =
+  fun ?hub:(hub:bool=false)
+      ?ports_no:(ports_no:int=32)
+      ?tap_name
+      ~unexpected_death_callback
+      () ->
+
+ object(self)
+  inherit process_with_socket
+      (Initialization.vde_prefix ^ "vde_switch")
+      (List.append
+         (match tap_name with
+           None ->
+             []
+         | Some tap_name ->
+             ["-tap"; tap_name])
+         (List.append
+            (if hub then ["-x"] else [])
+            ["-n"; (string_of_int (ports_no + 1));
+             "-mod"; "777" (* To do: find a reasonable value for this *);
+             ]))
+      ~stdin:an_input_descriptor_never_sending_anything
+      ~stdout:dev_null_out
+      ~stderr:dev_null_out
+      ~socket_name_prefix:(if hub then "hub-socket-" else "switch-socket-")
+      ~unexpected_death_callback
+      ()
+  initializer
+    self#append_arguments ["-unix"; self#get_socket_name]
+end;; (* class hub_or_switch_process *)
 
 (** A Swtich process is, well, a Switch or Hub process but not a hub: *)
 class switch_process =

@@ -527,12 +527,12 @@ There is no need to restart the application.")
   (** Forbid cable additions if there are not enough free ports; explicitly enable
       them if free ports are enough: *)
   method update_cable_sensitivity () =
-    let node_names = self#network#getNodeNames in
+    let node_names = self#network#get_node_names in
     let free_ethernet_port_names = (* we're interested in their number, not names... *)
       List.flatten
         (List.map
            (fun node_name ->
-             self#network#freeReceptaclesNamesOfNode node_name Mariokit.Netmodel.Eth)
+             self#network#free_receptacles_names_of_node node_name Mariokit.Netmodel.Eth)
            node_names) in
     let free_ethernet_ports_no = List.length free_ethernet_port_names in
     let condition = (free_ethernet_ports_no >= 2) in
@@ -641,7 +641,6 @@ There is no need to restart the application.")
    Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
    self#close_project (); (* destroy the temporary project directory *)
    Log.print_endline ("globalState#quit: .react: Calling mrPropre...");
-   self#mrPropre ();
    GMain.Main.quit (); (* Finalize the GUI *)
    Log.print_string "Killing the task runner thread...\n";
    Task_runner.the_task_runner#terminate;
@@ -653,13 +652,7 @@ There is no need to restart the application.")
    Log.print_string "Sync, then kill our process (To do: this is a very ugly kludge)\n";
    flush_all ();
    Log.print_string "Synced.\n";
-   commit_suicide Sys.sigkill; (* this always works :-) *)
-   Log.print_string "!!! This should never be shown.\n";;
-
- method mrPropre () =
-    if self#active_project then raise (Failure "A project is still open, I cannot clean the wdir!")
-    begin
-    let _ = Unix.system ("rmdir "^wdir) in ()
-    end
+   ignore (commit_suicide Sys.sigkill);; (* this always works :-) *)
+(*    Log.print_string "!!! This should never be shown.\n";; *)
 
 end;; (* class globalState *)

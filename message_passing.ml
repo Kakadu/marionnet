@@ -20,7 +20,7 @@ class ['a] queue = object(self)
   val elements = ref []
   val mutex = Mutex.create ()
   val empty_condition = Condition.create ()
-  
+
   (** This is not synchronized *)
   method private __empty =
     !elements = []
@@ -44,7 +44,7 @@ class ['a] queue = object(self)
     while self#__empty do
       Condition.wait empty_condition mutex;
     done;
-    let result = 
+    let result =
       match !elements with
         x :: rest -> elements := rest; x
       | _ -> assert false in
@@ -68,7 +68,7 @@ let make_consumer =
   fun () ->
   let id = ! consumer_next_id in
   consumer_next_id := !consumer_next_id + 1;
-  Thread.create 
+  Thread.create
     (fun () ->
       while true do
         Log.printf "From consumer %i: got %i\n" id (queue#dequeue);
@@ -82,7 +82,7 @@ let make_producer x =
   Thread.create
     (fun () ->
       while true do
-        w#schedule 
+        w#schedule
           (fun () -> Log.printf "%i" x; flush_all ());
       done)
     ();;

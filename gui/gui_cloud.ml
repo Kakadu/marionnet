@@ -40,12 +40,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       M.dialog ~title: (s_ "Add cloud") ~update:None
 
     let reaction r =
-      let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,label) = (r#get "name"),(r#get "label") in
       defects#add_device ~defective_by_default:true name "cloud" 2;
       let c = (new Mariokit.Netmodel.cloud ~network:st#network ~name ~label ()) in
-      st#network#addCloud c;
+      st#network#add_cloud c;
       st#update_sketch () ;
       st#update_state  ();
       st#update_cable_sensitivity ()
@@ -55,21 +54,20 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-        (fun x -> (st#network#getCloudByName x)#can_startup)
-        (st#network#getCloudNames)
+        (fun x -> (st#network#get_cloud_by_name x)#can_startup)
+        (st#network#get_cloud_names)
 
     let dialog name =
-      let m = (st#network#getCloudByName name) in
+      let m = (st#network#get_cloud_by_name name) in
       let title = (s_ "Modify cloud") in
       let module M = Gui_dialog_CLOUD.Make (State) in
       M.dialog ~title:(title^" "^name) ~update:(Some m)
 
     let reaction r =
-      let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,oldname,label) = (r#get "name"),(r#get "oldname"),(r#get "label") in
-      let c = st#network#getCloudByName oldname in
-      st#network#changeNodeName oldname name  ;
+      let c = st#network#get_cloud_by_name oldname in
+      st#network#change_node_name oldname name  ;
       c#set_label label ;
       st#refresh_sketch ();
       st#update_state  ();
@@ -90,11 +88,10 @@ module Make_menus (State : sig val st:State.globalState end) = struct
         ~question:(Printf.sprintf (f_ "Are you sure that you want to remove %s\nand all cables connected to this %s?") name (s_ "cloud"))
 
     let reaction r =
-      let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,answer) = r#get("name"),r#get("answer") in
       if (answer="yes") then begin
-        (st#network#delCloud name);
+        (st#network#del_cloud name);
         st#refresh_sketch () ;
         defects#remove_device name;
         st#update_cable_sensitivity ()
@@ -107,7 +104,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog
-    let reaction r = (st#network#getCloudByName (r#get "name"))#startup
+    let reaction r = (st#network#get_cloud_by_name (r#get "name"))#startup
 
   end
 
@@ -115,22 +112,22 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getCloudByName x)#can_gracefully_shutdown)
-       (st#network#getCloudNames)
+       (fun x -> (st#network#get_cloud_by_name x)#can_gracefully_shutdown)
+       (st#network#get_cloud_names)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getCloudByName (r#get "name"))#gracefully_shutdown
+    let reaction r = (st#network#get_cloud_by_name (r#get "name"))#gracefully_shutdown
   end
 
   module Suspend = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getCloudByName x)#can_suspend)
-       (st#network#getCloudNames)
+       (fun x -> (st#network#get_cloud_by_name x)#can_suspend)
+       (st#network#get_cloud_names)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getCloudByName (r#get "name"))#suspend
+    let reaction r = (st#network#get_cloud_by_name (r#get "name"))#suspend
 
   end
 
@@ -138,11 +135,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getCloudByName x)#can_resume)
-       (st#network#getCloudNames)
+       (fun x -> (st#network#get_cloud_by_name x)#can_resume)
+       (st#network#get_cloud_names)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getCloudByName (r#get "name"))#resume
+    let reaction r = (st#network#get_cloud_by_name (r#get "name"))#resume
 
   end
 

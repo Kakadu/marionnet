@@ -38,12 +38,13 @@ module Make_menus
       | Netmodel.Crossover -> "ico.cable.crossed.palette.png"
 
    let tooltip   = match cablekind with
-      | Netmodel.Direct    -> (s_ "Straight RJ45 cable")
-      | Netmodel.Crossover -> (s_ "Crossover RJ45 cable")
+      | Netmodel.Direct    -> (s_ "Straight cable")
+      | Netmodel.Crossover -> (s_ "Crossover cable")
+
   end
 
   (* Common tool for Add.reaction and Properties.reaction. *)
-  let define_endpoints r = 
+  let define_endpoints r =
     let sock1 = { Netmodel.nodename = (r#get "left_node")  ; Netmodel.receptname = (r#get "left_recept")  } in
     let sock2 = { Netmodel.nodename = (r#get "right_node") ; Netmodel.receptname = (r#get "right_recept") } in
     let left_device, left_port   = sock1.Netmodel.nodename, sock1.Netmodel.receptname in
@@ -53,9 +54,9 @@ module Make_menus
     (sock1, sock2, left_endpoint_name, right_endpoint_name)
 
   (* Common tool for dynlists *)
-  let getCableNames () = match cablekind with
-   | Netmodel.Direct    -> st#network#getDirectCableNames
-   | Netmodel.Crossover -> st#network#getCrossoverCableNames
+  let get_cable_names () = match cablekind with
+   | Netmodel.Direct    -> st#network#get_direct_cable_names
+   | Netmodel.Crossover -> st#network#get_crossover_cable_names
 
 
   module Add = struct
@@ -78,17 +79,17 @@ module Make_menus
       defects#add_cable name (Netmodel.string_of_cablekind cablekind) left_endpoint_name right_endpoint_name;
       let c = (new Netmodel.cable ~motherboard:st#motherboard ~network:st#network ~name ~label ~cablekind ~left ~right ()) in
 (*      st#motherboard#reverted_rj45cables_cable#add_wire c#dotoptions#inverted_wire;*)
-      st#network#addCable c;
+      st#network#add_cable c;
       st#refresh_sketch () ;
       st#update_cable_sensitivity ();
   end
 
   module Properties = struct
 
-    let dynlist () = getCableNames ()
+    let dynlist () = get_cable_names ()
     let dialog name =
       let module M = Gui_dialog_CABLE.Make (State) (Cablekind) in
-      let c = (st#network#getCableByName name) in
+      let c = (st#network#get_cable_by_name name) in
       let title = match cablekind with
        | Netmodel.Direct    -> (s_ "Modify straight cable")
        | Netmodel.Crossover -> (s_ "Modify crossover cable")
@@ -98,14 +99,13 @@ module Make_menus
       let defects = Defects_interface.get_defects_interface () in
       let (left, right, left_endpoint_name, right_endpoint_name) = define_endpoints r in
       let (name,oldname,label) = (r#get "name"),(r#get "oldname"),(r#get "label") in
-      let c = st#network#getCableByName oldname in
       defects#rename_cable oldname name;
       defects#rename_cable_endpoints name left_endpoint_name right_endpoint_name;
-      st#network#delCable oldname;
+      st#network#del_cable oldname;
       (* Make a new cable; it should have a different identity from the old one, and it's
          important that it's initialized anew, to get the reference counter right: *)
       let c = (new Netmodel.cable ~motherboard:st#motherboard ~network:st#network ~name ~label ~cablekind ~left ~right ()) in
-      st#network#addCable c;
+      st#network#add_cable c;
       st#refresh_sketch () ;
       st#update_cable_sensitivity ()
 
@@ -117,10 +117,10 @@ module Make_menus
 
     let dialog name =
       let question = match cablekind with
-       | Netmodel.Direct    -> Printf.sprintf (f_ "Are you sure that you want to remove the RJ45 straight cable %s?") name
-       | Netmodel.Crossover -> Printf.sprintf (f_ "Are you sure that you want to remove the RJ45 crossover cable %s?") name
+       | Netmodel.Direct    -> Printf.sprintf (f_ "Are you sure that you want to remove the straight cable %s?") name
+       | Netmodel.Crossover -> Printf.sprintf (f_ "Are you sure that you want to remove the crossover cable %s?") name
       in
-      Talking.EDialog.ask_question ~help:None ~cancel:false 
+      Talking.EDialog.ask_question ~help:None ~cancel:false
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
         ~title: (s_ "Remove")
@@ -130,7 +130,7 @@ module Make_menus
       let defects = Defects_interface.get_defects_interface () in
       let name,answer = r#get("name"), r#get("answer") in
       if (answer="yes") then begin
-        (st#network#delCable name);
+        (st#network#del_cable name);
         st#refresh_sketch ();
         defects#remove_cable name;
         st#update_cable_sensitivity ()
@@ -142,20 +142,20 @@ module Make_menus
   module Disconnect = struct
 
     let dynlist () =
-      List.filter (fun x -> (st#network#getCableByName x)#can_suspend) (getCableNames ())
+      List.filter (fun x -> (st#network#get_cable_by_name x)#can_suspend) (get_cable_names ())
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getCableByName (r#get "name"))#suspend
+    let reaction r = (st#network#get_cable_by_name (r#get "name"))#suspend
 
   end
 
   module Reconnect = struct
 
     let dynlist () =
-      List.filter (fun x -> (st#network#getCableByName x)#can_resume) (getCableNames ())
+      List.filter (fun x -> (st#network#get_cable_by_name x)#can_resume) (get_cable_names ())
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getCableByName (r#get "name"))#resume
+    let reaction r = (st#network#get_cable_by_name (r#get "name"))#resume
 
   end
 

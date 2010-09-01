@@ -73,8 +73,8 @@ module Make (Toplevel : sig val toplevel : GWindow.dialog_any end) = struct
                  let (action,name,oldname) = (r#get("action"),r#get("name"),r#get("oldname")) in
 
                  (* OK only if the name is not already used in the network (and not empty). *)
-                 if ((action="add")    && (st#network#nameExists name)) or
-                    ((action="update") && (not (name=oldname)) && (st#network#nameExists name))
+                 if ((action="add")    && (st#network#name_exists name)) or
+                    ((action="update") && (not (name=oldname)) && (st#network#name_exists name))
 
                  then
                    (Simple_dialogs.error (s_ "Name conflict" )

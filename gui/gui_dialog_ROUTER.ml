@@ -80,7 +80,7 @@ module Make (State:sig val st:State.globalState end) = struct
                 let (_, cidr )               = Ipv4.netmask_with_cidr_of_string (details#get_port_attribute_by_index name 0 "IPv4 netmask") in
                 set_ip_config_widgets ((ip_a, ip_b, ip_c, ip_d),cidr);
                 (* The user cannot remove receptacles used by a cable. *)
-                let min_eth = (st#network#maxBusyReceptacleIndex r#get_name Mariokit.Netmodel.Eth)+1 in
+                let min_eth = (st#network#max_busy_receptacle_index r#get_name Mariokit.Netmodel.Eth)+1 in
                 let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
                 dialog#router_ports#adjustment#set_bounds ~lower:(max min_multiple_of_4 4.0) () ;
                end

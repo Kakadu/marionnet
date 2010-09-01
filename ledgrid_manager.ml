@@ -42,7 +42,8 @@ object (self)
     try
       Hashmap.lookup id_to_data id
     with _ -> begin
-      Log.print_string ("Warning: id_to_device: No device has id " ^ (string_of_int id) ^ "\n");
+(*    (* Annoying for the world gateway: *)
+      Log.print_string ("Warning: id_to_device: No device has id " ^ (string_of_int id) ^ "\n");*)
       failwith ("id_to_device: No device has id " ^ (string_of_int id))
     end
 
@@ -209,11 +210,13 @@ object (self)
   method flash ~id ~port () =
     self#lock;
     (try
+(* Annoying for the world_gateway *)
 (*       Log.print_string ("Flashing port " ^ (string_of_int port) ^ " of device " ^ *)
 (*                     (self#id_to_name id) ^ "\n"); *)
       (self#id_to_device id)#flash port;
      with _ ->
-       Log.printf "WARNING: failed in flashing (id: %i; port: %i)\n" id port);
+       ())
+      (* Log.printf "WARNING: failed in flashing (id: %i; port: %i)\n" id port) *);
     self#unlock
 
   (** Destroy all currently existing widgets and their data, so that we can start

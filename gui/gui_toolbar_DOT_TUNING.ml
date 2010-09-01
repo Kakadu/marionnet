@@ -170,7 +170,7 @@ let iconsize_react () = if opt#gui_callbacks_disable then () else
 let shuffle_react () =
   begin
    opt#shuffler#set (ListExtra.shuffleIndexes (net#nodes));
-   let namelist = net#getNodeNames => ( (ListExtra.permute opt#shuffler_as_function) || fold_lines ) in
+   let namelist = net#get_node_names => ( (ListExtra.permute opt#shuffler_as_function) || fold_lines ) in
    st#flash ~delay:4000 ((s_ "Icons randomly arranged: ")^namelist);
   end
 
@@ -178,7 +178,7 @@ let shuffle_react () =
 let unshuffle_react () =
   begin
    opt#reset_shuffler ();
-   let namelist = (net#getNodeNames => fold_lines) in
+   let namelist = (net#get_node_names => fold_lines) in
    st#flash ~delay:4000 ((s_ "Default icon arrangement: ")^namelist);
   end
 
@@ -220,7 +220,7 @@ let extrasize_react () = if opt#gui_callbacks_disable then () else
 (** Reaction for a rotate tuning *)
 let reverse_edge_callback x () =
   begin
-   let c = (st#network#getCableByName x) in
+   let c = (st#network#get_cable_by_name x) in
    c#dotoptions#reverted#set (not c#dotoptions#reverted#get);
    st#flash (Printf.sprintf (f_ "Cable %s reversed") x);
   end
@@ -238,7 +238,7 @@ let _ = w#vscale_DOT_TUNING_EXTRASIZE#connect#value_changed       extrasize_reac
 
 (** Generic connect function for rotate menus. *)
 let connect_rotate_menu ~widget ~widget_menu ~dynList = begin
- let set_active cname = (List.mem cname st#network#revertedCables) in
+ let set_active cname = (List.mem cname st#network#reverted_cables) in
  (Widget.DynamicSubmenu.make
    ~set_active
    ~submenu:widget_menu
@@ -255,13 +255,13 @@ let _ =
   connect_rotate_menu
      ~widget:st#mainwin#imagemenuitem_DOT_TUNING_INVERT_DIRECT
      ~widget_menu:st#mainwin#imagemenuitem_DOT_TUNING_INVERT_DIRECT_menu
-     ~dynList:(fun () -> st#network#getDirectCableNames)
+     ~dynList:(fun () -> st#network#get_direct_cable_names)
 
 (* Connect INVERT_CROSSOVER *)
 let _ =
   connect_rotate_menu
      ~widget:st#mainwin#imagemenuitem_DOT_TUNING_INVERT_CROSSOVER
      ~widget_menu:st#mainwin#imagemenuitem_DOT_TUNING_INVERT_CROSSOVER_menu
-     ~dynList:(fun () -> st#network#getCrossoverCableNames) 
+     ~dynList:(fun () -> st#network#get_crossover_cable_names) 
 
 end (* Make *)

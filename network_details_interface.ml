@@ -150,13 +150,13 @@ object(self)
       self#ports_no_of device_name in
     let port_type =
       match item_to_string (self#get_row_item device_row_id "Type") with
-      | "machine" | "socket" -> "machine-port"
+      | "machine" | "world_bridge" -> "machine-port"
       | "gateway" (* retro-compatibility *) -> "machine-port"
       | "router"             -> "router-port"
       | _                    -> "other-device-port" in
     let port_prefix =
       match item_to_string (self#get_row_item device_row_id "Type") with
-        "machine" | "socket" -> "eth"
+        "machine" | "world_bridge" -> "eth"
       | "gateway" (* retro-compatibility *) -> "eth"
       | _ -> "port" in
     let port_name = (Printf.sprintf "%s%i" port_prefix current_ports_no) in
@@ -360,8 +360,6 @@ object(self)
         ~strings_and_pixbufs:[
            "machine", marionnet_home_images^"treeview-icons/machine.xpm";
            "router",  marionnet_home_images^"treeview-icons/router.xpm";
-        (* "cloud",   marionnet_home_images^"treeview-icons/cloud.xpm";  *)
-        (* "socket",  marionnet_home_images^"treeview-icons/socket.xpm"; *)
            "machine-port", marionnet_home_images^"treeview-icons/network-card.xpm";
            "router-port",  marionnet_home_images^"treeview-icons/port.xpm";
            "other-device-port", marionnet_home_images^"treeview-icons/port.xpm";

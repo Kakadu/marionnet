@@ -60,10 +60,10 @@ let filesystem_history_interface =
 (** See the comment in states_interface.ml for why we need this ugly kludge: *)
 let () = Filesystem_history.set_startup_functions
   (fun name ->
-    let node = st#network#getNodeByName name in
+    let node = st#network#get_node_by_name name in
     node#can_startup)
   (fun name ->
-    let node = st#network#getNodeByName name in
+    let node = st#network#get_node_by_name name in
     node#startup)
 
 let shutdown_or_restart_relevant_device device_name =
@@ -72,7 +72,7 @@ let shutdown_or_restart_relevant_device device_name =
   try
     (* Is the device a cable? If so we have to restart it (and do nothing if it
        was not connected) *)
-    let c = st#network#getCableByName device_name in
+    let c = st#network#get_cable_by_name device_name in
     if c#is_connected then begin
       c#suspend; (* disconnect *)
       c#resume;  (* re-connect *)
@@ -80,7 +80,7 @@ let shutdown_or_restart_relevant_device device_name =
   with _ -> begin
     (* Ok, the device is not a cable. We have to destroy it, so that its cables
        and hublets are restarted: *)
-    let d = st#network#getNodeByName device_name in
+    let d = st#network#get_node_by_name device_name in
     d#destroy;
   end
 

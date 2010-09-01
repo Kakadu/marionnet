@@ -164,12 +164,12 @@ object(self)
       self#ports_no_of device_name in
     let port_type =
       match item_to_string (self#get_row_item device_row_id "Type") with
-      | "machine" | "socket" -> "machine-port"
+      | "machine" (*| "world_bridge"*) -> "machine-port"
       | "gateway" (* retro-compatibility *) -> "machine-port"
       | _ -> "other-device-port" in
     let port_prefix =
       match item_to_string (self#get_row_item device_row_id "Type") with
-      | "machine" | "socket" -> "eth"
+      | "machine" (*| "world_bridge"*) -> "eth"
       | "gateway" (* retro-compatibility *) -> "eth"
       | _ -> "port" in
     let port_row_id =
@@ -411,8 +411,8 @@ object(self)
 	    "switch",  marionnet_home_images^"treeview-icons/switch.xpm";
 	    "router",  marionnet_home_images^"treeview-icons/router.xpm";
 	    "cloud",   marionnet_home_images^"treeview-icons/cloud.xpm";
-	    "socket",  marionnet_home_images^"treeview-icons/socket.xpm";
-	    "gateway" (* retro-compatibility: *),  marionnet_home_images^"treeview-icons/socket.xpm";
+	    "world_bridge",  marionnet_home_images^"treeview-icons/world.xpm";
+	    "gateway" (* retro-compatibility: *),  marionnet_home_images^"treeview-icons/world.xpm";
 	    "straight-cable",    marionnet_home_images^"treeview-icons/cable-grey.xpm";
 	    "crossover-cable",   marionnet_home_images^"treeview-icons/cable-blue.xpm";
 	    "machine-port",      marionnet_home_images^"treeview-icons/network-card.xpm";

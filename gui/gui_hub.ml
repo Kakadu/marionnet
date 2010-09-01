@@ -46,7 +46,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
                 ~variant:Strings.no_variant_text
                 (int_of_string eth) ()) in
       d#resolve_variant; (* don't store the variant as a symlink *)
-      st#network#addDevice d;
+      st#network#add_device d;
       st#update_cable_sensitivity ();
       st#update_sketch ();
       st#update_state  ();
@@ -58,11 +58,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-        (fun x -> (st#network#getDeviceByName x)#can_startup)
-        (st#network#getHubNames)
+        (fun x -> (st#network#get_device_by_name x)#can_startup)
+        (st#network#get_hub_names)
 
     let dialog =
-     fun name -> let m = (st#network#getDeviceByName name) in
+     fun name -> let m = (st#network#get_device_by_name name) in
                  let title = (s_ "Modify hub") in
                  let module M = Gui_dialog_HUB.Make (State) in
                  M.dialog ~title:(title^" "^name) ~update:(Some m)
@@ -71,11 +71,10 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,oldname,eth) = (r#get "name"),(r#get "oldname"),(r#get "eth") in
-      let d = st#network#getDeviceByName oldname in
+      let d = st#network#get_device_by_name oldname in
       d#destroy;
-      let connected_ports = st#network#ledgrid_manager#get_connected_ports ~id:(d#id) () in
       st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
-      st#network#changeNodeName oldname name  ;
+      st#network#change_node_name oldname name  ;
       d#set_label (r#get "label")             ;
       d#set_eth_number ~prefix:"port"  (int_of_string eth)  ;
       st#refresh_sketch () ;
@@ -102,7 +101,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       let (name,answer) = r#get("name"),r#get("answer") in
       if (answer="yes") then begin
-        (st#network#delDevice name) ;
+        (st#network#del_device name) ;
         st#update_sketch ();
         st#update_state  ();
         (* This does nothing if the tree doesn't exist, which is what we want here: *)
@@ -119,7 +118,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog
-    let reaction r = (st#network#getDeviceByName (r#get "name"))#startup
+    let reaction r = (st#network#get_device_by_name (r#get "name"))#startup
 
   end
 
@@ -127,22 +126,22 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getDeviceByName x)#can_gracefully_shutdown)
-       (st#network#getHubNames)
+       (fun x -> (st#network#get_device_by_name x)#can_gracefully_shutdown)
+       (st#network#get_hub_names)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getDeviceByName (r#get "name"))#gracefully_shutdown
+    let reaction r = (st#network#get_device_by_name (r#get "name"))#gracefully_shutdown
   end
 
   module Suspend = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getDeviceByName x)#can_suspend)
-       (st#network#getHubNames)
+       (fun x -> (st#network#get_device_by_name x)#can_suspend)
+       (st#network#get_hub_names)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getDeviceByName (r#get "name"))#suspend
+    let reaction r = (st#network#get_device_by_name (r#get "name"))#suspend
 
   end
 
@@ -150,11 +149,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getDeviceByName x)#can_resume)
-       (st#network#getHubNames)
+       (fun x -> (st#network#get_device_by_name x)#can_resume)
+       (st#network#get_hub_names)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getDeviceByName (r#get "name"))#resume
+    let reaction r = (st#network#get_device_by_name (r#get "name"))#resume
 
   end
 

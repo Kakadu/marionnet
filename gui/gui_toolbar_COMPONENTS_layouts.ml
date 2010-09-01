@@ -27,7 +27,7 @@ module Toolbar = struct
     called by this function and the result is a menu entry with an horizontal line in background... *)
  let append_image_menu (toolbar:GButton.toolbar) filename tooltip =
   let slot    = GButton.tool_item ~packing:toolbar#insert () in
-  let menubar = GMenu.menu_bar ~border_width:0 ~width:0 ~height:60 ~packing:(slot#add) () in
+  let menubar = GMenu.menu_bar ~border_width:0 ~width:0 ~height:56 (* 60 *) ~packing:(slot#add) () in
   let image   = GMisc.image ~xalign:0.5 ~yalign:0.5 ~xpad:0 ~ypad:0 ~file:(Initialization.marionnet_home_images^filename) () in
   let result  = GMenu.image_menu_item ~label:"" ~image ~packing:menubar#add () in
   let set_tooltip w text = (GData.tooltips ())#set_tip w ~text in

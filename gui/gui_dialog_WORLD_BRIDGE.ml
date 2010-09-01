@@ -16,7 +16,7 @@
 
 open Gettext;;
 
-(** Gui completion for the dialog_SOCKET widget defined with glade. *)
+(** Gui completion for the dialog_WORLD_BRIDGE widget defined with glade. *)
 
 (* Shortcuts *)
 let mkenv = Environment.make_string_env
@@ -26,52 +26,52 @@ module Make (State:sig val st:State.globalState end) = struct
   open State
 
   (* User handler for dialog completion. *)
-  let dialog ~title ~(update:Mariokit.Netmodel.bridge_socket option) () =
+  let dialog ~title ~(update:Mariokit.Netmodel.world_bridge option) () =
 
-   let dialog = new Gui.dialog_SOCKET () in
+   let dialog = new Gui.dialog_WORLD_BRIDGE () in
    dialog#toplevel#set_title title;
    let d = dialog in (* Convenient alias *)
    let module Tk = Gui_dialog_toolkit.Make (struct let toplevel = d#toplevel end) in
 
    (* Labels *)
    let () = begin
-     Tk.Label.set d#label_dialog_SOCKET_name (s_ "Name" );
-     Tk.Label.set d#label_dialog_SOCKET_label (s_ "\nLabel" ); (* the newline is intentional *)
+     Tk.Label.set d#label_dialog_WORLD_BRIDGE_name (s_ "Name" );
+     Tk.Label.set d#label_dialog_WORLD_BRIDGE_label (s_ "\nLabel" ); (* the newline is intentional *)
     end in
 
    (* Tooltips *)
    let () = begin
-     Tk.Tooltip.set d#image_dialog_SOCKET (s_ "Outgoing RJ45 socket" );
-     Tk.Tooltip.set_both d#label_dialog_SOCKET_name  d#socket_name (s_ "RJ45 socket name. This name must be unique in the virtual network. Suggested: E1, E2, ..." );
-     Tk.Tooltip.set_both d#label_dialog_SOCKET_label d#socket_label Tk.Tooltip.Text.component_label;
+     Tk.Tooltip.set d#image_dialog_WORLD_BRIDGE (s_ "World bridge" );
+     Tk.Tooltip.set_both d#label_dialog_WORLD_BRIDGE_name  d#world_bridge_name (s_ "World bridge name. This name must be unique in the virtual network. Suggested: B1, B2, ..." );
+     Tk.Tooltip.set_both d#label_dialog_WORLD_BRIDGE_label d#world_bridge_label Tk.Tooltip.Text.component_label;
     end in
 
 
    (match update with
-   | None   -> dialog#socket_name#set_text (st#network#suggestedName "E"); (* E stands for extern *)
-               dialog#socket_name#misc#grab_focus ()
-   | Some c -> dialog#socket_name#set_text  c#get_name  ;
-               dialog#socket_label#set_text c#get_label
+   | None   -> dialog#world_bridge_name#set_text (st#network#suggestedName "B");
+               dialog#world_bridge_name#misc#grab_focus ()
+   | Some c -> dialog#world_bridge_name#set_text  c#get_name  ;
+               dialog#world_bridge_label#set_text c#get_label
    );
 
    (* Socket dialog parser *)
    let env_of_dialog () =
      begin
-     let n     = dialog#socket_name#text                                               in
-     let l     = dialog#socket_label#text                                              in
+     let n     = dialog#world_bridge_name#text                                               in
+     let l     = dialog#world_bridge_label#text                                              in
      let (c,o) = match update with None -> ("add","") | Some c -> ("update",c#name)    in
      (* The following informations are currently unused (the socket leads to a bridge) *)
-     let ip_1 = string_of_float dialog#socket_ip_a   #value                            in
-     let ip_2 = string_of_float dialog#socket_ip_b   #value                            in
-     let ip_3 = string_of_float dialog#socket_ip_c   #value                            in
-     let ip_4 = string_of_float dialog#socket_ip_d   #value                            in
-     let nm   = string_of_float dialog#socket_ip_netmask#value                         in
+     let ip_1 = string_of_float dialog#world_bridge_ip_a   #value                            in
+     let ip_2 = string_of_float dialog#world_bridge_ip_b   #value                            in
+     let ip_3 = string_of_float dialog#world_bridge_ip_c   #value                            in
+     let ip_4 = string_of_float dialog#world_bridge_ip_d   #value                            in
+     let nm   = string_of_float dialog#world_bridge_ip_netmask#value                         in
      if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog  else
             mkenv [("name",n)  ; ("label",l)  ; ("action",c)   ; ("oldname",o)  ;
                    ("ip_1",ip_1); ("ip_2",ip_2); ("ip_3",ip_3);  ("ip_4",ip_4); ("nm",nm) ]
      end in
 
    (* Call the Dialog loop *)
-   Tk.dialog_loop ~help:(Some Talking.Msg.help_socket_insert_update) dialog env_of_dialog st
+   Tk.dialog_loop ~help:(Some Talking.Msg.help_world_bridge_insert_update) dialog env_of_dialog st
 
 end

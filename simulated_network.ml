@@ -21,6 +21,9 @@ open Gettext;;
 
 module Recursive_mutex = MutexExtra.Recursive ;;
 
+type process_name = Death_monitor.process_name
+type pid = Death_monitor.Map.key
+
 (** Fork a process which just sleeps forever without doing any output. Its stdout is
     perfect to be used as stdin for processes created with create_process which wait
     for input from an interactive console, and exit when their stdin is closed *)
@@ -137,16 +140,15 @@ fun program
       match !pid with
         Some p -> p
       | None -> raise (ProcessIsntInTheRightState "kill_with_signal") in
-    Log.print_string ("About to terminate the process with pid " ^ (string_of_int p) ^ "...\n");
-    flush_all ();
+    Log.printf "About to terminate the process with pid %d...\n" p;
     (try
       (* Send the signal: *)
       Unix.kill p signal;
       Log.printf "SUCCESS: terminating the process with pid %i succeeded.\n" p;
-    with _ ->
-      Log.printf "WARNING: terminating the process with pid %i failed.\n" p);
+     with _ ->
+      Log.printf "WARNING: terminating the process with pid %i failed.\n" p
+     );
     (* Wait for the subprocess to die, so that no zombie processes remain: *)
-    Log.print_string "OK-W 3\n"; flush_all ();
     (try
       Thread.delay 0.05;
       ignore (ThreadUnix.waitpid [Unix.WNOHANG] p);
@@ -154,7 +156,6 @@ fun program
       Log.printf "simulated_network: waitpid %i failed. (9)\n" p);
     if self#is_alive then (* The process didn't die. Try again with something stronger :-) *)
       self#kill_with_signal Sys.sigkill;
-    flush_all ();
 
   (** By default gracefully_terminate is just an alias for terminate.
       Of course some subclasses can override it to do something different *)
@@ -266,8 +267,8 @@ object(self)
     display_number_as_server
 end;;
 
-(** Process using a socket. Spawning and terminating methods are specific. *)
-class virtual process_with_socket =
+(** Process creating a socket. Spawning and terminating methods are specific. *)
+class virtual process_creating_socket =
  fun program
     (arguments : string list)
     ?stdin
@@ -284,11 +285,12 @@ class virtual process_with_socket =
     ~prefix:socket_name_prefix
     () in
  let _ =
-  Log.print_string ("Making a socket at " ^ socket_name ^ "...\n");
+  Log.printf "Socket name \"%s\" reserved for %s.\n" socket_name program;
   (try Unix.unlink socket_name with _ -> ()) in
 
  object(self)
-  inherit process program arguments ?stdin ?stdout ?stderr ~unexpected_death_callback () as super
+  inherit process program arguments ?stdin ?stdout ?stderr ~unexpected_death_callback ()
+  as super
 
   (** Return the automatically-generated Unix socket name. The name is generated
       once and for all at initialization time, so this method can be safely used
@@ -299,7 +301,7 @@ class virtual process_with_socket =
   (** hub_or_switch_processes need to be up before we connect cables or UMLs to
       them, so they have to be spawned in a *synchronous* way: *)
   method spawn =
-    Log.printf "Spawning a process with a socket\n"; flush_all ();
+    Log.printf "Spawning the process which will create the socket %s\n" socket_name;
     super#spawn;
     let redirection = Global_options.debug_mode_redirection () in
     let command_line =
@@ -311,9 +313,9 @@ class virtual process_with_socket =
       (* The socket is not ready yet, but the process is up: let's wait and then
          check again: *)
       Thread.delay 0.05;
-      Log.printf "The process has not created the socket yet.\n"; flush_all ();
+      Log.printf "The process has not created the socket yet.\n";
     done;
-    Log.printf "Ok, the socket now exists. Spawning succeeded.\n"; flush_all ();
+    Log.printf "Ok, the socket now exists. Spawning succeeded.\n";
     (* This should not be needed, but we want to play it super-safe for the first public
        release: *)
     Thread.delay 0.3;
@@ -327,19 +329,23 @@ class virtual process_with_socket =
       Printf.sprintf "rm -f '%s'" self#get_socket_name in
     ignore (Unix.system command_line)
 
-end;; (* class process_with_socket *)
+end;; (* class process_creating_socket *)
 
 (** This is used to implement Switch, Hub, Hublet and Gateway Hub processes.
     Only Unix socket is used as a transport if no tap_name is specified: *)
 class hub_or_switch_process =
-  fun ?hub:(hub:bool=false)
-      ?ports_no:(ports_no:int=32)
-      ?tap_name
-      ~unexpected_death_callback
-      () ->
-
+ fun ?hub:(hub:bool=false)
+     ?ports_no:(ports_no:int=32)
+     ?tap_name
+     ?socket_name_prefix
+     ~unexpected_death_callback
+     () ->
+ let socket_name_prefix = match socket_name_prefix with
+  | Some p -> p
+  | None -> (if hub then "hub-socket-" else "switch-socket-")
+ in
  object(self)
-  inherit process_with_socket
+  inherit process_creating_socket
       (Initialization.vde_prefix ^ "vde_switch")
       (List.append
          (match tap_name with
@@ -355,7 +361,7 @@ class hub_or_switch_process =
       ~stdin:an_input_descriptor_never_sending_anything
       ~stdout:dev_null_out
       ~stderr:dev_null_out
-      ~socket_name_prefix:(if hub then "hub-socket-" else "switch-socket-")
+      ~socket_name_prefix
       ~unexpected_death_callback
       ()
   initializer
@@ -365,12 +371,14 @@ end;; (* class hub_or_switch_process *)
 (** A Swtich process is, well, a Switch or Hub process but not a hub: *)
 class switch_process =
   fun ~(ports_no:int)
+      ?socket_name_prefix
       ~unexpected_death_callback
       () ->
 object(self)
   inherit hub_or_switch_process
       ~hub:false
       ~ports_no
+      ?socket_name_prefix
       ~unexpected_death_callback
       ()
       as super
@@ -379,12 +387,14 @@ end;;
 (** A Hub process is, well, a Switch or Hub process and also a hub *)
 class hub_process =
   fun ~(ports_no:int)
+      ?socket_name_prefix
       ~unexpected_death_callback
       () ->
 object(self)
   inherit hub_or_switch_process
       ~hub:true
       ~ports_no
+      ?socket_name_prefix
       ~unexpected_death_callback
       ()
       as super
@@ -392,19 +402,25 @@ end;;
 
 (** A Hublet process is just a Hub process with exactly two ports *)
 class hublet_process =
-  fun ~unexpected_death_callback
+  fun ?index
+      ~unexpected_death_callback
       () ->
-object(self)
-  inherit hub_process
+  let socket_name_prefix = match index with
+  | None   -> "hublet-socket-"
+  | Some i -> Printf.sprintf "hublet-%i-socket-" i
+  in
+  object(self)
+   inherit hub_process
       ~ports_no:2
+      ~socket_name_prefix
       ~unexpected_death_callback
       ()
       as super
 end;;
 
-(** A Bridge Socket Hub process is just a Hub process with exactly two ports,
+(** A World Bridge hub process is just a hub process with exactly two ports,
     of which the first one is connected to the given host tun/tap interface: *)
-class bridge_socket_hub_process =
+class world_bridge_hub_process =
   fun ~tap_name
       ~unexpected_death_callback
       () ->
@@ -413,40 +429,46 @@ object(self)
       ~ports_no:2
       ~hub:true
       ~tap_name
+      ~socket_name_prefix:"world_bridge_hub-socket-"
       ~unexpected_death_callback
       ()
       as super
 end;;
 
-(** This is used to implement the gateway component. *)
+(** This is used to implement the world gateway component. *)
 class slirpvde_process =
   fun ?network
       ?dhcp
+      ~existing_socket_name
       ~unexpected_death_callback
       () ->
 
-  let network = match network with None -> [] | Some n  -> [n (* default 10.0.2.0 *)] in
-  let dhcp    = match dhcp    with None -> [] | Some () -> ["--dhcp" (* turn on the DHCP server *)] in
+  let network = match network with
+   | None -> [] (* slirpvde sets by default 10.0.2.0 *)
+   | Some n  -> ["--network"; n ]
+  in
+  let dhcp = match dhcp with
+   | None -> []
+   | Some () -> ["--dhcp" ] (* turn on the DHCP server *)
+  in
   let arguments = List.concat [
-       [ "--mod"; "777"; (* To do: find a reasonable value for this *) ];
-       [ "--daemon";     (* detach from terminal and run slirpvde in background. *)];
+       [ "--mod";  "777";       (* To do: find a reasonable value for this *) ];
+       [ "--unix"; existing_socket_name ];
        network;
        dhcp;
-       ] in
-
+       ]
+  in
   object(self)
-   inherit process_with_socket
+   inherit process
       (Initialization.vde_prefix ^ "slirpvde")
       arguments
       ~stdin:an_input_descriptor_never_sending_anything
       ~stdout:dev_null_out
       ~stderr:dev_null_out
-      ~socket_name_prefix:"slirpvde-socket-"
       ~unexpected_death_callback
       ()
-  initializer
-    self#append_arguments ["-unix"; self#get_socket_name]
 end;; (* class slirpvde_process *)
+
 
 (** Return a list of option arguments to be passed to wirefilter in order to implement
     the given defects: *)
@@ -1000,7 +1022,7 @@ object(self)
   method private make_hublet_processes ~unexpected_death_callback n =
     let hublet_processes =
       List.map
-        (fun _ -> new hublet_process ~unexpected_death_callback ())
+        (fun index -> new hublet_process ~index ~unexpected_death_callback ())
         (ListExtra.range 1 n) in
 (*     Thread.delay 2.0; *)
     hublet_processes
@@ -1248,10 +1270,11 @@ object(self)
   method continue_processes = self#get_ethernet_cable_process#continue
 end;;
 
-(** The common schema for user-level hubs, switches and real-world-gateways: *)
+(** The common schema for user-level hubs, switches and gateways: *)
 class virtual main_process_with_n_hublets_and_cables =
   fun ~name
       ~hublets_no
+      ?(last_user_visible_port_index=(hublets_no-1))
       ~unexpected_death_callback
       () ->
 object(self)
@@ -1279,25 +1302,36 @@ object(self)
     (internal_cable_processes :=
       let hublets = self#get_hublet_processes in
       let defects = get_defects_interface () in
+      Log.printf "spawn_processes: hublets_no=%d last_user_visible_port_index=%d\n" hublets_no last_user_visible_port_index;
       List.map
         (fun (i, hublet_process) ->
-          new ethernet_cable_process
-            ~left_end:self#get_main_process
-            ~right_end:hublet_process
-            ~rightward_loss:(defects#get_port_attribute_by_index name i InToOut "Loss %")
-            ~rightward_duplication:(defects#get_port_attribute_by_index name i InToOut "Duplication %")
-            ~rightward_flip:(defects#get_port_attribute_by_index name i InToOut "Flipped bits %")
-            ~rightward_min_delay:(defects#get_port_attribute_by_index name i InToOut "Minimum delay (ms)")
-            ~rightward_max_delay:(defects#get_port_attribute_by_index name i InToOut "Maximum delay (ms)")
-            ~leftward_loss:(defects#get_port_attribute_by_index name i OutToIn "Loss %")
-            ~leftward_duplication:(defects#get_port_attribute_by_index name i OutToIn "Duplication %")
-            ~leftward_flip:(defects#get_port_attribute_by_index name i OutToIn "Flipped bits %")
-            ~leftward_min_delay:(defects#get_port_attribute_by_index name i OutToIn "Minimum delay (ms)")
-            ~leftward_max_delay:(defects#get_port_attribute_by_index name i OutToIn "Maximum delay (ms)")
-            ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-            ())
+           if i <= last_user_visible_port_index then
+            new ethernet_cable_process
+	      ~left_end:self#get_main_process
+	      ~right_end:hublet_process
+	      ~rightward_loss:(defects#get_port_attribute_by_index name i InToOut "Loss %")
+	      ~rightward_duplication:(defects#get_port_attribute_by_index name i InToOut "Duplication %")
+	      ~rightward_flip:(defects#get_port_attribute_by_index name i InToOut "Flipped bits %")
+	      ~rightward_min_delay:(defects#get_port_attribute_by_index name i InToOut "Minimum delay (ms)")
+	      ~rightward_max_delay:(defects#get_port_attribute_by_index name i InToOut "Maximum delay (ms)")
+	      ~leftward_loss:(defects#get_port_attribute_by_index name i OutToIn "Loss %")
+	      ~leftward_duplication:(defects#get_port_attribute_by_index name i OutToIn "Duplication %")
+	      ~leftward_flip:(defects#get_port_attribute_by_index name i OutToIn "Flipped bits %")
+	      ~leftward_min_delay:(defects#get_port_attribute_by_index name i OutToIn "Minimum delay (ms)")
+	      ~leftward_max_delay:(defects#get_port_attribute_by_index name i OutToIn "Maximum delay (ms)")
+	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
+              ()
+            else (* Hidden ports have no defects: *)
+            begin
+            new ethernet_cable_process
+	      ~left_end:self#get_main_process
+	      ~right_end:hublet_process
+	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
+              ()
+            end
+            )
         (List.combine
-           (ListExtra.range 0 ((List.length hublets) - 1))
+           (ListExtra.range 0 (hublets_no-1))
            hublets));
     Task_runner.do_in_parallel
       (List.map (* Here map returns a list of thunks *)
@@ -1330,6 +1364,7 @@ end;; (* class main_process_with_n_hublets_and_cables *)
 class virtual hub_or_switch =
   fun ~name
       ~hublets_no
+      ?(last_user_visible_port_index:int option)
       ~(hub:bool)
       ~unexpected_death_callback
       () ->
@@ -1338,6 +1373,7 @@ class virtual hub_or_switch =
   inherit main_process_with_n_hublets_and_cables
       ~name
       ~hublets_no
+      ?last_user_visible_port_index
       ~unexpected_death_callback
       ()
       as super
@@ -1356,12 +1392,14 @@ end;;
 class hub =
   fun ~name
       ~hublets_no
+      ?(last_user_visible_port_index:int option)
       ~unexpected_death_callback
       () ->
 object(self)
   inherit hub_or_switch
       ~name
       ~hublets_no
+      ?last_user_visible_port_index
       ~hub:true
       ~unexpected_death_callback
       ()
@@ -1373,12 +1411,14 @@ end;;
 class switch =
   fun ~name
       ~hublets_no
+      ?(last_user_visible_port_index:int option)
       ~unexpected_death_callback
       () ->
 object(self)
   inherit hub_or_switch
       ~name
       ~hublets_no
+      ?last_user_visible_port_index
       ~hub:false
       ~unexpected_death_callback
       ()
@@ -1386,36 +1426,71 @@ object(self)
   method device_type = "switch"
 end;;
 
-(** This class implements the real-world-gateway component. *)
-class real_world_gateway =
+let unit_option_of_bool = function
+ | false -> None
+ | true  -> Some ()
+
+
+(** A switch: just a [hub_or_switch] with [hub = false] *)
+class world_gateway =
   fun ~name
-      ?(network:string option) (* default 10.0.2.0 *)
-      ?(dhcp:unit option)
+      ~user_port_no
+      ~network_address (* default 10.0.2.0 *)
+      ~dhcp_enabled
       ~unexpected_death_callback
       () ->
+ (* an additional port will be used by the world *)
+ let hublets_no = user_port_no + 1 in
+ let last_user_visible_port_index = user_port_no - 1 in
  object(self)
+  inherit switch ~name ~hublets_no ~last_user_visible_port_index ~unexpected_death_callback () as super
+  method device_type = "world_gateway"
 
-  inherit main_process_with_n_hublets_and_cables
-      ~name
-      ~hublets_no:1
-      ~unexpected_death_callback
-      ()
-      as super
+  val mutable slirpvde_process = None
+  method private get_slirpvde_process =
+    match slirpvde_process with
+    | Some p -> p
+    | None -> assert false
+
+  method private terminate_slirpvde_process =
+   (try self#get_slirpvde_process#terminate with _ -> ())
+
+  (* Redefined: *)
+  method destroy =
+   self#terminate_slirpvde_process;
+   super#destroy
+
+  (* Redefined: *)
+  method gracefully_shutdown =
+   self#terminate_slirpvde_process;
+   super#gracefully_shutdown
+
+  (* Redefined: *)
+  method shutdown =
+   self#terminate_slirpvde_process;
+   super#shutdown
+
+  (* Redefined: *)
+  method startup =
+   super#startup;
+   self#get_slirpvde_process#spawn
 
   initializer
-    main_process <-
-      Some (new slirpvde_process
-              ?network
-              ?dhcp
-              ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-              ())
 
-  method device_type = "real_world_gateway"
+    let last_reserved_port = user_port_no in
+    let slirpvde_socket = (self#get_hublet_process last_reserved_port)#get_socket_name in
+
+    slirpvde_process <-
+      Some (new slirpvde_process
+              ~existing_socket_name:slirpvde_socket
+              ~network:network_address
+              ?dhcp:(unit_option_of_bool dhcp_enabled)
+              ~unexpected_death_callback:self#execute_the_unexpected_death_callback
+             ())
 
 end;;
 
 (** {2 machine and router implementation} *)
-
 
 (** To do: move this into ListExtra.
     Return a sublist of the given list containing all the elements with indices
@@ -1651,7 +1726,7 @@ object(self)
   method device_type = "router"
 end;;
 
-class bridge_socket =
+class world_bridge =
   fun (* ~id *)
       ~name
       ~bridge_name
@@ -1664,30 +1739,30 @@ object(self)
       ~unexpected_death_callback
       ()
       as super
-  method device_type = "bridge_socket"
+  method device_type = "world_bridge"
 
   val the_hublet_process = ref None
   method private get_the_hublet_process = (* the method get_hublet_process exists and is different... *)
     match !the_hublet_process with
       Some the_hublet_process -> the_hublet_process
-    | None -> failwith "bridge_socket: get_the_hublet_process was called when there is no such process"
+    | None -> failwith "world_bridge: get_the_hublet_process was called when there is no such process"
 
-  val bridge_socket_hub_process = ref None
-  method private get_bridge_socket_hub_process =
-    match !bridge_socket_hub_process with
+  val world_bridge_hub_process = ref None
+  method private get_world_bridge_hub_process =
+    match !world_bridge_hub_process with
     | Some p -> p
-    | None -> failwith "bridge_socket: get_bridge_socket_hub_process was called when there is no such process"
+    | None -> failwith "world_bridge: get_world_bridge_hub_process was called when there is no such process"
 
-  val bridge_socket_tap_name = ref None
-  method private get_bridge_socket_tap_name =
-    match !bridge_socket_tap_name with
+  val world_bridge_tap_name = ref None
+  method private get_world_bridge_tap_name =
+    match !world_bridge_tap_name with
     | Some t -> t
-    | None -> failwith "bridge_socket_tap_name: non existing tap"
+    | None -> failwith "world_bridge_tap_name: non existing tap"
 
   (** Create the tap via the daemon, and return its name.
       Fail if a the tap already exists: *)
-  method private make_bridge_socket_tap =
-    match !bridge_socket_tap_name with
+  method private make_world_bridge_tap =
+    match !world_bridge_tap_name with
       None ->
         let tap_name =
           let server_response =
@@ -1696,23 +1771,23 @@ object(self)
           (match server_response with
           | Created (SocketTap(tap_name, _, _)) -> tap_name
           | _ -> "non-existing-tap") in
-        bridge_socket_tap_name := Some tap_name;
+        world_bridge_tap_name := Some tap_name;
         tap_name
     | Some _ ->
-        failwith "a bridge socket tap already exists"
+        failwith "a tap for the world bridge already exists"
 
-  method private destroy_bridge_socket_tap =
+  method private destroy_world_bridge_tap =
     (try
       ignore (Daemon_client.ask_the_server
-                (Destroy (SocketTap(self#get_bridge_socket_tap_name,
+                (Destroy (SocketTap(self#get_world_bridge_tap_name,
                                      (Unix.getuid ()),
                                      bridge_name))));
     with e -> begin
       Log.printf
-        "WARNING: Failed in destroying a host tap for a bridge socket : %s\n"
+        "WARNING: Failed in destroying a host tap for a world bridge: %s\n"
         (Printexc.to_string e);
     end);
-    bridge_socket_tap_name := None
+    world_bridge_tap_name := None
 
   val internal_cable_process = ref None
 
@@ -1720,23 +1795,23 @@ object(self)
     assert ((List.length self#get_hublet_processes) = 1);
     the_hublet_process :=
       Some (self#get_hublet_process 0);
-    bridge_socket_hub_process :=
-      Some self#make_bridge_socket_hub_process
+    world_bridge_hub_process :=
+      Some self#make_world_bridge_hub_process
 
-  method private make_bridge_socket_hub_process =
-    new bridge_socket_hub_process
-      ~tap_name:self#make_bridge_socket_tap
+  method private make_world_bridge_hub_process =
+    new world_bridge_hub_process
+      ~tap_name:self#make_world_bridge_tap
       ~unexpected_death_callback:self#execute_the_unexpected_death_callback
       ()
 
   method spawn_processes =
-    (match !bridge_socket_hub_process with
+    (match !world_bridge_hub_process with
     | None ->
-        bridge_socket_hub_process := Some self#make_bridge_socket_hub_process
-    | Some the_bridge_socket_hub_process ->
+        world_bridge_hub_process := Some self#make_world_bridge_hub_process
+    | Some the_world_bridge_hub_process ->
         ());
     (* Spawn the hub process, and wait to be sure it's started: *)
-    self#get_bridge_socket_hub_process#spawn;
+    self#get_world_bridge_hub_process#spawn;
     (* Create the internal cable process from the single hublet to the hub,
        and spawn it: *)
     let the_internal_cable_process =
@@ -1752,7 +1827,7 @@ object(self)
         ~leftward_flip:(defects#get_port_attribute_by_index name 0 OutToIn "Flipped bits %")
         ~leftward_min_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Minimum delay (ms)")
         ~leftward_max_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Maximum delay (ms)")
-        ~left_end:self#get_bridge_socket_hub_process
+        ~left_end:self#get_world_bridge_hub_process
         ~right_end:self#get_the_hublet_process
         ~unexpected_death_callback:self#execute_the_unexpected_death_callback
         () in
@@ -1765,16 +1840,16 @@ object(self)
       Some the_internal_cable_process ->
         Task_runner.do_in_parallel
           [ (fun () -> the_internal_cable_process#terminate);
-            (fun () -> self#get_bridge_socket_hub_process#terminate) ]
+            (fun () -> self#get_world_bridge_hub_process#terminate) ]
     | None ->
         assert false);
     (* Destroy the tap, via the daemon: *)
-    self#destroy_bridge_socket_tap;
+    self#destroy_world_bridge_tap;
     (* Unreference everything: *)
     internal_cable_process := None;
-    bridge_socket_hub_process := None;
+    world_bridge_hub_process := None;
 
-  (** As bridge sockets are stateless from the point of view of the user, stop/continue
+  (** As world bridges are stateless from the point of view of the user, stop/continue
       aren't distinguishable from terminate/spawn: *)
   method stop_processes = self#terminate_processes
   method continue_processes = self#spawn_processes

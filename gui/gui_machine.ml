@@ -53,7 +53,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
           ~ter:     (r#get "term") ()) in
       (* Don't store the variant as a symlink: *)
       m#resolve_variant;
-      st#network#addMachine m ;
+      st#network#add_machine m ;
       st#update_sketch ();
       st#update_state  ();
       st#update_cable_sensitivity ();
@@ -66,11 +66,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     (* Only not running machines (which can startup) can be modified. *)
     let dynlist =
      fun () -> List.filter
-                  (fun x -> (st#network#getMachineByName x)#can_startup)
-                  (st#network#getMachineNames)
+                  (fun x -> (st#network#get_machine_by_name x)#can_startup)
+                  (st#network#get_machine_names)
 
     let dialog =
-     fun name -> let m = (st#network#getMachineByName name) in
+     fun name -> let m = (st#network#get_machine_by_name name) in
                  let title = (s_ "Modify machine") in
                  let module M = Gui_dialog_MACHINE.Make (State) in M.dialog ~title:(title^" "^name) ~update:(Some m)
 
@@ -78,9 +78,9 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,oldname,eth) = (r#get "name"),(r#get "oldname"), (int_of_string (r#get "eth")) in
-      let m = st#network#getMachineByName oldname in
+      let m = st#network#get_machine_by_name oldname in
       m#destroy; (* make sure the simulated object is in state 'no-device' *)
-      st#network#changeNodeName oldname name  ;
+      st#network#change_node_name oldname name  ;
       m#set_memory      (int_of_string (r#get "memory"))  ;
       m#set_eth_number  eth;
       (* Distribution and variant can not be changed; they are set once and for all at creation time: *)
@@ -113,7 +113,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       if (r#get "answer")="yes" then
         let name   = r#get("name") in
-        st#network#delMachine name     ;
+        st#network#del_machine name     ;
         st#update_sketch ()            ;
         st#update_state  ()            ;
         st#update_cable_sensitivity () ;
@@ -128,7 +128,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog
-    let reaction r = (st#network#getMachineByName (r#get "name"))#startup
+    let reaction r = (st#network#get_machine_by_name (r#get "name"))#startup
 
   end
 
@@ -137,8 +137,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     (* For machines "stop" means "shutdown". *)
     let dynlist =
       fun () -> List.filter
-                  (fun x -> (st#network#getMachineByName x)#can_gracefully_shutdown)
-                  (st#network#getMachineNames)
+                  (fun x -> (st#network#get_machine_by_name x)#can_gracefully_shutdown)
+                  (st#network#get_machine_names)
 
     let dialog =
      fun name -> Talking.EDialog.ask_question ~help:None ~cancel:false
@@ -149,7 +149,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction r =
       if (r#get "answer") = "yes"
-       then (st#network#getMachineByName (r#get "name"))#gracefully_shutdown
+       then (st#network#get_machine_by_name (r#get "name"))#gracefully_shutdown
        else ()
 
   end
@@ -158,11 +158,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist =
      fun () -> List.filter
-                  (fun x -> (st#network#getMachineByName x)#can_suspend)
-                  (st#network#getMachineNames)
+                  (fun x -> (st#network#get_machine_by_name x)#can_suspend)
+                  (st#network#get_machine_names)
 
     let dialog     = Menu_factory.no_dialog
-    let reaction r = (st#network#getMachineByName (r#get "name"))#suspend
+    let reaction r = (st#network#get_machine_by_name (r#get "name"))#suspend
 
   end
 
@@ -170,11 +170,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist =
      fun () -> List.filter
-                  (fun x -> (st#network#getMachineByName x)#can_resume)
-                  (st#network#getMachineNames)
+                  (fun x -> (st#network#get_machine_by_name x)#can_resume)
+                  (st#network#get_machine_names)
 
     let dialog     = Menu_factory.no_dialog
-    let reaction r = (st#network#getMachineByName (r#get "name"))#resume
+    let reaction r = (st#network#get_machine_by_name (r#get "name"))#resume
 
   end
 
@@ -182,8 +182,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist =
      fun () -> List.filter
-                  (fun x -> (st#network#getMachineByName x)#can_poweroff)
-                  (st#network#getMachineNames)
+                  (fun x -> (st#network#get_machine_by_name x)#can_poweroff)
+                  (st#network#get_machine_names)
 
     let dialog =
      fun name -> Talking.EDialog.ask_question ~help:None ~cancel:false
@@ -194,7 +194,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction r =
       if (r#get "answer") = "yes"
-       then (st#network#getMachineByName (r#get "name"))#poweroff
+       then (st#network#get_machine_by_name (r#get "name"))#poweroff
        else ()
 
   end

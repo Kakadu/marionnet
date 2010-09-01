@@ -51,7 +51,7 @@ module Make
      Tk.Tooltip.set d#label_dialog_CABLE_col_from (s_ "The first network node connected to the cable");
      Tk.Tooltip.set d#label_dialog_CABLE_col_to   (s_ "The second network node connected to the cable");
      Tk.Tooltip.set d#label_dialog_CABLE_row_name (s_ "Node name");
-     Tk.Tooltip.set d#label_dialog_CABLE_row_port (s_ "Node RJ45 ethernet port");
+     Tk.Tooltip.set d#label_dialog_CABLE_row_port (s_ "Ethernet port");
      (* The following tips disappear when the user choose an entry => deplace them in Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave
      Tk.Tooltip.set left#box  "Choisissez le nom du noeud à l'extrémité gauche";
      Tk.Tooltip.set right#box "Choisissez le nom du noeud à l'extrémité droite";
@@ -63,7 +63,7 @@ module Make
    | Netmodel.Direct ->
        Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  (s_ "Straight cable name. This name must be unique in the virtual network. Suggested: D1, D2, ... ");
        Tk.Tooltip.set_both d#label_dialog_CABLE_label d#cable_label (s_ "Label to add to the straight cable icon.");
-       Tk.Tooltip.set_both d#image_dialog_CABLE_direct d#image_dialog_CABLE_direct_link (s_ "Straight RJ45 cable");
+       Tk.Tooltip.set_both d#image_dialog_CABLE_direct d#image_dialog_CABLE_direct_link (s_ "Straight cable");
 
    | Netmodel.Crossover ->
        (* The cable dialog is defined with glade using a poor man technique of layers. *)
@@ -74,45 +74,43 @@ module Make
 
        Tk.Tooltip.set_both d#label_dialog_CABLE_name  d#cable_name  (s_ "Crossover cable name. This name must be unique in the virtual network. Suggested: C1, C2, ... ");
        Tk.Tooltip.set_both d#label_dialog_CABLE_label d#cable_label (Tk.Tooltip.Text.append_label_suggestion_to (s_ "Label to add to the crossover cable icon."));
-       Tk.Tooltip.set_both d#image_dialog_CABLE_crossover d#image_dialog_CABLE_crossover_link (s_ "Crossover RJ45 cable");
-
-   | _ -> assert false
+       Tk.Tooltip.set_both d#image_dialog_CABLE_crossover d#image_dialog_CABLE_crossover_link (s_ "Crossover cable");
    );
 
    (* Slave dependent function for left and right combo:
       if we are updating we must consider current receptacles as availables! *)
-   let freeReceptsOfNode =
+   let freeRecepts_of_node =
      (fun x->
        List.sort
          compare
-         (st#network#freeReceptaclesNamesOfNode x Netmodel.Eth)) in
+         (st#network#free_receptacles_names_of_node x Netmodel.Eth)) in
 
    (* The free receptacles of the given node at the LEFT side of the cable. If we are updating
       we have to consider the old receptacle of the old nodename as available. *)
    let get_left_recept_of = match update with
-   | None   -> freeReceptsOfNode
+   | None   -> freeRecepts_of_node
    | Some c -> (fun x->if   (x = c#get_left.Netmodel.nodename)
-                       then c#get_left.Netmodel.receptname::(freeReceptsOfNode x)
-                       else (freeReceptsOfNode x)) in
+                       then c#get_left.Netmodel.receptname::(freeRecepts_of_node x)
+                       else (freeRecepts_of_node x)) in
 
    (* The free receptacles of the given node at the RIGHT side of the cable. If we are updating
       we have to consider the old receptacle of the old nodename as available. *)
    let get_right_recept_of = match update with
-   | None   -> freeReceptsOfNode
+   | None   -> freeRecepts_of_node
    | Some c -> (fun x->if   (x = c#get_right.Netmodel.nodename)
-                       then c#get_right.Netmodel.receptname::(freeReceptsOfNode x)
-                       else (freeReceptsOfNode x)) in
+                       then c#get_right.Netmodel.receptname::(freeRecepts_of_node x)
+                       else (freeRecepts_of_node x)) in
 
     let left = Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave
                   ~masterCallback:(Some Log.print_endline)
                   ~masterPacking:(Some (dialog#cable_endpoints#attach ~left:1 ~top:1 ~right:2))
-                  st#network#getNodeNames
+                  st#network#get_node_names
                   ~slaveCallback:(Some Log.print_endline)
                   ~slavePacking:(Some (dialog#cable_endpoints#attach ~left:1 ~top:2 ~right:2))
                   get_left_recept_of
                   ~slaveSlaveCallback:(Some Log.print_endline)
                   ~slaveSlavePacking:(Some (dialog#cable_endpoints#attach ~left:3 ~top:1 ~right:4))
-                  (fun n1 r1 -> st#network#getNodeNames)
+                  (fun n1 r1 -> st#network#get_node_names)
                   ~slaveSlaveSlaveCallback:(Some Log.print_endline)
                   ~slaveSlaveSlavePacking:(Some (dialog#cable_endpoints#attach ~left:3 ~top:2 ~right:4))
                   (fun n1 r1 n2 ->

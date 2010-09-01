@@ -180,8 +180,9 @@ Once the cloud is defined, use the tab 'Anomalies' to control delays, \
 frame loss and the other anomalies.")
    in Simple_dialogs.help title msg ;;
 
- let help_socket_insert_update =
-   let title = (s_ "ADD OR MODIFY AN ETHERNET SOCKET") in
+ let help_world_bridge_insert_update =
+   let title = (s_ "ADD OR MODIFY A WORLD BRIDGE") in
+   (* TODO: rename "ethernet socket" => "world bridge" in all translations!*)
    let msg   = (s_ "\
 In this dialog window you can define the name of an Ethernet socket \
 and set parameters for it. This component allows to connect the virtual \

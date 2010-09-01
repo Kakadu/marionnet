@@ -208,7 +208,7 @@ class network =
   fun ?(iconsize="large") ?(shuffler=[]) ?(rankdir="TB") ?(nodesep=0.5) ?(labeldistance=1.6) ?(extrasize=0.)
 
       (* The handler for the real network *)
-      (network:( < revertedCables:(string list); revertedCableSet:(bool->string->unit); .. > ))  ->
+      (network:( < reverted_cables:(string list); reverted_cable_set:(bool->string->unit); .. > ))  ->
 
   object (self)
   inherit Xforest.interpreter ()
@@ -262,7 +262,7 @@ class network =
       rankdir#set "TB";
       nodesep#set 0.5;
       labeldistance#set 1.6 ;
-      ListExtra.foreach network#revertedCables (network#revertedCableSet false) ;
+      ListExtra.foreach network#reverted_cables (network#reverted_cable_set false) ;
       self#reset_extrasize () ;
       self#set_toolbar_widgets ()
     end
@@ -285,7 +285,7 @@ class network =
   (** Accessor the dot tuning toolbar. This part of the state will be filled
       loading Gui_toolbar_DOT_TUNING.
       Inverted cables corresponds to dynamic menus, so they not need to be reactualized
-      (the dynamic menus are recalculated each time from network#revertedCables. *)
+      (the dynamic menus are recalculated each time from network#reverted_cables. *)
 
   val mutable toolbar_driver : dot_tuning_high_level_toolbar_driver option = None
   method set_toolbar_driver t = toolbar_driver <- Some t
@@ -315,16 +315,17 @@ class network =
 
   (** This method is used just for undumping dotoptions, so is not strict.
       For instance, exceptions provoked by bad cable names are simply ignored. *)
-  method set_revertedCables names =
-    ListExtra.foreach names (fun n -> try (network#revertedCableSet true n) with _ -> ())
+  method set_reverted_cables names =
+    ListExtra.foreach names (fun n -> try (network#reverted_cable_set true n) with _ -> ())
 
   (** Undump the state of [self] from the given file. *)
   method load_from_file (file_name : string) =
    let forest = network_marshaller#from_file file_name in
    Xforest.print_forest forest;
    match forest with
-   | Forest.NonEmpty  (("dotoptions", attrs) , childs , Forest.Empty) ->
+   | Forest.NonEmpty (("dotoptions", attrs) , childs , Forest.Empty) ->
       self#from_forest ("dotoptions", attrs) childs
+   | _ -> assert false
 
  (** Dotoptions to forest encoding. *)
   method to_forest =
@@ -336,12 +337,12 @@ class network =
                    ("labeldistance" , (string_of_float labeldistance#get)) ;
                    ("extrasize"     , (string_of_float extrasize#get)    ) ;
                    ("gui_callbacks_disable", (string_of_bool gui_callbacks_disable)) ;
-                   ("invertedCables", (Xforest.encode network#revertedCables)) ;
+                   ("invertedCables", (Xforest.encode network#reverted_cables)) ;
 	           ])
 
  (** A Dotoption.network has just attributes (no childs) in this version.
      The Dotoption.network must be undumped AFTER the Netmodel.network in
-     order to have significant cable names (revertedCables). *)
+     order to have significant cable names (reverted_cables). *)
  method eval_forest_attribute = function
   | ("iconsize"             , x ) -> self#iconsize#set       x
   | ("shuffler"             , x ) -> self#shuffler#set      (Xforest.decode x)
@@ -350,7 +351,7 @@ class network =
   | ("labeldistance"        , x ) -> self#labeldistance#set (float_of_string x)
   | ("extrasize"            , x ) -> self#extrasize#set     (float_of_string x)
   | ("gui_callbacks_disable", x ) -> self#set_gui_callbacks_disable (bool_of_string x)
-  | ("invertedCables"       , x ) -> self#set_revertedCables (Xforest.decode x)
+  | ("invertedCables"       , x ) -> self#set_reverted_cables (Xforest.decode x)
   | _ -> () (* Forward-comp. *)
 
 end;; (* class Dotoptions.network *)
@@ -381,23 +382,24 @@ module Netmodel = struct
 (** {2 Basic functions and types } *)
 
 (** A device may be a Hub, a Switch or a Router. *)
-type devkind   = Hub | Switch | Router | NotADevice ;;
+type devkind   = Hub | Switch | Router | World_gateway | NotADevice ;;
 
-(** A cable may be Direct, Crossover or NullModem. *)
-type cablekind = Direct | Crossover | NullModem ;;
+(** A cable may be Direct or Crossover. *)
+type cablekind = Direct | Crossover ;;
 
-(** A port (of machine or device) may Eth (ethernet) or Ttys (serial). *)
-type portkind  = Eth | TtyS ;;
+(** A port (of machine or device) may Eth (ethernet). *)
+type portkind  = Eth ;;
 
-(** A node is a Machine, a Device, a Cloud or a Bridge_socket.
+(** A node is a Machine, a Device, a Cloud or a World_bridge.
     Cable are edge in the network, which is a graph of these nodes. *)
-type nodekind  = Machine | Device | Cloud | Bridge_socket ;;
+type nodekind  = Machine | Device | Cloud | World_bridge  ;;
 
 (** String conversion for a devkind. *)
 let string_of_devkind = function
   | Hub        -> "hub"
   | Switch     -> "switch"
   | Router     -> "router"
+  | World_gateway -> "world_gateway"
   | NotADevice -> raise (Failure "string_of_devkind: NotADevice")
 ;;
 
@@ -405,7 +407,6 @@ let string_of_devkind = function
 let string_of_cablekind = function
   | Direct     -> "direct"
   | Crossover  -> "crossover"
-  | NullModem  -> "nullmodem"
 ;;
 
 (** String conversion for a portkind. *)
@@ -425,9 +426,7 @@ let devkind_of_string x = match x with
 let cablekind_of_string x = match x with
   | "direct"    -> Direct
   | "crossover" -> Crossover
-  | "nullmodem" -> NullModem
-  | "serial"    -> NullModem
-  | _           -> raise (Failure ("cablekind_of_string: "^x))
+  | _           -> failwith ("cablekind_of_string: "^x)
 ;;
 
 
@@ -457,7 +456,18 @@ type simulated_device_automaton_state =
  | DeviceSleeping   (** *)
 ;;
 
+let string_of_simulated_device_automaton_state = function
+  | DeviceOff      -> "DeviceOff"
+  | DeviceOn       -> "DeviceOn"
+  | DeviceSleeping -> "DeviceSleeping"
+  | NoDevice       -> "NoDevice"
+;;
+
 exception ForbiddenTransition;;
+let raise_forbidden_transition msg =
+ Log.printf "ForbiddenTransition raised in %s\n" msg;
+ raise ForbiddenTransition
+;;
 
 (** This represents the current state of a simulated device (as per
     network_simulation.ml) and enables easy high-level state transitions which
@@ -481,6 +491,9 @@ class virtual simulated_device = object(self)
   | DeviceOn       -> "on"
   | DeviceSleeping -> "pause"
   | _              -> "off" (* Sometimes the sketch is builded in this state, so... *)
+
+  (** For debugging. Failthful translation of constructors: *)
+  method automaton_state_as_string = string_of_simulated_device_automaton_state !automaton_state
 
   (** The automaton state this device is going to. This is only used for the GUI and
       is not guaranteed to be accurate in case of concurrent access. It's only
@@ -606,7 +619,7 @@ class virtual simulated_device = object(self)
                                        (fun cable -> Log.print_string ("+ Working on cable\n"^(cable#show "")^"\n");
                                          cable#increment_alive_endpoints_no)
                                        (self#get_involved_cables)))
-        | _ -> raise ForbiddenTransition)
+        | _ -> raise_forbidden_transition "create_right_now")
 
   (** The unit parameter is needed: see how it's used in simulated_network: *)
   method private destroy_because_of_unexpected_death () =
@@ -652,7 +665,7 @@ class virtual simulated_device = object(self)
              self#set_next_simulated_device_state None;
              Log.printf "- We're not deadlocked yet (%s). Great.\n" self#get_name; flush_all ());
         | _ ->
-            raise ForbiddenTransition);
+            raise_forbidden_transition "destroy_right_now");
     Log.print_string ("- The simulated device " ^ (self#get_name) ^ " was destroyed with success\n");
     flush_all ()
 
@@ -673,7 +686,7 @@ class virtual simulated_device = object(self)
                                    automaton_state := DeviceOn;
                                    self#set_next_simulated_device_state None;
                                    Log.print_string ("* The device " ^ (self#get_name) ^ " was started up\n"))
-          | _ -> raise ForbiddenTransition
+          | _ -> raise_forbidden_transition "startup_right_now"
         end else begin
           Log.print_string ("* REFUSING TO START UP the ``incorrect'' device " ^ (self#get_name) ^ "...\n");
         end)
@@ -686,7 +699,7 @@ class virtual simulated_device = object(self)
           DeviceOn, Some(d) -> (d#suspend; (* This is the a method from some object in Simulated_network *)
                                 automaton_state := DeviceSleeping;
                                 self#set_next_simulated_device_state None)
-        | _ -> raise ForbiddenTransition)
+        | _ -> raise_forbidden_transition "suspend_right_now")
 
   method (*private*) resume_right_now =
     Recursive_mutex.with_mutex mutex
@@ -696,19 +709,24 @@ class virtual simulated_device = object(self)
           DeviceSleeping, Some(d) -> (d#resume; (* This is the a method from some object in Simulated_network *)
                                       automaton_state := DeviceOn;
                                       self#set_next_simulated_device_state None)
-        | _ -> raise ForbiddenTransition)
+        | _ -> raise_forbidden_transition "resume_right_now")
 
   method (*private*) gracefully_shutdown_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.print_string ("* Gracefully shutting down the device " ^ (self#get_name) ^ "...\n");
+        let current_state = self#automaton_state_as_string in
+        Log.printf "* Gracefully shutting down the device %s (from state: %s)...\n"
+          self#get_name
+          current_state;
         match !automaton_state, !simulated_device with
           DeviceOn, Some(d) -> (d#gracefully_shutdown; (* This is the a method from some object in Simulated_network *)
                                 automaton_state := DeviceOff;
                                 self#set_next_simulated_device_state None)
         | DeviceSleeping, Some(d) -> (self#resume_right_now;
                                       self#gracefully_shutdown_right_now)
-        | _ -> raise ForbiddenTransition)
+        | NoDevice,  _ | DeviceOff, _ ->
+           Log.printf "gracefully_shutdown_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
+        | _ -> raise_forbidden_transition "gracefully_shutdown_right_now")
 
   method (*private*) poweroff_right_now =
     Recursive_mutex.with_mutex mutex
@@ -720,7 +738,7 @@ class virtual simulated_device = object(self)
                                 self#set_next_simulated_device_state None)
         | DeviceSleeping, Some(d) -> (self#resume_right_now;
                                       self#poweroff_right_now)
-        | _ -> raise ForbiddenTransition)
+        | _ -> raise_forbidden_transition "poweroff_right_now")
 
   method set_hublet_processes_no n =
     Recursive_mutex.with_mutex mutex
@@ -730,7 +748,7 @@ class virtual simulated_device = object(self)
           DeviceOff, Some(d) -> d#set_hublet_processes_no n (* update hublets and don't change state *)
         | NoDevice, None -> (self#create_right_now;                    (* Make hublets... *)
                              self#set_hublet_processes_no n) (* ...and do the real work in state Off *)
-        | _ ->  raise ForbiddenTransition)
+        | _ ->  raise_forbidden_transition "set_hublet_processes_no")
 
   (** Return true iff the current state allows to 'startup' the device from the GUI. *)
   method can_startup =
@@ -947,31 +965,31 @@ class virtual node = fun
     | Some k -> List.filter (fun r->r#portkind=k) receptacles
 
   (** Get a receptacle of this node by the name of this receptacle (for instance ["eth0"]). *)
-  method getReceptacleByName rname = List.find (fun x->x#name=rname) receptacles
+  method get_receptacle_by_name rname = List.find (fun x->x#name=rname) receptacles
 
   (** A receptacle of the given name exists in this node? *)
-  method receptacleExists n = let f=(fun x->x#name=n) in (List.exists f receptacles)
+  method receptacle_exists n = let f=(fun x->x#name=n) in (List.exists f receptacles)
 
   (** The number of receptacles of this node. The portkind may be specified. *)
-  method numberOfReceptacles ?(portkind:(portkind option)=None) ()
+  method number_of_receptacles ?(portkind:(portkind option)=None) ()
       = List.length (self#get_receptacles ~portkind ())
 
   (** The max index in the list of receptacles of this node. The portkind is here mandatory. *)
-  method maxReceptacleIndex (k:portkind)  =
+  method max_receptacle_index (k:portkind)  =
     let l = (List.map (fun x->x#index) (self#get_receptacles ~portkind:(Some k) ())) in
     if l=[] then -1 else (ListExtra.max l)
 
   (** The list of names of receptacles of this node. The portkind may be specified. *)
-  method receptacleNames ?(portkind:(portkind option)=None) () =
+  method receptacle_names ?(portkind:(portkind option)=None) () =
     List.map (fun x->x#name) (self#get_receptacles ~portkind ())
 
   (** The list of socketnames [\{nodename:string; receptname:string\}]
       contained in this node. The [nodename] field will be constant to the name of this node in the returned list.
       The portkind may be specified. *)
 (*  method socketnames ?(portkind:(portkind option)=None) () =
-    List.map (fun x->{nodename=self#name; receptname=x}) (self#receptacleNames ~portkind ()) *)
+    List.map (fun x->{nodename=self#name; receptname=x}) (self#receptacle_names ~portkind ()) *)
   method socketnames =
-    List.map (fun x->{nodename=self#name; receptname=x}) (self#receptacleNames ())
+    List.map (fun x->{nodename=self#name; receptname=x}) (self#receptacle_names ())
 
   (** Just a version of socketnames returning something easier to manage than a list *)
   method socketnames_as_pair =
@@ -986,7 +1004,7 @@ class virtual node = fun
   (** Append a receptacle at the end of the receptacles list of this node. This action is performed
       checking the unicity of the receptacle name. *)
   method append_receptacle r  =
-    let name_exists = List.exists (fun x->x=r#name) (self#receptacleNames ()) in
+    let name_exists = List.exists (fun x->x=r#name) (self#receptacle_names ()) in
     if  name_exists
           then raise (Failure "add_receptacle : name already exists in this node")
           else receptacles <- (receptacles@[r])
@@ -994,7 +1012,7 @@ class virtual node = fun
   (** Append a receptacle at the end of the receptacles list of this node. This action is performed
       using a fresh index and name for the created receptacle. The portkind is here mandatory. *)
   method add_progressive_receptacle ?(prefix=None) (k:portkind) =
-    let num = (self#maxReceptacleIndex k) + 1 in
+    let num = (self#max_receptacle_index k) + 1 in
     let pref = (match prefix with None -> (string_of_portkind k) | Some x -> x) in
     let name = pref^(string_of_int num) in
     let r = new receptacle network name num "" k in
@@ -1003,7 +1021,7 @@ class virtual node = fun
 
   (** Remove the last receptacle (with the maximal index) of the given portkind from this node. *)
   method rm_last_receptacle (k:portkind) =
-    let i = self#maxReceptacleIndex k in
+    let i = self#max_receptacle_index k in
     let concerned = (fun r->(r#portkind=k) && (r#index=i)) in
     receptacles <- List.filter (fun r -> not (concerned r)) receptacles
 
@@ -1012,18 +1030,22 @@ class virtual node = fun
   (** Set the number of receptacles of the given [portkind] to the given number [x].
       If the current number of receptacles is greater than [x] then append else remove the necessary number
       of receptacles.*)
-  method readjust_receptacleNumber ?(prefix=None) (k:portkind) x =
-    let n = (self#numberOfReceptacles ~portkind:(Some k) ()) in
+  method readjust_receptacle_number ?(prefix=None) (k:portkind) x =
+    let n = (self#number_of_receptacles ~portkind:(Some k) ()) in
     match (n>x,n<x) with
-    | (true,  _ )  -> (self#rm_last_receptacle k)                 ; self#readjust_receptacleNumber ~prefix k x
-    | ( _  ,true)  -> (self#add_progressive_receptacle ~prefix k) ; self#readjust_receptacleNumber ~prefix k x
-    |      _       -> ()
+    | (true,  _ )  ->
+        (self#rm_last_receptacle k);
+        (self#readjust_receptacle_number ~prefix k x)
+    | ( _  ,true)  ->
+        (self#add_progressive_receptacle ~prefix k);
+        (self#readjust_receptacle_number ~prefix k x)
+    | _ -> ()
 
 
   (** {b Convenient aliases} *)
 
-  method get_eth_number                   = self#numberOfReceptacles ~portkind:(Some Eth) ()
-  method set_eth_number ?(prefix="eth") x = self#readjust_receptacleNumber ~prefix:(Some prefix) Eth x
+  method get_eth_number                   = self#number_of_receptacles ~portkind:(Some Eth) ()
+  method set_eth_number ?(prefix="eth") x = self#readjust_receptacle_number ~prefix:(Some prefix) Eth x
 
   (** Node dot traduction *)
 
@@ -1031,11 +1053,11 @@ class virtual node = fun
   method virtual dotImg : iconsize -> string
 
   (** Returns the label to use for cable representation.
-      This method may be redefined (for instance in [bridge_socket]). *)
+      This method may be redefined (for instance in [world_bridge]). *)
   method dotLabelForEdges (receptname:string) = self#get_label
 
   (** Returns the port to use for cable representation.
-      This method may be redefined (for instance in [bridge_socket]). *)
+      This method may be redefined (for instance in [world_bridge]). *)
   method dotPortForEdges (receptname:string)  = receptname
 
   (** A node is represented in dot with an HTML label which is a table
@@ -1044,7 +1066,12 @@ class virtual node = fun
       for example, the fontsize or fontname for both name and label :
       [ dotTrad ~nodeoptions="fontsize=8" "large" ] *)
   method dotTrad ?(nodeoptions="") (z:iconsize) =
-    let label_line = if self#get_label="" then "" else "<TR><TD><FONT COLOR=\"#3a3936\">"^self#get_label^"</FONT></TD></TR>" in
+    let label = self#label_for_dot in
+    let label_line =
+      if label=""
+       then ""
+       else "<TR><TD><FONT COLOR=\"#3a3936\">"^label^"</FONT></TD></TR>"
+    in
     let fontsize   = if self#nodekind=Machine then "" else "fontsize=8," in
     let nodeoptions = if nodeoptions = "" then "" else (nodeoptions^",") in
     begin
@@ -1056,11 +1083,14 @@ class virtual node = fun
 </TABLE>>];"
     end
 
+  (** Could be redefined. *)
+  method label_for_dot = self#get_label
+
   (** make_simulated_device is defined in subclasses, not here  *)
 
   (* Return the list of cables of which a port of self is an endpoint: *)
   method private get_involved_cables =
-    List.filter (fun c->c#isNodeinvolved self#get_name) network#cables
+    List.filter (fun c->c#i_node_nvolved self#get_name) network#cables
 
   (** I need these even if such mechods are only useful for machines (and routers,
       in the future), because of type problems... This looks like the easiest way. *)
@@ -1174,29 +1204,29 @@ object (self)
             assert false)
 
   (** The li st of two names of nodes (machine/device) linked by the cable *)
-  method involvedNodeNames =
+  method involved_node_names =
     with_mutex mutex
       (fun () ->
         [self#get_left.nodename; self#get_right.nodename])
 
   (** The pair of nodes (machine/device) linked by the cable *)
-  method involvedNodes =
+  method involve_node_ =
     with_mutex mutex
       (fun () ->
-        (network#getNodeByName self#get_left.nodename),
-        (network#getNodeByName self#get_right.nodename))
+        (network#get_node_by_name self#get_left.nodename),
+        (network#get_node_by_name self#get_right.nodename))
 
   (** Return the list of devices (i.e. hubs, switches or routers) directly linked to this cable: *)
   method involved_devices_and_port_nos =
     with_mutex mutex
       (fun () ->
         let left_port_name, right_port_name = self#receptacle_names in
-        let left_port_index = (self#left_endpoint#getReceptacleByName left_port_name)#index in
-        let right_port_index = (self#right_endpoint#getReceptacleByName right_port_name)#index in
+        let left_port_index = (self#left_endpoint#get_receptacle_by_name left_port_name)#index in
+        let right_port_index = (self#right_endpoint#get_receptacle_by_name right_port_name)#index in
         let left_node =
-          network#getNodeByName self#get_left.nodename in
+          network#get_node_by_name self#get_left.nodename in
         let right_node =
-          network#getNodeByName self#get_right.nodename in
+          network#get_node_by_name self#get_right.nodename in
         let left_device =
           match left_node#devkind with
             NotADevice -> None
@@ -1212,13 +1242,13 @@ object (self)
         | (Some d1), (Some d2) -> [ d1; d2 ])
 
   (** Is a node connected to something with this cable? *)
-  method isNodeinvolved nodename =
+  method i_node_nvolved nodename =
     with_mutex mutex
       (fun () ->
-        List.mem nodename self#involvedNodeNames)
+        List.mem nodename self#involved_node_names)
 
   (** Change the left or right nodename if needed. *)
-  method changeNodeName oldname newname =
+  method change_node_name oldname newname =
     with_mutex mutex
       (fun () ->
         if left.nodename  = oldname then left.nodename  <- newname ;
@@ -1264,6 +1294,7 @@ object (self)
       | ("rightnodename"   , x ) -> self#get_right.nodename   <- x ;
       | ("rightreceptname" , x ) -> self#get_right.receptname <- x ;
       | ("kind"            , x ) -> () (* Constant field: cannot be set. *)
+      | _ -> assert false
 
     (** Access method *)
     method is_connected =
@@ -1376,16 +1407,16 @@ object (self)
      with_mutex mutex
        (fun () ->
          let left, right = self#get_left, self#get_right in
-         let left_node = network#getNodeByName left.nodename in
-         let right_node = network#getNodeByName right.nodename in
+         let left_node = network#get_node_by_name left.nodename in
+         let right_node = network#get_node_by_name right.nodename in
          let left_hublet_process =
            left_node#get_hublet_process_by_interface_name left.receptname in
          let right_hublet_process =
            right_node#get_hublet_process_by_interface_name right.receptname in
          let left_port_index =
-           (left_node#getReceptacleByName left.receptname)#index in
+           (left_node#get_receptacle_by_name left.receptname)#index in
          let right_port_index =
-           (right_node#getReceptacleByName right.receptname)#index in
+           (right_node#get_receptacle_by_name right.receptname)#index in
          let left_blink_command =
            match left_node#devkind with
              NotADevice -> None
@@ -1467,9 +1498,9 @@ object (self)
     with_mutex mutex
       (fun () ->
         let left_endpoint_name = self#get_left.nodename in
-        let left_endpoint = network#getNodeByName left_endpoint_name in
+        let left_endpoint = network#get_node_by_name left_endpoint_name in
         let right_endpoint_name = self#get_right.nodename in
-        let right_endpoint = network#getNodeByName right_endpoint_name in
+        let right_endpoint = network#get_node_by_name right_endpoint_name in
         left_endpoint, right_endpoint)
 
    method left_endpoint =
@@ -1516,20 +1547,18 @@ let rec mkrecepts network k portkind portprefix = match k with
  * *************************** *)
 
 let is_there_a_router_variant () =
-  let result =
-    List.mem "default" (MSys.variant_list_of ("router-" ^ router_unprefixed_filesystem) ())
-  in
-  result;;
+  List.mem "default" (MSys.variant_list_of ("router-" ^ router_unprefixed_filesystem) ())
+;;
+
+let check_variant x d =
+  let variants = MSys.variant_list_of ("router-" ^ d) () in
+  if not (List.mem x variants) then
+    raise (Failure ("Setting router variant: "^x^" not in the list of available variants, which is:"^(StringExtra.Text.to_string variants)))
+  else x
+;;
 
 (** A device is a nodes s.t. nodekind=Device. Defects may be added after the creation. *)
 class device =
-  let variantsListOf d =
-    MSys.variant_list_of ("router-" ^ d) () in
-  let check_variant x d =
-    if not (List.mem x (variantsListOf d)) then
-      raise (Failure ("Setting router variant: "^x^" not in the list of available variants, which is:"^((variantsListOf d)=> StringExtra.Text.to_string)))
-    else
-      x in
  fun
   ~network
   ?(name="nodevicename")
@@ -1537,14 +1566,18 @@ class device =
   ?(devkind=Hub)
   ?(variant=no_variant_text)
   (ethnum:int) () ->
-  let intialReceptacles = (mkrecepts network (ethnum-1) Eth "port") in
+  let intial_receptacles = (mkrecepts network (ethnum-1) Eth "port") in
 
   object (self)
 
-  inherit node ~network ~name ~label ~nodekind:Device ~devkind ~rlist:intialReceptacles () as super
+  inherit node ~network ~name ~label ~nodekind:Device ~devkind ~rlist:intial_receptacles () as super
 
   (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity = if self#devkind = Router then MDI else MDI_X
+  method polarity =
+   match self#devkind with
+   | Router  -> MDI
+   | World_gateway -> Intelligent (* Because of the ambiguity router/switch *)
+   | _       -> MDI_X
 
   (** Get the full host pathname to the directory containing the guest hostfs
       filesystem: *)
@@ -1568,7 +1601,7 @@ class device =
   (** Returns the label to use for cable representation.
       For devices, the port X is represented by the string "[X]". *)
   method dotLabelForEdges (receptname:string) =
-    let index = (self#getReceptacleByName receptname)#index in
+    let index = (self#get_receptacle_by_name receptname)#index in
     ("["^string_of_int index^"]")
 
   (** Return the string representing the port in cable representation. *
@@ -1589,6 +1622,7 @@ class device =
   | ("label" , x ) -> self#set_label x
   | ("kind"  , x ) -> self#set_devkind (devkind_of_string x)
   | ("eth"   , x ) -> self#set_eth_number (int_of_string x)
+  | _ -> assert false
 
   (** Create the simulated device *)
   method private make_simulated_device =
@@ -1599,8 +1633,8 @@ class device =
       let hublets_no = List.length ethernet_receptacles in
       let unexpected_death_callback = self#destroy_because_of_unexpected_death in
       (match self#devkind with
-        Hub -> new Simulated_network.hub
-      | Switch -> new Simulated_network.switch
+      | Hub     -> new Simulated_network.hub
+      | Switch  -> new Simulated_network.switch
       | _ -> assert false)
         ~name ~hublets_no ~unexpected_death_callback ()
     else begin
@@ -1613,8 +1647,8 @@ class device =
         cow_file_name;
       Log.printf "=================================\n";
       (let cmd=Printf.sprintf "ls -l %s" cow_file_name in
-       Sys.command cmd);
-      flush_all;
+       ignore (Sys.command cmd));
+      flush_all ();
       Log.printf "=================================\n";
       new Simulated_network.router
         ~name:self#get_name
@@ -1633,19 +1667,8 @@ class device =
     (* Do as usual... *)
     super#startup_right_now;
     (* ...and also show the LED grid: *)
-    network#ledgrid_manager#show_device_ledgrid ~id:(self#id) ();
-(*
-  (** Here we also have to manage LED grids and, for routers, cow files: *)
-  method private gracefully_shutdown_right_now =
-    (* Do as usual... *)
-    super#gracefully_shutdown_right_now;
-    (* ...and also hide the LED grid... *)
-    network#ledgrid_manager#hide_device_ledgrid ~id:(self#id) ();
-    (* ...and if this is a router then destroy, so that the next time we have to
-       re-create a simulated device, and we start with a new cow *)
-    if self#devkind = Router then
-      self#destroy_right_now
-*)
+    network#ledgrid_manager#show_device_ledgrid ~id:(self#id) ()
+
   (** Here we also have to manage cow files... *)
   method private gracefully_shutdown_right_now =
     (* Do as usual... *)
@@ -1751,12 +1774,12 @@ class machine =
     raise (Failure ("Setting machine "^name^": unexpected uml terminal choice "^x))
     else x in
 
-  let intialReceptacles =
+  let intial_receptacles =
    (mkrecepts network ((check_ethnum ethnum)-1) Eth "eth") in
 
   object (self)
 
-  inherit node ~network ~name ~label ~nodekind:Machine ~rlist:intialReceptacles () as super
+  inherit node ~network ~name ~label ~nodekind:Machine ~rlist:intial_receptacles () as super
 
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity = MDI
@@ -1771,35 +1794,30 @@ class machine =
         failwith (self#name ^ " is not being simulated right now")
 
   (** Redefining node methods for adding checks *)
-  method set_eth_number ?(prefix="eth") x = self#readjust_receptacleNumber ~prefix:(Some prefix) Eth (check_ethnum  x)
+  method set_eth_number ?(prefix="eth") x = self#readjust_receptacle_number ~prefix:(Some prefix) Eth (check_ethnum  x)
 
   (** A machine will be started with a certain amount of memory *)
   val mutable memory : int = check_mem mem
-
   method get_memory   = memory
   method set_memory x = memory <- check_mem x
 
   (** A machine has a Linux filesystem *)
   val mutable distrib : string = check_distrib distr
-
   method get_distrib   = distrib
   method set_distrib x = distrib <- check_distrib x
 
   (** A machine has an associated initial variant *)
   val mutable variant : string = check_variant variant distr
-
   method get_variant   = variant
   method set_variant x = variant <- check_variant x distrib
 
   (** A machine has a linux kernel. *)
   val mutable kernel : string = check_kernel ker
-
   method get_kernel   = kernel
   method set_kernel x = kernel <- check_kernel x
 
   (** A machine can be used accessed in a specific terminal mode. *)
   val mutable terminal : string = check_term ter
-
   method get_terminal   = terminal
   method set_terminal x = terminal <- check_term x
 
@@ -1909,11 +1927,11 @@ class cloud =
       () ->
 
   let gwnum             = 2 in
-  let intialReceptacles = (mkrecepts network (gwnum-1) Eth "port") in
+  let intial_receptacles = (mkrecepts network (gwnum-1) Eth "port") in
 
   object (self)
 
-  inherit node ~network ~name ~label ~nodekind:Cloud ~rlist:intialReceptacles ()
+  inherit node ~network ~name ~label ~nodekind:Cloud ~rlist:intial_receptacles ()
 
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity = MDI_X
@@ -1931,7 +1949,7 @@ class cloud =
 
   (** Cloud endpoints are represented in the same way of devices ones, with "[X]". *)
   method dotLabelForEdges (receptname:string) =
-    let index = (self#getReceptacleByName receptname)#index in
+    let index = (self#get_receptacle_by_name receptname)#index in
     ("["^string_of_int index^"]")
 
   method dotPortForEdges (receptname:string) = ""
@@ -1944,6 +1962,7 @@ class cloud =
  (** A cloud has just attributes (no childs) in this version. *)
  method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x
+  | _ -> assert false
 
   (** Create the simulated device *)
   method private make_simulated_device =
@@ -1956,34 +1975,34 @@ end;; (* cloud *)
 
 
 (* *************************** *
-        class bridge_socket
+        class world_bridge
  * *************************** *)
 
-(** A bridge_socket has a single receptacle and an associated IP number. *)
-class bridge_socket =
+(** A world_bridge has a single receptacle and an associated IP number. *)
+class world_bridge =
 
   fun ~network
-      ?(name="nobridge_socketname")
+      ?(name="noworld_bridgename")
       ?(label="")
       () ->
 
-  let intialReceptacles = (mkrecepts network 0 Eth "eth") in
+  let intial_receptacles = (mkrecepts network 0 Eth "eth") in
 
   object (self)
 
-  inherit node ~network ~name ~label ~nodekind:Bridge_socket ~rlist:intialReceptacles ()
+  inherit node ~network ~name ~label ~nodekind:World_bridge ~rlist:intial_receptacles ()
 
   (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity = MDI_X
+  method polarity = Intelligent (* Because is not pedagogic anyway. *)
 
-  method show = (self#name^" (bridge socket)")
+  method show = (self#name^" (world bridge)")
 
   (** Dot adjustments *)
 
   (** Return an image representing the machine with the given iconsize. *)
   method dotImg (z:iconsize) =
     let imgDir = (MSys.whereis "" MSys.Icon) in
-    (imgDir^"ico.socket."^(self#string_of_simulated_device_state)^"."^z^".png")
+    (imgDir^"ico.world_bridge."^(self#string_of_simulated_device_state)^"."^z^".png")
 
   (** Returns the label to use for cable representation.*)
   method dotLabelForEdges receptname = "" (* ip#toString *)
@@ -1993,22 +2012,101 @@ class bridge_socket =
   method dotPortForEdges receptname = ""
 
   method to_forest =
-   Forest.leaf ("bridge_socket", [
+   Forest.leaf ("world_bridge", [
                   ("name", self#get_name);
                   ])
 
-  (** A bridge_socket has just attributes (no childs) in this version. *)
+  (** A world_bridge has just attributes (no childs) in this version. *)
   method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x
+  | _ -> assert false
 
   (** Create the simulated device *)
   method private make_simulated_device =
-    new Simulated_network.bridge_socket
+    new Simulated_network.world_bridge
       ~name:self#get_name
       ~bridge_name:Global_options.ethernet_socket_bridge_name
       ~unexpected_death_callback:self#destroy_because_of_unexpected_death
       ()
-end;; (* bridge_socket *)
+end;; (* world_bridge *)
+
+
+(* *************************** *
+        class world_gateway
+ * *************************** *)
+
+(** A gateway has an associated network address and a dhcp server
+    feature enabled or not. *)
+class world_gateway =
+
+  fun ~network
+      ?(name="world_gatewayname")
+      ?(label="")
+      ?(network_address="10.0.2.0")
+      ?(dhcp_enabled=true)
+      ?(user_port_no=4)
+      () ->
+  object (self)
+  inherit device ~network ~name ~label ~devkind:World_gateway user_port_no () as super
+
+  method show = (self#name^" (world gateway)")
+
+  val mutable network_address : string = network_address
+  method get_network_address = network_address
+  method set_network_address x = network_address <- self#check_network_address x
+  method private check_network_address x = x (* TODO *)
+
+  val mutable dhcp_enabled : bool = dhcp_enabled
+  method get_dhcp_enabled = dhcp_enabled
+  method set_dhcp_enabled x = dhcp_enabled <- self#check_dhcp_enabled x
+  method private check_dhcp_enabled x = x (* TODO *)
+
+  (** Redefined:*)
+  method gw_ipv4_address =
+    let (b1,b2,b3,_) = Ipv4.ipv4_of_string self#get_network_address in
+    let last_byte = 2 in
+    (b1,b2,b3, last_byte)
+
+  method gw_ipv4_address_as_string : string =
+    Ipv4.string_of_ipv4 self#gw_ipv4_address
+
+  method dotImg (z:iconsize) =
+    let imgDir = (MSys.whereis "" MSys.Icon) in
+    (imgDir^"ico.world_gateway."^(self#string_of_simulated_device_state)^"."^z^".png")
+
+  (** Redefined:*)
+  method label_for_dot =
+    let ip_gw = Ipv4.string_of_ipv4 ~cidr:24 self#gw_ipv4_address in
+    match self#get_label with
+    | "" -> ip_gw
+    | _  -> Printf.sprintf "%s <br/> %s" ip_gw self#get_label
+
+  method to_forest =
+   Forest.leaf ("world_gateway", [
+                  ("name",  self#get_name);
+                  ("label", self#get_label);
+                  ("network_address", self#get_network_address);
+                  ("dhcp_enabled", (string_of_bool self#get_dhcp_enabled));
+                  ])
+
+  (** A world_bridge has just attributes (no childs) in this version. *)
+  method eval_forest_attribute = function
+  | ("name"  , x ) -> self#set_name x
+  | ("label" , x ) -> self#set_label x
+  | ("network_address", x ) -> self#set_network_address x
+  | ("dhcp_enabled", x) -> self#set_dhcp_enabled (bool_of_string x)
+  | _ -> assert false
+
+  (** Create the simulated device *)
+  method private make_simulated_device =
+    new Simulated_network.world_gateway
+      ~name:self#get_name
+      ~user_port_no:self#get_eth_number
+      ~network_address
+      ~dhcp_enabled
+      ~unexpected_death_callback:self#destroy_because_of_unexpected_death
+      ()
+end;; (* world_gateway *)
 
 
 (*********************
@@ -2111,7 +2209,8 @@ class network () =
  val mutable devices  : (device  list) = []
  val mutable cables   : (cable   list) = []
  val mutable clouds   : (cloud   list) = []
- val mutable bridge_sockets : (bridge_socket list) = []
+ val mutable world_bridges : (world_bridge list) = []
+ val mutable world_gateways : (world_gateway list) = []
 
  val ledgrid_manager = Ledgrid_manager.the_one_and_only_ledgrid_manager
 
@@ -2120,7 +2219,8 @@ class network () =
  val mutable devices_buffer  : (device  list) = []
  val mutable cables_buffer   : (cable   list) = []
  val mutable clouds_buffer   : (cloud   list) = []
- val mutable bridge_sockets_buffer : (bridge_socket list) = []
+ val mutable world_bridges_buffer : (world_bridge list) = []
+ val mutable world_gateways_buffer : (world_gateway list) = []
 
  (** Accessors *)
 
@@ -2128,7 +2228,8 @@ class network () =
  method devices         = devices
  method cables          = cables
  method clouds          = clouds
- method bridge_sockets  = bridge_sockets
+ method world_bridges  = world_bridges
+ method world_gateways  = world_gateways
  method ledgrid_manager = ledgrid_manager
 
  (** Related dot options fro drawing this virtual network.
@@ -2141,7 +2242,8 @@ class network () =
    ((machines :> component list) @
     (devices  :> component list) @
     (clouds   :> component list) @
-    (bridge_sockets :> component list) @
+    (world_bridges :> component list) @
+    (world_gateways :> component list) @
     (cables   :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
     )
 
@@ -2166,10 +2268,14 @@ class network () =
    (List.iter
       (fun cloud -> try cloud#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       clouds);
-   Log.print_string "destroying all bridge sockets...\n";
+   Log.print_string "destroying all world bridges...\n";
    (List.iter
-      (fun bridge_socket -> try bridge_socket#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
-      bridge_sockets);
+      (fun world_bridge -> try world_bridge#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
+      world_bridges);
+   Log.print_string "destroying all world gateways...\n";
+   (List.iter
+      (fun x -> try x#destroy with _ -> ())
+      world_gateways);
    Log.print_string "Synchronously wait that everything terminates...\n";
    Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
 
@@ -2177,7 +2283,8 @@ class network () =
    machines <- [] ;
    devices  <- [] ;
    clouds   <- [] ;
-   bridge_sockets <- [] ;
+   world_bridges <- [] ;
+   world_gateways <- [] ;
    cables   <- [] ;
 
    Log.print_string "Wait for all devices to terminate...\n"; flush_all ();
@@ -2193,7 +2300,8 @@ class network () =
    machines <- machines_buffer ;
    devices  <- devices_buffer  ;
    clouds   <- clouds_buffer   ;
-   bridge_sockets <- bridge_sockets_buffer ;
+   world_bridges <- world_bridges_buffer ;
+   world_gateways <- world_gateways_buffer ;
    cables   <- cables_buffer
  end
 
@@ -2202,7 +2310,8 @@ class network () =
    machines_buffer <- machines ;
    devices_buffer  <- devices  ;
    clouds_buffer   <- clouds   ;
-   bridge_sockets_buffer <- bridge_sockets ;
+   world_bridges_buffer <- world_bridges ;
+   world_gateways_buffer <- world_gateways ;
    cables_buffer   <- cables
   end
 
@@ -2217,24 +2326,29 @@ class network () =
   | Forest.NonEmpty (("machine", attrs) , childs , Forest.Empty) ->
       let x = new machine ~network:self () in
       x#from_forest ("machine", attrs) childs ;
-      self#addMachine x
+      self#add_machine x
 
  | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
       let ethno = List.assoc "eth" attrs in
       let x = new device ~network:self (int_of_string ethno) () in
       x#from_forest ("device", attrs) childs ;
-      self#addDevice x
+      self#add_device x
 
  | Forest.NonEmpty (("cloud", attrs) , childs , Forest.Empty) ->
       let x = new cloud ~network:self () in
       x#from_forest ("cloud", attrs) childs ;
-      self#addCloud x;
+      self#add_cloud x;
 
- | Forest.NonEmpty (("bridge_socket", attrs) , childs , Forest.Empty)
+ | Forest.NonEmpty (("world_bridge", attrs) , childs , Forest.Empty)
  | Forest.NonEmpty (("gateway" (* retro-compatibility *) , attrs) , childs , Forest.Empty) ->
-      let x = new bridge_socket ~network:self () in
-      x#from_forest ("bridge_socket", attrs) childs  ;
-      self#addBridge_socket x;
+      let x = new world_bridge ~network:self () in
+      x#from_forest ("world_bridge", attrs) childs  ;
+      self#add_world_bridge x;
+
+ | Forest.NonEmpty (("world_gateway", attrs) , childs , Forest.Empty) ->
+      let x = new world_gateway ~network:self () in
+      x#from_forest ("world_gateway", attrs) childs  ;
+      self#add_world_gateway x;
 
  | Forest.NonEmpty (("cable", attrs) , childs , Forest.Empty) ->
       (* Cables represent a special case: they must be builded knowing their endpoints. *)
@@ -2248,7 +2362,7 @@ class network () =
       let cablekind = cablekind_of_string ck      in
       let x = new cable ~motherboard:self#motherboard ~cablekind ~network:self ~left ~right () in
       x#from_forest ("cable", attrs) childs ;
-      self#addCable x;
+      self#add_cable x;
 
   | Forest.NonEmpty ((nodename, _) , _ , _)
      -> (Log.printf "network#eval_forest_child: I can't interpret this nodename '%s'.\n" nodename)
@@ -2271,8 +2385,13 @@ class network () =
     Printf.sprintf "%s" (Xml.to_string_fmt s)*)
 
  method nodes : (node list) =
-   ((machines :> node list) @ (devices  :> node list) @
-    (clouds   :> node list) @ (bridge_sockets :> node list) )
+  List.concat [
+    (machines :> node list);
+    (devices  :> node list);
+    (clouds   :> node list);
+    (world_bridges :> node list);
+    (world_gateways :> node list);
+    ]
 
  method names = (List.map (fun x->x#name) self#components)
 
@@ -2280,18 +2399,20 @@ class network () =
    let rec tip prefix k =
      begin
      let prop = (prefix^(string_of_int k)) in
-     if self#nameExists prop then tip prefix (k+1) else prop
+     if self#name_exists prop then tip prefix (k+1) else prop
      end in tip prefix 1
 
 
  (** Get machine, device or cable in the network by its name *)
- method getMachineByName n = try List.find (fun x->x#name=n) machines   with _ -> failwith ("getMachineByName "^n)
- method getDeviceByName  n = try List.find (fun x->x#name=n) devices    with _ -> failwith ("getDeviceByName "^n)
- method getCableByName   n = try List.find (fun x->x#name=n) cables     with _ -> failwith ("getCableByName "^n)
- method getCloudByName   n = try List.find (fun x->x#name=n) clouds     with _ -> failwith ("getCloudByName "^n)
- method getBridge_socketByName n =
-   try List.find (fun x->x#name=n) bridge_sockets with _ -> failwith ("getBridge_socketByName "^n)
- method getNodeByName    n = try List.find (fun x->x#name=n) self#nodes with _ -> failwith ("getNodeByName \""^n^"\"")
+ method get_machine_by_name n = try List.find (fun x->x#name=n) machines   with _ -> failwith ("get_machine_by_name "^n)
+ method get_device_by_name  n = try List.find (fun x->x#name=n) devices    with _ -> failwith ("get_device_by_name "^n)
+ method get_cable_by_name   n = try List.find (fun x->x#name=n) cables     with _ -> failwith ("get_cable_by_name "^n)
+ method get_cloud_by_name   n = try List.find (fun x->x#name=n) clouds     with _ -> failwith ("get_cloud_by_name "^n)
+ method get_world_bridge_by_name n =
+   try List.find (fun x->x#name=n) world_bridges with _ -> failwith ("get_world_bridge_by_name "^n)
+ method get_world_gateway_by_name n =
+   try List.find (fun x->x#name=n) world_gateways with _ -> failwith ("get_world_gateway_by_name "^n)
+ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _ -> failwith ("get_node_by_name \""^n^"\"")
 
  (** Managing socketnames *)
 
@@ -2299,8 +2420,9 @@ class network () =
  method socketnames = List.flatten (List.map (fun node->node#socketnames) (self#nodes))
 
  (** List of socketnames busy by a cable in the network *)
- method busySocketnames = List.flatten (List.map (fun c->c#socketnames) cables)
-
+ method busySocketnames =
+   List.flatten (List.map (fun c->c#socketnames) cables)
+  
  (** List of available socketnames in the network *)
  method freeSocketnames = ListExtra.substract self#socketnames self#busySocketnames
 
@@ -2310,76 +2432,79 @@ class network () =
  (** Managing receptacle of a given node *)
 
  (** List of receptacles of a node and of a given kind. *)
- method receptaclesOfNode name (k:portkind) =
-     (self#getNodeByName name)#get_receptacles ~portkind:(Some k) ()
+ method receptacles_of_node name (k:portkind) =
+     (self#get_node_by_name name)#get_receptacles ~portkind:(Some k) ()
 
  (** List of receptacles names of a node and of a given kind. *)
- method receptaclesNamesOfNode name (k:portkind) =
-     (self#getNodeByName name)#receptacleNames ~portkind:(Some k) ()
+ method receptacles_names_of_node name (k:portkind) =
+     (self#get_node_by_name name)#receptacle_names ~portkind:(Some k) ()
 
  (** List of free receptacles of a nodename and of a given portkind. *)
- method freeReceptaclesOfNode nodename portkind =
-   let recepts = (self#receptaclesOfNode nodename portkind) in
+ method free_receptacles_of_node nodename portkind =
+   let recepts = (self#receptacles_of_node nodename portkind) in
    let freeSocketnames  = self#freeSocketnames in
    List.filter (fun r ->(List.mem {nodename=nodename;receptname=r#name} freeSocketnames)) recepts
 
  (** List of free receptacles names of a nodename and of a given portkind. *)
- method freeReceptaclesNamesOfNode nodename portkind =
-   let recept_names   = (self#receptaclesNamesOfNode nodename portkind) in
+ method free_receptacles_names_of_node nodename portkind =
+   let recept_names   = (self#receptacles_names_of_node nodename portkind) in
    let freeSocketnames  = self#freeSocketnames in
    List.filter (fun r ->(List.mem {nodename=nodename;receptname=r} freeSocketnames)) recept_names
 
  (** List of busy receptacles of a nodename and of a given portkind. *)
- method busyReceptaclesOfNode nodename portkind =
-   let recepts = (self#receptaclesOfNode nodename portkind) in
+ method busy_receptacles_of_node nodename portkind =
+   let recepts = (self#receptacles_of_node nodename portkind) in
    let freeSocketnames  = self#freeSocketnames in
    List.filter (fun r ->(not (List.mem {nodename=nodename;receptname=r#name} freeSocketnames))) recepts
 
  (** List of busy receptacles names of a nodename and of a given portkind. *)
- method busyReceptaclesNamesOfNode nodename portkind =
-   let recept_names   = (self#receptaclesNamesOfNode nodename portkind) in
+ method busy_receptacles_names_of_node nodename portkind =
+   let recept_names   = (self#receptacles_names_of_node nodename portkind) in
    let freeSocketnames  = self#freeSocketnames in
    List.filter (fun r ->not (List.mem {nodename=nodename;receptname=r} freeSocketnames)) recept_names
 
  (** The max index among busy receptacles of a given kind of a given node.
      The user cannot change the number of receptacle of the given node to a number less than this index+1.
-     For instance, if the (maxBusyReceptacleIndex "rome" Eth) = 2 then the user can change
+     For instance, if the (max_busy_receptacle_index "rome" Eth) = 2 then the user can change
      the number of receptacle of rome but only with a number >= 3.  *)
- method maxBusyReceptacleIndex nodename portkind : int =
-   let bl = (self#busyReceptaclesOfNode nodename portkind) in
+ method max_busy_receptacle_index nodename portkind : int =
+   let bl = (self#busy_receptacles_of_node nodename portkind) in
    let il = (List.map (fun x->x#index) bl) in
    if il=[] then -1 else ListExtra.max il
 
  (** Component exists? *)
 
- method machineExists n = let f=(fun x->x#name=n) in (List.exists f machines)
- method deviceExists  n = let f=(fun x->x#name=n) in (List.exists f devices )
- method cableExists   n = let f=(fun x->x#name=n) in (List.exists f cables  )
- method cloudExists   n = let f=(fun x->x#name=n) in (List.exists f clouds  )
- method bridge_socketExists n = let f=(fun x->x#name=n) in (List.exists f bridge_sockets)
- method nameExists    n = List.mem n self#names
+ method machine_exists n = let f=(fun x->x#name=n) in (List.exists f machines)
+ method device_exists  n = let f=(fun x->x#name=n) in (List.exists f devices )
+ method cable_exists   n = let f=(fun x->x#name=n) in (List.exists f cables  )
+ method cloud_exists   n = let f=(fun x->x#name=n) in (List.exists f clouds  )
+ method world_bridge_exists n = let f=(fun x->x#name=n) in (List.exists f world_bridges)
+ method world_gateway_exists n = let f=(fun x->x#name=n) in (List.exists f world_gateways)
+ method name_exists    n = List.mem n self#names
 
  (** What kind of node is it ? *)
- method nodeKind n = (self#getNodeByName n)#nodekind
+ method nodeKind n = (self#get_node_by_name n)#nodekind
 
  (** Adding components *)
 
-   method make_device_ledgrid (d:device) =
+ method make_device_ledgrid (d:device) =
+     let led_subdirectory = string_of_devkind d#devkind in
      (* Make a new device LEDgrid: *)
      self#ledgrid_manager#make_device_ledgrid
        ~id:(d#id)
        ~title:(d#get_name(*  ^ " (" ^(string_of_devkind d#devkind) ^ ")" *))
        ~label:(match d#devkind with
-                 Hub -> "Hub"
-               | Switch -> "Switch"
-               | Router -> "Router"
+                 Hub -> ("Hub")
+               | Switch -> ("Switch")
+               | Router -> ("Router")
+               | World_gateway -> ("World gateway")
                | _ -> assert false)
-       ~ports_no:(d#numberOfReceptacles ~portkind:(Some Eth) ())
-       ~image_directory:(MSys.marionnet_home_images^"/leds/"^(string_of_devkind d#devkind))
+       ~ports_no:(d#number_of_receptacles ~portkind:(Some Eth) ())
+       ~image_directory:(MSys.marionnet_home_images^"/leds/"^led_subdirectory)
        ();
      (* Set port connection state: *)
      let busy_ports =
-       self#busyReceptaclesOfNode d#get_name Eth in
+       self#busy_receptacles_of_node d#get_name Eth in
      let busy_ports_as_indices =
        List.map (fun receptacle -> receptacle#index) busy_ports in
      ignore (List.map
@@ -2391,9 +2516,9 @@ class network () =
                busy_ports_as_indices)
 
  (** Devices must have a unique name in the network *)
- method addDevice (d:device) =
-    if (self#nameExists d#name) then
-      raise (Failure "addDevice: name already used in the network")
+ method add_device (d:device) =
+    if (self#name_exists d#name) then
+      raise (Failure "add_device: name already used in the network")
     else begin
       devices  <- (devices@[d]);
       self#make_device_ledgrid d;
@@ -2407,18 +2532,18 @@ class network () =
     end
 
  (** Machines must have a unique name in the network *)
- method addMachine (m:machine) =
-   if (self#nameExists m#name) then
-     raise (Failure ("addMachine: name "^m#name^" already used in the network"))
+ method add_machine (m:machine) =
+   if (self#name_exists m#name) then
+     raise (Failure ("add_machine: name "^m#name^" already used in the network"))
    else begin
      (* Ok, we have fixed the variant name. Now just prepend the machine to the
         appropriate list: *)
      machines  <- (machines@[m]);
    end
  (** Cable must connect free socketnames  *)
- method addCable (c:cable) =
-    if (self#nameExists c#name)
-    then raise (Failure "addCable: name already used in the network")
+ method add_cable (c:cable) =
+    if (self#name_exists c#name)
+    then raise (Failure "add_cable: name already used in the network")
     else
       if (self#isSocketnameFree c#get_left) && (self#isSocketnameFree c#get_right)
       then begin
@@ -2427,8 +2552,8 @@ class network () =
            the appropriate LED grid: *)
         let left_endpoint, right_endpoint = c#endpoints in
         let left_port_name, right_port_name = c#receptacle_names in
-        let left_port_index = (left_endpoint#getReceptacleByName left_port_name)#index in
-        let right_port_index = (right_endpoint#getReceptacleByName right_port_name)#index in
+        let left_port_index = (left_endpoint#get_receptacle_by_name left_port_name)#index in
+        let right_port_index = (right_endpoint#get_receptacle_by_name right_port_name)#index in
 (*         Log.print_string ("\nLeft side: " ^ left_port_name ^ "\n Right side: "^right_port_name^"\n"); *)
         if left_endpoint#devkind != NotADevice then
           self#ledgrid_manager#set_port_connection_state
@@ -2443,66 +2568,70 @@ class network () =
             ~value:true
             ();
       end else
-        raise (Failure ("addCable: left and/or right socketname busy or nonexistent for "^(c#show "")))
+        raise (Failure ("add_cable: left and/or right socketname busy or nonexistent for "^(c#show "")))
 
- (** Clouds must have a unique name in the network *)
- method addCloud (c:cloud) =
-    if (self#nameExists c#name)
-          then raise (Failure ("addCloud: name "^c#name^" already used in the network"))
+ method add_cloud (c:cloud) =
+    if (self#name_exists c#name)
+          then raise (Failure ("add_cloud: name "^c#name^" already used in the network"))
           else clouds  <- (clouds@[c])
 
- (** Bridge sockets must have a unique name in the network *)
- method addBridge_socket (b:bridge_socket) =
-    if (self#nameExists b#name)
-          then raise (Failure ("addBridge_socket: name "^b#name^" already used in the network"))
-          else bridge_sockets  <- (bridge_sockets@[b])
+ method add_world_bridge (b:world_bridge) =
+    if (self#name_exists b#name)
+          then raise (Failure ("add_world_bridge: name "^b#name^" already used in the network"))
+          else world_bridges  <- (world_bridges@[b])
 
+ method add_world_gateway (g:world_gateway) =
+   (if (self#name_exists g#name)
+      then raise (Failure ("add_world_gateway: name "^g#name^" already used in the network"))
+      else world_gateways  <- (world_gateways@[g]));
+    self#make_device_ledgrid (g:> device);
 
  (** Removing components *)
 
  (** Remove a machine from the network.
      Remove it from the [machines] list and remove all related cables *)
- method delMachine mname =
-     let m  = self#getMachineByName mname in
+ method del_machine mname =
+     let m  = self#get_machine_by_name mname in
      (* Destroy cables first, from the network and from the defects treeview (cables are not
         in the network details treeview): they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#isNodeinvolved mname) cables in
+     let cables_to_remove = List.filter (fun c->c#i_node_nvolved mname) cables in
      let defects = Defects_interface.get_defects_interface () in
      List.iter
        (fun cable ->
          defects#remove_cable cable#name;
-         self#delCable cable#name)
+         self#del_cable cable#name)
        cables_to_remove;
      Filesystem_history.remove_device_tree mname;
      m#destroy;(*      m#destroy_right_now; *) (* This was here before the radical synchronization changes *)
      machines  <- List.filter (fun x->not (x=m)) machines
 
  (** Remove a device from the network. Remove it from the [devices] list and remove all related cables *)
- method delDevice dname =
-     let d  = self#getDeviceByName dname in
+ method del_device dname =
+     let d  = self#get_device_by_name dname in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#isNodeinvolved dname) cables in
+     let cables_to_remove = List.filter (fun c->c#i_node_nvolved dname) cables in
      let defects = Defects_interface.get_defects_interface () in
      List.iter
        (fun cable ->
          defects#remove_cable cable#name;
-         self#delCable cable#name)
+         self#del_cable cable#name)
        cables_to_remove;
      (if d#devkind = Router then
        Filesystem_history.remove_device_tree dname);
+     self#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
      d#destroy;(*      d#destroy_right_now; *) (* This was here before the radical synchronization changes *)
      devices  <- List.filter (fun x->not (x=d)) devices
 
  (** Remove a cable from network *)
- method delCable cname =
-     let c = self#getCableByName cname in
+ method del_cable cname =
+     let c = self#get_cable_by_name cname in
 (*      cables  <- (cables@[c]); *) (* No, this was a cut/paste error, I think. *)
      (* If at least one endpoint is a device then set the port state to disconnected in
         the appropriate LED grid: *)
      let left_endpoint, right_endpoint = c#endpoints in
      let left_port_name, right_port_name = c#receptacle_names in
-     let left_port_index = (left_endpoint#getReceptacleByName left_port_name)#index in
-     let right_port_index = (right_endpoint#getReceptacleByName right_port_name)#index in
+     let left_port_index = (left_endpoint#get_receptacle_by_name left_port_name)#index in
+     let right_port_index = (right_endpoint#get_receptacle_by_name right_port_name)#index in
 (*         Log.print_string ("\nLeft side: " ^ left_port_name ^ "\n Right side: "^right_port_name^"\n"); *)
      (if left_endpoint#devkind != NotADevice then
        self#ledgrid_manager#set_port_connection_state
@@ -2529,48 +2658,64 @@ class network () =
        ()); *)
 
  (** Remove a cloud from the network. Remove it from the [clouds] list and remove all related cables *)
- method delCloud clname =
-     let cl  = self#getCloudByName clname in
+ method del_cloud clname =
+     let cl  = self#get_cloud_by_name clname in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#isNodeinvolved clname) cables in
+     let cables_to_remove = List.filter (fun c->c#i_node_nvolved clname) cables in
      let defects = Defects_interface.get_defects_interface () in
      List.iter
        (fun cable ->
          defects#remove_cable cable#name;
-         self#delCable cable#name)
+         self#del_cable cable#name)
        cables_to_remove;
      cl#destroy;(*      cl#destroy_right_now; *) (* This was here before the radical synchronization changes *)
      clouds  <- List.filter (fun x->not (x=cl)) clouds
 
- (** Remove a bridge_socket from the network.
-     Remove it from the [bridge_sockets] list and remove all related cables *)
- method delBridge_socket gname =
-     let g  = self#getBridge_socketByName gname in
+ (** Remove a world_bridge from the network.
+     Remove it from the [world_bridges] list and remove all related cables *)
+ method del_world_bridge gname =
+     let g  = self#get_world_bridge_by_name gname in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#isNodeinvolved gname) cables in
+     let cables_to_remove = List.filter (fun c->c#i_node_nvolved gname) cables in
      let defects = Defects_interface.get_defects_interface () in
      List.iter
        (fun cable ->
          defects#remove_cable cable#name;
-         self#delCable cable#name)
+         self#del_cable cable#name)
        cables_to_remove;
      g#destroy;(*      g#destroy_right_now; *) (* This was here before the radical synchronization changes *)
-     bridge_sockets  <- List.filter (fun x->not (x=g)) bridge_sockets
+     world_bridges  <- List.filter (fun x->not (x=g)) world_bridges
+
+ (** Remove a world_gateway from the network.
+     Remove it from the [world_gateways] list and remove all related cables *)
+ method del_world_gateway gname =
+     let g  = self#get_world_gateway_by_name gname in
+     (* Destroy cables first: they refer what we're removing... *)
+     let cables_to_remove = List.filter (fun c->c#i_node_nvolved gname) cables in
+     let defects = Defects_interface.get_defects_interface () in
+     List.iter
+       (fun cable ->
+         defects#remove_cable cable#name;
+         self#del_cable cable#name)
+       cables_to_remove;
+     g#destroy;(*      g#destroy_right_now; *) (* This was here before the radical synchronization changes *)
+     self#ledgrid_manager#destroy_device_ledgrid ~id:(g#id) ();
+     world_gateways  <- List.filter (fun x->not (x=g)) world_gateways
 
  (** Change the name of a node => change all cable socketnames refering this node *)
- method changeNodeName oldname newname =
+ method change_node_name oldname newname =
    if oldname = newname then () else
-   let node = self#getNodeByName oldname in
+   let node = self#get_node_by_name oldname in
    node#set_name newname ;
-   ListExtra.foreach cables (fun c->c#changeNodeName oldname newname)
+   ListExtra.foreach cables (fun c->c#change_node_name oldname newname)
 
  (** Facilities *)
 
   (** Would a hypothetical cable of a given crossoverness be 'correct' if it connected the two
       given nodes? *)
   method would_a_cable_be_correct_between endpoint1_name endpoint2_name crossoverness =
-    let polarity1 = (self#getNodeByName endpoint1_name)#polarity in
-    let polarity2 = (self#getNodeByName endpoint2_name)#polarity in
+    let polarity1 = (self#get_node_by_name endpoint1_name)#polarity in
+    let polarity2 = (self#get_node_by_name endpoint2_name)#polarity in
     (* We need a crossover cable if the polarity is the same: *)
     match polarity1, polarity2 with
      | Intelligent , _      | _           , Intelligent -> true
@@ -2578,65 +2723,64 @@ class network () =
      | MDI_X       , MDI_X  | MDI         , MDI         -> crossoverness = Crossover
 
  (** List of machines names in the network *)
- method getMachineNames     =
+ method get_machine_names     =
    List.map (fun x->x#name) machines
 
  (** List of device names in the network *)
- method getDeviceNames     =
+ method get_device_names     =
    List.map (fun x->x#name) devices
 
  (** List of node names in the network *)
- method getNodeNames  =
+ method get_node_names  =
    List.map (fun x->x#name) (self#nodes)
 
  (** List of hub names in the network *)
- method getHubNames     =
+ method get_hub_names     =
    let hublist= List.filter (fun x->x#devkind=Hub) devices in
    List.map (fun x->x#name) hublist
 
  (** List of switch names in the network *)
- method getSwitchNames  =
+ method get_switch_names  =
    let swlist= List.filter (fun x->x#devkind=Switch) devices in
    List.map (fun x->x#name) swlist
 
  (** List of router names in the network *)
- method getRouterNames  =
+ method get_router_names  =
    let routerlist= List.filter (fun x->x#devkind=Router) devices in
    List.map (fun x->x#name) routerlist
 
  (** List of direct cable names in the network *)
- method getDirectCableNames  =
+ method get_direct_cable_names  =
    let clist= List.filter (fun x->x#cablekind=Direct) cables in
    List.map (fun x->x#name) clist
 
  (** List of crossover cable names in the network *)
- method getCrossoverCableNames  =
+ method get_crossover_cable_names  =
    let clist= List.filter (fun x->x#cablekind=Crossover) cables in
    List.map (fun x->x#name) clist
 
- (** List of serial cable names in the network *)
- method getSerialCableNames  =
-   let clist= List.filter (fun x->x#cablekind=NullModem) cables in
-   List.map (fun x->x#name) clist
-
  (** List of cloud names in the network *)
- method getCloudNames     =
+ method get_cloud_names     =
    List.map (fun x->x#name) clouds
 
- (** List of bridge_socket names in the network *)
- method getBridge_socketNames     =
-   List.map (fun x->x#name) bridge_sockets
+ (** List of world_bridge names in the network *)
+ method get_world_bridge_names     =
+   List.map (fun x->x#name) world_bridges
+
+ (** List of world_gateway names in the network *)
+ method get_world_gateway_names     =
+   List.map (fun x->x#name) world_gateways
 
  (** Starting and showing the network *)
 
  (** List of reverted cables (used only for drawing network) *)
- method revertedCables : (string list) =
+ method reverted_cables : (string list) =
    let clist= List.filter (fun x->x#dotoptions#reverted#get) cables in
    List.map (fun x->x#name) clist
 
  (** Set the reverted dotoptions field of a cable of the network (identified by name) *)
- method revertedCableSet (x:bool) (cname:string) =
-   (self#getCableByName cname)#dotoptions#reverted#set x
+ method reverted_cable_set (x:bool) (cname:string) =
+   (self#get_cable_by_name cname)#dotoptions#reverted#set x
 
  (** Show network topology *)
  method show =
@@ -2657,11 +2801,16 @@ class network () =
         (StringExtra.Fold.commacat (List.map (fun c->c#show) clouds))
         with _ -> ""
    in Log.print_endline ("Clouds \r\t\t: "^msg);
-   (* show bridge_sockets *)
+   (* show world_bridges *)
    let msg=try
-        (StringExtra.Fold.commacat (List.map (fun c->c#show) bridge_sockets))
+        (StringExtra.Fold.commacat (List.map (fun c->c#show) world_bridges))
         with _ -> ""
-   in Log.print_endline ("Bridge_sockets \r\t\t: "^msg);
+   in Log.print_endline ("World bridges \r\t\t: "^msg);
+   (* show world_gateways *)
+   let msg=try
+        (StringExtra.Fold.commacat (List.map (fun c->c#show) world_gateways))
+        with _ -> ""
+   in Log.print_endline ("World gateways \r\t\t: "^msg);
    (* show links *)
    let msg=try
         (StringExtra.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables))
@@ -2677,15 +2826,15 @@ class network () =
    let cable_info c =
        begin
        let (l,r) = (c#get_left,c#get_right) in
-       let a = ((self#getNodeByName l.nodename), l.receptname) in
-       let b = ((self#getNodeByName r.nodename), r.receptname) in (a,c,b)
+       let a = ((self#get_node_by_name l.nodename), l.receptname) in
+       let b = ((self#get_node_by_name r.nodename), r.receptname) in (a,c,b)
        end in
    let l1 = List.map cable_info cables in
    let filter = fun ((n1,_),c,(n2,_)) -> (lpred n1) && (cpred c) && (rpred n2) in
    let l2 = (List.filter filter l1) in l2
 
  (** Gives the list of edges of a given kind. *)
- method edgesOfKind (lnkind: nodekind option) (ckind: cablekind option) (rnkind: nodekind option) =
+ method edges_of_kind (lnkind: nodekind option) (ckind: cablekind option) (rnkind: nodekind option) =
    let npred nkind = fun n -> match nkind with None -> true | Some nk -> (n#nodekind  = nk) in
    let cpred kind  = fun c -> match kind  with None -> true | Some ck -> (c#cablekind = ck) in
    self#edgesSuchThat (npred lnkind) (cpred ckind) (npred rnkind)
@@ -2728,7 +2877,7 @@ opt#labeldistance_for_dot^",tailclip=true];
 
 "^
 (StringExtra.Text.to_string
-   (List.map (dotEdgeTrad labeldistance) (self#edgesOfKind None (Some Direct) None)))
+   (List.map (dotEdgeTrad labeldistance) (self#edges_of_kind None (Some Direct) None)))
 
 ^"
 /* *********************************
@@ -2740,14 +2889,7 @@ edge [headclip=true,minlen=1.6,color=\""^Color.crossover_cable^"\",weight=1];
 
 "^
 (StringExtra.Text.to_string
-   (List.map (dotEdgeTrad labeldistance) (self#edgesOfKind None (Some Crossover) None)))
-
-^
-(StringExtra.Text.to_string
-   (List.map
-      (dotEdgeTrad ~edgeoptions:"style=bold" labeldistance)
-      (self#edgesOfKind None (Some NullModem) None)
-   ))
+   (List.map (dotEdgeTrad labeldistance) (self#edges_of_kind None (Some Crossover) None)))
 
 ^"} //END of digraph\n"
 
@@ -2805,6 +2947,7 @@ module Xml = struct
   match forest with
   | Forest.NonEmpty  (("network", attrs) , childs , Forest.Empty) ->
       net#from_forest ("network", attrs) childs
+  | _ -> assert false
  ;;
 
 (** Save the xforest representation of the network. *)

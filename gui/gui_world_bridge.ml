@@ -16,7 +16,7 @@
 
 open Gettext;;
 
-(** Toolbar entry for the component 'socket' *)
+(** Toolbar entry for the component 'world bridge' *)
 
 (* Shortcuts *)
 type env  = string Environment.string_env
@@ -27,24 +27,24 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   open State
 
   module Toolbar_entry = struct
-   let imagefile = "ico.socket.palette.png"
-   let tooltip   = (s_ "Outgoing RJ45 socket")
+   let imagefile = "ico.world_bridge.palette.png"
+   let tooltip   = (s_ "World bridge")
   end
 
   module Add = struct
 
-    let key      = Some GdkKeysyms._E
+    let key      = Some GdkKeysyms._B
 
     let dialog   =
-      let module M = Gui_dialog_SOCKET.Make (State) in
-      M.dialog ~title:(s_ "Add socket") ~update:None
+      let module M = Gui_dialog_WORLD_BRIDGE.Make (State) in
+      M.dialog ~title:(s_ "Add world bridge") ~update:None
 
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
       let (name,label) = (r#get "name"),(r#get "label") in
-      defects#add_device name "socket" 1;
-      let g = (new Mariokit.Netmodel.bridge_socket ~network:st#network ~name ~label ()) in
-      st#network#addBridge_socket g;
+      defects#add_device name "world_bridge" 1;
+      let g = (new Mariokit.Netmodel.world_bridge ~network:st#network ~name ~label ()) in
+      st#network#add_world_bridge g;
       st#update_sketch () ;
       st#update_state  ();
       st#update_cable_sensitivity ()
@@ -55,20 +55,20 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-        (fun x -> (st#network#getBridge_socketByName x)#can_startup)
-        (st#network#getBridge_socketNames)
+        (fun x -> (st#network#get_world_bridge_by_name x)#can_startup)
+        (st#network#get_world_bridge_names)
 
     let dialog =
-     fun name -> let m = (st#network#getBridge_socketByName name) in
-                 let title = (s_ "Modify socket") in
-                 let module M = Gui_dialog_SOCKET.Make (State) in
+     fun name -> let m = (st#network#get_world_bridge_by_name name) in
+                 let title = (s_ "Modify world bridge") in
+                 let module M = Gui_dialog_WORLD_BRIDGE.Make (State) in
                  M.dialog ~title:(title^" "^name) ~update:(Some m)
 
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
       let (name,oldname) = (r#get "name"),(r#get "oldname") in
-      let g = st#network#getBridge_socketByName oldname in
-      st#network#changeNodeName oldname name  ;
+      let g = st#network#get_world_bridge_by_name oldname in
+      st#network#change_node_name oldname name  ;
       g#set_label (r#get "label")             ;
       st#refresh_sketch () ;
       st#update_state  ();
@@ -86,13 +86,13 @@ module Make_menus (State : sig val st:State.globalState end) = struct
         ~enrich:(mkenv [("name",name)])
         ~gen_id:"answer"
         ~title:(s_ "Remove")
-        ~question:(Printf.sprintf (f_ "Are you sure that you want to remove %s\nand all the cables connected to this %s?") name (s_ "socket"))
+        ~question:(Printf.sprintf (f_ "Are you sure that you want to remove %s\nand all the cables connected to this %s?") name (s_ "world bridge"))
 
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
       let (name,answer) = r#get("name"),r#get("answer") in
       if (answer="yes") then begin
-        (st#network#delBridge_socket name);
+        (st#network#del_world_bridge name);
         st#update_sketch ();
         st#update_state  ();
         defects#remove_device name;
@@ -106,7 +106,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog
-    let reaction r = (st#network#getBridge_socketByName (r#get "name"))#startup
+    let reaction r = (st#network#get_world_bridge_by_name (r#get "name"))#startup
 
   end
 
@@ -114,22 +114,22 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getBridge_socketByName x)#can_gracefully_shutdown)
-       (st#network#getBridge_socketNames)
+       (fun x -> (st#network#get_world_bridge_by_name x)#can_gracefully_shutdown)
+       (st#network#get_world_bridge_names)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getBridge_socketByName (r#get "name"))#gracefully_shutdown
+    let reaction r = (st#network#get_world_bridge_by_name (r#get "name"))#gracefully_shutdown
   end
 
   module Suspend = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getBridge_socketByName x)#can_suspend)
-       (st#network#getBridge_socketNames)
+       (fun x -> (st#network#get_world_bridge_by_name x)#can_suspend)
+       (st#network#get_world_bridge_names)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getBridge_socketByName (r#get "name"))#suspend
+    let reaction r = (st#network#get_world_bridge_by_name (r#get "name"))#suspend
 
   end
 
@@ -137,11 +137,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dynlist () =
       List.filter
-       (fun x -> (st#network#getBridge_socketByName x)#can_resume)
-       (st#network#getBridge_socketNames)
+       (fun x -> (st#network#get_world_bridge_by_name x)#can_resume)
+       (st#network#get_world_bridge_names)
 
     let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#getBridge_socketByName (r#get "name"))#resume
+    let reaction r = (st#network#get_world_bridge_by_name (r#get "name"))#resume
 
   end
 

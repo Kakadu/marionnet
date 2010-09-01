@@ -60,7 +60,7 @@ end in
                 dialog#hub_label#set_text    h#get_label                 ;
                 dialog#hub_ports#set_value  (float_of_int h#get_eth_number);
                 (* The user cannot remove receptacles used by a cable. *)
-                let min_eth = (st#network#maxBusyReceptacleIndex h#get_name Mariokit.Netmodel.Eth)+1 in
+                let min_eth = (st#network#max_busy_receptacle_index h#get_name Mariokit.Netmodel.Eth)+1 in
                 let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
                 dialog#hub_ports#adjustment#set_bounds ~lower:(max min_multiple_of_4 4.0) () ;
                end

@@ -3064,9 +3064,9 @@ Version QQVERSIONQQ, QQDATEQQ
       </widget>
     </child>
   </widget>
-  <widget class="GtkDialog" id="dialog_SOCKET">
+  <widget class="GtkDialog" id="dialog_WORLD_BRIDGE">
     <property name="visible">True</property>
-    <property name="title" translatable="yes">---SOCKET---</property>
+    <property name="title" translatable="yes">---WORLD_BRIDGE---</property>
     <property name="modal">True</property>
     <property name="window_position">GTK_WIN_POS_CENTER_ON_PARENT</property>
     <property name="default_width">350</property>
@@ -3085,9 +3085,9 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="visible">True</property>
                 <property name="homogeneous">True</property>
                 <child>
-                  <widget class="GtkImage" id="image_dialog_SOCKET">
+                  <widget class="GtkImage" id="image_dialog_WORLD_BRIDGE">
                     <property name="visible">True</property>
-                    <property name="pixbuf">ico.socket.dialog.png</property>
+                    <property name="pixbuf">ico.world_bridge.dialog.png</property>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
@@ -3100,7 +3100,7 @@ Version QQVERSIONQQ, QQDATEQQ
                     <property name="border_width">10</property>
                     <property name="n_rows">4</property>
                     <child>
-                      <widget class="GtkLabel" id="label_dialog_SOCKET_label">
+                      <widget class="GtkLabel" id="label_dialog_WORLD_BRIDGE_label">
                         <property name="visible">True</property>
                         <property name="label" translatable="yes">
 ---Étiquette---</property>
@@ -3112,13 +3112,13 @@ Version QQVERSIONQQ, QQDATEQQ
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkLabel" id="label_dialog_SOCKET_name">
+                      <widget class="GtkLabel" id="label_dialog_WORLD_BRIDGE_name">
                         <property name="visible">True</property>
                         <property name="label" translatable="yes">---Nom---</property>
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkEntry" id="socket_name">
+                      <widget class="GtkEntry" id="world_bridge_name">
                         <property name="width_request">80</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -3132,7 +3132,7 @@ Version QQVERSIONQQ, QQDATEQQ
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkEntry" id="socket_label">
+                      <widget class="GtkEntry" id="world_bridge_label">
                         <property name="width_request">130</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -3165,7 +3165,7 @@ Version QQVERSIONQQ, QQDATEQQ
                 <property name="border_width">4</property>
                 <property name="n_columns">10</property>
                 <child>
-                  <widget class="GtkSpinButton" id="socket_ip_netmask">
+                  <widget class="GtkSpinButton" id="world_bridge_ip_netmask">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">1</property>
@@ -3244,7 +3244,7 @@ Version QQVERSIONQQ, QQDATEQQ
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkSpinButton" id="socket_ip_d">
+                  <widget class="GtkSpinButton" id="world_bridge_ip_d">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">1</property>
@@ -3260,7 +3260,7 @@ Version QQVERSIONQQ, QQDATEQQ
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkSpinButton" id="socket_ip_c">
+                  <widget class="GtkSpinButton" id="world_bridge_ip_c">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">1</property>
@@ -3276,7 +3276,7 @@ Version QQVERSIONQQ, QQDATEQQ
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkSpinButton" id="socket_ip_b">
+                  <widget class="GtkSpinButton" id="world_bridge_ip_b">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">1</property>
@@ -3292,7 +3292,7 @@ Version QQVERSIONQQ, QQDATEQQ
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkSpinButton" id="socket_ip_a">
+                  <widget class="GtkSpinButton" id="world_bridge_ip_a">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="xalign">1</property>
@@ -3308,7 +3308,7 @@ Version QQVERSIONQQ, QQDATEQQ
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkLabel" id="label_dialog_SOCKET_ip">
+                  <widget class="GtkLabel" id="label_dialog_WORLD_BRIDGE_ip">
                     <property name="width_request">90</property>
                     <property name="visible">True</property>
                     <property name="xalign">0</property>

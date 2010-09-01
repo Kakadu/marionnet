@@ -17,7 +17,8 @@
 
 (** Tools for making menus (with or without a menubar). *)
 
-#load "include_type_definitions_p4.cmo";;
+#load "include_type_definitions_p4.cmo"
+;;
 INCLUDE DEFINITIONS "gui/menu_factory.mli"
 
 let fresh_path =
@@ -32,7 +33,7 @@ let fresh_path =
    In this case, the connection with the menu_item_skel parent will be fixed after the
    inclusion by a calling to the function get_menu (). *)
 module Make (M: Parents) = struct
- 
+
  (* In the case of menu_item, this value will be defined immediately. *)
  let current_menu = ref None
  let accel_path = fresh_path ()
@@ -42,7 +43,7 @@ module Make (M: Parents) = struct
   let () = M.window#add_accel_group result#accel_group in
   let () = (current_menu := Some result)  in
   (result#menu :> GMenu.menu_shell)
- 
+
  let create_subshell_for_menu_item mi =
   let simple_menu = GMenu.menu ~packing:(mi#set_submenu) () in
   create_shell_for_simple_menu simple_menu
@@ -75,9 +76,10 @@ module Make (M: Parents) = struct
      s#destroy;
      create_subshell_for_menu_item mi
   | Menubar  _  -> failwith "Not allowed action: this factory has been created for a menubar."
+  | _  -> assert false
 
  (* Now tools: *)
- 
+
  let not_implemented_yet _ = (Printf.eprintf "NOT IMPLEMENTED YET!!!!!\n"; (flush stderr))
  let monitor label _       =
    if Global_options.get_debug_mode () then
@@ -113,7 +115,7 @@ module Make (M: Parents) = struct
 end
 
 (* Shortcuts *)
-let mkenv = Environment.make_string_env 
+let mkenv = Environment.make_string_env
 
 (** Useful when there is no dialog preceeding the reaction.
     This pseudo dialog transmits the name by mean of an environment. *)
@@ -134,7 +136,7 @@ module Compose_dialog_and_reaction = Compose_heuristic_and_procedure
    let some_effect (e:env)  =
     let printf = Log.printf in
     (printf "--- Dialog result:\n");
-    (List.iter (fun (k,v) -> printf " %s \r\t\t= \"%s\"\n" k v) e#to_list);
+    (List.iter (fun (k,v) -> printf " %s \r\t\t\t= \"%s\"\n" k v) e#to_list);
     (printf "------------------\n");
     (flush stderr)
   end)
@@ -152,7 +154,7 @@ module Make_entry =
    end
 
 
-module Make_entry_with_children = 
+module Make_entry_with_children =
  functor (E : Entry_with_children_definition) ->
   functor (F : Factory) ->
    struct
@@ -167,7 +169,7 @@ module Make_entry_with_children =
     let callback name = Compose_dialog_and_reaction.compose (E.dialog name) (E.reaction)
 
     let item_callback () = begin
-      (Submenu.recreate_subshell ());
+      ignore (Submenu.recreate_subshell ());
       (List.iter
         (fun name -> ignore (Submenu.add_stock_item name ~stock:E.stock ~callback:(fun () -> callback name ()) ()))
         (E.dynlist ()))
@@ -186,5 +188,5 @@ include Menu_factory.Make_entry (F) (struct
    let stock    = `NEW
    let dialog   = Menu_factory.no_dialog ""
    let reaction _ = ()
- end) 
+ end)
 *)

@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+
 (* This function may be useful for testing the widget creation without
    recompiling the whole project. *)
 let make
@@ -24,10 +25,10 @@ let make
  ?(network:(int * int * int * int * int) option) (* 5 bytes: 4 for the ip, the last for CIDR *)
  ?(dhcp_enabled=true)
  ?(user_port_no=4)
- ?(help_callback=(fun () -> ()))
+ ?help_callback
  ?(ok_callback=(fun data -> Some data))
  ?(dialog_image_file=Initialization.marionnet_home_images^"ico.world_gateway.dialog.png")
- () =
+ () :'result option =
   let (b1,b2,b3,b4,b5) = match network with
    | Some tuple -> tuple
    | None       -> (10,0,2,1,24)
@@ -36,7 +37,7 @@ let make
     let icon_file = Initialization.marionnet_home_images^"marionnet-launcher.png" in
     GdkPixbuf.from_file icon_file
   in
-  let w = GWindow.dialog  ~icon ~title ~modal:true ~position:`CENTER () in
+  let w = GWindow.dialog ~icon ~title ~modal:true ~position:`CENTER () in
   let tooltips = Gui_bricks.make_tooltips_for_container w in
 
   let (name,label) =
@@ -86,13 +87,7 @@ let make
   s4#misc#set_sensitive false;
   s5#misc#set_sensitive false;
 
-  w#add_button_stock `HELP `HELP;
-  w#add_button_stock `CANCEL `CANCEL;
-  w#add_button_stock `OK `OK;
-  w#set_default_response `OK;
-  w#set_response_sensitive `OK true;
-
-  let get_widget_data () =
+  let get_widget_data () :'result =
     let name = name#text in
     let label = label#text in
     let network =
@@ -107,29 +102,5 @@ let make
     let user_port_no = int_of_float user_port_no#value in
     (name, label, network, dhcp_enabled, user_port_no)
   in
-  let result = ref None in
-  let rec loop () =
-    match w#run () with
-    | `DELETE_EVENT | `CANCEL -> ()
-    | `HELP -> (help_callback ()); loop ()
-    | `OK -> 
-        (match ok_callback (get_widget_data ()) with
-	| None   -> loop ()
-	| Some d -> result := Some d
-        )
-  in
-  (* The enter key has the same effect than pressing the OK button: *)
-  let f_enter () = match ok_callback (get_widget_data ()) with
-   | None   -> ()
-   | Some d -> (result := Some d; ignore (w#event#send (GdkEvent.create `DELETE)))
-  in
-  let _ = w#event#connect#key_press ~callback:
-    begin fun ev ->
-      (if GdkEvent.Key.keyval ev = GdkKeysyms._Return then f_enter ());
-      false
-    end
-  in
-  loop ();
-  w#destroy ();
-  !result
- (* end of make *)
+  (* The result of make is the result of the dialog loop (of type 'result option): *)
+  Gui_bricks.dialog_loop w ~ok_callback ?help_callback ~get_widget_data ()

@@ -162,3 +162,51 @@ let make_tooltips_for_container w =
   let result = (GData.tooltips ()) in
   let _ = w#connect#destroy ~callback:(fun _ -> result#destroy ()) in
   fun (widget:GObj.widget) text -> result#set_tip widget ~text
+
+(** Wrapper for the method [run] of a dialog window.
+    The function [get_widget_data] must extract the values from the dialog.
+    The function [ok_callback] must check these values: if it consider that
+    are incorrect, it returns [None] in order to continue the loop.
+    Otherwise it builds the result [Some something] of the loop.
+    If the [?help_callback] is not provided, the help button is not built.  *)
+let dialog_loop
+    (w:[ `CANCEL | `DELETE_EVENT | `HELP | `OK ] GWindow.dialog)
+    ~(get_widget_data:unit -> 'a) 
+    ~(ok_callback:'a -> 'b option) 
+    ?help_callback () =
+  begin
+  let help_callback = match help_callback with
+   | None   -> (fun () -> ())
+   | Some f -> (w#add_button_stock `HELP `HELP; f)
+  in
+  w#add_button_stock `CANCEL `CANCEL;
+  w#add_button_stock `OK `OK;
+  w#set_default_response `OK;
+  w#set_response_sensitive `OK true;
+  let result = ref None in
+  let rec loop () =
+    match w#run () with
+    | `DELETE_EVENT | `CANCEL -> ()
+    | `HELP -> (help_callback ()); loop ()
+    | `OK ->
+        (match ok_callback (get_widget_data ()) with
+	| None   -> loop ()
+	| Some d -> result := Some d
+        )
+  in
+  (* The enter key has the same effect than pressing the OK button: *)
+  let f_enter () = match ok_callback (get_widget_data ()) with
+   | None   -> ()
+   | Some d -> (result := Some d; ignore (w#event#send (GdkEvent.create `DELETE)))
+  in
+  let _ = w#event#connect#key_press ~callback:
+    begin fun ev ->
+      (if GdkEvent.Key.keyval ev = GdkKeysyms._Return then f_enter ());
+      false
+    end
+  in
+  loop ();
+  w#destroy ();
+  !result
+  end
+

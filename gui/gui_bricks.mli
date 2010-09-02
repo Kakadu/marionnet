@@ -71,3 +71,10 @@ val make_tooltips_for_container :
   < connect : < destroy : callback:('a -> unit) -> 'b; .. >; .. > ->
   GObj.widget ->
   string -> unit
+
+val dialog_loop :
+  [ `CANCEL | `DELETE_EVENT | `HELP | `OK ] GWindow.dialog ->
+  get_widget_data:(unit -> 'a) ->
+  ok_callback:('a -> 'b option) ->
+  ?help_callback:(unit -> unit) ->
+  unit -> 'b option

@@ -32,7 +32,11 @@ let make
    | Some tuple -> tuple
    | None       -> (10,0,2,1,24)
   in
-  let w = GWindow.dialog  ~title ~modal:true ~position:`CENTER () in
+  let icon =
+    let icon_file = Initialization.marionnet_home_images^"marionnet-launcher.png" in
+    GdkPixbuf.from_file icon_file
+  in
+  let w = GWindow.dialog  ~icon ~title ~modal:true ~position:`CENTER () in
   let tooltips = Gui_bricks.make_tooltips_for_container w in
 
   let (name,label) =
@@ -83,9 +87,10 @@ let make
   s5#misc#set_sensitive false;
 
   w#add_button_stock `HELP `HELP;
-  w#add_button_stock `OK `OK;
   w#add_button_stock `CANCEL `CANCEL;
+  w#add_button_stock `OK `OK;
   w#set_default_response `OK;
+  w#set_response_sensitive `OK true;
 
   let get_widget_data () =
     let name = name#text in
@@ -107,11 +112,22 @@ let make
     match w#run () with
     | `DELETE_EVENT | `CANCEL -> ()
     | `HELP -> (help_callback ()); loop ()
-    | `OK   ->
+    | `OK -> 
         (match ok_callback (get_widget_data ()) with
 	| None   -> loop ()
-	| Some d -> (result := Some d);
+	| Some d -> result := Some d
         )
+  in
+  (* The enter key has the same effect than pressing the OK button: *)
+  let f_enter () = match ok_callback (get_widget_data ()) with
+   | None   -> ()
+   | Some d -> (result := Some d; ignore (w#event#send (GdkEvent.create `DELETE)))
+  in
+  let _ = w#event#connect#key_press ~callback:
+    begin fun ev ->
+      (if GdkEvent.Key.keyval ev = GdkKeysyms._Return then f_enter ());
+      false
+    end
   in
   loop ();
   w#destroy ();

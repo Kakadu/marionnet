@@ -126,8 +126,6 @@ let ask_text_dialog
       ~icon:Icon.icon_pixbuf
       ~resizable:false
       () in
-  let cancel = ref false in
-  ignore (window#connect#destroy ~callback:(window#destroy));
   let vbox = GPack.vbox ~packing:window#add () in
   let _ = GMisc.label ~text:label ~packing:vbox#add ~line_wrap:true () in
   let entry = GEdit.entry ~text:initial_text ?max_length ~packing:vbox#add () in

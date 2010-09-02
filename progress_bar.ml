@@ -63,7 +63,7 @@ let make_progress_bar_dialog
   let attach (x,y) = table#attach ~left:x ~top:y ~expand:`X ~fill:`BOTH in
 
   (* Icon *)
-  let icon = GMisc.image ~file:(Initialization.marionnet_home_images^"ico.info.orig.png") ~xalign:0. ~packing:(attach (1,1)) () in
+  let _icon = GMisc.image ~file:(Initialization.marionnet_home_images^"ico.info.orig.png") ~xalign:0. ~packing:(attach (1,1)) () in
 
   (* Label *)
   let label = (GMisc.label ~xalign:0. ~packing:(attach (2,1)) ()) in

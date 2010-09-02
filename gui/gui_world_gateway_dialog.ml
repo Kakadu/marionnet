@@ -62,7 +62,6 @@ module Make (State:sig val st:State.globalState end) = struct
 	(* Return the result of the dialog converted in a string environment: *)
 	let network_address = Printf.sprintf "%i.%i.%i.%i" i1 i2 i3 0 in
 	let netmask = Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr) in
-	let ports_no = 4 in (* TODO *)
 	let result =
 	  mkenv [
 	    ("name",name);

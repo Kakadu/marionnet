@@ -20,7 +20,8 @@
     to talk with the application. Specifically, the name "Talking" stands here
     for "Talking with user". *)
 
-#load "include_as_string_p4.cmo";;
+#load "include_as_string_p4.cmo"
+;;
 
 (* Shortcuts *)
 let mkenv = Environment.make_string_env ;;
@@ -167,7 +168,6 @@ connections may be of some pedagogical interest.")
  let help_cable_insert_update = function
   | Mariokit.Netmodel.Direct    -> help_cable_direct_insert_update
   | Mariokit.Netmodel.Crossover -> help_cable_crossover_insert_update
-  | _ -> ignore
  ;;
 
  let help_cloud_insert_update =

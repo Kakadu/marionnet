@@ -268,7 +268,7 @@ object(self)
 end;;
 
 (** Process creating a socket. Spawning and terminating methods are specific. *)
-class virtual process_creating_socket =
+class virtual process_which_creates_a_socket_at_spawning_time =
  fun program
     (arguments : string list)
     ?stdin
@@ -329,13 +329,13 @@ class virtual process_creating_socket =
       Printf.sprintf "rm -f '%s'" self#get_socket_name in
     ignore (Unix.system command_line)
 
-end;; (* class process_creating_socket *)
+end;; (* class process_which_creates_a_socket_at_spawning_time *)
 
 (** This is used to implement Switch, Hub, Hublet and Gateway Hub processes.
     Only Unix socket is used as a transport if no tap_name is specified: *)
 class hub_or_switch_process =
  fun ?hub:(hub:bool=false)
-     ?ports_no:(ports_no:int=32)
+     ?port_no:(port_no:int=32)
      ?tap_name
      ?socket_name_prefix
      ~unexpected_death_callback
@@ -345,7 +345,7 @@ class hub_or_switch_process =
   | None -> (if hub then "hub-socket-" else "switch-socket-")
  in
  object(self)
-  inherit process_creating_socket
+  inherit process_which_creates_a_socket_at_spawning_time
       (Initialization.vde_prefix ^ "vde_switch")
       (List.append
          (match tap_name with
@@ -355,7 +355,7 @@ class hub_or_switch_process =
              ["-tap"; tap_name])
          (List.append
             (if hub then ["-x"] else [])
-            ["-n"; (string_of_int (ports_no + 1));
+            ["-n"; (string_of_int (port_no + 1));
              "-mod"; "777" (* To do: find a reasonable value for this *);
              ]))
       ~stdin:an_input_descriptor_never_sending_anything
@@ -370,14 +370,14 @@ end;; (* class hub_or_switch_process *)
 
 (** A Swtich process is, well, a Switch or Hub process but not a hub: *)
 class switch_process =
-  fun ~(ports_no:int)
+  fun ~(port_no:int)
       ?socket_name_prefix
       ~unexpected_death_callback
       () ->
 object(self)
   inherit hub_or_switch_process
       ~hub:false
-      ~ports_no
+      ~port_no
       ?socket_name_prefix
       ~unexpected_death_callback
       ()
@@ -386,14 +386,14 @@ end;;
 
 (** A Hub process is, well, a Switch or Hub process and also a hub *)
 class hub_process =
-  fun ~(ports_no:int)
+  fun ~(port_no:int)
       ?socket_name_prefix
       ~unexpected_death_callback
       () ->
 object(self)
   inherit hub_or_switch_process
       ~hub:true
-      ~ports_no
+      ~port_no
       ?socket_name_prefix
       ~unexpected_death_callback
       ()
@@ -411,7 +411,7 @@ class hublet_process =
   in
   object(self)
    inherit hub_process
-      ~ports_no:2
+      ~port_no:2
       ~socket_name_prefix
       ~unexpected_death_callback
       ()
@@ -426,7 +426,7 @@ class world_bridge_hub_process =
       () ->
 object(self)
   inherit hub_or_switch_process
-      ~ports_no:2
+      ~port_no:2
       ~hub:true
       ~tap_name
       ~socket_name_prefix:"world_bridge_hub-socket-"
@@ -700,7 +700,7 @@ class uml_process =
       ~(filesystem_file_name)
       ~(cow_file_name)
       ?(swap_file_name=create_swap_file_name ())
-      ~(ethernet_interfaces_no)
+      ~(ethernet_interface_no)
       ~(hublet_processes)
       ~(memory) (* in megabytes *)
       ~(console)
@@ -741,7 +741,7 @@ class uml_process =
     List.append
       (List.map
          (fun (ei, h) -> ethernet_interface_to_uml_command_line_argument umid ei h)
-         (List.combine (ListExtra.range 0 (ethernet_interfaces_no - 1)) hublet_processes))
+         (List.combine (ListExtra.range 0 (ethernet_interface_no - 1)) hublet_processes))
       [
        "ubd0s=" ^ cow_file_name ^ "," ^ filesystem_file_name;
        "ubdb=" ^ swap_file_name;
@@ -930,12 +930,12 @@ object(self)
       Unix.out_channel_of_descr descriptor in
     List.iter
       (fun (name, value) -> Printf.fprintf out_channel "%s='%s'\n" name value)
-      (("ethernet_interfaces_no", (string_of_int ethernet_interfaces_no)) ::
+      (("ethernet_interface_no", (string_of_int ethernet_interface_no)) ::
        (List.append
           (List.flatten
              (List.map
                 (fun (ei, h) -> ethernet_interface_to_boot_parameters_bindings umid ei h)
-                (List.combine (ListExtra.range 0 (ethernet_interfaces_no - 1)) hublet_processes)))
+                (List.combine (ListExtra.range 0 (ethernet_interface_no - 1)) hublet_processes)))
           [(* A non-standard binding we use to identify the IP address of eth42 in the guest: *)
            "ip42", ip42;
            (* A non-standard binding we use to pass the virtual machine name to the guest: *)
@@ -1006,7 +1006,7 @@ exception CantGoFromStateToState of device_state * device_state;;
     destroyed {e only} when the method destroy is invoked. *)
 class virtual device =
   fun ~name
-      ~hublets_no
+      ~hublet_no
       ~(unexpected_death_callback: unit -> unit)
       () ->
 object(self)
@@ -1033,7 +1033,7 @@ object(self)
     let hublet_processes =
       self#make_hublet_processes
         ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-        hublets_no in
+        hublet_no in
     List.iter (fun sp -> sp#spawn) hublet_processes;
     current_hublet_processes := hublet_processes
 
@@ -1152,7 +1152,7 @@ object(self)
     self#get_hublet_process n
 
   (** Return the current number of hublets *)
-  method get_hublets_no =
+  method get_hublet_no =
     List.length (self#get_hublet_processes)
 
   (** Return all the device hublet processes *)
@@ -1160,36 +1160,36 @@ object(self)
     ! current_hublet_processes
 
   (** Update the hublets number. This can only be done in the 'off' state *)
-  method set_hublet_processes_no new_hublets_no =
+  method set_hublet_processe_no new_hublet_no =
     match !state with
       Off ->
-        let old_hublets_no = self#get_hublets_no in
+        let old_hublet_no = self#get_hublet_no in
         Log.print_string ("Simulated_network.device: changing the hublets no from " ^
-                      (string_of_int old_hublets_no) ^ " to " ^
-                      (string_of_int new_hublets_no) ^ "\n");
-        if new_hublets_no = old_hublets_no then (* the hublets no isn't changing *)
+                      (string_of_int old_hublet_no) ^ " to " ^
+                      (string_of_int new_hublet_no) ^ "\n");
+        if new_hublet_no = old_hublet_no then (* the hublets no isn't changing *)
           () (* do nothing *)
-        else if new_hublets_no > old_hublets_no then begin (* hublets are being created *)
+        else if new_hublet_no > old_hublet_no then begin (* hublets are being created *)
           (* Append the new hublets: *)
           current_hublet_processes :=
             (!current_hublet_processes) @
             (self#make_hublet_processes
                ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-               (new_hublets_no - old_hublets_no))
+               (new_hublet_no - old_hublet_no))
         end
         else begin (* hublets are being destroyed *)
-          (* Remove the last (old_hublets_no - new_hublets_no) hublets: *)
+          (* Remove the last (old_hublet_no - new_hublet_no) hublets: *)
           let hublet_processes_to_remove =
-            ListExtra.tail ~i:new_hublets_no !current_hublet_processes in
+            ListExtra.tail ~i:new_hublet_no !current_hublet_processes in
           ignore (List.map
                     (fun hp -> try hp#terminate with _ -> ())
                     hublet_processes_to_remove);
           current_hublet_processes :=
-            ListExtra.head ~n:new_hublets_no !current_hublet_processes
+            ListExtra.head ~n:new_hublet_no !current_hublet_processes
         end;
         Log.print_string ("Simulated_network.device: changed the hublets no from " ^
-                      (string_of_int old_hublets_no) ^ " to " ^
-                      (string_of_int new_hublets_no) ^ ": success\n");
+                      (string_of_int old_hublet_no) ^ " to " ^
+                      (string_of_int new_hublet_no) ^ ": success\n");
     | _ ->
         failwith "can't update the hublets number for a non-off device"
 
@@ -1231,7 +1231,7 @@ class ethernet_cable =
 object(self)
   inherit device
       ~name
-      ~hublets_no:0
+      ~hublet_no:0
       ~unexpected_death_callback
       ()
       as super
@@ -1273,14 +1273,14 @@ end;;
 (** The common schema for user-level hubs, switches and gateways: *)
 class virtual main_process_with_n_hublets_and_cables =
   fun ~name
-      ~hublets_no
-      ?(last_user_visible_port_index=(hublets_no-1))
+      ~hublet_no
+      ?(last_user_visible_port_index=(hublet_no-1))
       ~unexpected_death_callback
       () ->
 object(self)
   inherit device
       ~name
-      ~hublets_no
+      ~hublet_no
       ~unexpected_death_callback
       ()
       as super
@@ -1302,7 +1302,7 @@ object(self)
     (internal_cable_processes :=
       let hublets = self#get_hublet_processes in
       let defects = get_defects_interface () in
-      Log.printf "spawn_processes: hublets_no=%d last_user_visible_port_index=%d\n" hublets_no last_user_visible_port_index;
+      Log.printf "spawn_processes: hublet_no=%d last_user_visible_port_index=%d\n" hublet_no last_user_visible_port_index;
       List.map
         (fun (i, hublet_process) ->
            if i <= last_user_visible_port_index then
@@ -1331,7 +1331,7 @@ object(self)
             end
             )
         (List.combine
-           (ListExtra.range 0 (hublets_no-1))
+           (ListExtra.range 0 (hublet_no-1))
            hublets));
     Task_runner.do_in_parallel
       (List.map (* Here map returns a list of thunks *)
@@ -1363,7 +1363,7 @@ end;; (* class main_process_with_n_hublets_and_cables *)
     is nearly identical, so this is convenient. *)
 class virtual hub_or_switch =
   fun ~name
-      ~hublets_no
+      ~hublet_no
       ?(last_user_visible_port_index:int option)
       ~(hub:bool)
       ~unexpected_death_callback
@@ -1372,7 +1372,7 @@ class virtual hub_or_switch =
 
   inherit main_process_with_n_hublets_and_cables
       ~name
-      ~hublets_no
+      ~hublet_no
       ?last_user_visible_port_index
       ~unexpected_death_callback
       ()
@@ -1382,7 +1382,7 @@ class virtual hub_or_switch =
     main_process <-
       Some (new hub_or_switch_process
               ~hub
-              ~ports_no:hublets_no
+              ~port_no:hublet_no
               ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ())
 
@@ -1391,14 +1391,14 @@ end;;
 (** A hub: just a [hub_or_switch] with [hub = true] *)
 class hub =
   fun ~name
-      ~hublets_no
+      ~hublet_no
       ?(last_user_visible_port_index:int option)
       ~unexpected_death_callback
       () ->
 object(self)
   inherit hub_or_switch
       ~name
-      ~hublets_no
+      ~hublet_no
       ?last_user_visible_port_index
       ~hub:true
       ~unexpected_death_callback
@@ -1410,14 +1410,14 @@ end;;
 (** A switch: just a [hub_or_switch] with [hub = false] *)
 class switch =
   fun ~name
-      ~hublets_no
+      ~hublet_no
       ?(last_user_visible_port_index:int option)
       ~unexpected_death_callback
       () ->
 object(self)
   inherit hub_or_switch
       ~name
-      ~hublets_no
+      ~hublet_no
       ?last_user_visible_port_index
       ~hub:false
       ~unexpected_death_callback
@@ -1440,10 +1440,10 @@ class world_gateway =
       ~unexpected_death_callback
       () ->
  (* an additional port will be used by the world *)
- let hublets_no = user_port_no + 1 in
+ let hublet_no = user_port_no + 1 in
  let last_user_visible_port_index = user_port_no - 1 in
  object(self)
-  inherit switch ~name ~hublets_no ~last_user_visible_port_index ~unexpected_death_callback () as super
+  inherit switch ~name ~hublet_no ~last_user_visible_port_index ~unexpected_death_callback () as super
   method device_type = "world_gateway"
 
   val mutable slirpvde_process = None
@@ -1517,7 +1517,7 @@ class virtual machine_or_router =
       ~(kernel_file_name)
       ~(filesystem_file_name)
       ~(cow_file_name)
-      ~(ethernet_interfaces_no)
+      ~(ethernet_interface_no)
       ~(memory) (* in megabytes *)
       ~(console)
       ~xnest
@@ -1525,7 +1525,7 @@ class virtual machine_or_router =
       ~id
       ~unexpected_death_callback
       () ->
-let half_hublets_no = ethernet_interfaces_no in
+let half_hublet_no = ethernet_interface_no in
 object(self)
   (* Outer hublets interface the device with the outer world, but we want to just user
      super#destroy to get rid of *all* hublets; so we declare *all* hublets as part of the
@@ -1533,7 +1533,7 @@ object(self)
      important the the outer layer comes *first*: *)
   inherit device
       ~name
-      ~hublets_no:(half_hublets_no * 2)
+      ~hublet_no:(half_hublet_no * 2)
       ~unexpected_death_callback
       ()
       as super
@@ -1568,9 +1568,9 @@ object(self)
   initializer
     let all_hublets = self#get_hublet_processes in
     outer_hublet_processes :=
-      from_to 0 (half_hublets_no - 1) all_hublets;
+      from_to 0 (half_hublet_no - 1) all_hublets;
     inner_hublet_processes :=
-      from_to half_hublets_no (2 * half_hublets_no - 1) all_hublets;
+      from_to half_hublet_no (2 * half_hublet_no - 1) all_hublets;
     (if xnest then
       xnest_process :=
         Some (new xnest_process
@@ -1582,7 +1582,7 @@ object(self)
               ~kernel_file_name
               ~filesystem_file_name
               ~cow_file_name
-              ~ethernet_interfaces_no
+              ~ethernet_interface_no
               ~hublet_processes:self#get_inner_hublet_processes
               ~memory
               ~umid
@@ -1629,7 +1629,7 @@ object(self)
             ~unexpected_death_callback:self#execute_the_unexpected_death_callback
             ())
         (ListExtra.combine3
-           (ListExtra.range 0 (half_hublets_no - 1))
+           (ListExtra.range 0 (half_hublet_no - 1))
            self#get_inner_hublet_processes
            self#get_outer_hublet_processes));
 (*     Log.printf "OK-Q 3\n"; flush_all (); *)
@@ -1669,7 +1669,7 @@ class machine =
       ~(filesystem_file_name)
       ~(kernel_file_name)
       ~(cow_file_name)
-      ~(ethernet_interfaces_no)
+      ~(ethernet_interface_no)
       ?memory:(memory=40) (* in megabytes *)
       ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
       ?(xnest=false)
@@ -1683,7 +1683,7 @@ object(self)
       ~filesystem_file_name
       ~cow_file_name
       ~kernel_file_name
-      ~ethernet_interfaces_no
+      ~ethernet_interface_no
       ~memory
       ~umid
       ~console:"xterm"
@@ -1701,7 +1701,7 @@ class router =
       ~(cow_file_name)
       ~(kernel_file_name)
       ~(filesystem_file_name)
-      ~(ethernet_interfaces_no)
+      ~(ethernet_interface_no)
       ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
       ~id
       ~unexpected_death_callback
@@ -1713,7 +1713,7 @@ object(self)
       ~filesystem_file_name(* :"/usr/marionnet/filesystems/router.debian.lenny.sid.fs" *)
       ~kernel_file_name
       ~cow_file_name
-      ~ethernet_interfaces_no
+      ~ethernet_interface_no
       ~memory:40(*32*)
       ~umid
       (* Change this when debugging the router device *)
@@ -1735,7 +1735,7 @@ class world_bridge =
 object(self)
   inherit device
       ~name
-      ~hublets_no:1
+      ~hublet_no:1
       ~unexpected_death_callback
       ()
       as super
@@ -1863,7 +1863,7 @@ class cloud =
 object(self)
   inherit device
       ~name
-      ~hublets_no:2
+      ~hublet_no:2
       ~unexpected_death_callback
       ()
       as super

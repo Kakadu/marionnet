@@ -73,7 +73,7 @@ module Make (M: Parents) = struct
  let recreate_subshell () = match M.parent with
   | Menuitem mi ->
      let s = match mi#get_submenu with Some x -> x | None -> assert false in
-     s#destroy;
+     s#destroy ();
      create_subshell_for_menu_item mi
   | Menubar  _  -> failwith "Not allowed action: this factory has been created for a menubar."
   | _  -> assert false

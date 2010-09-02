@@ -93,7 +93,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       st#network#make_device_ledgrid (d :> Mariokit.Netmodel.device);
       Filesystem_history.rename_device oldname name;
       defects#rename_device oldname name;
-      defects#update_ports_no name user_port_no;
+      defects#update_port_no name user_port_no;
       st#update_cable_sensitivity ()
 
   end

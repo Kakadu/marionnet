@@ -42,7 +42,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
       let (name,label) = (r#get "name"),(r#get "label") in
-      defects#add_device ~defective_by_default:true name "cloud" 2;
+      defects#add_device (*~defective_by_default:true*) name "cloud" 2;
       let c = (new Mariokit.Netmodel.cloud ~network:st#network ~name ~label ()) in
       st#network#add_cloud c;
       st#update_sketch () ;

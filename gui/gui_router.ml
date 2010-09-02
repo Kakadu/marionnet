@@ -89,11 +89,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       st#network#make_device_ledgrid d;
       Filesystem_history.rename_device oldname name;
       details#rename_device oldname name;
-      details#update_ports_no name eth;
+      details#update_port_no name eth;
       details#set_port_string_attribute_by_index name 0 "IPv4 address" (r#get "ip");
       details#set_port_string_attribute_by_index name 0 "IPv4 netmask" (r#get "nmask");
       defects#rename_device oldname name;
-      defects#update_ports_no name eth;
+      defects#update_port_no name eth;
       st#update_cable_sensitivity ()
 
   end

@@ -63,7 +63,7 @@ class xnest_process :
     method terminate : unit
   end
 
-class virtual process_creating_socket :
+class virtual process_which_creates_a_socket_at_spawning_time :
   process_name ->
   process_name list ->
   ?stdin:Unix.file_descr ->
@@ -88,7 +88,7 @@ class virtual process_creating_socket :
 
 class hub_or_switch_process :
   ?hub:bool ->
-  ?ports_no:int ->
+  ?port_no:int ->
   ?tap_name:process_name ->
   ?socket_name_prefix:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
@@ -108,7 +108,7 @@ class hub_or_switch_process :
   end
 
 class switch_process :
-  ports_no:int ->
+  port_no:int ->
   ?socket_name_prefix:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
@@ -127,7 +127,7 @@ class switch_process :
   end
 
 class hub_process :
-  ports_no:int ->
+  port_no:int ->
   ?socket_name_prefix:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
@@ -258,7 +258,7 @@ class uml_process :
   filesystem_file_name:string ->
   cow_file_name:string ->
   ?swap_file_name:string ->
-  ethernet_interfaces_no:int ->
+  ethernet_interface_no:int ->
   hublet_processes:< get_socket_name : string; .. > list ->
   memory:int ->
   console:string ->
@@ -291,7 +291,7 @@ exception CantGoFromStateToState of device_state * device_state
 
 class virtual device :
   name:string ->
-  hublets_no:int ->
+  hublet_no:int ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
@@ -302,13 +302,13 @@ class virtual device :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method virtual spawn_processes : unit
     method startup : unit
@@ -334,13 +334,13 @@ class ethernet_cable :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -351,7 +351,7 @@ class ethernet_cable :
 
 class virtual main_process_with_n_hublets_and_cables :
   name:string ->
-  hublets_no:int ->
+  hublet_no:int ->
   ?last_user_visible_port_index:int ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
@@ -363,13 +363,13 @@ class virtual main_process_with_n_hublets_and_cables :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -380,7 +380,7 @@ class virtual main_process_with_n_hublets_and_cables :
 
 class virtual hub_or_switch :
   name:string ->
-  hublets_no:int ->
+  hublet_no:int ->
   ?last_user_visible_port_index:int ->
   hub:bool ->
   unexpected_death_callback:(unit -> unit) ->
@@ -393,13 +393,13 @@ class virtual hub_or_switch :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -410,7 +410,7 @@ class virtual hub_or_switch :
 
 class hub :
   name:string ->
-  hublets_no:int ->
+  hublet_no:int ->
   ?last_user_visible_port_index:int ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
@@ -422,13 +422,13 @@ class hub :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -439,7 +439,7 @@ class hub :
 
 class switch :
   name:string ->
-  hublets_no:int ->
+  hublet_no:int ->
   ?last_user_visible_port_index:int ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
@@ -451,13 +451,13 @@ class switch :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -481,13 +481,13 @@ class world_gateway :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -502,7 +502,7 @@ class virtual machine_or_router :
   kernel_file_name:process_name ->
   filesystem_file_name:string ->
   cow_file_name:string ->
-  ethernet_interfaces_no:int ->
+  ethernet_interface_no:int ->
   memory:int ->
   console:string ->
   xnest:bool ->
@@ -518,13 +518,13 @@ class virtual machine_or_router :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -538,7 +538,7 @@ class machine :
   filesystem_file_name:string ->
   kernel_file_name:process_name ->
   cow_file_name:string ->
-  ethernet_interfaces_no:int ->
+  ethernet_interface_no:int ->
   ?memory:int ->
   ?umid:string ->
   ?xnest:bool ->
@@ -553,13 +553,13 @@ class machine :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -573,7 +573,7 @@ class router :
   cow_file_name:string ->
   kernel_file_name:process_name ->
   filesystem_file_name:string ->
-  ethernet_interfaces_no:int ->
+  ethernet_interface_no:int ->
   ?umid:string ->
   id:int ->
   unexpected_death_callback:(unit -> unit) ->
@@ -586,13 +586,13 @@ class router :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -614,13 +614,13 @@ class world_bridge :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -641,13 +641,13 @@ class cloud :
     method get_ethernet_port_by_name : string -> hublet_process
     method get_hublet_process : int -> hublet_process
     method get_hublet_processes : hublet_process list
-    method get_hublets_no : int
+    method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processes_no : int -> unit
+    method set_hublet_processe_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit

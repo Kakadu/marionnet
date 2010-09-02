@@ -534,8 +534,8 @@ There is no need to restart the application.")
            (fun node_name ->
              self#network#free_receptacles_names_of_node node_name Mariokit.Netmodel.Eth)
            node_names) in
-    let free_ethernet_ports_no = List.length free_ethernet_port_names in
-    let condition = (free_ethernet_ports_no >= 2) in
+    let free_ethernet_port_no = List.length free_ethernet_port_names in
+    let condition = (free_ethernet_port_no >= 2) in
     (List.iter (fun x->x#misc#set_sensitive condition) sensitive_cables)
 
 

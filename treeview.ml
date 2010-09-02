@@ -79,11 +79,11 @@ let is_bound_in_alist name alist =
   let alist_length = List.length alist in
   let filtered_alist = List.filter (fun (name_, value) -> not (name = name_)) alist in
   let filtered_alist_length = List.length filtered_alist in
-  let removed_elements_no = alist_length - filtered_alist_length in
-  if removed_elements_no <= 1 then
+  let removed_element_no = alist_length - filtered_alist_length in
+  if removed_element_no <= 1 then
     filtered_alist
   else
-    failwith ("remove_from_alist: "^name^" was bound "^(string_of_int removed_elements_no)^"times");;*)
+    failwith ("remove_from_alist: "^name^" was bound "^(string_of_int removed_element_no)^"times");;*)
 let rec remove_from_alist name alist =
   match alist with
   | [] ->
@@ -98,11 +98,11 @@ let bind_or_replace_in_alist name value alist =
   let alist_length = List.length alist in
   let filtered_alist = List.filter (fun (name_, value) -> not (name = name_)) alist in
   let filtered_alist_length = List.length filtered_alist in
-  let removed_elements_no = alist_length - filtered_alist_length in
-  if removed_elements_no <= 1 then
+  let removed_element_no = alist_length - filtered_alist_length in
+  if removed_element_no <= 1 then
     (name, value) :: filtered_alist
   else
-    failwith ("bind_or_replace_in_alist: "^name^" was bound "^(string_of_int removed_elements_no)^"times");;
+    failwith ("bind_or_replace_in_alist: "^name^" was bound "^(string_of_int removed_element_no)^"times");;
 
 (** {b To do: Jean, do you know of any general-purpose facility for deep-copying? (here
     copying the cons structure is enough, but this may not always be the case)} *)
@@ -1122,7 +1122,7 @@ object(self)
          !id_forest in
      let updated_content_forest =
        map (fun id -> self#get_complete_row id) updated_id_forest in
-     let updated_expanded_row_ids_as_list =
+     let _updated_expanded_row_ids_as_list =
        List.fold_left
          (fun list an_id ->
             if Hashtbl.mem expanded_row_ids an_id then
@@ -1131,14 +1131,6 @@ object(self)
               list)
          []
          (linearize updated_id_forest) in
-(*     Log.printf "The rows to be expanded are:\n"; flush_all (); *)
-(*     List.iter *)
-(*       (fun row_id -> Log.printf "%s " row_id) *)
-(*       updated_expanded_row_ids_as_list; *)
-(*     Log.printf "\nOk, those were the rows to be expanded.\n"; flush_all (); *)
-(*     Log.printf "The new id forest will be:\n"; flush_all (); *)
-(*     print_forest updated_id_forest Log.print_string; flush_all (); *)
-(*     Log.printf "Ok, that was the future id forest.\n"; flush_all (); *)
      (* Clear the full state, which of course includes the GUI: *)
      self#clear;
      (* Restore the state we have set apart before: *)

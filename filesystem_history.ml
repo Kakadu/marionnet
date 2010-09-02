@@ -78,12 +78,12 @@ object(self)
 
   method startup_in_state row_id =
     let correct_date = item_to_string (self#get_row_item row_id "Timestamp") in
-    let cow_file_name = item_to_string (self#get_row_item row_id "File name") in
+    let _cow_file_name = item_to_string (self#get_row_item row_id "File name") in
     let name = item_to_string (self#get_row_item row_id "Name") in
     (* Ugly kludge: temporarily change the date of the state we want to duplicate,
        so that it becomes the most recent. Then startup the machine, and eventually
        reset the date fields to its correct value: *)
-(*     Log.print_string ("\n\n+++ Starting up "^name^" with "^cow_file_name^"\n\n"); flush_all (); *)
+(*     Log.print_string ("\n\n+++ Starting up "^name^" with "^_cow_file_name^"\n\n"); flush_all (); *)
 (*     self#set_row_item row_id "Timestamp" (String "9999-99-99 99:99"); *)
     self#set_row_item row_id "Timestamp" (String (Timestamp.current_timestamp_as_string ()));
     let _, startup_function = get_startup_functions () in
@@ -548,7 +548,7 @@ let add_substate_of parent_file_name =
     lookup_alist "_id" complete_row_to_copy in
   let parent_row_id =
     match parent_row_id_as_item with String id -> id | _ -> assert false in
-  let siblings_no =
+  let sibling_no =
     List.length (states_interface#children_of parent_row_id) in
   let parent_row_name =
     item_to_string (lookup_alist "Name" complete_row_to_copy) in
@@ -579,7 +579,7 @@ let add_substate_of parent_file_name =
      gives the impression that trees 'are born' collapsed (collapsing a leaf has no
      effect on the children it doesn't yet have), and on the other hand it does not
      bother the user undoing his/her expansions: *)
-  (if siblings_no = 0 then
+  (if sibling_no = 0 then
     states_interface#collapse_row parent_row_id);
   copied_file_name;;
 

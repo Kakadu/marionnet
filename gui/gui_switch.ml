@@ -78,7 +78,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       st#network#make_device_ledgrid d;
       Filesystem_history.rename_device oldname name;
       defects#rename_device oldname name;
-      defects#update_ports_no name (int_of_string eth);
+      defects#update_port_no name (int_of_string eth);
       st#update_cable_sensitivity ()
 
   end
@@ -94,7 +94,6 @@ module Make_menus (State : sig val st:State.globalState end) = struct
         ~question:(Printf.sprintf (f_ "Are you sure that you want to remove %s\nand all the cables connected to this %s?") name (s_ "switch"))
 
     let reaction r =
-      let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,answer) = r#get("name"),r#get("answer") in
       if (answer="yes") then begin

@@ -103,7 +103,7 @@ object(self)
     else
       self#generate_ipv6_address
 
-  method add_device ?port_row_completions device_name device_type ports_no =
+  method add_device ?port_row_completions device_name device_type port_no =
     let row_id =
       self#add_row
         [ "Name", String device_name;
@@ -117,7 +117,7 @@ object(self)
           "IPv6 address", String "";
 (*          "IPv6 netmask", String "";
           "IPv6 broadcast", String ""; *) ] in
-    self#update_ports_no ?port_row_completions device_name ports_no;
+    self#update_port_no ?port_row_completions device_name port_no;
     self#collapse_row row_id;
     self#save;
 
@@ -136,7 +136,7 @@ object(self)
     self#row_id_such_that (fun row -> (lookup_alist "Name" row) = String device_name) in
     result
 
-  method ports_no_of device_name =
+  method port_no_of device_name =
     let device_row_id =
       self#device_row_id device_name in
     let port_row_ids =
@@ -146,8 +146,8 @@ object(self)
   method private add_port ?port_row_completions device_name =
     let device_row_id =
       self#device_row_id device_name in
-    let current_ports_no =
-      self#ports_no_of device_name in
+    let current_port_no =
+      self#port_no_of device_name in
     let port_type =
       match item_to_string (self#get_row_item device_row_id "Type") with
       | "machine" | "world_bridge" -> "machine-port"
@@ -159,7 +159,7 @@ object(self)
         "machine" | "world_bridge" -> "eth"
       | "gateway" (* retro-compatibility *) -> "eth"
       | _ -> "port" in
-    let port_name = (Printf.sprintf "%s%i" port_prefix current_ports_no) in
+    let port_name = (Printf.sprintf "%s%i" port_prefix current_port_no) in
     let port_row_standard =
       [ "Name", String port_name;
         "Type", Icon port_type; ] in
@@ -173,16 +173,16 @@ object(self)
     in
     ignore (self#add_row ~parent_row_id:device_row_id port_row)
 
-  method update_ports_no ?port_row_completions device_name new_ports_no =
+  method update_port_no ?port_row_completions device_name new_port_no =
     let device_row_id =
       self#device_row_id device_name in
     let port_row_ids =
       Forest.children_nodes device_row_id !id_forest in
-    let old_ports_no =
-      self#ports_no_of device_name in
-    let ports_delta = new_ports_no - old_ports_no in
+    let old_port_no =
+      self#port_no_of device_name in
+    let ports_delta = new_port_no - old_port_no in
     if ports_delta >= 0 then
-      for i = old_ports_no + 1 to new_ports_no do
+      for i = old_port_no + 1 to new_port_no do
         self#add_port ?port_row_completions device_name
       done
     else begin

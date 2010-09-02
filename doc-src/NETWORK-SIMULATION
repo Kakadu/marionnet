@@ -1,0 +1,134 @@
+
+Compilation of the user network into the simulated network
+==========================================================
+
+
+machines
+--------
+
+Each machine is implemented by a Machine connected to one distinct
+Hublet SM1-J per network interface ethJ. Bandwidth limitation
+and defects due to a _port_ (not to a cable) are implemented via
+Y cables named YM-J linking each SM1-J hublet with another
+hublet named SM2-J.
+
+SM2-J can be throght as the node implementing ethJ, and the wire
+connected to it can be safely destroyed and re-created at runtime,
+without stopping the simuation.
+
+      +------+           +-----+    YM-0   +-----+
+      |   Eth0-----------|SM1-0|-----------|SM2-0|[[eth0]]
+      |      |           +-----+           +-----+
+      |  M   |
+      |      |
+ -----Ssl0   |
+      |      |           +-----+    YM-1   +-----+
+      |   Eth1-----------+SM1-1|-----------|SM2-1|[[eth1]]
+      +------+           +-----+           +-----+
+
+Serial lines are non-movable, and directly implemented by M's
+ssl? interfaces as emulated by UML. Serial lines can only directly
+link pairs of machines.
+
+
+switches/hubs
+-------------
+
+A switch or hub is implemented by a Switch connected to one Hublet
+SS-J by a wire YS-J, for each port J. YS-J embodies the defects of
+portJ. Each hublet SS-J is the implementation of portJ.
+Note that the index of the Switch port where an YS-J is connected is
+not significant. This simplifies the implementation, as VDE switches
+don't allow to specify which port should be involved at connection
+time.
+
+ +-------+
+ |       |   YS-1    +----+
+ |Whatever-----------+SS-1|[[port1]]
+ |       |           +----+
+ |       |
+ |       |   YS-2    +----+
+ |Whatever-----------+SS-2|[[port2]]
+ |       |           +----+
+ |  S    |
+ |       |   YS-3    +----+
+ |Whatever-----------+SS-3|[[port3]]
+ |       |           +----+
+ |       |
+ |       |   YS-4    +----+
+ |Whatever-----------+SS-4|[[port4]]
+ |       |           +----+
+ +-------+
+
+
+routers
+-------
+
+As a router is implemented by a (properly configured) Machine, it is
+compiled just as a machine, where ethJ is replaced by port(J+1).
+Routers have no serial lines.
+
+ +------+           +-----+    YM-0   +-----+
+ |   Eth0-----------|SM1-0|-----------|SM2-0|[[port1]]
+ |      |           +-----+           +-----+
+ |      |
+ |      |           +-----+    YM-1   +-----+
+ |   Eth1-----------+SM1-1|-----------|SM2-1|[[port2]]
+ |      |           +-----+           +-----+
+ | M    |
+ |      |           +-----+    YM-2   +-----+
+ |   Eth2-----------+SM1-2|-----------|SM2-1|[[port3]]
+ |      |           +-----+           +-----+
+ |      |
+ |      |           +-----+    YM-3   +-----+
+ |   Eth3-----------+SM1-3|-----------|SM2-1|[[port4]]
+ |      |           +-----+           +-----+
+ +------+
+
+
+cables
+------
+
+A user cable can connect pairs of objects of several kinds. The user
+is free to connect objects with cables having incorrect crossoverness.
+
+Objects to link           | Correct "crossoverness"
+..................................................
+machine to machine        | x
+machine to switch/hub     | c
+machine to router         | c
+switch/hub to switch/hub  | x
+router to switch/hub      | x
+router to router          | x
+(we don't mention symmetrical cases)
+
+In all the cases above a user cable can be compiled into a simulated
+Cable Y. Bandwidth limitation and cable defects due to the cable
+itself can be directly implemented within the Cable.
+If the user cable "crossoverness" is incorrect then Y in configured to
+lose all packets.
+
+         Y
+  ----------------
+
+
+Ghostified Interfaces
+---------------------
+
+Each Machine implementing a machine or a router (To do: is it needed
+for routers?) has an extra interface Eth42, ghostified at startup, and
+linked to a host tap device.
+
+
+gateways
+--------
+
+A gateway is compiled into a Hublet SG connected via a cable Y to a
+two-port Hub G (which does not represent a user-network Port), at one
+end of which there's a tap host interface.
+All the defects of the single gateway port eth0, if any, are implemented
+in Y.
+
+      +---+    Y    +--+
+ (tap)| H +---------+SG|[[eth0]]
+      +---+         +--+

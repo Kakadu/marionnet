@@ -73,13 +73,13 @@ object(self)
       "Minimum delay (ms)", String "50";
       "Maximum delay (ms)", String "100"; ]
 
-  method add_device ?(defective_by_default=false) device_name device_type ports_no =
+  method add_device ?(defective_by_default=false) device_name device_type port_no =
     let row_id =
       self#add_row
         [ "Name", String device_name;
           "Type", Icon device_type;
           "_uneditable", CheckBox true; ] in
-    self#update_ports_no ~defective_by_default device_name ports_no;
+    self#update_port_no ~defective_by_default device_name port_no;
     self#collapse_row row_id;
     self#save;
 (*
@@ -148,7 +148,7 @@ object(self)
 (*     print_string "!!!!B1 treeview: row_such_that: end\n"; flush_all (); *)
     result
 
-  method ports_no_of device_name =
+  method port_no_of device_name =
     let device_row_id =
       self#device_or_cable_row_id device_name in
     let port_row_ids =
@@ -160,8 +160,8 @@ object(self)
       if defective_by_default then defective_defaults else non_defective_defaults in
     let device_row_id =
       self#device_or_cable_row_id device_name in
-    let current_ports_no =
-      self#ports_no_of device_name in
+    let current_port_no =
+      self#port_no_of device_name in
     let port_type =
       match item_to_string (self#get_row_item device_row_id "Type") with
       | "machine" (*| "world_bridge"*) -> "machine-port"
@@ -175,10 +175,10 @@ object(self)
     let port_row_id =
       self#add_row
         ~parent_row_id:device_row_id
-        [ "Name", String (Printf.sprintf "%s%i" port_prefix current_ports_no);
+        [ "Name", String (Printf.sprintf "%s%i" port_prefix current_port_no);
           "Type", Icon port_type;
           "_uneditable", CheckBox true; ] in
-    let inward_row_id =
+    let _inward_row_id =
       (self#add_row
          ~parent_row_id:port_row_id
          (List.append
@@ -193,20 +193,20 @@ object(self)
              "Type", Icon "outward"]
             defaults)) in
     if defective_by_default then begin
-(*       self#show_that_it_is_defective inward_row_id; *)
+      (* In a single direction suffice: *)
       self#show_that_it_is_defective outward_row_id;
     end
 
-  method update_ports_no ?(defective_by_default=false) device_name new_ports_no =
+  method update_port_no ?(defective_by_default=false) device_name new_port_no =
     let device_row_id =
       self#device_or_cable_row_id device_name in
     let port_row_ids =
       Forest.children_nodes device_row_id !id_forest in
-    let old_ports_no =
-      self#ports_no_of device_name in
-    let ports_delta = new_ports_no - old_ports_no in
+    let old_port_no =
+      self#port_no_of device_name in
+    let ports_delta = new_port_no - old_port_no in
     if ports_delta >= 0 then
-      for i = old_ports_no + 1 to new_ports_no do
+      for i = old_port_no + 1 to new_port_no do
         self#add_port ~defective_by_default device_name
       done
     else begin
@@ -325,7 +325,7 @@ object(self)
     self#set_row_highlight_color "dark red" row_id;
     self#highlight_row row_id
 
-  method private show_that_it_is_not_defective row_id =
+  method private show_that_it_i_not_defective row_id =
     self#unhighlight_row row_id
 
   (** Return true iff there exists at least a defect in the given row.
@@ -360,7 +360,7 @@ object(self)
     if self#is_defective ?minimum_delay ?maximum_delay row_id then
       self#show_that_it_is_defective row_id
     else
-      self#show_that_it_is_not_defective row_id
+      self#show_that_it_i_not_defective row_id
 
   method private relevant_device_name_for_row_id row_id =
     let id_forest = self#get_id_forest in

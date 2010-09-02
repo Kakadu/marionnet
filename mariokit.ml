@@ -617,7 +617,7 @@ class virtual simulated_device = object(self)
                                 may need to start some cables. *)
                              ignore (List.map
                                        (fun cable -> Log.print_string ("+ Working on cable\n"^(cable#show "")^"\n");
-                                         cable#increment_alive_endpoints_no)
+                                         cable#increment_alive_endpoint_no)
                                        (self#get_involved_cables)))
         | _ -> raise_forbidden_transition "create_right_now")
 
@@ -655,7 +655,7 @@ class virtual simulated_device = object(self)
              List.iter
                (fun cable ->
                  Log.print_string ("- Unpinning the cable "^(cable#show "")^"\n"); flush_all ();
-                 cable#decrement_alive_endpoints_no;
+                 cable#decrement_alive_endpoint_no;
                  Log.print_string ("- The cable "^(cable#show "")^" was unpinned with success\n"); flush_all ())
                self#get_involved_cables;
              Log.print_string ("  (destroying the simulated device implementing " ^ (self#get_name) ^ "...)\n");
@@ -740,15 +740,15 @@ class virtual simulated_device = object(self)
                                       self#poweroff_right_now)
         | _ -> raise_forbidden_transition "poweroff_right_now")
 
-  method set_hublet_processes_no n =
+  method set_hublet_processe_no n =
     Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.print_string ("* Updating the number of hublets of the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
-          DeviceOff, Some(d) -> d#set_hublet_processes_no n (* update hublets and don't change state *)
+          DeviceOff, Some(d) -> d#set_hublet_processe_no n (* update hublets and don't change state *)
         | NoDevice, None -> (self#create_right_now;                    (* Make hublets... *)
-                             self#set_hublet_processes_no n) (* ...and do the real work in state Off *)
-        | _ ->  raise_forbidden_transition "set_hublet_processes_no")
+                             self#set_hublet_processe_no n) (* ...and do the real work in state Off *)
+        | _ ->  raise_forbidden_transition "set_hublet_processe_no")
 
   (** Return true iff the current state allows to 'startup' the device from the GUI. *)
   method can_startup =
@@ -1310,15 +1310,15 @@ object (self)
             (* Turn on the relevant LEDgrid lights: *)
             let involved_devices_and_port_nos = self#involved_devices_and_port_nos in
             List.iter
-              (fun (device, port_no) ->
+              (fun (device, port) ->
                 network#ledgrid_manager#set_port_connection_state
                   ~id:(device#id)
-                  ~port:port_no
+                  ~port
                   ~value:true
                   ())
               involved_devices_and_port_nos;
             connected := true;
-            self#increment_alive_endpoints_no;
+            self#increment_alive_endpoint_no;
             Log.print_string "Ok: connected\n";
           end);
           refresh_sketch ());
@@ -1332,15 +1332,15 @@ object (self)
             (* Turn off the relevant LEDgrid lights: *)
             let involved_devices_and_port_nos = self#involved_devices_and_port_nos in
             List.iter
-              (fun (device, port_no) ->
+              (fun (device, port) ->
                 network#ledgrid_manager#set_port_connection_state
                   ~id:(device#id)
-                  ~port:port_no
+                  ~port
                   ~value:false
                   ())
               involved_devices_and_port_nos;
             connected := false;
-            self#decrement_alive_endpoints_no;
+            self#decrement_alive_endpoint_no;
             Log.print_string "Ok: disconnected\n";
           end);
           refresh_sketch ());
@@ -1357,28 +1357,28 @@ object (self)
        endpoints plus the cable connection state (either 0 for 'disconnected' or
        1 for 'connected'). A cable can be started in the simulation when this is
        exactly 3, and must be terminated when it becomes less than 3. *)
-   val alive_endpoints_no = ref 1 (* cables are 'connected' by default *)
+   val alive_endpoint_no = ref 1 (* cables are 'connected' by default *)
 
    (** Check that the reference counter is in [0, 3]. To do: disable this for
    production. *)
-   method private check_alive_endpoints_no =
+   method private check_alive_endpoint_no =
     with_mutex mutex
       (fun () ->
-        assert((!alive_endpoints_no >= 0) && (!alive_endpoints_no <= 3));
+        assert((!alive_endpoint_no >= 0) && (!alive_endpoint_no <= 3));
         Log.print_string "The reference count is now ";
-        print_int !alive_endpoints_no; Log.print_string "\n")
+        print_int !alive_endpoint_no; Log.print_string "\n")
 
    (** Record the fact that an endpoint has been created (at a lower level
        this means that its relevant {e hublet} has been created), and
        startup the simulated cable if appropriate. *)
-   method increment_alive_endpoints_no =
+   method increment_alive_endpoint_no =
      with_mutex mutex
        (fun () ->
-         Log.print_string "\n+++ increment_alive_endpoints_no\n\n";
-         self#check_alive_endpoints_no;
-         alive_endpoints_no := !alive_endpoints_no + 1;
-         self#check_alive_endpoints_no;
-         if !alive_endpoints_no = 3 then begin
+         Log.print_string "\n+++ increment_alive_endpoint_no\n\n";
+         self#check_alive_endpoint_no;
+         alive_endpoint_no := !alive_endpoint_no + 1;
+         self#check_alive_endpoint_no;
+         if !alive_endpoint_no = 3 then begin
            Log.print_string "The reference count raised to three: starting up a cable\n";
            self#startup_right_now
          end)
@@ -1386,14 +1386,14 @@ object (self)
    (** Record the fact that an endpoint is no longer running (at a lower level
        this means that its relevant {e hublet} has been destroyed), and
        shutdown the simulated cable if appropriate. *)
-   method decrement_alive_endpoints_no =
+   method decrement_alive_endpoint_no =
      with_mutex mutex
        (fun () ->
-         Log.print_string "\n--- decrement_alive_endpoints_no\n\n";
-         self#check_alive_endpoints_no;
-         alive_endpoints_no := !alive_endpoints_no - 1;
-         self#check_alive_endpoints_no;
-         if !alive_endpoints_no < 3 then begin
+         Log.print_string "\n--- decrement_alive_endpoint_no\n\n";
+         self#check_alive_endpoint_no;
+         alive_endpoint_no := !alive_endpoint_no - 1;
+         self#check_alive_endpoint_no;
+         if !alive_endpoint_no < 3 then begin
            (* Note that we destroy rather than terminating. This enables to re-create the
               simulated device later, at startup time, referring the correct hublets
               that will exist then, rather than the ones existing now *)
@@ -1448,12 +1448,12 @@ object (self)
            (try self#connect_right_now with _ -> ());
            connected := true;
          end else begin
-           let current_alive_endpoints_no = !alive_endpoints_no in
+           let current_alive_endpoint_no = !alive_endpoint_no in
            super_simulated_device#destroy_because_of_unexpected_death ();
            connected := true;
-           alive_endpoints_no := 0;
-           for i = 1 to current_alive_endpoints_no do
-             self#increment_alive_endpoints_no;
+           alive_endpoint_no := 0;
+           for i = 1 to current_alive_endpoint_no do
+             self#increment_alive_endpoint_no;
            done
          end)
 
@@ -1526,11 +1526,11 @@ object (self)
           right_endpoint#name
           cablekind);
      (if left_endpoint#has_hublet_processes then
-       self#increment_alive_endpoints_no);
+       self#increment_alive_endpoint_no);
      (if right_endpoint#has_hublet_processes then
-       self#increment_alive_endpoints_no);
+       self#increment_alive_endpoint_no);
      Log.print_string ("The reference count for the just-created cable " ^ (self#get_name)^" is ");
-     PervasivesExtra.print_int !alive_endpoints_no; Log.print_string "\n";
+     PervasivesExtra.print_int !alive_endpoint_no; Log.print_string "\n";
 end;;
 
 (** Function for make receptacles from 0 to k (so call it with desired number - 1) of desired portkind
@@ -1630,13 +1630,13 @@ class device =
     let ethernet_receptacles = self#get_receptacles ~portkind:(Some Eth) () in
     if self#devkind != Router then
       let name = self#get_name in
-      let hublets_no = List.length ethernet_receptacles in
+      let hublet_no = List.length ethernet_receptacles in
       let unexpected_death_callback = self#destroy_because_of_unexpected_death in
       (match self#devkind with
       | Hub     -> new Simulated_network.hub
       | Switch  -> new Simulated_network.switch
       | _ -> assert false)
-        ~name ~hublets_no ~unexpected_death_callback ()
+        ~name ~hublet_no ~unexpected_death_callback ()
     else begin
       let cow_file_name =
         (Filesystem_history.get_states_directory ()) ^
@@ -1655,7 +1655,7 @@ class device =
         ~kernel_file_name:(MSys.marionnet_home_kernels ^ "linux-default")
         ~cow_file_name (* To do: use the variant!!! *)
         ~filesystem_file_name:(MSys.router_pathname_prefix^router_unprefixed_filesystem)
-        ~ethernet_interfaces_no:(List.length ethernet_receptacles)
+        ~ethernet_interface_no:(List.length ethernet_receptacles)
         ~umid:self#get_name
         ~id
         ~unexpected_death_callback:self#destroy_because_of_unexpected_death
@@ -1869,7 +1869,7 @@ class machine =
       ~kernel_file_name:(MSys.kernel_pathname_prefix ^ kernel)
       ~filesystem_file_name:(MSys.machine_pathname_prefix^distrib)
       ~cow_file_name
-      ~ethernet_interfaces_no:(List.length ethernet_receptacles)
+      ~ethernet_interface_no:(List.length ethernet_receptacles)
       ~memory:self#get_memory
       ~umid:self#get_name
       ~id
@@ -1934,7 +1934,7 @@ class cloud =
   inherit node ~network ~name ~label ~nodekind:Cloud ~rlist:intial_receptacles ()
 
   (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity = MDI_X
+  method polarity = Intelligent (* Because it is didactically meaningless *)
 
   method show = self#name
 
@@ -2499,7 +2499,7 @@ class network () =
                | Router -> ("Router")
                | World_gateway -> ("World gateway")
                | _ -> assert false)
-       ~ports_no:(d#number_of_receptacles ~portkind:(Some Eth) ())
+       ~port_no:(d#number_of_receptacles ~portkind:(Some Eth) ())
        ~image_directory:(MSys.marionnet_home_images^"/leds/"^led_subdirectory)
        ();
      (* Set port connection state: *)

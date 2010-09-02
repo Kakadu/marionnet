@@ -37,7 +37,6 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dialog   = let module M = Gui_dialog_HUB.Make (State) in M.dialog ~title:(s_ "Add hub") ~update:None
 
     let reaction r =
-      let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,eth) = (r#get "name"),(r#get "eth") in
       defects#add_device name "hub" (int_of_string eth);
@@ -68,7 +67,6 @@ module Make_menus (State : sig val st:State.globalState end) = struct
                  M.dialog ~title:(title^" "^name) ~update:(Some m)
 
     let reaction r =
-      let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,oldname,eth) = (r#get "name"),(r#get "oldname"),(r#get "eth") in
       let d = st#network#get_device_by_name oldname in
@@ -81,7 +79,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       st#network#make_device_ledgrid d;
       Filesystem_history.rename_device oldname name;
       defects#rename_device oldname name;
-      defects#update_ports_no name (int_of_string eth);
+      defects#update_port_no name (int_of_string eth);
       st#update_cable_sensitivity ()
 
   end

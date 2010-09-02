@@ -64,12 +64,12 @@ let ask_the_server request =
           let request_as_string = print_request request in
 (*          Log.printf "The request is %s\n" (string_of_daemon_request request);
           flush_all ();*)
-          let sent_bytes_no = Unix.send the_daemon_client_socket request_as_string 0 message_length [] in
-          (if not (sent_bytes_no == sent_bytes_no) then
+          let sent_byte_no = Unix.send the_daemon_client_socket request_as_string 0 message_length [] in
+          (if not (sent_byte_no == sent_byte_no) then
             failwith "send() failed");
-          let received_bytes_no =
+          let received_byte_no =
             Unix.read the_daemon_client_socket buffer 0 message_length in
-          (if received_bytes_no < message_length then
+          (if received_byte_no < message_length then
             failwith "recv() failed, or the message is ill-formed");
           let response = parse_response buffer in
 (*          Log.printf "The response is %s\n" (string_of_daemon_response response);

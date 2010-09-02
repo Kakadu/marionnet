@@ -95,7 +95,7 @@ object (self)
       window#misc#show ());
 
   (** This is {e unlocked}! *)
-  method private make_widget ~id ~ports_no ~title ~label ~image_directory () =
+  method private make_widget ~id ~port_no ~title ~label ~image_directory () =
     let window =
       GWindow.window
         ~icon:Icon.icon_pixbuf
@@ -120,9 +120,9 @@ object (self)
              ~callback:(fun _ -> Log.print_string "Sorry, no, you can't\n"; true));
     let device =
       new device_led_grid
-        ~packing:box#add ~ports:ports_no ~show_100_mbs:false
-        ~lines:(if ports_no > 8 then 2 else 1)
-        ~angle:(if ports_no > 8 then 90.0 else 0.0)
+        ~packing:box#add ~ports:port_no ~show_100_mbs:false
+        ~lines:(if port_no > 8 then 2 else 1)
+        ~angle:(if port_no > 8 then 90.0 else 0.0)
         ~off_xpm_file_name:(image_directory^"/off.xpm")
         ~on_xpm_file_name:(image_directory^"/on.xpm")
         ~nothing_xpm_file_name:(image_directory^"/nothing.xpm")
@@ -132,14 +132,14 @@ object (self)
          to show it only when the device is started up. *)
       window, device
 
-  method make_device_ledgrid ~id ~title ~label ~ports_no ~image_directory
+  method make_device_ledgrid ~id ~title ~label ~port_no ~image_directory
       ?connected_ports:(connected_ports=[])() =
     self#lock;
     Log.print_string ("Making a ledgrid with title '" ^ title ^ "' (the device has id " ^
-                  (string_of_int id) ^ "), with " ^ (string_of_int ports_no) ^
+                  (string_of_int id) ^ "), with " ^ (string_of_int port_no) ^
                   " ports\n");
     let ledgrid_widget, window_widget =
-      self#make_widget ~id ~ports_no ~title ~label ~image_directory () in
+      self#make_widget ~id ~port_no ~title ~label ~image_directory () in
     Hashmap.add id_to_data id (ledgrid_widget, window_widget, title, connected_ports);
     ignore (List.map
               (fun port -> self#set_port_connection_state ~id ~port ~value:true ())

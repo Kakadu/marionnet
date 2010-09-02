@@ -248,7 +248,7 @@ let keep_alive_client client =
     track of the number of currently existing clients; global resources are
     created when the counter raises from 0 to 1, and destroyed when it drops
     from 1 to 0. *)
-let clients_no = ref 0;;
+let client_no = ref 0;;
 let the_resources_if_any = ref None;;
 let global_resources () =
   Recursive_mutex.with_mutex the_daemon_mutex
@@ -270,21 +270,21 @@ let destroy_global_resources_unlocked_ () =
       the_resources_if_any := None;
       flush_all ();
   end;;
-let increment_clients_no () =
+let increment_client_no () =
   Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
-      (if !clients_no = 0 then begin
+      (if !client_no = 0 then begin
         Log.printf "There is at least one client now. Creating global resources...\n";
         make_global_resources_unlocked_ ();
         Log.printf "Global resources were created with success.\n";
         flush_all ();
       end);
-      clients_no := !clients_no + 1);;
-let decrement_clients_no () =
+      client_no := !client_no + 1);;
+let decrement_client_no () =
   Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
-      clients_no := !clients_no - 1;
-      (if !clients_no = 0 then begin
+      client_no := !client_no - 1;
+      (if !client_no = 0 then begin
         Log.printf "There are no more clients now. Destroying global resources...\n";
         destroy_global_resources_unlocked_ ();
         Log.printf "Global resources were destroyed with success.\n";
@@ -307,7 +307,7 @@ let make_client =
         client_death_time_map#add result 42.42;
         socket_map#add result socket;
         keep_alive_client result;
-        increment_clients_no ();
+        increment_client_no ();
         Log.printf "Created %s.\n" (string_of_client result); flush_all ();
         result);;
 
@@ -317,7 +317,7 @@ let destroy_client client =
       Log.printf "Killing %s.\n" (string_of_client client); flush_all ();
       (try client_death_time_map#remove client with _ -> ());
       (try destroy_all_client_resources client with _ -> ());
-      decrement_clients_no ();
+      decrement_client_no ();
       (try
         Unix.close (socket_map#lookup client);
         Log.printf
@@ -421,9 +421,9 @@ in
       if (List.length failed) > 0 then
         failwith "select() reported failure with the socket"
       else if (List.length ready_for_read) > 0 then begin
-        let received_bytes_no =
+        let received_byte_no =
           Unix.read socket buffer 0 message_length in
-        if received_bytes_no < message_length then
+        if received_byte_no < message_length then
           failwith "recv() failed, or the message is ill-formed"
         else begin
           let request = parse_request buffer in
@@ -436,8 +436,8 @@ in
               Error (Printexc.to_string e)
           in
           Log.printf "My response is\n  %s\n" (string_of_daemon_response response); flush_all ();
-          let sent_bytes_no = Unix.send socket (print_response response) 0 message_length [] in
-          (if not (sent_bytes_no == sent_bytes_no) then
+          let sent_byte_no = Unix.send socket (print_response response) 0 message_length [] in
+          (if not (sent_byte_no == sent_byte_no) then
             failwith "send() failed");
         end; (* inner else *)
       end else begin
@@ -498,7 +498,7 @@ let the_server_main_thread =
   check_that_we_are_root ();
   ignore (Thread.create timeout_thread_thunk ());
   ignore (Thread.create debugging_thread_thunk ());
-  let connections_no_limit = 10 in
+  let connection_no_limit = 10 in
   let accepting_socket = Unix.socket Unix.PF_UNIX Unix.SOCK_STREAM 0 in
   let sock_addr = Unix.ADDR_UNIX socket_name in
   (* Remove the socket file, if it already exists: *)
@@ -509,14 +509,14 @@ let the_server_main_thread =
   (* Everybody must be able to send messages to us: *)
   Unix.chmod socket_name 438 (* a+rw *);
   Log.printf "I am waiting on %s.\n" socket_name; flush_all ();
-  Unix.listen accepting_socket connections_no_limit;
+  Unix.listen accepting_socket connection_no_limit;
   while true do
     try
       Log.printf "Waiting for the next connection...\n"; flush_all ();
       let (socket_to_client, socket_to_client_address) = Unix.accept accepting_socket in
-      let client_no = make_client socket_to_client in
-      Log.printf "A new connection was accepted; the new client id is %i\n" client_no; flush_all ();
-      ignore (Thread.create connection_server_thread (client_no, socket_to_client));
+      let client_id = make_client socket_to_client in
+      Log.printf "A new connection was accepted; the new client id is %i\n" client_id; flush_all ();
+      ignore (Thread.create connection_server_thread (client_id, socket_to_client));
     with e -> begin
     Log.printf
       "Failed in the main thread (%s). Bailing out.\n"

@@ -90,9 +90,9 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       st#refresh_sketch () ;
       Filesystem_history.rename_device oldname name;
       details#rename_device oldname name;
-      details#update_ports_no name eth;
+      details#update_port_no name eth;
       defects#rename_device oldname name;
-      defects#update_ports_no name eth;
+      defects#update_port_no name eth;
       st#update_cable_sensitivity ()
 
   end

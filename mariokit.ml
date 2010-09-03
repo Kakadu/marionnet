@@ -610,15 +610,16 @@ class virtual simulated_device = object(self)
                       (string_of_int (List.length (self#get_involved_cables))) ^
                       " cables)\n");
         match !automaton_state, !simulated_device with
-          NoDevice, None -> (simulated_device := (Some self#make_simulated_device);
-                             automaton_state := DeviceOff;
-                             self#set_next_simulated_device_state None;
-                             (* An endpoint for cables linked to self was just added; we
-                                may need to start some cables. *)
-                             ignore (List.map
-                                       (fun cable -> Log.print_string ("+ Working on cable\n"^(cable#show "")^"\n");
-                                         cable#increment_alive_endpoint_no)
-                                       (self#get_involved_cables)))
+        | NoDevice, None ->
+	    (simulated_device := (Some self#make_simulated_device);
+	      automaton_state := DeviceOff;
+	      self#set_next_simulated_device_state None;
+	      (* An endpoint for cables linked to self was just added; we need to start some cables. *)
+	      ignore (List.map
+			(fun cable -> Log.print_string ("+ Working on cable\n"^(cable#show "")^"\n");
+			  cable#increment_alive_endpoint_no)
+			(self#get_involved_cables)))
+
         | _ -> raise_forbidden_transition "create_right_now")
 
   (** The unit parameter is needed: see how it's used in simulated_network: *)
@@ -678,14 +679,18 @@ class virtual simulated_device = object(self)
         if self#is_correct then begin
           Log.print_string ("* starting up the device " ^ (self#get_name) ^ "...\n");
           match !automaton_state, !simulated_device with
-            NoDevice, None -> (Log.print_string ("  (creating processes for " ^ (self#get_name) ^ " first...)\n");
-                               self#create_right_now;
-                               Log.print_string ("  (processes for " ^ (self#get_name) ^ " were created...)\n");
-                               self#startup_right_now)
-          | DeviceOff, Some(d) -> (d#startup;  (* This is the a method from some object in Simulated_network *)
-                                   automaton_state := DeviceOn;
-                                   self#set_next_simulated_device_state None;
-                                   Log.print_string ("* The device " ^ (self#get_name) ^ " was started up\n"))
+          | NoDevice, None ->
+             (Log.print_string ("  (creating processes for " ^ (self#get_name) ^ " first...)\n");
+              self#create_right_now;
+              Log.print_string ("  (processes for " ^ (self#get_name) ^ " were created...)\n");
+              self#startup_right_now)
+
+          | DeviceOff, Some(d) ->
+             (d#startup;  (* This is the a method from some object in Simulated_network *)
+              automaton_state := DeviceOn;
+              self#set_next_simulated_device_state None;
+              Log.print_string ("* The device " ^ (self#get_name) ^ " was started up\n"))
+
           | _ -> raise_forbidden_transition "startup_right_now"
         end else begin
           Log.print_string ("* REFUSING TO START UP the ``incorrect'' device " ^ (self#get_name) ^ "...\n");
@@ -696,9 +701,10 @@ class virtual simulated_device = object(self)
       (fun () ->
         Log.print_string ("|| Suspending up the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
-          DeviceOn, Some(d) -> (d#suspend; (* This is the a method from some object in Simulated_network *)
-                                automaton_state := DeviceSleeping;
-                                self#set_next_simulated_device_state None)
+          DeviceOn, Some(d) ->
+           (d#suspend; (* This is the a method from some object in Simulated_network *)
+            automaton_state := DeviceSleeping;
+            self#set_next_simulated_device_state None)
         | _ -> raise_forbidden_transition "suspend_right_now")
 
   method (*private*) resume_right_now =
@@ -706,26 +712,33 @@ class virtual simulated_device = object(self)
       (fun () ->
         Log.print_string ("|> Resuming the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
-          DeviceSleeping, Some(d) -> (d#resume; (* This is the a method from some object in Simulated_network *)
-                                      automaton_state := DeviceOn;
-                                      self#set_next_simulated_device_state None)
+        | DeviceSleeping, Some(d) ->
+           (d#resume; (* This is the a method from some object in Simulated_network *)
+            automaton_state := DeviceOn;
+            self#set_next_simulated_device_state None)
+
         | _ -> raise_forbidden_transition "resume_right_now")
 
   method (*private*) gracefully_shutdown_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
         let current_state = self#automaton_state_as_string in
-        Log.printf "* Gracefully shutting down the device %s (from state: %s)...\n"
+        (Log.printf "* Gracefully shutting down the device %s (from state: %s)...\n"
           self#get_name
-          current_state;
+          current_state);
         match !automaton_state, !simulated_device with
-          DeviceOn, Some(d) -> (d#gracefully_shutdown; (* This is the a method from some object in Simulated_network *)
-                                automaton_state := DeviceOff;
-                                self#set_next_simulated_device_state None)
-        | DeviceSleeping, Some(d) -> (self#resume_right_now;
-                                      self#gracefully_shutdown_right_now)
+        | DeviceOn, Some(d) ->
+           (d#gracefully_shutdown; (* This is the a method from some object in Simulated_network *)
+            automaton_state := DeviceOff;
+            self#set_next_simulated_device_state None)
+
+        | DeviceSleeping, Some(d) ->
+           (self#resume_right_now;
+            self#gracefully_shutdown_right_now)
+
         | NoDevice,  _ | DeviceOff, _ ->
-           Log.printf "gracefully_shutdown_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
+            Log.printf "gracefully_shutdown_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
+
         | _ -> raise_forbidden_transition "gracefully_shutdown_right_now")
 
   method (*private*) poweroff_right_now =
@@ -733,11 +746,18 @@ class virtual simulated_device = object(self)
       (fun () ->
         Log.print_string ("* Powering off the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
-          DeviceOn, Some(d) -> (d#shutdown; (* non-gracefully *)
-                                automaton_state := DeviceOff;
-                                self#set_next_simulated_device_state None)
-        | DeviceSleeping, Some(d) -> (self#resume_right_now;
-                                      self#poweroff_right_now)
+        | DeviceOn, Some(d) ->
+           (d#shutdown; (* non-gracefully *)
+            automaton_state := DeviceOff;
+            self#set_next_simulated_device_state None)
+
+        | DeviceSleeping, Some(d) ->
+            (self#resume_right_now;
+             self#poweroff_right_now)
+
+        | NoDevice,  _ | DeviceOff, _ ->
+            Log.printf "poweroff_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
+
         | _ -> raise_forbidden_transition "poweroff_right_now")
 
   method set_hublet_processe_no n =
@@ -745,9 +765,13 @@ class virtual simulated_device = object(self)
       (fun () ->
         Log.print_string ("* Updating the number of hublets of the device " ^ (self#get_name) ^ "...\n");
         match !automaton_state, !simulated_device with
-          DeviceOff, Some(d) -> d#set_hublet_processe_no n (* update hublets and don't change state *)
-        | NoDevice, None -> (self#create_right_now;                    (* Make hublets... *)
-                             self#set_hublet_processe_no n) (* ...and do the real work in state Off *)
+        | DeviceOff, Some(d) ->
+            d#set_hublet_processe_no n (* update hublets and don't change state *)
+
+        | NoDevice, None ->
+           (self#create_right_now;         (* Make hublets... *)
+            self#set_hublet_processe_no n) (* ...and do the real work in state Off *)
+
         | _ ->  raise_forbidden_transition "set_hublet_processe_no")
 
   (** Return true iff the current state allows to 'startup' the device from the GUI. *)

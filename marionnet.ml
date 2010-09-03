@@ -206,7 +206,13 @@ let () =
 let () =
   check_dependency
     ("which `basename " ^ Initialization.vde_prefix ^ "vde_switch`")
-    (s_ "You don't have VDE")
+    (s_ "You don't have the VDE tool vde_switch")
+
+(** Check whether we have (our patched) VDE: *)
+let () =
+  check_dependency
+    ("which `basename " ^ Initialization.vde_prefix ^ "slirpvde`")
+    (s_ "You don't have the VDE tool slirpvde")
 
 (** Check whether we have Graphviz: *)
 let () =

@@ -193,18 +193,13 @@ class globalState = fun () ->
 
   (** Close the current project. The project is lost if the user hasn't saved it. *)
   method close_project ()  =
-    Log.print_string ">>>>>>>>>>CLOSING THE PROJECT: BEGIN<<<<<<<<\n";
+    Log.printf "state#close_project: starting...\n";
     (* Destroy whatever the LEDgrid manager is managing: *)
     self#network#ledgrid_manager#reset;
 
     (if (app_state#get_alone = NoActiveProject) then
-       Log.print_string ">>>>>>>>>>(THERE'S NO PROJECT TO CLOSE)<<<<<<<<\n"
+       Log.printf "state#close_project: no project opened.\n"
      else begin
-      self#network#reset ();
-
-      Log.print_endline ("*** in close_project (calling update_sketch)");
-     (* Update the network sketch (now empty) *)
-      self#update_sketch () ;
 
       (* Unset the project filename. *)
       prj_filename#set None ;
@@ -212,20 +207,25 @@ class globalState = fun () ->
       (* Unset the project name. *)
       prj_name     <- None ;
 
-      (* Unlink the project working directory content. *)
-      Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
-      Log.printf "** DESTROYING THE OLD WORKING DIRECTORY... BEGIN\n"; flush_all ();
-      ignore (Unix.system ("rm -rf "^self#get_pwdir));
-      Log.printf "** DESTROYING THE OLD WORKING DIRECTORY... DONE\n"; flush_all ();
-
-      (* Unset the project working directory. *)
-      self#set_pwdir None;
-
-      (* Set the app_state. *)
-      app_state#set NoActiveProject ;
-
-      (* Force GUI coherence. *)
-      self#gui_coherence ();
+      let task =
+        let cmd = "rm -rf "^self#get_pwdir in
+        fun () -> begin
+	self#network#reset ~scheduled:true ();
+	(* Update the network sketch (now empty) *)
+	self#mainwin#sketch#set_file "" ;
+        (* Unset the project working directory. *)
+        self#set_pwdir None;
+        (* Set the app_state. *)
+        app_state#set NoActiveProject ;
+        (* Force GUI coherence. *)
+        self#gui_coherence ();
+        Log.printf "Destroying the old working directory (%s)...\n" cmd;
+        ignore (Unix.system cmd);
+        Log.printf "Done.\n";
+        end
+      in
+      ignore (Task_runner.the_task_runner#schedule task);
+      Printf.kfprintf flush stdout "EXITING #close_project.\n";
     end);
 
     (* Clear all treeviews, just in case. *)
@@ -237,8 +237,7 @@ class globalState = fun () ->
     (Defects_interface.get_defects_interface ())#clear;
     (Texts_interface.get_texts_interface ())#reset_file_name;
     (Texts_interface.get_texts_interface ())#clear;
-    Log.print_string ">>>>>>>>>>CLOSING THE PROJECT: END<<<<<<<<\n";
-
+    Log.printf "state#close_project: done.\n";
 
  (** Read the pseudo-XML file containing the network definition. *)
  method import_network  ?(emergency:(unit->unit)=(fun x->x)) ?(dotAction:(unit->unit)=fun x->x) (f:filename) =
@@ -358,7 +357,7 @@ class globalState = fun () ->
   method save_project () =
 
     if self#active_project then begin
-    Log.print_string ">>>>>>>>>>SAVING THE PROJECT: BEGIN<<<<<<<<\n";
+    Log.print_string "state#save_project starting...\n";
 
     (* The motherboard is read by the father *)
     let filename = self#extract_prj_filename in
@@ -384,13 +383,12 @@ class globalState = fun () ->
     let window =
       Progress_bar.make_progress_bar_dialog
        ~modal:true
-       ~title:("Marionnet")
+       ~title:("Work in progress")
        ~kind:(Progress_bar.Fill fill)
        ~text_on_label:("<big><b>Sauvegarde</b></big>")
        ~text_on_sub_label:("<tt><small>"^filename^"</small></tt>")
        ()
     in
-
     (* Write the network xml file *)
     Mariokit.Netmodel.Xml.save_network self#network self#networkFile ;
 
@@ -407,9 +405,10 @@ class globalState = fun () ->
     (* (Re)write the .mar file *)
     let cmd = ("tar -cSvzf "^filename^" -C "^self#get_pwdir^" --exclude tmp "^(self#get_prj_name)) in
     let _ = Task_runner.the_task_runner#schedule (fun () -> ignore (Unix.system cmd)) in
-    let _ = Task_runner.the_task_runner#schedule (fun () -> Progress_bar.destroy_progress_bar_dialog window) in
+    let _ = Task_runner.the_task_runner#schedule (fun () -> Printf.kfprintf flush stdout "SCHEDULED!!!!...\n";
+       Progress_bar.destroy_progress_bar_dialog window) in
 
-    Log.print_string ">>>>>>>>>>SAVING THE PROJECT: END<<<<<<<<\n";
+    Log.print_string "state#save_project (main thread) finished.\n";
   end
 
 
@@ -635,24 +634,41 @@ There is no need to restart the application.")
  (* End of functions moved from talking.ml *)
 
  method quit () =
-   Log.print_string ">>>>>>>>>>QUIT: BEGIN<<<<<<<<\n";
+   Log.printf "state#quit: starting...\n";
    (* Shutdown all devices and synchronously wait until they actually terminate: *)
    self#shutdown_everything ();
-   Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
    self#close_project (); (* destroy the temporary project directory *)
-   Log.print_endline ("globalState#quit: .react: Calling mrPropre...");
-   GMain.Main.quit (); (* Finalize the GUI *)
-   Log.print_string "Killing the task runner thread...\n";
-   Task_runner.the_task_runner#terminate;
-   Log.print_string "Killing the death monitor thread...\n";
-   Death_monitor.stop_polling_loop ();
-   Log.print_string "Killing the blinker thread...\n";
-   self#network#ledgrid_manager#kill_blinker_thread;
-   Log.print_string "...ok, the blinker thread was killed (from talking.ml).\n";
-   Log.print_string "Sync, then kill our process (To do: this is a very ugly kludge)\n";
-   flush_all ();
-   Log.print_string "Synced.\n";
-   ignore (commit_suicide Sys.sigkill);; (* this always works :-) *)
-(*    Log.print_string "!!! This should never be shown.\n";; *)
+
+   let definitively_last_job ?(msg="") () =
+     begin
+      Log.printf "Starting the definitively last_job%s...\n" msg;
+      Log.printf "Killing the task runner thread...\n";
+      Task_runner.the_task_runner#terminate;
+      Log.printf "Killing the death monitor thread...\n";
+      Death_monitor.stop_polling_loop ();
+      Log.printf "Killing the blinker thread...\n";
+      self#network#ledgrid_manager#kill_blinker_thread;
+      Log.printf "Ok, the blinker thread was killed.\n";
+      flush_all ();
+      Log.printf "Synced.\n";
+      Log.printf "state#quit: done.\n";
+      GtkMain.Main.quit ();
+      false
+     end
+   in
+   let last_job () =
+     begin
+      Log.printf "Starting the last_job...\n";
+      Log.printf "Wait for all currently scheduled tasks...\n";
+      Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
+      definitively_last_job ();
+      false
+     end
+   in
+   let _timer1 = GMain.Timeout.add ~ms:50 ~callback:last_job in
+   Log.printf "Last job timer (1) launched.\n";
+   (* After 10 seconds exec the definitively last job: *)
+   let _timer2 = GMain.Timeout.add ~ms:10000 ~callback:(definitively_last_job ~msg:" (timer2) ") in
+   Log.printf "Definitively last job timer (2) launched.\n";
 
 end;; (* class globalState *)

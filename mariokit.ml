@@ -605,10 +605,10 @@ class virtual simulated_device = object(self)
   method (*private*) create_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.print_string ("+ About to create the simulated device " ^ (self#get_name) ^ "\n");
-        Log.print_string ("  (it's connected to " ^
-                      (string_of_int (List.length (self#get_involved_cables))) ^
-                      " cables)\n");
+        Log.printf "About to create the simulated device %s: it's connected to %d cables.\n"
+          self#get_name
+          (List.length (self#get_involved_cables));
+          
         match !automaton_state, !simulated_device with
         | NoDevice, None ->
 	    (simulated_device := (Some self#make_simulated_device);
@@ -640,35 +640,42 @@ class virtual simulated_device = object(self)
   method (*private*) destroy_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.print_string ("- About to destroy the simulated device " ^ (self#get_name) ^ "\n");
+        Log.printf "About to destroy the simulated device %s \n" self#get_name;
         match !automaton_state, !simulated_device with
-          (DeviceOn | DeviceSleeping), Some(d) ->
-            (Log.print_string ("  (destroying the on/sleeping device " ^ (self#get_name) ^ ". Powering it off first...)\n");
+        | (DeviceOn | DeviceSleeping), Some(d) ->
+             Log.printf
+               "  (destroying the on/sleeping device %s. Powering it off first...)\n"
+               self#get_name;
              self#poweroff_right_now; (* non-gracefully *)
-             self#destroy_right_now)
+             self#destroy_right_now
         | NoDevice, None ->
-            Log.print_string ("  (destroying the already 'no-device' device " ^ (self#get_name) ^ ". Doing nothing...)\n");
+            Log.printf
+             "  (destroying the already 'no-device' device %s. Doing nothing...)\n"
+             self#get_name;
             () (* Do nothing, but don't fail. *)
         | DeviceOff, Some(d) ->
             ((* An endpoint for cables linked to self was just added; we
                 may need to start some cables. *)
-             Log.print_string ("  (destroying the off device " ^ (self#get_name) ^ ": decrementing its cables rc...)\n");
+             Log.printf
+               "  (destroying the off device %s: decrementing its cables rc...)\n"
+               self#get_name;
              List.iter
                (fun cable ->
-                 Log.print_string ("- Unpinning the cable "^(cable#show "")^"\n"); flush_all ();
+                 Log.printf "Unpinning the cable %s " (cable#show "");
                  cable#decrement_alive_endpoint_no;
-                 Log.print_string ("- The cable "^(cable#show "")^" was unpinned with success\n"); flush_all ())
+                 Log.printf ("The cable %s was unpinned with success\n") (cable#show "");
+                 )
                self#get_involved_cables;
-             Log.print_string ("  (destroying the simulated device implementing " ^ (self#get_name) ^ "...)\n");
+             Log.printf "  (destroying the simulated device implementing %s...)\n" self#get_name;
              d#destroy; (* This is the a method from some object in Simulated_network *)
              simulated_device := None;
              automaton_state := NoDevice;
              self#set_next_simulated_device_state None;
-             Log.printf "- We're not deadlocked yet (%s). Great.\n" self#get_name; flush_all ());
+             Log.printf "We're not deadlocked yet (%s). Great.\n" self#get_name);
         | _ ->
-            raise_forbidden_transition "destroy_right_now");
-    Log.print_string ("- The simulated device " ^ (self#get_name) ^ " was destroyed with success\n");
-    flush_all ()
+            raise_forbidden_transition "destroy_right_now"
+        );
+    Log.printf "The simulated device %s was destroyed with success\n" self#get_name
 
 
   method (*private*) startup_right_now =
@@ -690,6 +697,9 @@ class virtual simulated_device = object(self)
               automaton_state := DeviceOn;
               self#set_next_simulated_device_state None;
               Log.print_string ("* The device " ^ (self#get_name) ^ " was started up\n"))
+
+          | DeviceOn,  _ ->
+              Log.printf "startup_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
 
           | _ -> raise_forbidden_transition "startup_right_now"
         end else begin
@@ -2273,7 +2283,10 @@ class network () =
 
  (** Setter *)
 
- method reset () =
+ (* The optional parameter [scheduled=true] means that this method is called
+    in a task managed by the Task_runner. In this case, we have not to call
+    the task runner method [wait_for_all_currently_scheduled_tasks]. *)
+ method reset ?(scheduled=false) () =
    Log.print_string "reset: begin\n";
    Log.print_string "resetting the LEDgrid manager...\n";
    Log.print_string "destroying all cables...\n";
@@ -2301,7 +2314,7 @@ class network () =
       (fun x -> try x#destroy with _ -> ())
       world_gateways);
    Log.print_string "Synchronously wait that everything terminates...\n";
-   Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
+   (if not scheduled then Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks);
 
    Log.print_string "Making the network graph empty...\n";
    machines <- [] ;

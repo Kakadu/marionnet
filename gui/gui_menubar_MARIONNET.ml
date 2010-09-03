@@ -254,6 +254,7 @@ module Created_entry_project_quit = Menu_factory.Make_entry
            ~question:(s_ "Do you want to save\nthe current project before quitting?")
            ()
    let reaction r =
+    st#shutdown_everything ();
     let () = if (st#active_project) && ((r#get "answer") = "yes")
       then st#save_project ()
       else ()

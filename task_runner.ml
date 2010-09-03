@@ -72,9 +72,7 @@ class task_runner = object(self)
     ignore (Thread.create
               (fun () ->
                 while !run_again do
-                  Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-                  Log.printf "= TT I'm ready for the next task...\n"; flush_all ();
-                  Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+                  Log.printf "task_runner: I'm ready for the next task...\n";
                   let name, task = queue#dequeue in
                   self#run name task;
                 done)
@@ -83,27 +81,18 @@ class task_runner = object(self)
   method run name task =
     flush_all ();
     try
-      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-      Log.printf "+ TT Executing the task \"%s\"\n" name; flush_all ();
-      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "task_runner: Executing the task \"%s\"\n" name;
       task ();
-      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-      Log.printf "- TT The task \"%s\" succeeded.\n" name; flush_all ();
-      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "task_runner: The task \"%s\" succeeded.\n" name;
     with Kill_task_runner -> begin
-      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-      Log.printf "The task runner was explicitly killed.\n"; flush_all ();
-      Log.printf "! TT TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
+      Log.printf "task_runner: The task runner was explicitly killed.\n";
       run_again := false;
     end
     | e -> begin
-      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-      Log.printf "WARNING: the asynchronous task \"%s\" raised an exception\n" name;
-      Log.printf "         (%s).\n" (Printexc.to_string e);
-      Log.printf "         THIS MAY BE SERIOUS.\n";
-      Log.printf "         Anyway, I'm going to continue with the next task.\n";
-      Log.printf "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT\n"; flush_all ();
-      flush_all ();
+      Log.printf
+        "task_runner: WARNING: the asynchronous task \"%s\" raised an exception\n\t(%s).\n\tTHIS MAY BE SERIOUS.\n\tAnyway, I'm going to continue with the next task.\n"
+        name
+        (Printexc.to_string e) ;
     end
 
   method schedule ?(name="[unnamed task]") task =
@@ -122,9 +111,9 @@ class task_runner = object(self)
     self#schedule
       ~name:"wait until all scheduled tasks terminate"
       (fun () -> dummy_queue#enqueue ());
-    Log.printf "Waiting for all currently enqueued tasks to terminate...\n"; flush_all ();
+    Log.printf "Waiting for all currently enqueued tasks to terminate...\n";
     let () = dummy_queue#dequeue in
-    Log.printf "...all right, we have been signaled: tasks did terminate.\n"; flush_all ();
+    Log.printf "...all right, we have been signaled: tasks did terminate.\n";
 
   method schedule_parallel (names_and_thunks : (string * thunk) list) =
     let parallel_task_name =

@@ -355,7 +355,7 @@ let make_states_interface ~packing () =
 let set_states_directory states_directory =
   match ! the_states_directory with
     None -> begin
-      Log.print_string ("\n\n[[[[[Setting the states directory to "^states_directory^"]]]]]\n\n");
+      (Log.printf "Setting the states directory to %s\n" states_directory);
       the_states_directory := Some states_directory;
       (get_states_interface ())#set_file_name (states_directory^"/states-forest");
     end
@@ -391,7 +391,7 @@ let duplicate_file ?(is_path_full=false) path_name =
          path_name
          states_directory
          name_of_the_copy)  in
-  Log.print_string ("\n\nMaking a copy of a cow file: the command line is\n"^command_line^"\n\n");
+  (Log.printf "Making a copy of a cow file: the command line is: %s\n" command_line);
   try
     (match Unix.system command_line with
       (Unix.WEXITED 0) ->
@@ -404,13 +404,11 @@ let duplicate_file ?(is_path_full=false) path_name =
       "This is a serious problem"
       "The disc is probably full. A disaster is about to happen..."
       ();
-    Log.print_string "To do: react in some reasonable way\n";
-    flush_all ();
+    Log.printf "To do: react in some reasonable way\n";
     failwith "cp failed";
   end
   | _ -> begin
-      Log.print_string "To do: this look harmless.\n";
-      flush_all ();
+      Log.printf "To do: this look harmless.\n";
       name_of_the_copy;
   end;;
 
@@ -442,7 +440,7 @@ let add_row
     ~prefixed_filesystem
     ~file_name
     () =
-  Log.print_string "Adding a row to the filesystem history model... begin\n";
+  Log.printf "Adding a row to the filesystem history model... begin\n";
   let states_interface = get_states_interface () in
   let row =
     [ "Name", String name;

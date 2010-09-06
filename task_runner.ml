@@ -129,19 +129,18 @@ class task_runner = object(self)
             names_and_thunks in
         List.iter
           (fun (name, thread) ->
-            Log.printf "TT Joining \"%s\"...\n" name; flush_all ();
+            Log.printf "Joining \"%s\"...\n" name;
             (try 
               Thread.join thread;
             with e -> begin
-              Log.printf "!!!!!!!!!!!!!!!\n!!!!!!!!!!!!\n!!!!!!!!!!!!!!!\n"; 
-              Log.printf "!!!!!!!!!!!!!!! This should not happen: join failed (%s)\n"
+              Log.printf
+                "!!!!!!!!!!!!!!! This should not happen: join failed (%s)\n"
                 (Printexc.to_string e);
-              Log.printf "!!!!!!!!!!!!!!!\n!!!!!!!!!!!!\n!!!!!!!!!!!!!!!\n";
-              flush_all ()
             end);
-            Log.printf "TT I have joined \"%s\" with success\n" name; flush_all ();)
+            Log.printf "I have joined \"%s\" with success\n" name;)
           threads in
-    self#schedule ~name:parallel_task_name parallel_task_thunk
+(*     self#schedule ~name:parallel_task_name parallel_task_thunk *)
+    self#prepend ~name:parallel_task_name parallel_task_thunk
 
   (** A user-friendly way to schedule a set of tasks with a dependency graph.
       The description is a list of triples
@@ -174,10 +173,10 @@ class task_runner = object(self)
         self#schedule ~name thunk)
       (topological_sort g)
   
-  method terminate =
+(*  method terminate =
     self#prepend
       ~name:"Destroying the task runner"
-      (fun () -> raise Kill_task_runner)
+      (fun () -> raise Kill_task_runner)*)
 end;;
 
 let the_task_runner = 

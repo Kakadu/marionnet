@@ -22,15 +22,6 @@ open Gettext;;
 let marionnet_working_directory_prefix =
   "marionnet-";;
 
-let sketch_mutex =
-  Mutex.create ();;
-
-let lock_sketch () =
-  Mutex.lock sketch_mutex;;
-
-let unlock_sketch () =
-  Mutex.unlock sketch_mutex;;
-
 let commit_suicide signal =
   raise Exit;;
 
@@ -183,7 +174,6 @@ class globalState = fun () ->
       (* Force GUI coherence. *)
       self#gui_coherence () ;
 
-      Log.print_endline ("*** in new_project");
      (* Refresh the network sketch *)
       self#refresh_sketch () ;
 
@@ -193,51 +183,50 @@ class globalState = fun () ->
 
   (** Close the current project. The project is lost if the user hasn't saved it. *)
   method close_project ()  =
-    Log.printf "state#close_project: starting...\n";
-    (* Destroy whatever the LEDgrid manager is managing: *)
-    self#network#ledgrid_manager#reset;
 
-    (if (app_state#get_alone = NoActiveProject) then
-       Log.printf "state#close_project: no project opened.\n"
-     else begin
-
-      (* Unset the project filename. *)
-      prj_filename#set None ;
-
-      (* Unset the project name. *)
-      prj_name     <- None ;
-
-      let task =
-        let cmd = "rm -rf "^self#get_pwdir in
-        fun () -> begin
-	self#network#reset ~scheduled:true ();
-	(* Update the network sketch (now empty) *)
-	self#mainwin#sketch#set_file "" ;
-        (* Unset the project working directory. *)
-        self#set_pwdir None;
-        (* Set the app_state. *)
-        app_state#set NoActiveProject ;
-        (* Force GUI coherence. *)
-        self#gui_coherence ();
-        Log.printf "Destroying the old working directory (%s)...\n" cmd;
-        ignore (Unix.system cmd);
-        Log.printf "Done.\n";
-        end
-      in
-      ignore (Task_runner.the_task_runner#schedule task);
-      Printf.kfprintf flush stdout "EXITING #close_project.\n";
-    end);
-
-    (* Clear all treeviews, just in case. *)
-    Filesystem_history.clear ();
-    Filesystem_history.reset_states_directory ();
-    (Network_details_interface.get_network_details_interface ())#reset_file_name;
-    (Network_details_interface.get_network_details_interface ())#reset;
-    (Defects_interface.get_defects_interface ())#reset_file_name;
-    (Defects_interface.get_defects_interface ())#clear;
-    (Texts_interface.get_texts_interface ())#reset_file_name;
-    (Texts_interface.get_texts_interface ())#clear;
-    Log.printf "state#close_project: done.\n";
+   let close_project_sync () =
+    begin
+      Log.printf "state#close_project_sync: starting...\n";
+      (* Destroy whatever the LEDgrid manager is managing: *)
+      self#network#ledgrid_manager#reset;
+      (match app_state#get with
+       | NoActiveProject -> Log.printf "state#close_project_sync: no project opened.\n"
+       | _ -> 
+        begin
+         self#network#reset ~scheduled:true ();
+         (* Unset the project filename. *)
+         prj_filename#set None ;
+         (* Unset the project name. *)
+         prj_name <- None ;
+         let cmd = "rm -rf "^self#get_pwdir in
+         (* Update the network sketch (now empty) *)
+         self#mainwin#sketch#set_file "" ;
+         (* Unset the project working directory. *)
+         self#set_pwdir None;
+         (* Set the app_state. *)
+         app_state#set NoActiveProject ;
+         (* Force GUI coherence. *)
+         self#gui_coherence ();
+         Log.printf "Destroying the old working directory (%s)...\n" cmd;
+         ignore (Unix.system cmd);
+         Log.printf "Done.\n";
+        end (* there was an active project *)
+       );
+      (* Clear all treeviews, just in case. *)
+      Filesystem_history.clear ();
+      Filesystem_history.reset_states_directory ();
+      (Network_details_interface.get_network_details_interface ())#reset_file_name;
+      (Network_details_interface.get_network_details_interface ())#reset;
+      (Defects_interface.get_defects_interface ())#reset_file_name;
+      (Defects_interface.get_defects_interface ())#clear;
+      (Texts_interface.get_texts_interface ())#reset_file_name;
+      (Texts_interface.get_texts_interface ())#clear;
+      Log.printf "state#close_project_sync: done.\n";
+    end (* thunk *)
+    in
+    ignore (Task_runner.the_task_runner#schedule
+              ~name:"close_project_sync"
+              close_project_sync);
 
  (** Read the pseudo-XML file containing the network definition. *)
  method import_network  ?(emergency:(unit->unit)=(fun x->x)) ?(dotAction:(unit->unit)=fun x->x) (f:filename) =
@@ -248,7 +237,7 @@ class globalState = fun () ->
 
    (* Plan to restore the network if something goes wrong. *)
    let emergency = fun e ->
-         Log.printf "import_network: emergency (%s)!!!\n" (Printexc.to_string e); flush_all ();
+         Log.printf "import_network: emergency (%s)!!!\n" (Printexc.to_string e);
 	 self#network#restore_from_buffers;
          emergency () in
 
@@ -256,7 +245,7 @@ class globalState = fun () ->
    (if (Shell.regfile_readable f)
    then try
        Mariokit.Netmodel.Xml.load_network self#network f ;
-       Log.print_endline ("import_network: network imported"); flush_all ();
+       Log.printf ("import_network: network imported\n");
    with e -> (emergency e;  raise e)
    else ( emergency (Failure "file not readable"); raise (Failure "state#import_network: cannot open the xml file") ));
 
@@ -268,10 +257,10 @@ class globalState = fun () ->
    dotAction ();
 
    (* Force GUI coherence. *)
-   self#gui_coherence () ;
+   self#gui_coherence ();
 
    (* Update the network sketch *)
-   self#update_sketch ();
+   self#refresh_sketch ();
    ()
    end
 
@@ -327,13 +316,13 @@ class globalState = fun () ->
     let dotAction () = begin
       (try
      	self#dotoptions#load_from_file self#dotoptionsFile;
-        Log.print_endline ("open_project: dotoptions recovered");
-       with e -> (Log.print_endline ("open_project: cannot read the dotoptions file => resetting defaults");
+        Log.printf ("state#open_project: dotoptions recovered\n");
+       with e -> (Log.printf ("open_project: cannot read the dotoptions file => resetting defaults\n");
                    self#dotoptions#reset_defaults ())) ;
        self#dotoptions#set_toolbar_widgets ()
       end in
 
-    Log.print_endline ("open_project: calling import_network");
+    Log.printf ("state#open_project: calling import_network\n");
 
     (* Second, read the xml file containing the network definition. If something goes wrong, close the project. *)
     (try
@@ -357,7 +346,7 @@ class globalState = fun () ->
   method save_project () =
 
     if self#active_project then begin
-    Log.print_string "state#save_project starting...\n";
+    Log.printf "state#save_project starting...\n";
 
     (* The motherboard is read by the father *)
     let filename = self#extract_prj_filename in
@@ -404,11 +393,10 @@ class globalState = fun () ->
 
     (* (Re)write the .mar file *)
     let cmd = ("tar -cSvzf "^filename^" -C "^self#get_pwdir^" --exclude tmp "^(self#get_prj_name)) in
-    let _ = Task_runner.the_task_runner#schedule (fun () -> ignore (Unix.system cmd)) in
-    let _ = Task_runner.the_task_runner#schedule (fun () -> Printf.kfprintf flush stdout "SCHEDULED!!!!...\n";
-       Progress_bar.destroy_progress_bar_dialog window) in
+    let _ = Task_runner.the_task_runner#schedule ~name:"tar" (fun () -> ignore (Unix.system cmd)) in
+    let _ = Task_runner.the_task_runner#schedule ~name:"destroy saving progress bar" (fun () -> Progress_bar.destroy_progress_bar_dialog window) in
 
-    Log.print_string "state#save_project (main thread) finished.\n";
+    Log.printf "state#save_project (main thread) finished.\n";
   end
 
 
@@ -455,7 +443,7 @@ class globalState = fun () ->
         self#save_project ();
 
         (* Reset names ensuring synchronisation *)
-        Task_runner.the_task_runner#schedule
+        Task_runner.the_task_runner#schedule ~name:"copy_project_into" 
           (fun () ->
            (* Reset names to their old values: *)
            self#change_prj_name original_prj_name;
@@ -490,35 +478,6 @@ class globalState = fun () ->
         (self#get_pwdir^"/"^x^ "/states/texts");
     end;
 
-  (** Refresh the sketch with the current dotoptions. *)
-  method refresh_sketch () =
-    lock_sketch ();
-    let fs = self#dotSketchFile in
-    let ft = self#pngSketchFile in
-    let ch = open_out fs in
-    output_string ch (self#network#dotTrad ());
-    close_out ch;
-    let command_line =
-      "dot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
-    Log.printf "The dot command line is\n%s\n" command_line; flush_all ();
-    let exit_code =
-      Sys.command command_line in
-    Log.printf "dot exited with exit code %i\n" exit_code; flush_all ();
-    self#mainwin#sketch#set_file self#pngSketchFile ;
-    (if not (exit_code = 0) then
-      Simple_dialogs.error
-        (s_ "dot failed")
-        (Printf.sprintf
-           (f_ "Invoking dot failed. Did you install graphviz?\n\
-The command line is\n%s\nand the exit code is %i.\n\
-Marionnet will work, but you will not see the network graph picture until you fix the problem.\n\
-There is no need to restart the application.")
-           command_line
-           exit_code)
-        ());
-
-    unlock_sketch ()
-
 
  val mutable sensitive_cables : GObj.widget list = []
  method add_sensitive_cable x = sensitive_cables <- x::sensitive_cables
@@ -537,17 +496,22 @@ There is no need to restart the application.")
     let condition = (free_ethernet_port_no >= 2) in
     (List.iter (fun x->x#misc#set_sensitive condition) sensitive_cables)
 
+  val refresh_sketch_counter = Chip.wcounter ~name:"refresh_sketch_counter" ()
+  method refresh_sketch_counter = refresh_sketch_counter
 
-  (** Refresh the sketch resetting the shuffle dotoption.
-      When a node is added or removed from the network you have to call the update_sketch,
-      else simply refresh_sketch. *)
-  method update_sketch () =
-    lock_sketch ();
-    self#dotoptions#reset_shuffler () ;
+  method refresh_sketch () =
+   refresh_sketch_counter#set ();
+
+  method network_change : 'a 'b. ('a -> 'b) -> 'a -> unit =
+  fun action obj ->
+   begin
+    action obj;
+    self#update_state ();
+    self#update_cable_sensitivity ();
+    self#dotoptions#reset_shuffler ();
     self#dotoptions#reset_extrasize ();
-    unlock_sketch ();
-    Log.print_endline ("*** in update_sketch calling refresh_sketch");
-    self#refresh_sketch (); (* this is already synchronized *)
+    refresh_sketch_counter#set ();
+   end
 
   (** Update the state and force the gui coherence.
       If a project is active, there are two possibilities:
@@ -574,10 +538,10 @@ There is no need to restart the application.")
 
  (** For debugging *)
  method debugging () =
-   Log.print_endline ("st.wdir="^wdir);
-   Log.print_endline ("st.pwdir="^(try self#get_pwdir with _ ->""));
-   Log.print_endline ("st.prj_filename="^self#extract_prj_filename);
-   Log.print_endline ("st.prj_name="^self#get_prj_name)
+   Log.printf "st.wdir=%s" wdir;
+   Log.printf "st.pwdir=%s" (try self#get_pwdir with _ ->"");
+   Log.printf "st.prj_filename=%s" self#extract_prj_filename;
+   Log.printf "st.prj_name=%s" self#get_prj_name
 
  (* Begin of methods moved from talking.ml *)
  method make_names_and_thunks verb what_to_do_with_a_node =
@@ -627,25 +591,19 @@ There is no need to restart the application.")
                 (fun node -> node#can_gracefully_shutdown or node#can_resume)
                 self#network#nodes
   in begin
-  Log.print_string ("Is there something running? " ^ (if result then "yes" else "no") ^ "\n");
+  Log.printf "is_there_something_on_or_sleeping: %s\n" (if result then "yes" else "no");
   result
   end
 
  (* End of functions moved from talking.ml *)
 
- method quit () =
-   Log.printf "state#quit: starting...\n";
-   (* Shutdown all devices and synchronously wait until they actually terminate: *)
-   self#shutdown_everything ();
-   self#close_project (); (* destroy the temporary project directory *)
-
-   let definitively_last_job ?(msg="") () =
+ method quit_async () =
+   let quit () =
      begin
-      Log.printf "Starting the definitively last_job%s...\n" msg;
-      Log.printf "Killing the task runner thread...\n";
-      Task_runner.the_task_runner#terminate;
-      Log.printf "Killing the death monitor thread...\n";
-      Death_monitor.stop_polling_loop ();
+      Log.printf "Starting the last job...\n";
+      self#network#destroy_process_before_quitting ();
+(*    Log.printf "Killing the task runner thread...\n";
+      Task_runner.the_task_runner#terminate; *)
       Log.printf "Killing the blinker thread...\n";
       self#network#ledgrid_manager#kill_blinker_thread;
       Log.printf "Ok, the blinker thread was killed.\n";
@@ -653,22 +611,11 @@ There is no need to restart the application.")
       Log.printf "Synced.\n";
       Log.printf "state#quit: done.\n";
       GtkMain.Main.quit ();
-      false
      end
    in
-   let last_job () =
-     begin
-      Log.printf "Starting the last_job...\n";
-      Log.printf "Wait for all currently scheduled tasks...\n";
-      Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks;
-      definitively_last_job ();
-      false
-     end
-   in
-   let _timer1 = GMain.Timeout.add ~ms:50 ~callback:last_job in
-   Log.printf "Last job timer (1) launched.\n";
-   (* After 10 seconds exec the definitively last job: *)
-   let _timer2 = GMain.Timeout.add ~ms:10000 ~callback:(definitively_last_job ~msg:" (timer2) ") in
-   Log.printf "Definitively last job timer (2) launched.\n";
+   begin
+   Task_runner.the_task_runner#schedule ~name:"quit" quit;
+   Log.printf "Main thread: quit has been scheduled.\n";
+   end
 
 end;; (* class globalState *)

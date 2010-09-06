@@ -184,7 +184,7 @@ fun program
         process when its OCaml object gets GC'd: *)
     Gc.finalise
       (fun process ->
-(*        Log.print_string "GC'ing a process object. I hope it's not running :-)\n"; *)
+(*        Log.printf "GC'ing a process object. I hope it's not running :-)\n"; *)
         try process#terminate with _ -> ())
       self
 end;;
@@ -220,7 +220,7 @@ let hex_byte_to_int_byte h =
 {[let _ =
     let p = new process "xeyes" [] () in
     p#spawn;
-    print_int (p#get_pid); Log.print_string "\n";
+    Log.printf "%d\n" (p#get_pid);
     Thread.delay 10.0;
     p#terminate;;]} *)
 
@@ -845,16 +845,16 @@ object(self)
     (* Tell UML to terminate, cleanly: *)
     let did_we_succeed_immediately = ref true in
     while not (self#gracefully_terminate_with_mconsole = (Unix.WEXITED 0)) do
-      Log.print_string ("uml_mconsole failed in sending a 'cad' message to "^ umid ^". Trying again...\n");
+      Log.printf "uml_mconsole failed in sending a 'cad' message to %s. Trying again...\n" umid;
       Thread.delay 1.0;
       did_we_succeed_immediately := false;
     done;
-    Log.print_string ("Ok, uml_mconsole succeeded in sending a 'cad' message to "^ umid ^".\n");
+    Log.printf "Ok, uml_mconsole succeeded in sending a 'cad' message to %s.\n" umid;
     if not !did_we_succeed_immediately then begin
-      Log.print_string ("Just to make sure (since it didn't work the first time), terminate again with uml_mconsole after ten seconds:\n");
+      Log.printf ("Just to make sure (since it didn't work the first time), terminate again with uml_mconsole after ten seconds:\n");
       Thread.delay 10.0;
       ignore (self#gracefully_terminate_with_mconsole);
-      Log.print_string ("Ok, done.\n");
+      Log.printf ("Ok, done.\n");
     end else begin
       (* This is very ugly, but needed: sometimes uml_console succeeds when sending a 'cad'
          message, but the UML process is just in an early stage of boot, and ignores the
@@ -872,15 +872,11 @@ object(self)
       ();
     end;
     (* Wait for the process to die: *)
-(*       Log.print_string "OK-W 7\n"; flush_all (); *)
     (try
       ignore (ThreadUnix.waitpid [] self#get_pid);
     with _ -> begin
       Log.printf "simulated_network: waitpid %i failed. This might be irrelevant. (8)\n" self#get_pid;
-      flush_all ()
     end);
-(*       Log.print_string "OK-W 8\n"; flush_all (); *)
-    flush_all ();
     (* Remember that now there's no process any more: *)
     pid := None
 
@@ -1164,9 +1160,10 @@ object(self)
     match !state with
       Off ->
         let old_hublet_no = self#get_hublet_no in
-        Log.print_string ("Simulated_network.device: changing the hublets no from " ^
-                      (string_of_int old_hublet_no) ^ " to " ^
-                      (string_of_int new_hublet_no) ^ "\n");
+        (Log.printf 
+          "Simulated_network.device: changing the hublets no from %d to %d \n" 
+          old_hublet_no
+          new_hublet_no);
         if new_hublet_no = old_hublet_no then (* the hublets no isn't changing *)
           () (* do nothing *)
         else if new_hublet_no > old_hublet_no then begin (* hublets are being created *)
@@ -1187,9 +1184,10 @@ object(self)
           current_hublet_processes :=
             ListExtra.head ~n:new_hublet_no !current_hublet_processes
         end;
-        Log.print_string ("Simulated_network.device: changed the hublets no from " ^
-                      (string_of_int old_hublet_no) ^ " to " ^
-                      (string_of_int new_hublet_no) ^ ": success\n");
+        (Log.printf 
+           "Simulated_network.device: changed the hublets no from %d to %d: success.\n"
+           old_hublet_no
+           new_hublet_no);
     | _ ->
         failwith "can't update the hublets number for a non-off device"
 

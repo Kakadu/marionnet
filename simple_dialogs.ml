@@ -71,7 +71,7 @@ let confirm_dialog
   ignore
     (dialog#toplevel#event#connect#delete
        ~callback:(fun _ ->
-         Log.print_string "Sorry, no, you can't close the dialog. Please make a decision.\n";
+         Log.printf "Sorry, no, you can't close the dialog. Please make a decision.\n";
          true));
   (if cancel then dialog#toplevel#add_button_stock `CANCEL `CANCEL);
   let result = (ref None) in

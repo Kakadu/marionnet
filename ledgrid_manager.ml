@@ -43,7 +43,7 @@ object (self)
       Hashmap.lookup id_to_data id
     with _ -> begin
 (*    (* Annoying for the world gateway: *)
-      Log.print_string ("Warning: id_to_device: No device has id " ^ (string_of_int id) ^ "\n");*)
+      Log.printf "ledgrid_manager: Warning: id_to_device: No device has id %d.\n" id; *)
       failwith ("id_to_device: No device has id " ^ (string_of_int id))
     end
 
@@ -117,7 +117,7 @@ object (self)
     (* Make a label which we don't need to name: *)
     ignore (GMisc.label ~text:"Activity" ~packing:box#add ());
     ignore (window#event#connect#delete
-             ~callback:(fun _ -> Log.print_string "Sorry, no, you can't\n"; true));
+             ~callback:(fun _ -> Log.printf "Sorry, no, you can't\n"; true));
     let device =
       new device_led_grid
         ~packing:box#add ~ports:port_no ~show_100_mbs:false
@@ -135,28 +135,26 @@ object (self)
   method make_device_ledgrid ~id ~title ~label ~port_no ~image_directory
       ?connected_ports:(connected_ports=[])() =
     self#lock;
-    Log.print_string ("Making a ledgrid with title '" ^ title ^ "' (the device has id " ^
-                  (string_of_int id) ^ "), with " ^ (string_of_int port_no) ^
-                  " ports\n");
+    Log.printf "Making a ledgrid with title %s (id=%d) with %d ports.\n" title id port_no;
     let ledgrid_widget, window_widget =
       self#make_widget ~id ~port_no ~title ~label ~image_directory () in
     Hashmap.add id_to_data id (ledgrid_widget, window_widget, title, connected_ports);
     ignore (List.map
               (fun port -> self#set_port_connection_state ~id ~port ~value:true ())
               connected_ports);
-    Log.print_string "Ok, done.\n";
-    Log.print_string ("Testing (1): is id "^(string_of_int id)^" present in the table?...\n");
+    Log.printf "Ok, done.\n";
+    Log.printf "Testing (1): is id=%d present in the table?...\n" id;
     (try
       let _ = self#id_to_device id in
-      Log.print_string "Ok, passed.\n";
+      Log.printf "Ok, passed.\n";
     with _ ->
-      Log.print_string "FAILED.\n");
-    Log.print_string ("Testing (2): is id "^(string_of_int id)^" present in the table?...\n");
+      Log.printf "FAILED.\n");
+    Log.printf "Testing (2): is id=%d present in the table?...\n" id;
     (try
       let _ = self#lookup id in
-      Log.print_string "Ok, passed.\n";
+      Log.printf "Ok, passed.\n";
     with _ ->
-      Log.print_string "FAILED.\n");
+      Log.printf "FAILED.\n");
     self#unlock
 
   method show_device_ledgrid ~id () =
@@ -164,7 +162,7 @@ object (self)
     (try
       (self#id_to_window id)#show ();
     with _ ->
-      Log.print_string ("Warning: id "^(string_of_int id)^" unknown in show_device_ledgrid\n"));
+      Log.printf "Warning: id %d unknown in show_device_ledgrid\n" id);
     self#unlock
 
   method hide_device_ledgrid ~id () =
@@ -172,27 +170,26 @@ object (self)
     (try
       (self#id_to_window id)#misc#hide ();
     with _ ->
-      Log.print_string ("Warning: id "^(string_of_int id)^" unknown in show_device_ledgrid\n"));
+      Log.printf "Warning: id %d unknown in show_device_ledgrid\n" id);
     self#unlock
 
   method destroy_device_ledgrid ~id () =
     self#lock;
-    Log.print_string ("Destroying the ledgrid with id " ^
-                  (string_of_int id) ^ "\n");
+    Log.printf "Destroying the ledgrid with id %d\n" id;
     (try
       (self#id_to_window id)#misc#hide ();
       (self#id_to_window id)#destroy ();
       Hashmap.remove id_to_data id
      with _ ->
-       (PervasivesExtra.print_string "WARNING: failed in destroy_device_ledgrid\n";
-        Log.print_string ("  (id is "^(string_of_int id)^",\n")));
+      Log.printf "WARNING: failed in destroy_device_ledgrid: id is %d\n" id
+    );
     self#unlock
 
   method set_port_connection_state ~id ~port ~value () =
     self#lock;
-    Log.print_string ("Making the port " ^ (string_of_int port) ^ " of device " ^
-                  (string_of_int id) ^ (if value then " connected" else " disconnected") ^
-                  "\n");
+    Log.printf 
+      "Making the port %d of device %d %s\n" 
+       port id (if value then " connected" else " disconnected");
     (try
       (self#id_to_device id)#set port value;
       let new_connected_ports =
@@ -202,9 +199,8 @@ object (self)
           List.filter (fun p -> p != port) (self#id_to_connected_ports id) in
       self#update_connected_ports id new_connected_ports;
     with _ ->
-      (print_string "WARNING: failed in set_port_connection_state\n";
-       Log.print_string ("  (id is "^(string_of_int id)^",\n");
-       Log.print_string ("   port is "^(string_of_int port)^")\n")));
+      Log.printf "WARNING: failed in set_port_connection_state: id=%d port=%d\n" id port
+    );
     self#unlock
 
   method flash ~id ~port () =
@@ -238,18 +234,18 @@ object (self)
     | None -> assert false
 
   method private make_blinker_thread =
-    Log.print_string ("\n\n################# Making a blinker thread\n\n");
+    Log.printf ("Making a blinker thread\n");
     Thread.create
       (fun () ->
-        Log.print_string ("Making the socket\n");
+        Log.printf ("Making the socket\n");
         let socket = Unix.socket Unix.PF_UNIX Unix.SOCK_DGRAM 0 in
         let _ = try Unix.unlink blinker_thread_socket_file_name with _ -> () in
-        Log.print_string ("Binding the socket\n");
+        Log.printf ("Binding the socket\n");
         let _ = Unix.bind socket (Unix.ADDR_UNIX blinker_thread_socket_file_name) in
-        Log.print_string ("Still alive\n");
+        Log.printf ("Still alive\n");
         let maximum_message_size = 1000 in
         let buffer = String.create maximum_message_size in
-        Log.print_string ("Ok, entering the thread main loop\n");
+        Log.printf ("Ok, entering the thread main loop\n");
         while true; do
           (* ==== Beginning of the reasonable version ==== *)
 (** This commented-out version was absolutely reasonable and it worked with the old
@@ -298,14 +294,13 @@ object (self)
               let _ =
                 Scanf.sscanf message "please-die" (fun x -> x)
               in
-              Log.print_string ("Exiting the LEDgrid manager blinker thread\n");
+              Log.printf ("Exiting the LEDgrid manager blinker thread\n");
               Unix.close socket;
               let _ = try Unix.unlink blinker_thread_socket_file_name with _ -> () in
               Thread.exit ();
-              Log.print_string ("!!! This should never be reached !!!\n");
-              flush_all ();
+              Log.printf ("!!! This should never be reached !!!\n");
             with _ ->
-              Log.print_string ("Warning: can't understand the message >" ^ message ^ "<\n"); flush_all ();
+              Log.printf "Warning: can't understand the message '%s'\n" message;
         done)
       ()
 
@@ -332,15 +327,13 @@ object (self)
                 []
                 (Unix.ADDR_UNIX blinker_thread_socket_file_name));
     with _ -> begin
-      Log.print_string "!!!!!!!!!!! VERY SERIOUS !!!!!!!!!!\n"; flush_all ();
-      Log.print_string "sending the message \"please-die\" to the blinker thread failed.\n"; flush_all ();
+      Log.printf "VERY SERIOUS: sending the message \"please-die\" to the blinker thread failed.\n";
     end);
     Log.printf "  Ok.\n";
-    flush_all ();
     (* Make sure this arrives right now: *)
 (*     flush_all (); *)
 (*     Thread.join (self#blinker_thread); *)
-    Log.print_string "Ok, the blinker thread has exited now.\n";
+    Log.printf "Ok, the blinker thread has exited now.\n";
     (try Unix.unlink client_socket_file_name with _ -> ());
     (try Unix.unlink blinker_thread_socket_file_name with _ -> ());
 (*     Thread.kill self#blinker_thread *)

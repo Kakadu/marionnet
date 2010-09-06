@@ -58,11 +58,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       (** VERIFICARE il tipo "router"!! **)
       defects#add_device name "router" user_port_no;
       g#resolve_variant; (* don't store the variant as a symlink *)
-      st#network#add_world_gateway g;
-      st#update_cable_sensitivity ();
-      st#update_sketch ();
-      st#update_state  ();
-      st#update_cable_sensitivity ();
+      st#network_change st#network#add_world_gateway g;
   end
 
   module Properties = struct
@@ -112,11 +108,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       if (r#get "answer")="yes" then
         let name   = r#get("name") in
-        st#network#del_world_gateway name      ;
-        st#update_sketch ()            ;
-        st#update_state  ()            ;
-        st#update_cable_sensitivity () ;
-        defects#remove_device name     ;
+        st#network_change st#network#del_world_gateway name;
+        defects#remove_device name;
       else ()
 
   end

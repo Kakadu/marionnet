@@ -44,10 +44,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let (name,label) = (r#get "name"),(r#get "label") in
       defects#add_device name "world_bridge" 1;
       let g = (new Mariokit.Netmodel.world_bridge ~network:st#network ~name ~label ()) in
-      st#network#add_world_bridge g;
-      st#update_sketch () ;
-      st#update_state  ();
-      st#update_cable_sensitivity ()
+      st#network_change st#network#add_world_bridge g;
 
   end
 
@@ -92,11 +89,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       let (name,answer) = r#get("name"),r#get("answer") in
       if (answer="yes") then begin
-        (st#network#del_world_bridge name);
-        st#update_sketch ();
-        st#update_state  ();
+        st#network_change st#network#del_world_bridge name;
         defects#remove_device name;
-        st#update_cable_sensitivity ();
       end
       else ()
 

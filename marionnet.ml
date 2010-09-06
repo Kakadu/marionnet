@@ -114,7 +114,7 @@ let texts_interface =
 (** Timeout for refresh the state_coherence *)
 (* let id = GMain.Timeout.add ~ms:1000 ~callback:(fun () -> st#state_coherence ();true) ;; *)
 
-let () = Log.print_string "Starting the application\n"
+let () = Log.printf "Starting the application\n"
 
 (* GMain.Main.main ();; *)
 

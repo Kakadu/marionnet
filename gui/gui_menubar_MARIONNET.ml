@@ -87,7 +87,7 @@ module Created_entry_project_new = Menu_factory.Make_entry
      if (st#active_project) && ((r#get "save_current") = "yes")
       then
        (st#save_project ();
-        Task_runner.the_task_runner#schedule actions)
+        Task_runner.the_task_runner#schedule ~name:"new project" actions)
       else
        (actions ())
      end
@@ -124,7 +124,7 @@ module Created_entry_project_open = Menu_factory.Make_entry
       if (st#active_project) && ((r#get "save_current")="yes")
       then
        (st#save_project ();
-        Task_runner.the_task_runner#schedule actions)
+        Task_runner.the_task_runner#schedule ~name:"open_project" actions)
       else
        (actions ())
      end
@@ -229,7 +229,7 @@ module Created_entry_project_export = Menu_factory.Make_entry
    let reaction r =
      let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"png" (r#get "filename") in
      let command  = ("cp "^st#pngSketchFile^" "^filename) in
-     let () =  Log.print_string "About to call Unix.run...\n"; flush_all () in
+     let () =  Log.printf "About to call Unix.run...\n"; in
      try
       (match UnixExtra.run command with
       |  (_ , Unix.WEXITED 0) -> st#flash ~delay:6000 ((s_ "Network image correctly exported to the file ")^filename)
@@ -246,6 +246,7 @@ module Created_entry_project_quit = Menu_factory.Make_entry
    let text  = (s_ "Quit")
    let stock = `QUIT
    let key   = (Some _Q)
+
    let dialog () =
     if (st#active_project = false)
      then (Some (mkenv [("answer","no")]))
@@ -253,12 +254,25 @@ module Created_entry_project_quit = Menu_factory.Make_entry
            ~title:(s_ "Quit")
            ~question:(s_ "Do you want to save\nthe current project before quitting?")
            ()
+
    let reaction r =
-    st#shutdown_everything ();
-    let () = if (st#active_project) && ((r#get "answer") = "yes")
-      then st#save_project ()
-      else ()
-    in st#quit ()
+    (* At this point the user really wants to quit the application. *)
+    let save = (st#active_project) && ((r#get "answer") = "yes") in
+    (match st#is_there_something_on_or_sleeping (), save with
+     | true, true  ->
+         st#shutdown_everything ();
+         st#save_project ();
+     | true, false ->
+         st#poweroff_everything ();
+     | false, true ->
+         st#save_project ();
+     | false, false -> ()
+     );
+    Log.printf "Killing the death monitor thread...\n";
+    Death_monitor.stop_polling_loop ();
+    st#network#destroy_process_before_quitting ();
+    st#close_project ();
+    st#quit_async ()
 
   end) (F)
 let project_quit = Created_entry_project_quit.item

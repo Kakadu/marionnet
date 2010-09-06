@@ -470,8 +470,8 @@ let ask_for_fresh_writable_filename
              (s_ "Name choice")
              (s_ "A file with the same name already exists!\n\nChoose another name for your file.")
              ()); false)
-    else (Log.print_endline ("valid: x="^x) ; (Shell.freshname_possible x)) in
-
+    else (Log.printf "valid: x=%s" x; (Shell.freshname_possible x)) 
+  in
   let result =
     ask_for_file ~enrich ~title ~valid ~filters ~action:`SAVE ~gen_id:"filename" ~help in
   result;;
@@ -505,7 +505,7 @@ let ask_question ?(enrich=mkenv []) ?(title="QUESTION") ?(gen_id="answer")  ?(he
    dialog#title_QUESTION#set_label question;
    ignore
      (dialog#toplevel#event#connect#delete
-        ~callback:(fun _ -> Log.print_string "Sorry, no, you can't close the dialog. Please make a decision.\n"; true));
+        ~callback:(fun _ -> Log.printf "Sorry, no, you can't close the dialog. Please make a decision.\n"; true));
 
    let result = (ref None) in
    let cont   = ref true in

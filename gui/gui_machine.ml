@@ -53,10 +53,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
           ~ter:     (r#get "term") ()) in
       (* Don't store the variant as a symlink: *)
       m#resolve_variant;
-      st#network#add_machine m ;
-      st#update_sketch ();
-      st#update_state  ();
-      st#update_cable_sensitivity ();
+      st#network_change st#network#add_machine m;
       Filesystem_history.add_device name ("machine-"^(r#get "distrib")) m#get_variant "machine"
 
   end
@@ -113,12 +110,9 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       if (r#get "answer")="yes" then
         let name   = r#get("name") in
-        st#network#del_machine name     ;
-        st#update_sketch ()            ;
-        st#update_state  ()            ;
-        st#update_cable_sensitivity () ;
-        details#remove_device name     ;
-        defects#remove_device name     ;
+        st#network_change st#network#del_machine name;
+        details#remove_device name;
+        defects#remove_device name;
       else ()
 
 

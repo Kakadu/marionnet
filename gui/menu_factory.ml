@@ -132,7 +132,7 @@ end
 module Compose_dialog_and_reaction = Compose_heuristic_and_procedure
  (struct
    type t = env
-   let none_effect () = (Log.print_endline ("--- Dialog result: NOTHING TO DO (CANCELED)"); flush stderr)
+   let none_effect () = Log.printf "--- Dialog result: NOTHING TO DO (CANCELED)"
    let some_effect (e:env)  =
     let printf = Log.printf in
     (printf "--- Dialog result:\n");

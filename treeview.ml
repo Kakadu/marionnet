@@ -397,7 +397,7 @@ fun ~treeview
       (!after_toggle_commit_callback) id old_content new_content;
       treeview#run_after_update_callback id;
     with _ -> begin
-      Log.print_string "on_toggle: a callback raised an exception, or a constraint was violated.\n";
+      Log.printf "on_toggle: a callback raised an exception, or a constraint was violated.\n";
       flush_all ();
     end);
     treeview#save;
@@ -1151,11 +1151,11 @@ object(self)
         first collapse everything and then re-expand exactly what we
         need: *)
 (*      self#collapse_everything; *)
-(*      Log.printf "The current forest is:\n"; flush_all (); *)
-(*      print_forest !id_forest Log.print_string; flush_all (); *)
-(*      Log.printf "Ok, that was the current forest.\n"; flush_all (); *)
+(*      Log.printf "The current forest is:\n"; *)
+(*      print_forest !id_forest Log.print_string; *)
+(*      Log.printf "Ok, that was the current forest.\n"; *)
 (*      List.iter *)
-(*        (fun row_id -> Log.printf "About to expand row %s\n" row_id; flush_all (); *)
+(*        (fun row_id -> Log.printf "About to expand row %s\n" row_id; *)
 (*                       self#expand_row row_id) *)
 (*        (List.rev updated_expanded_row_ids_as_list); *)
 
@@ -1186,9 +1186,9 @@ object(self)
     (* Finally remove the row, together with its subtrees, from the Gtk+
        tree model: *)
     ignore (self#store#remove row_iter);
-(*     Log.printf "The new forest is:\n"; flush_all (); *)
-(*     print_forest !id_forest Log.print_string; flush_all (); *)
-(*     Log.printf "Ok, that was the new forest.\n"; flush_all (); *)
+(*     Log.printf "The new forest is:\n"; *)
+(*     print_forest !id_forest Log.print_string; *)
+(*     Log.printf "Ok, that was the new forest.\n"; *)
 
   method clear =
 (*     Log.printf "Clearing a treeview\n"; flush_all (); *)
@@ -1282,10 +1282,10 @@ object(self)
     List.map self#get_row (self#row_ids_such_that predicate)
 
   method row_such_that predicate =
-    Log.print_string "!!!!A1 treeview: row_such_that: begin\n"; flush_all ();
+    Log.printf "treeview: row_such_that: begin\n";
     let result =
     self#get_row (self#row_id_such_that predicate) in
-    Log.print_string "!!!!A1 treeview: row_such_that: end (success)\n"; flush_all ();
+    Log.printf "treeview: row_such_that: end (success)\n";
     result
 
   (** Return the row_id of the only row satisfying the given predicate. Fail if more

@@ -94,7 +94,7 @@ module Make (S : sig val st:State.globalState end) = struct
      ) -> (y)
      = () ;;
 
-  let refresh_sketch_counter    = Chip.wcounter ~name:"refresh_sketch_counter" ()
+  let refresh_sketch_counter = st#refresh_sketch_counter
   let reverted_rj45cables_cable = Chip.cable    ~name:"reverted_rj45cables_cable" ()
 
   let () =
@@ -125,27 +125,33 @@ module Make (S : sig val st:State.globalState end) = struct
     (* Similar to State.globalState#refresh_sketch but without locking sketch. *)
     let fs = st#dotSketchFile in
     let ft = st#pngSketchFile in
-    let ch = open_out fs in
-    output_string ch (st#network#dotTrad ());
-    close_out ch;
-    let command_line =
-      "dot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
-    self#tracing#message "The dot command line is";
-    self#tracing#message command_line;
-    let exit_code = Sys.command command_line in
-    self#tracing#message (Printf.sprintf "dot exited with exit code %i" exit_code);
-    st#mainwin#sketch#set_file st#pngSketchFile ;
-    (if not (exit_code = 0) then
-      Simple_dialogs.error
-        (s_ "dot failed")
-        (Printf.sprintf
-           (f_ "Invoking dot failed. Did you install graphviz?\n\
-The command line is\n%s\nand the exit code is %i.\n\
-Marionnet will work, but you will not see the network graph picture until you fix the problem.\n\
-There is no need to restart the application.")
-           command_line
-           exit_code)
-        ());
+    try begin
+      let ch = open_out fs in
+      output_string ch (st#network#dotTrad ());
+      close_out ch;
+      let command_line =
+	"dot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
+      self#tracing#message "The dot command line is";
+      self#tracing#message command_line;
+      let exit_code = Sys.command command_line in
+      self#tracing#message (Printf.sprintf "dot exited with exit code %i" exit_code);
+      st#mainwin#sketch#set_file st#pngSketchFile ;
+      (if not (exit_code = 0) then
+	Simple_dialogs.error
+	  (s_ "dot failed")
+	  (Printf.sprintf
+	      (f_ "Invoking dot failed. Did you install graphviz?\n\
+    The command line is\n%s\nand the exit code is %i.\n\
+    Marionnet will work, but you will not see the network graph picture until you fix the problem.\n\
+    There is no need to restart the application.")
+	      command_line
+	      exit_code)
+	  ());
+        end
+      with e ->
+        (Log.printf
+           "Warning: exception raised in sketch_refresher:\n%s\nIgnoring.\n"
+           (Printexc.to_string e))
     end
 
   let sketch_refresher =

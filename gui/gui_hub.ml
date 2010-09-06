@@ -45,11 +45,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
                 ~variant:Strings.no_variant_text
                 (int_of_string eth) ()) in
       d#resolve_variant; (* don't store the variant as a symlink *)
-      st#network#add_device d;
-      st#update_cable_sensitivity ();
-      st#update_sketch ();
-      st#update_state  ();
-      st#update_cable_sensitivity ()
+      st#network_change st#network#add_device d;
 
   end
 
@@ -99,13 +95,10 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       let (name,answer) = r#get("name"),r#get("answer") in
       if (answer="yes") then begin
-        (st#network#del_device name) ;
-        st#update_sketch ();
-        st#update_state  ();
+        st#network_change st#network#del_device name;
         (* This does nothing if the tree doesn't exist, which is what we want here: *)
         details#remove_device name;
         defects#remove_device name;
-        st#update_cable_sensitivity ();
         end
       else ()
 

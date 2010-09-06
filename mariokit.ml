@@ -251,7 +251,6 @@ class network =
     begin
     self#toolbar_driver#reset_image_size ();
     extrasize#set 0.;
-    ()
     end
 
   (* Delete _alone here:  *)
@@ -616,8 +615,9 @@ class virtual simulated_device = object(self)
 	      self#set_next_simulated_device_state None;
 	      (* An endpoint for cables linked to self was just added; we need to start some cables. *)
 	      ignore (List.map
-			(fun cable -> Log.print_string ("+ Working on cable\n"^(cable#show "")^"\n");
-			  cable#increment_alive_endpoint_no)
+			(fun cable ->
+			   Log.printf "Working on cable %s\n" (cable#show "");
+			   cable#increment_alive_endpoint_no)
 			(self#get_involved_cables)))
 
         | _ -> raise_forbidden_transition "create_right_now")
@@ -684,32 +684,34 @@ class virtual simulated_device = object(self)
         (* Don't startup ``incorrect'' devices. This is currently limited to cables of the
            wrong crossoverness which the user has defined by mistake: *)
         if self#is_correct then begin
-          Log.print_string ("* starting up the device " ^ (self#get_name) ^ "...\n");
+          Log.printf "Starting up the device %s...\n" self#get_name;
           match !automaton_state, !simulated_device with
           | NoDevice, None ->
-             (Log.print_string ("  (creating processes for " ^ (self#get_name) ^ " first...)\n");
+             (Log.printf "  (creating processes for %s first...)\n" self#get_name;
               self#create_right_now;
-              Log.print_string ("  (processes for " ^ (self#get_name) ^ " were created...)\n");
-              self#startup_right_now)
+              Log.printf "  (processes for %s were created...)\n" self#get_name;
+              self#startup_right_now
+              )
 
           | DeviceOff, Some(d) ->
              (d#startup;  (* This is the a method from some object in Simulated_network *)
               automaton_state := DeviceOn;
               self#set_next_simulated_device_state None;
-              Log.print_string ("* The device " ^ (self#get_name) ^ " was started up\n"))
+              Log.printf "The device %s was started up\n" self#get_name
+              )
 
           | DeviceOn,  _ ->
               Log.printf "startup_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
 
           | _ -> raise_forbidden_transition "startup_right_now"
         end else begin
-          Log.print_string ("* REFUSING TO START UP the ``incorrect'' device " ^ (self#get_name) ^ "...\n");
+          Log.printf "REFUSING TO START UP the ``incorrect'' device %s!!!\n" self#get_name
         end)
 
   method (*private*) suspend_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.print_string ("|| Suspending up the device " ^ (self#get_name) ^ "...\n");
+        Log.printf "Suspending up the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
           DeviceOn, Some(d) ->
            (d#suspend; (* This is the a method from some object in Simulated_network *)
@@ -720,7 +722,7 @@ class virtual simulated_device = object(self)
   method (*private*) resume_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.print_string ("|> Resuming the device " ^ (self#get_name) ^ "...\n");
+        Log.printf "Resuming the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
         | DeviceSleeping, Some(d) ->
            (d#resume; (* This is the a method from some object in Simulated_network *)
@@ -754,7 +756,7 @@ class virtual simulated_device = object(self)
   method (*private*) poweroff_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.print_string ("* Powering off the device " ^ (self#get_name) ^ "...\n");
+        Log.printf "Powering off the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
         | DeviceOn, Some(d) ->
            (d#shutdown; (* non-gracefully *)
@@ -773,7 +775,7 @@ class virtual simulated_device = object(self)
   method set_hublet_processe_no n =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.print_string ("* Updating the number of hublets of the device " ^ (self#get_name) ^ "...\n");
+        Log.printf "Updating the number of hublets of the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
         | DeviceOff, Some(d) ->
             d#set_hublet_processe_no n (* update hublets and don't change state *)
@@ -1340,7 +1342,7 @@ object (self)
       with_mutex mutex
         (fun () ->
           (if not self#is_connected then begin
-            Log.print_string ("Connecting the cable " ^ (self#get_name) ^ "\n");
+            Log.printf "Connecting the cable %s...\n" self#get_name;
             (* Turn on the relevant LEDgrid lights: *)
             let involved_devices_and_port_nos = self#involved_devices_and_port_nos in
             List.iter
@@ -1353,7 +1355,7 @@ object (self)
               involved_devices_and_port_nos;
             connected := true;
             self#increment_alive_endpoint_no;
-            Log.print_string "Ok: connected\n";
+            Log.printf "Ok: connected\n";
           end);
           refresh_sketch ());
 
@@ -1362,7 +1364,7 @@ object (self)
       with_mutex mutex
         (fun () ->
           (if self#is_connected then begin
-            Log.print_string ("Disconnecting the cable " ^ (self#get_name) ^ "\n");
+            Log.printf "Disconnecting the cable %s...\n" self#get_name;
             (* Turn off the relevant LEDgrid lights: *)
             let involved_devices_and_port_nos = self#involved_devices_and_port_nos in
             List.iter
@@ -1375,7 +1377,7 @@ object (self)
               involved_devices_and_port_nos;
             connected := false;
             self#decrement_alive_endpoint_no;
-            Log.print_string "Ok: disconnected\n";
+            Log.printf "Ok: disconnected\n";
           end);
           refresh_sketch ());
 
@@ -1399,8 +1401,8 @@ object (self)
     with_mutex mutex
       (fun () ->
         assert((!alive_endpoint_no >= 0) && (!alive_endpoint_no <= 3));
-        Log.print_string "The reference count is now ";
-        print_int !alive_endpoint_no; Log.print_string "\n")
+        Log.printf "The reference count is now %d\n" !alive_endpoint_no;
+       )
 
    (** Record the fact that an endpoint has been created (at a lower level
        this means that its relevant {e hublet} has been created), and
@@ -1408,12 +1410,12 @@ object (self)
    method increment_alive_endpoint_no =
      with_mutex mutex
        (fun () ->
-         Log.print_string "\n+++ increment_alive_endpoint_no\n\n";
+         Log.printf "Increment_alive_endpoint_no\n";
          self#check_alive_endpoint_no;
          alive_endpoint_no := !alive_endpoint_no + 1;
          self#check_alive_endpoint_no;
          if !alive_endpoint_no = 3 then begin
-           Log.print_string "The reference count raised to three: starting up a cable\n";
+           Log.printf "The reference count raised to three: starting up a cable\n";
            self#startup_right_now
          end)
 
@@ -1423,7 +1425,7 @@ object (self)
    method decrement_alive_endpoint_no =
      with_mutex mutex
        (fun () ->
-         Log.print_string "\n--- decrement_alive_endpoint_no\n\n";
+         Log.printf "Decrement_alive_endpoint_no\n";
          self#check_alive_endpoint_no;
          alive_endpoint_no := !alive_endpoint_no - 1;
          self#check_alive_endpoint_no;
@@ -1431,7 +1433,7 @@ object (self)
            (* Note that we destroy rather than terminating. This enables to re-create the
               simulated device later, at startup time, referring the correct hublets
               that will exist then, rather than the ones existing now *)
-           Log.print_string "The reference count dropped below three: destroying a cable\n";
+           Log.printf "The reference count dropped below three: destroying a cable\n";
 (*        self#destroy_right_now; (\* Before radical synchronization changes *\) *)
            self#destroy_right_now;
          end)
@@ -1459,8 +1461,8 @@ object (self)
            match right_node#devkind with
              NotADevice -> None
            | _ -> Some (Printf.sprintf "(id: %i; port: %i)" right_node#id right_port_index) in
-         Log.print_string ("left hublet process socket name is " ^ left_hublet_process#get_socket_name ^ "\n");
-         Log.print_string ("right hublet process socket name is " ^ right_hublet_process#get_socket_name ^ "\n");
+         Log.printf "Left hublet process socket name is \"%s\"\n" left_hublet_process#get_socket_name;
+         Log.printf "Right hublet process socket name is \"%s\"\n" right_hublet_process#get_socket_name;
          new Simulated_network.ethernet_cable
            ~name:self#get_name
            ~left_end:left_hublet_process
@@ -1563,8 +1565,7 @@ object (self)
        self#increment_alive_endpoint_no);
      (if right_endpoint#has_hublet_processes then
        self#increment_alive_endpoint_no);
-     Log.print_string ("The reference count for the just-created cable " ^ (self#get_name)^" is ");
-     PervasivesExtra.print_int !alive_endpoint_no; Log.print_string "\n";
+     Log.printf "The reference count for the just-created cable %s is %d\n" self#get_name !alive_endpoint_no;
 end;;
 
 (** Function for make receptacles from 0 to k (so call it with desired number - 1) of desired portkind
@@ -2287,36 +2288,34 @@ class network () =
     in a task managed by the Task_runner. In this case, we have not to call
     the task runner method [wait_for_all_currently_scheduled_tasks]. *)
  method reset ?(scheduled=false) () =
-   Log.print_string "reset: begin\n";
-   Log.print_string "resetting the LEDgrid manager...\n";
-   Log.print_string "destroying all cables...\n";
+   Log.printf "network#reset: begin\n\tdestroying all cables...\n";
    (List.iter
       (fun cable -> try cable#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       cables);
-   Log.print_string "destroying all machines...\n";
+   Log.printf "\tDestroying all machines...\n";
    (List.iter
       (fun machine -> try machine#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       machines);
-   Log.print_string "destroying all switchs, hubs and routers...\n";
+   Log.printf "\tDestroying all switchs, hubs and routers...\n";
    (List.iter
       (fun device -> try device#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       devices);
-   Log.print_string "destroying all clouds...\n";
+   Log.printf "\tDestroying all clouds...\n";
    (List.iter
       (fun cloud -> try cloud#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       clouds);
-   Log.print_string "destroying all world bridges...\n";
+   Log.printf "\nDestroying all world bridges...\n";
    (List.iter
       (fun world_bridge -> try world_bridge#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       world_bridges);
-   Log.print_string "destroying all world gateways...\n";
+   Log.printf "\tDestroying all world gateways...\n";
    (List.iter
       (fun x -> try x#destroy with _ -> ())
       world_gateways);
-   Log.print_string "Synchronously wait that everything terminates...\n";
+   Log.printf "\tSynchronously wait that everything terminates...\n";
    (if not scheduled then Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks);
 
-   Log.print_string "Making the network graph empty...\n";
+   Log.printf "\tMaking the network graph empty...\n";
    machines <- [] ;
    devices  <- [] ;
    clouds   <- [] ;
@@ -2324,12 +2323,23 @@ class network () =
    world_gateways <- [] ;
    cables   <- [] ;
 
-   Log.print_string "Wait for all devices to terminate...\n"; flush_all ();
+   Log.printf "\tWait for all devices to terminate...\n";
    (** Make sure that all devices have actually been terminated before going
        on: we don't want them to lose filesystem access: *)
-   Log.print_string "All devices did terminate.\n"; flush_all ();
+   Log.printf "\tAll devices did terminate.\n";
+   Log.printf "network#reset: end (success)\n";
 
-   Log.print_string "reset: end (success)\n";
+ method destroy_process_before_quitting () =
+  begin
+   Log.printf "destroy_process_before_quitting: BEGIN\n";
+   (List.iter (fun cable -> try cable#destroy_right_now with _ -> ()) cables);
+   (List.iter (fun machine -> try machine#destroy_right_now with _ -> ()) machines);
+   (List.iter (fun device -> try device#destroy_right_now with _ -> ()) devices);
+   (List.iter (fun cloud -> try cloud#destroy_right_now with _ -> ()) clouds);
+   (List.iter (fun world_bridge -> try world_bridge#destroy_right_now with _ -> ()) world_bridges);
+   (List.iter (fun x -> try x#destroy_right_now with _ -> ()) world_gateways);
+   Log.printf "destroy_process_before_quitting: END (success)\n";
+  end
 
  method restore_from_buffers =
   begin
@@ -2821,38 +2831,38 @@ class network () =
 
  (** Show network topology *)
  method show =
-   Log.print_endline "========== NETWORK STATUS ===========";
+   Log.printf "========== NETWORK STATUS ===========\n";
    (* show devices *)
    let msg= try
         (StringExtra.Fold.commacat
         (List.map (fun d->d#name^" ("^(string_of_devkind d#devkind)^")") devices))
         with _ -> ""
-     in Log.print_endline ("Devices \r\t\t: "^msg);
+   in Log.printf "Devices \r\t\t: %s\n" msg;
    (* show machines *)
    let msg=try
         (StringExtra.Fold.commacat (List.map (fun m->m#show) machines))
         with _ -> ""
-   in Log.print_endline ("Machines \r\t\t: "^msg);
+   in Log.printf "Machines \r\t\t: %s\n" msg;
    (* show clouds *)
    let msg=try
         (StringExtra.Fold.commacat (List.map (fun c->c#show) clouds))
         with _ -> ""
-   in Log.print_endline ("Clouds \r\t\t: "^msg);
+   in Log.printf "Clouds \r\t\t: %s\n" msg;
    (* show world_bridges *)
    let msg=try
         (StringExtra.Fold.commacat (List.map (fun c->c#show) world_bridges))
         with _ -> ""
-   in Log.print_endline ("World bridges \r\t\t: "^msg);
+   in Log.printf "World bridges \r\t\t: %s\n" msg;
    (* show world_gateways *)
    let msg=try
         (StringExtra.Fold.commacat (List.map (fun c->c#show) world_gateways))
         with _ -> ""
-   in Log.print_endline ("World gateways \r\t\t: "^msg);
+   in Log.printf "World gateways \r\t\t: %s\n" msg;
    (* show links *)
    let msg=try
         (StringExtra.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables))
         with _ -> ""
-   in Log.print_endline ("Cables \r\t\t: "^msg)
+   in Log.printf "Cables \r\t\t: %s\n" msg
 
 
  (** {b Consider cable as Edge.edges} *)
@@ -2989,10 +2999,10 @@ module Xml = struct
 
 (** Save the xforest representation of the network. *)
 let save_network (net:network) (fname:string) =
- Log.print_string "Netmodel.Xml.save_network: begin\n";
+ Log.printf "Netmodel.Xml.save_network: begin\n";
  Xforest.print_forest net#to_forest;
  network_marshaller#to_file net#to_forest fname;
- Log.print_string "Netmodel.Xml.save_network: end (success)\n";;
+ Log.printf "Netmodel.Xml.save_network: end (success)\n";;
 
 end;; (* module Netmodel.Xml *)
 

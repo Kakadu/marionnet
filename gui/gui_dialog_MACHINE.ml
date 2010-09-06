@@ -101,7 +101,6 @@ module Make (State:sig val st:State.globalState end) = struct
 
                 (* The user cannot remove receptacles used by a cable. *)
                 let min_eth = (st#network#max_busy_receptacle_index m#get_name Mariokit.Netmodel.Eth)+1 in
-                Log.print_endline ("gui_dialog_MACHINE.cmo: defaults: min_eth = "^(string_of_int min_eth)) ;
                 dialog#eth#adjustment#set_bounds ~lower:(float_of_int (max min_eth 1)) ()  ;
 
                 distrib#set_active_value       m#get_distrib  ;

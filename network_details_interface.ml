@@ -42,29 +42,39 @@ object(self)
       ()
   as super
 
+
+  method private currently_used_mac_addresses : string list =
+    let xs = List.flatten (Forest.linearize self#get_forest) in
+    let xs = ListExtra.filter_map
+      (function 
+       | "MAC address", (Row_item.String s) -> Some s
+       | _ -> None
+       )
+       xs
+    in
+    (List.tl xs) (* Discard the first line (header) *)
+
   (** The three leftmost octects are used as the trailing part of
       automatically-generated MAC addresses.
       Interesting side note: we can't use four because of OCaml
       runtime type tagging (yes, Jean: I was also surprised when I
       discovered it, but it was made that way to support precise GC,
       which can't rely on conservative pointer finding). *)
-  val next_mac_address_as_int =
-    ref 1
   method private generate_mac_address =
-    let mac_address_as_int = !next_mac_address_as_int in
-    next_mac_address_as_int := mac_address_as_int + 1;
-    let result =
-      Printf.sprintf
-        "02:04:06:%02x:%02x:%02x"
-        (mac_address_as_int / (256 * 256))
-        (mac_address_as_int / 256)
-        (mac_address_as_int mod 256) in
-    (* Try again if we generated an invalid address: *)
-    if self#is_a_valid_mac_address result then
-      result
-    else
+    let b0 = Random.int 256 in
+    let b1 = Random.int 256 in
+    let b2 = Random.int 256 in
+    let result = Printf.sprintf "02:04:06:%02x:%02x:%02x" b2 b1 b0 in
+    (* Try again if we generated an invalid or already allocated address: *)
+    if not (List.mem result self#currently_used_mac_addresses) then
+      begin
+        Log.printf "Generated MAC address: %s\n" result;
+        result
+      end
+    else begin
+      Log.printf "Generated MAC address: %s already in use!\n" result;
       self#generate_mac_address
-
+    end
   (** This follows exactly the same logic as automatic MAC address generation.
       Two octects are used for a B class network: *)
   val next_ipv4_address_as_int =
@@ -301,7 +311,6 @@ object(self)
   (** Clear the interface and set the full internal state back to its initial value: *)
   method reset =
     self#clear;
-    next_mac_address_as_int := 1;
     next_ipv4_address_as_int := 1;
     next_ipv6_address_as_int := Int64.one
 
@@ -312,8 +321,10 @@ object(self)
     super#save;
     (* ...but also save the counters used for generating fresh addresses: *)
     let counters_file_name = super#file_name ^ "-counters" in
+    (* For forward compatibility: *)
+    let _OBSOLETE_mac_address_as_int = Random.int (256*256*256) in 
     counters_marshaler#to_file
-      (!next_mac_address_as_int, !next_ipv4_address_as_int, !next_ipv6_address_as_int)
+      (_OBSOLETE_mac_address_as_int, !next_ipv4_address_as_int, !next_ipv6_address_as_int)
       counters_file_name;
 
   method load =
@@ -321,9 +332,9 @@ object(self)
     super#load;
     (* ...but also load the counters used for generating fresh addresses: *)
     let counters_file_name = super#file_name ^ "-counters" in
-    let the_next_mac_address_as_int, the_next_ipv4_address_as_int, the_next_ipv6_address_as_int =
+    (* _OBSOLETE_mac_address_as_int read for backward compatibility: *)
+    let _OBSOLETE_mac_address_as_int, the_next_ipv4_address_as_int, the_next_ipv6_address_as_int =
       counters_marshaler#from_file counters_file_name in
-    next_mac_address_as_int := the_next_mac_address_as_int;
     next_ipv4_address_as_int := the_next_ipv4_address_as_int;
     next_ipv6_address_as_int := the_next_ipv6_address_as_int
 

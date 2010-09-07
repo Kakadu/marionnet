@@ -337,10 +337,62 @@ class globalState = fun () ->
     (Defects_interface.get_defects_interface ())#load;
     (Texts_interface.get_texts_interface ())#load;
 
+    self#register_state_after_save_or_open;
     ()
     end
 
+  (*** BEGIN: this part of code try to understand if the project must be really saved before exiting. *)
 
+  val mutable refresh_sketch_counter_value_after_last_save = None
+  method set_project_not_already_saved =
+   refresh_sketch_counter_value_after_last_save <- None
+
+  method private get_treeview_list : Treeview.treeview list =
+   begin
+    let t1 = Network_details_interface.get_network_details_interface () in
+    let t2 = Filesystem_history.get_states_interface () in
+    let t3 = Defects_interface.get_defects_interface () in
+    let t4 = Texts_interface.get_texts_interface () in
+    [ (t1 :> Treeview.treeview);
+      (t2 :> Treeview.treeview);
+      (t3 :> Treeview.treeview);
+      (t4 :> Treeview.treeview);
+      ]
+   end
+
+  method private get_treeview_complete_forest_list =
+    List.map
+      (fun (treeview : Treeview.treeview) -> treeview#get_complete_forest)
+       self#get_treeview_list
+
+  val mutable treeview_forest_list_after_save = None
+  method private register_state_after_save_or_open =
+   begin
+     refresh_sketch_counter_value_after_last_save <- Some self#refresh_sketch_counter#get;
+     treeview_forest_list_after_save <- Some (self#get_treeview_complete_forest_list);
+   end
+
+
+  method project_already_saved =
+    (match refresh_sketch_counter_value_after_last_save, self#refresh_sketch_counter#get with
+     (* Efficient test: *)    
+    | Some x, y when x=y ->
+        Log.printf "The project *seems* already saved.\n";
+        (* Potentially expensive test: *)
+        if (treeview_forest_list_after_save = (Some self#get_treeview_complete_forest_list))
+        then begin
+          Log.printf "The project *is* already saved.\n";
+          true
+        end
+        else begin
+          Log.printf "Something has changed in treeviews: the project must be re-saved.\n";
+          false
+        end
+    | Some x, y -> (Log.printf "The project seems not already saved (x=%d, y=%d).\n" x y; false)
+    | None, y   -> (Log.printf "The project seems not already saved (x=None, y=%d).\n" y; false)
+    )
+    
+  (*** END: this part of code try to understand if the project must be really saved before exiting. *)
 
   (** Rewrite the compressed archive prj_filename with the content of the project working directory (pwdir). *)
   method save_project () =
@@ -396,6 +448,8 @@ class globalState = fun () ->
     let _ = Task_runner.the_task_runner#schedule ~name:"tar" (fun () -> ignore (Unix.system cmd)) in
     let _ = Task_runner.the_task_runner#schedule ~name:"destroy saving progress bar" (fun () -> Progress_bar.destroy_progress_bar_dialog window) in
 
+    self#register_state_after_save_or_open;
+    
     Log.printf "state#save_project (main thread) finished.\n";
   end
 
@@ -502,7 +556,7 @@ class globalState = fun () ->
   method refresh_sketch () =
    refresh_sketch_counter#set ();
 
-  method network_change : 'a 'b. ('a -> 'b) -> 'a -> unit =
+  method network_change : 'a. ('a -> unit) -> 'a -> unit =
   fun action obj ->
    begin
     action obj;
@@ -518,6 +572,7 @@ class globalState = fun () ->
       1) there is at least a machine => the project is runnable
       2) else => the project is not runnable *)
   method update_state () =
+   begin
     let old = app_state in
     begin
     match app_state#get_alone with
@@ -525,10 +580,9 @@ class globalState = fun () ->
      | _ -> app_state#set (if self#network#nodes=[]
                            then ActiveNotRunnableProject
                            else ActiveRunnableProject)
-    end ;
-    if app_state <> old then self#gui_coherence ();
-    ()
-
+    end;
+    if app_state <> old then self#gui_coherence () else ()
+   end
 
  (** Force coherence between state and sensitive attributes of mainwin's widgets *)
  method gui_coherence () =

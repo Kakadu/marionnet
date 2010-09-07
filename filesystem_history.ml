@@ -68,6 +68,7 @@ let get_variants_path prefixed_filesystem =
 
 class states_interface =
 fun ~packing
+    ~after_user_edit_callback
     () ->
 object(self)
   inherit
@@ -330,6 +331,10 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       (fun selected_rowid_if_any ->
         let row_id = get selected_rowid_if_any in
         self#delete_state row_id);
+
+     (* J.V. *)
+      self#set_after_update_callback after_user_edit_callback;
+
 end;;
 
 (** The one and only states interface object, with my usual OCaml kludge
@@ -342,11 +347,11 @@ let get_states_interface () =
       failwith "the_state_interface has not been defined yet"
   | Some the_states_interface ->
       the_states_interface;;
-let make_states_interface ~packing () =
+let make_states_interface ~packing ~after_user_edit_callback () =
   match !the_states_interface with
     None ->
       the_states_interface :=
-        Some(new states_interface ~packing ())
+        Some(new states_interface ~packing ~after_user_edit_callback ())
   | Some the_states_interface ->
       failwith "the_state_interface has already been defined"
 

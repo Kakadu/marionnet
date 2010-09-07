@@ -28,7 +28,7 @@ open Gettext;;
 
 class texts_interface =
 fun ~packing
-(*    ~after_user_edit_callback *)
+    ~after_user_edit_callback
     () ->
 object(self)
   inherit
@@ -272,6 +272,10 @@ object(self)
         UnixExtra.apply_ignoring_Unix_error Unix.unlink pathname;
         self#remove_row row_id;
         self#save);
+
+     (* J.V. *)
+     self#set_after_update_callback after_user_edit_callback;
+
 end;;
 
 (** Ugly kludge to make a single global instance visible from all modules
@@ -283,7 +287,7 @@ let get_texts_interface () =
   match !the_texts_interface with
     None -> failwith "No texts interface exists"
   | Some the_texts_interface -> the_texts_interface;;
-let make_texts_interface ~packing () =
-  let result = new texts_interface ~packing () in
+let make_texts_interface ~packing ~after_user_edit_callback () =
+  let result = new texts_interface ~packing ~after_user_edit_callback () in
   the_texts_interface := Some result;
   result;;

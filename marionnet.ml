@@ -55,6 +55,7 @@ module Motherboard = Created_window_MARIONNET.Motherboard
 let filesystem_history_interface =
   Filesystem_history.make_states_interface
     ~packing:(st#mainwin#filesystem_history_viewport#add)
+    ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
     ()
 
 (** See the comment in states_interface.ml for why we need this ugly kludge: *)
@@ -84,24 +85,31 @@ let shutdown_or_restart_relevant_device device_name =
     d#destroy;
   end
 
+let after_user_edit_callback x =
+  begin
+    st#set_project_not_already_saved;
+    shutdown_or_restart_relevant_device x
+  end
+ 
 (** Make the network details interface: *)
 let network_details_interface =
   make_network_details_interface
     ~packing:(st#mainwin#network_details_viewport#add)
-    ~after_user_edit_callback:shutdown_or_restart_relevant_device
+    ~after_user_edit_callback
     ()
 
 (** Make the defects interface: *)
 let defects_interface =
   make_defects_interface
     ~packing:(st#mainwin#defects_viewport#add)
-    ~after_user_edit_callback:shutdown_or_restart_relevant_device
+    ~after_user_edit_callback
     ()
 
 (** Make the texts interface: *)
 let texts_interface =
   make_texts_interface
     ~packing:(st#mainwin#texts_viewport#add)
+    ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
     ()
 
 (* ***************************************** *

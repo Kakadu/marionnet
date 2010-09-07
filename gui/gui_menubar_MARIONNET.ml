@@ -248,7 +248,7 @@ module Created_entry_project_quit = Menu_factory.Make_entry
    let key   = (Some _Q)
 
    let dialog () =
-    if (st#active_project = false)
+    if ((not st#active_project) || st#project_already_saved)
      then (Some (mkenv [("answer","no")]))
      else Talking.EDialog.ask_question ~help:None ~cancel:true
            ~title:(s_ "Quit")

@@ -1713,18 +1713,18 @@ class device =
     (* Only for routers: we have to manage the hostfs stuff (when in exam mode) and
        destroy the simulated device, so that we can use a new cow file the next time: *)
     if self#devkind = Router then begin
-      Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name; flush_all ();
+      Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
       let hostfs_directory_pathname = self#hostfs_directory_pathname in
       Log.printf "Ok, we're still alive\n"; flush_all ();
       (* If we're in exam mode then make the report available in the texts treeview: *)
       (if Command_line.are_we_in_exam_mode then begin
         let texts_interface = Texts_interface.get_texts_interface () in
-        Log.printf "Adding the report on %s to the texts interface\n" self#name; flush_all ();
+        Log.printf "Adding the report on %s to the texts interface\n" self#name;
         texts_interface#import_report
           ~machine_or_router_name:self#name
           ~pathname:(hostfs_directory_pathname ^ "/report.html")
           ();
-        Log.printf "Added the report on %s to the texts interface\n" self#name; flush_all ();
+        Log.printf "Added the report on %s to the texts interface\n" self#name;
       end);
       (* ...And destroy, so that the next time we have to re-create the process command line
          can use a new cow file (see the make_simulated_device method) *)

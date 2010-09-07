@@ -20,15 +20,8 @@ open PervasivesExtra;; (* We want synchronous terminal output *)
     argument we support as of now. *)
 
 (** Command line arguments, without the initial executable name *)
-let command_line_arguments =
+let command_line_arguments = 
   List.tl (Array.to_list Sys.argv);;
-(*   let list_of_array a = *)
-(*     let result = ref [] in (\* quite ugly *\) *)
-(*     for i = (Array.length a) - 1 downto 0 do *)
-(*       result := a.(i) :: !result; *)
-(*     done; *)
-(*     !result in *)
-(*   List.tl (list_of_array Sys.argv);; *)
 
 (** Are we in exam mode? *)
 let are_we_in_exam_mode =
@@ -39,7 +32,7 @@ let are_we_in_exam_mode =
         true
       end
       else begin
-        print_string ("Warning: I don't understand the command line argument \""^argument^"\"\n");
+        Log.printf "Warning: I don't understand the command line argument: %s\n" argument;
         false
       end)
     command_line_arguments;;

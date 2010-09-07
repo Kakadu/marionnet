@@ -17,10 +17,12 @@
 
 (** Gui reactive system. *)
 
-#load "include_type_definitions_p4.cmo";;
+#load "include_type_definitions_p4.cmo"
+;;
 INCLUDE DEFINITIONS "gui/gui_motherboard.mli"
-
-#load "chip_parser_p4.cmo";;
+;;
+#load "chip_parser_p4.cmo"
+;;
 
 open Gettext;;
 
@@ -175,6 +177,24 @@ module Make (S : sig val st:State.globalState end) = struct
    in
    st#mainwin#toplevel#event#connect#key_press ~callback:
              (fun k -> (if GdkEvent.Key.keyval k = GdkKeysyms._F3 then display ()); false)
+
+  (* Debugging: press F5 for immediately exiting the gtk main loop (only in the toplevel) *)
+  let _ =
+    if (Array.get Sys.argv 0) = "/tmp/marionnet-toplevel"
+    then
+      let stars = "*************************************" in
+      Printf.kfprintf flush stdout
+        "%s\nPress F5 to switch to the toplevel.\n%s\n\n" stars stars;
+      ignore (st#mainwin#toplevel#event#connect#key_press ~callback:(fun k ->
+         (match (GdkEvent.Key.keyval k) = GdkKeysyms._F5 with
+         | true ->
+             Printf.kfprintf flush stdout
+               "%s\nYou are now in the toplevel.\nType:\nGMain.Main.main ();;\nto come back to the Marionnet window.\n%s\n\n" stars stars; 
+             GtkMain.Main.quit ()
+         | false -> ()
+         );
+         false))
+    else ()
 
 (*  let pippo = WGButton.button ~name:"button_pippo" system ~label:"PIPPO" ~packing:(st#mainwin#hbuttonbox_BASE#pack) ()
 

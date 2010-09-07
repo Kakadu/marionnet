@@ -33,7 +33,7 @@ You are welcome to redistribute it under certain
 conditions; see the file `COPYING' for details.</span>";;
 
 let handle_click window _ =
-  Log.printf "handle_click: the splash screen was closed\n"; flush_all ();
+  Log.printf "handle_click: the splash screen was closed\n";
   window#misc#hide ();
   window#destroy ();
   true;;
@@ -59,7 +59,8 @@ let box = GPack.vbox ~border_width:2 ~packing:event_box#add () in
 let _ = GMisc.pixmap splash_image ~packing:(box#pack ~padding:3) () in
 let _ = GMisc.label ~markup:splashscreen_text ~packing:box#add ~line_wrap:false () in
 let _ = event_box#event#connect#button_press ~callback:(handle_click splash) in
-();;
+let _ = splash#event#connect#key_press ~callback:(fun ev -> handle_click splash ()) in ()
+;;
 
 let show_splash ?timeout () =
   (match timeout with

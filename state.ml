@@ -284,9 +284,9 @@ class globalState = fun () ->
     (* Look for the name of the root directory of the mar file. Some checks here. *)
     let rootname =
       try
-        match (SysExtra.readdir_into_list self#get_pwdir) with
+        match (SysExtra.readdir_as_list self#get_pwdir) with
 
-        | [x] -> let skel = (SysExtra.readdir_into_list (self#get_pwdir^x)) in
+        | [x] -> let skel = (SysExtra.readdir_as_list (self#get_pwdir^x)) in
                  if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"]
                  then x
                  else raise (Failure "state#open_project: no expected content in the project working directory root.")

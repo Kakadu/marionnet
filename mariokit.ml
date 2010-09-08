@@ -18,7 +18,6 @@
 
 (** Some modules for managing the virtual network *)
 
-open Strings;;
 open Sugar;;
 open UnixExtra;;
 open Environment;;
@@ -89,67 +88,51 @@ module MSys = struct
  let router_pathname_prefix  = marionnet_home_filesystems ^ router_prefix  ;;
  let kernel_pathname_prefix  = marionnet_home_kernels     ^ kernel_prefix  ;;
 
- (** Read the given directory searching for names like [prefix ^ "xxxxx"];
-     @return the list of ["xxxxx"]. If [suggested_text] is in the list, then
-     return it as the {e first} element. If ?extra_element is given then return
-     it as the first element (the second if [suggested_text] is present): *)
- let get_unprefixed_file_list ?extra_element prefix directory =
+ (** Read the given directory searching for names like [~prefix ^ "xxxxx"];
+     return the list of ["xxxxx"]. *)
+ let get_unprefixed_file_list ~prefix ~dir =
    let prefix_length = String.length prefix in
-   let strip_prefix s = String.sub s prefix_length ((String.length s) - prefix_length) in
-   let list =
-     SysExtra.readdir_into_list
-       ~namefilter:(fun file_name -> ((String.length file_name) > prefix_length) &&
-                                     ((String.sub file_name 0 prefix_length) = prefix))
-       ~nameconverter:strip_prefix
-       directory in
-   let list = (* Remove directories from the list *)
-     List.filter
-       (fun file_or_directory ->
-         try
-           let _ = Sys.readdir (directory ^ "/"^ prefix ^file_or_directory) in
-           (* we never get here if readdir raises an exception *)
-           false
-         with _ ->
-           true)
-       list in
-   let list =
-     match extra_element with
-       None -> list
-     | Some extra_element -> extra_element :: list in
-   let list_with_default_first_if_default_is_present =
-     if List.exists (fun x -> x = suggested_text) list then
-       suggested_text :: (List.filter (fun x -> not (x = suggested_text)) list)
-     else
-       list in
-   list_with_default_first_if_default_is_present;;
+   let remove_prefix s = String.sub s prefix_length ((String.length s) - prefix_length) in
+   let name_filter file_name =
+    ((String.length file_name) > prefix_length) &&
+    ((String.sub file_name 0 prefix_length) = prefix)
+   in
+   let xs =
+     SysExtra.readdir_as_list
+       ~only_not_directories:()
+       ~name_filter
+       ~name_converter:remove_prefix
+       dir in
+   xs
+   ;;
+
 
  (** Return the list of unprefixed machine filesystem file names: *)
   let machine_filesystem_list () =
     get_unprefixed_file_list
-      machine_prefix
-      marionnet_home_filesystems;;
+      ~prefix:machine_prefix
+      ~dir:marionnet_home_filesystems;;
 
  (** Return the list of unprefixed router filesystem file names: *)
   let router_filesystem_list () =
     get_unprefixed_file_list
-      router_prefix
-      marionnet_home_filesystems;;
+      ~prefix:router_prefix
+      ~dir:marionnet_home_filesystems;;
 
  (** Return the list of unprefixed kernel file names: *)
- let kernelList () =
+ let kernel_list () =
     get_unprefixed_file_list
-      kernel_prefix
-      marionnet_home_kernels;;
+      ~prefix:kernel_prefix
+      ~dir:marionnet_home_kernels;;
 
  (** Return the list of unprefixed variant file names for the given (prefixed)
      filesystem; if an entry named like filename_which_should_be_first_if_present,
      when specified, exists, then return it before everything else including
      no_variant_text.*)
  let variant_list_of prefixed_filesystem () =
-   get_unprefixed_file_list
-     ~extra_element:no_variant_text
-     ""
-     (marionnet_home_filesystems ^ "/" ^ prefixed_filesystem ^ "_variants");;
+     get_unprefixed_file_list
+       ~prefix:""
+       ~dir:(marionnet_home_filesystems ^ "/" ^ prefixed_filesystem ^ "_variants")
 
  (** Terminal choices to handle uml machines *)
  let termList = List.map string_of_x_policy [HostXServer; Xnest] (*x_policies_as_strings*);;
@@ -1128,35 +1111,6 @@ class virtual node = fun
   method private get_involved_cables =
     List.filter (fun c->c#i_node_nvolved self#get_name) network#cables
 
-  (** I need these even if such mechods are only useful for machines (and routers,
-      in the future), because of type problems... This looks like the easiest way. *)
-  method get_distrib : string =
-    failwith ("The device " ^ self#get_name ^ " has not a type supporting distribution")
-
-  method get_variant : string =
-    failwith ("The device " ^ self#get_name ^ " has not a type supporting variants")
-
-  method set_variant : string -> unit =
-    failwith ("The device " ^ self#get_name ^ " has not a type supporting variants")
-  (** Don't store the variant name as a symlink; resolve it if it's a symlink: *)
-
-  method resolve_variant =
-    try (* Let's support this on *every* device; it's simpler... *)
-      let variant = self#get_variant in
-      (try
-        let marionnet_home_filesystems = Initialization.marionnet_home_filesystems in
-        let prefixed_filesystem = "machine-" ^ self#get_distrib in
-        let variant_pathname =
-          marionnet_home_filesystems ^ "/" ^ prefixed_filesystem ^ "_variants/" ^ variant in
-        let resolved_variant =
-          Filename.basename (Unix.readlink variant_pathname) in
-        self#set_variant resolved_variant;
-        Log.printf "The variant \"%s\" was a symlink. Resolved into \"%s\".\n" variant resolved_variant;
-        flush_all ();
-      with _ ->
-        Log.printf "The variant \"%s\" is not a symlink.\n" variant; flush_all ());
-    with _ ->
-      ();
 end;;
 
 
@@ -1581,17 +1535,6 @@ let rec mkrecepts network k portkind portprefix = match k with
         class device
  * *************************** *)
 
-let is_there_a_router_variant () =
-  List.mem "default" (MSys.variant_list_of ("router-" ^ router_unprefixed_filesystem) ())
-;;
-
-let check_variant x d =
-  let variants = MSys.variant_list_of ("router-" ^ d) () in
-  if not (List.mem x variants) then
-    raise (Failure ("Setting router variant: "^x^" not in the list of available variants, which is:"^(StringExtra.Text.to_string variants)))
-  else x
-;;
-
 (** A device is a nodes s.t. nodekind=Device. Defects may be added after the creation. *)
 class device =
  fun
@@ -1599,7 +1542,7 @@ class device =
   ?(name="nodevicename")
   ?(label="")
   ?(devkind=Hub)
-  ?(variant=no_variant_text)
+  ?variant
   (ethnum:int) () ->
   let intial_receptacles = (mkrecepts network (ethnum-1) Eth "port") in
 
@@ -1689,7 +1632,7 @@ class device =
         ~name:self#get_name
         ~kernel_file_name:(MSys.marionnet_home_kernels ^ "linux-default")
         ~cow_file_name (* To do: use the variant!!! *)
-        ~filesystem_file_name:(MSys.router_pathname_prefix^router_unprefixed_filesystem)
+        ~filesystem_file_name:(MSys.router_pathname_prefix^Strings.router_unprefixed_filesystem)
         ~ethernet_interface_no:(List.length ethernet_receptacles)
         ~umid:self#get_name
         ~id
@@ -1743,21 +1686,6 @@ class device =
     if self#devkind = Router then
       self#destroy_right_now
 
-  (** A router has an associated initial variant *)
-  val the_variant =
-    ref (check_variant variant router_unprefixed_filesystem)
-
-  method get_variant =
-    if self#devkind = Router then
-      !the_variant
-    else
-      super#get_variant (* fail *)
-
-  method set_variant x =
-    if self#devkind = Router then
-      the_variant := check_variant x router_unprefixed_filesystem
-    else
-      failwith "Can not set a variant on a non-router device"
 end;;
 
 
@@ -1776,7 +1704,7 @@ class machine =
       ?(mem:int=48)
       ?(ethnum:int=1)
       ?(distr:string="default")
-      ?(variant:string=no_variant_text)
+      ?variant
       ?(ker:string="default")
       ?(ter:string="X HOST") () ->
 
@@ -1794,14 +1722,14 @@ class machine =
     failwith ("Setting machine "^name^": unknown GNU/Linux filesystem "^x)
     else x in
 
-  let variantsListOf d =
-    MSys.variant_list_of ("machine-" ^ d) () in
-
-  let check_variant x d = if not (List.mem x (variantsListOf d)) then
-    raise (Failure ("Setting machine "^name^": variant "^x^" not in the list of available variants, which is:"^((variantsListOf d)=> StringExtra.Text.to_string)))
+  let check_variant distrib x =
+    let variants = MSys.variant_list_of ("machine-" ^ distrib) () in
+    if not (List.mem x variants) then
+      let msg = Printf.sprintf "Setting machine %s: the variant %s is not available" name x in
+      failwith msg
     else x in
 
-  let check_kernel x = if not (List.mem x (MSys.kernelList ())) then
+  let check_kernel x = if not (List.mem x (MSys.kernel_list ())) then
     raise (Failure ("Setting machine "^name^": unknown kernel "^x))
     else x in
 
@@ -1842,9 +1770,30 @@ class machine =
   method set_distrib x = distrib <- check_distrib x
 
   (** A machine has an associated initial variant *)
-  val mutable variant : string = check_variant variant distr
-  method get_variant   = variant
-  method set_variant x = variant <- check_variant x distrib
+  val mutable variant : string option = Option.map (check_variant distr) variant
+  method get_variant = variant
+  method get_variant_as_string = match variant with None -> "" | Some x -> x
+  method set_variant (x:string option) = variant <- (Option.map (check_variant distr) x)
+
+  (** Don't store the variant name as a symlink; resolve it if it's a symlink:
+      Let's support this on *every* device; it's simpler... *)
+  method resolve_variant =
+    try begin
+     (match self#get_variant with
+     | None -> ()
+     | Some variant ->
+       (try
+	  let marionnet_home_filesystems = Initialization.marionnet_home_filesystems in
+	  let prefixed_filesystem = "machine-" ^ self#get_distrib in
+	  let variant_pathname =
+	    marionnet_home_filesystems ^ "/" ^ prefixed_filesystem ^ "_variants/" ^ variant in
+	  let resolved_variant =
+	    Filename.basename (Unix.readlink variant_pathname) in
+	  self#set_variant (Some resolved_variant);
+	  Log.printf "The variant \"%s\" was a symlink. Resolved into \"%s\".\n" variant resolved_variant;
+        with _ -> Log.printf "The variant \"%s\" is not a symlink.\n" variant)
+     )
+    end with _ -> ()
 
   (** A machine has a linux kernel. *)
   val mutable kernel : string = check_kernel ker
@@ -1867,12 +1816,12 @@ class machine =
   (** Machine to forest encoding. *)
   method to_forest =
    Forest.leaf ("machine", [
-                   ("name"     ,  self#get_name ) ;
-                   ("memory"   ,  (string_of_int self#get_memory)) ;
-                   ("distrib"  ,  self#get_distrib  ) ;
-                   ("variant"  ,  self#get_variant  ) ;  (* EX "state" attenzione nel from_forest *)
-                   ("kernel"   ,  self#get_kernel   ) ;
-                   ("terminal" ,  self#get_terminal ) ;
+                   ("name"     ,  self#get_name );
+                   ("memory"   ,  (string_of_int self#get_memory));
+                   ("distrib"  ,  self#get_distrib  );
+                   ("variant"  ,  self#get_variant_as_string);
+                   ("kernel"   ,  self#get_kernel   );
+                   ("terminal" ,  self#get_terminal );
                    ("eth"      ,  (string_of_int self#get_eth_number))  ;
 	           ])
 
@@ -1881,7 +1830,9 @@ class machine =
   | ("name"     , x ) -> self#set_name x
   | ("memory"   , x ) -> self#set_memory (int_of_string x)
   | ("distrib"  , x ) -> self#set_distrib x
-  | ("variant"  , x ) -> self#set_variant x
+  | ("variant"  , "aucune" ) -> self#set_variant None (* backward-compatibility *)
+  | ("variant"  , "" )-> self#set_variant None
+  | ("variant"  , x ) -> self#set_variant (Some x)
   | ("kernel"   , x ) -> self#set_kernel x
   | ("terminal" , x ) -> self#set_terminal x
   | ("eth"      , x ) -> self#set_eth_number  (int_of_string x)
@@ -2572,10 +2523,10 @@ class network () =
       if (d#devkind = Router) &&
          ((Filesystem_history.number_of_states_with_name d#name) = 0) then (* not after load *)
         Filesystem_history.add_device
-          d#name
-          (MSys.router_prefix ^ router_unprefixed_filesystem)
-          d#get_variant
-          "router"
+          ~name:d#name
+          ~prefixed_filesystem:(MSys.router_prefix ^ Strings.router_unprefixed_filesystem)
+          ~icon:"router"
+          ()
     end
 
  (** Machines must have a unique name in the network *)

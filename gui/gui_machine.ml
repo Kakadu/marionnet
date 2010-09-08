@@ -48,13 +48,18 @@ module Make_menus (State : sig val st:State.globalState end) = struct
           ~mem:     (int_of_string (r#get "memory"))
           ~ethnum:  (int_of_string eth)
           ~distr:   (r#get "distrib")
-          ~variant: (r#get "patch")
+          ?variant: (Option.of_fallible_application ~fallback:(Log.print_exn) r#get "variant")
           ~ker:     (r#get "kernel")
           ~ter:     (r#get "term") ()) in
       (* Don't store the variant as a symlink: *)
       m#resolve_variant;
       st#network_change st#network#add_machine m;
-      Filesystem_history.add_device name ("machine-"^(r#get "distrib")) m#get_variant "machine"
+      Filesystem_history.add_device
+         ~name
+         ~prefixed_filesystem:("machine-"^(r#get "distrib"))
+         ?variant:m#get_variant
+         ~icon:"machine"
+         ()
 
   end
 

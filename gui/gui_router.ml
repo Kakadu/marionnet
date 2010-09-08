@@ -50,11 +50,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       defects#add_device name "router" eth;
       let d = (new Mariokit.Netmodel.device ~network:st#network ~name ~label:(r#get "label")
                     ~devkind:Mariokit.Netmodel.Router
-                    ~variant:(if Mariokit.Netmodel.is_there_a_router_variant ()
-                              then "default"
-                              else Strings.no_variant_text)
                     eth ()) in
-      d#resolve_variant; (* don't store the variant as a symlink *)
+(*    d#resolve_variant; (* don't store the variant as a symlink *) *)
       st#network_change st#network#add_device d;
 
   end

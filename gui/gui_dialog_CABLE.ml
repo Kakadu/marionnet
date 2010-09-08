@@ -102,16 +102,16 @@ module Make
                        else (freeRecepts_of_node x)) in
 
     let left = Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave
-                  ~masterCallback:(Some Log.print_endline)
+                  ~masterCallback:(Some (Log.printf "%s\n"))
                   ~masterPacking:(Some (dialog#cable_endpoints#attach ~left:1 ~top:1 ~right:2))
                   st#network#get_node_names
-                  ~slaveCallback:(Some Log.print_endline)
+                  ~slaveCallback:(Some (Log.printf "%s\n"))
                   ~slavePacking:(Some (dialog#cable_endpoints#attach ~left:1 ~top:2 ~right:2))
                   get_left_recept_of
-                  ~slaveSlaveCallback:(Some Log.print_endline)
+                  ~slaveSlaveCallback:(Some (Log.printf "%s\n"))
                   ~slaveSlavePacking:(Some (dialog#cable_endpoints#attach ~left:3 ~top:1 ~right:4))
                   (fun n1 r1 -> st#network#get_node_names)
-                  ~slaveSlaveSlaveCallback:(Some Log.print_endline)
+                  ~slaveSlaveSlaveCallback:(Some (Log.printf "%s\n"))
                   ~slaveSlaveSlavePacking:(Some (dialog#cable_endpoints#attach ~left:3 ~top:2 ~right:4))
                   (fun n1 r1 n2 ->
                      let l = (get_right_recept_of n2) in

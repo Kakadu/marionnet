@@ -35,27 +35,32 @@ module Make (State:sig val st:State.globalState end) = struct
    let module Tk = Gui_dialog_toolkit.Make (struct let toplevel = d#toplevel end) in
 
    let kernel = Widget.ComboTextTree.fromList
-      ~callback:(Some Log.print_endline)
+      ~callback:(Some (Log.printf "%s\n"))
       ~packing:(Some (dialog#table#attach ~left:2 ~top:6 ~right:4))
-      (Mariokit.MSys.kernelList ())  in
+      (Mariokit.MSys.kernel_list ())  in
 
     let distrib = Widget.ComboTextTree.fromListWithSlave
-      ~masterCallback:(Some Log.print_endline)
+      ~masterCallback:(Some (Log.printf "%s\n"))
       ~masterPacking: (Some (dialog#table#attach ~left:2 ~top:4 ~right:4))
       (* The user can't change filesystem and variant any more once the device has been created:*)
       (match update with
         None -> (Mariokit.MSys.machine_filesystem_list ())
       | Some m -> [m#get_distrib])
-      ~slaveCallback: (Some Log.print_endline)
+      ~slaveCallback: (Some (Log.printf "%s\n"))
       ~slavePacking:  (Some (dialog#table#attach ~left:2 ~top:5 ~right:4))
       (fun unprefixed_filesystem ->
         match update with
           None ->
-            Mariokit.MSys.variant_list_of ("machine-" ^ unprefixed_filesystem) ()
-        | Some m -> [m#get_variant])  in
+            "none"::Mariokit.MSys.variant_list_of ("machine-" ^ unprefixed_filesystem) ()
+        | Some m ->
+            (match m#get_variant with
+             | None   -> ["none"]
+             | Some x -> [x]
+             )
+        )  in
 
     let terminal = Widget.ComboTextTree.fromList
-      ~callback:(Some Log.print_endline)
+      ~callback:(Some (Log.printf "%s\n"))
       ~packing:(Some (dialog#table#attach ~left:2 ~top:8 ~right:4))
       Mariokit.MSys.termList in
 
@@ -89,28 +94,34 @@ module Make (State:sig val st:State.globalState end) = struct
    begin
    terminal#box#misc#set_sensitive false;  (* en attendant de l'implementer ou de l'eliminer... *)
    match update with
-   | None   -> distrib#set_active_value "default";
-               kernel#set_active_value  "default"; (* !!!!!!!!!!! *)
-               dialog#name#set_text (st#network#suggestedName "m");
-               dialog#name#misc#grab_focus ()
+   | None   ->
+	distrib#set_active_value "default";
+	distrib#slave#set_active_value "none";
+	kernel#set_active_value  "default"; (* !!!!!!!!!!! *)
+	dialog#name#set_text (st#network#suggestedName "m");
+	dialog#name#misc#grab_focus ()
 
-   | Some m -> begin
-                dialog#name#set_text           m#get_name                         ;
-                dialog#memory#set_value        (float_of_int m#get_memory)        ;
-                dialog#eth#set_value           (float_of_int m#get_eth_number)    ;
+   | Some m ->
+       begin
+	dialog#name#set_text    m#get_name;
+	dialog#memory#set_value (float_of_int m#get_memory);
+	dialog#eth#set_value    (float_of_int m#get_eth_number);
 
-                (* The user cannot remove receptacles used by a cable. *)
-                let min_eth = (st#network#max_busy_receptacle_index m#get_name Mariokit.Netmodel.Eth)+1 in
-                dialog#eth#adjustment#set_bounds ~lower:(float_of_int (max min_eth 1)) ()  ;
+	(* The user cannot remove receptacles used by a cable. *)
+	let min_eth = (st#network#max_busy_receptacle_index m#get_name Mariokit.Netmodel.Eth)+1 in
+	dialog#eth#adjustment#set_bounds ~lower:(float_of_int (max min_eth 1)) ()  ;
 
-                distrib#set_active_value       m#get_distrib  ;
-                distrib#slave#set_active_value m#get_variant  ;
-                distrib#box#misc#set_sensitive       false    ;
-                distrib#slave#box#misc#set_sensitive false    ;
-                kernel#set_active_value        m#get_kernel   ;
-                terminal#set_active_value      m#get_terminal ;
-               end
-   end;
+	distrib#set_active_value       m#get_distrib;
+	(match m#get_variant with
+	 | None         -> distrib#slave#box#misc#set_sensitive false
+	 | Some variant -> distrib#slave#set_active_value variant
+	 );
+	distrib#box#misc#set_sensitive       false;
+	distrib#slave#box#misc#set_sensitive false;
+	kernel#set_active_value        m#get_kernel;
+	terminal#set_active_value      m#get_terminal;
+       end
+    end;
 
    (* Parse the widget in order to generate the environment. *)
    let env_of_dialog () =
@@ -120,12 +131,20 @@ module Make (State:sig val st:State.globalState end) = struct
      let m     = (string_of_int dialog#memory#value_as_int)                         in
      let e     = (string_of_int dialog#eth#value_as_int)                            in
      let d     = distrib#selected                                                   in
-     let p     = distrib#slave#selected                                             in
+     let v     = distrib#slave#selected                                             in
      let k     = kernel#selected                                                    in
      let t     = terminal#selected                                                  in
      if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog  else
-     mkenv [("name",n) ; ("action",c)  ; ("oldname",o) ; ("memory",m) ; ("eth",e) ;
-            ("distrib",d) ; ("patch",p)   ; ("kernel",k) ; ("term",t)  ]
+     let result =
+       mkenv [("name",n) ; ("action",c)  ; ("oldname",o) ; ("memory",m) ; ("eth",e) ;
+              ("distrib",d); ("kernel",k) ; ("term",t)  ]
+     in
+     let () = match v with
+      | "none" -> ()
+      | _      -> result#add ("variant",v)
+     in
+     result
+
      end in
 
    (* Call the dialog loop *)

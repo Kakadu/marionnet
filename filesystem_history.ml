@@ -473,24 +473,27 @@ let number_of_states_with_name
    ~forest
    (fun row -> (lookup_alist "Name" row) = String name);;
 
-let add_device name prefixed_filesystem variant icon =
-  Log.printf "FILESYSTEM HISTORY: adding the device %s which has variant %s\n" name variant; flush_all ();
+let add_device ~name ~prefixed_filesystem ?variant ~icon () =
   let states_interface = get_states_interface () in
-  (* If we're using a non-clean variant then copy it so that it becomes the first cow
-     file: *)
-  let file_name =
-    if variant = no_variant_text then
-      make_fresh_state_file_name ()
-    else
-      duplicate_file
-        ~is_path_full:true
-        ((get_variants_path prefixed_filesystem) ^ "/" ^ variant) in
-  let row_id =
-    add_row
+  (* If we're using a non-clean variant then copy it so that it becomes
+     the first cow file: *)
+  let (file_name, variant_name, comment_suffix) =
+    (match variant with
+     | None   -> (make_fresh_state_file_name (), "", "")
+     | Some variant_name ->
+         let file_name =
+           duplicate_file
+             ~is_path_full:true
+             ((get_variants_path prefixed_filesystem) ^ "/" ^ variant_name)
+         in (file_name, variant_name, (Printf.sprintf " : variant \"%s\"" variant_name))
+     )
+   in
+   Log.printf "FILESYSTEM HISTORY: adding the device %s with variant name=\"%s\"\n" name variant_name;
+   let row_id =
+     add_row
       ~name
       ~icon
-(*       ~comment:(if variant = no_variant_text then "état initiale" else ("clean [variante \""^variant^"\"]")) *)
-      ~comment:(prefixed_filesystem ^ (if variant = no_variant_text then "" else " : variante \""^variant^"\""))
+      ~comment:(prefixed_filesystem ^ comment_suffix)
       ~file_name
       ~prefixed_filesystem
       ~date:"-"

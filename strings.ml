@@ -17,16 +17,6 @@
 
 open Gettext;;
 
-(** What to show in the GUI for 'no variant'. This is safe to hardcode translated,
-    as it doesn't break file format compatibility. *)
-let no_variant_text =
-  "aucune";; (* TODO translate *)
-
-(** What to show in the GUI for 'no variant'. This is safe to hardcode translated,
-    as it's never saved in project files due to variant symlink resolution: *)
-let suggested_text =
-  "suggested";; (* "suggérée" (* I'd like to avoid accented letters in file names...*) *)
-
 (** The name of the one and only router distribution, without the "router-" prefix: *)
 let router_unprefixed_filesystem =
   try

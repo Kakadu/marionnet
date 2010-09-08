@@ -57,7 +57,6 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       (* The "world" port is hidden for defects: *)
       (** VERIFICARE il tipo "router"!! **)
       defects#add_device name "router" user_port_no;
-      g#resolve_variant; (* don't store the variant as a symlink *)
       st#network_change st#network#add_world_gateway g;
   end
 

@@ -14,10 +14,16 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+(* Initialized later, by Global_options, in order to break the ciclic dependency: *)
+let debug_mode_function = ref None
+let set_debug_mode_function f = (debug_mode_function := Some f)
+let get_debug_mode () = match !debug_mode_function with
+ | Some f -> f ()
+ | None   -> false  (* Default is no logging. *)
 
 (* A simple ocamlbricks' functor application: *)
 include Log_builder.Make_simple (struct
-  let is_log_enabled = Global_options.get_debug_mode
+  let is_log_enabled = get_debug_mode
  end)
 
 (* Wrappers providing a logged version of functions defined elsewhere. *)
@@ -32,7 +38,7 @@ include Log_builder.Make_simple (struct
     nothing will be appended to the command (in debug mode or not). *)
 let system_or_fail ?on_error ?hide_output ?hide_errors command_line =
   let extract_hide_decision h = match h with
-  | None          -> not (Global_options.get_debug_mode ())
+  | None          -> not (get_debug_mode ())
   | Some decision -> decision in
   let hide_output = extract_hide_decision hide_output in
   let hide_errors = extract_hide_decision hide_errors in

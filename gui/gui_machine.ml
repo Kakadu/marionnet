@@ -48,7 +48,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
           ~mem:     (int_of_string (r#get "memory"))
           ~ethnum:  (int_of_string eth)
           ~distr:   (r#get "distrib")
-          ?variant: (Option.of_fallible_application ~fallback:(Log.print_exn) r#get "variant")
+          ?variant: (Option.of_fallible_application r#get "variant")
           ~ker:     (r#get "kernel")
           ~ter:     (r#get "term") ()) in
       (* Don't store the variant as a symlink: *)

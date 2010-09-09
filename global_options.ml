@@ -31,14 +31,15 @@ let debug_mode =
 let set_debug_mode value =
   with_mutex
     (fun () ->
-(*      Log.printf "'Debug mode' now has value %b\n" value; flush_all ();*)
       debug_mode := value);;
 let get_debug_mode () =
   with_mutex
     (fun () ->
       let result = !debug_mode in
-(*      Log.printf "Are we in debug mode? %s\n" (if result then "YES" else "NO"); flush_all ();*)
       result);;
+
+(** Link the function used by Log with get_debug_mode: *)
+let () = Log.set_debug_mode_function get_debug_mode;;
 
 (** Interpret the value of debug_mode as suffix to append to shell commands. *)
 let debug_mode_redirection () : string =

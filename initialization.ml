@@ -66,7 +66,7 @@ let configuration =
                 "MARIONNET_KERNELS_PATH";
                 "MARIONNET_VDE_PREFIX";
                 "MARIONNET_ROUTER_FILESYSTEM";
-                "TEST";
+                "MARIONNET_ROUTER_PORT0_DEFAULT_IPV4_CONFIG";
               ]
     ();;
 
@@ -79,13 +79,18 @@ let cwd_at_startup_time =
     The third argument is a continuation that may be useful, for instance,
     to add a slash if it is a pathname. *)
 let configuration_variable_or ?k ?(default="") variable_name =
-  let fallback e x = Log.printf ~force:true "Warning: %s not found.\n" x in
+  let fallback e x = Log.printf ~force:true "Warning: %s not declared.\n" x in
   let result =
+    Log.printf "Searching for variable %s:\n" variable_name;
     match Option.of_fallible_application ~fallback configuration#string variable_name
     with
     | None
-    | Some "" -> default
-    | Some x  -> x
+    | Some "" ->
+        Log.printf " - using default \"%s\"\n" default;
+        default
+    | Some x  ->
+        Log.printf " - found value \"%s\"\n" x;
+        x
    in
    (* Launch the continuation on the result: *)
    match k with None -> result | Some f -> (f result)
@@ -125,8 +130,8 @@ let router_port0_default_ipv4_config  =
  let variable_name = "MARIONNET_ROUTER_PORT0_DEFAULT_IPV4_CONFIG" in
  let default = "192.168.1.254/24" in
  let value = configuration_variable_or ~default variable_name in
- let parse arg = Scanf.sscanf value "%i.%i.%i.%i/%i" (fun b1 b2 b3 b4 nm -> ((b1, b2, b3, b4), nm)) in
- try parse value 
+ let parse arg = Ipv4.config_of_string ~strict:true arg in
+ try parse value
  with _ -> begin
    Log.printf ~force:true "Warning: ill-formed value for %s\n" variable_name;
    parse default

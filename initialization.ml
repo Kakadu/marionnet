@@ -19,11 +19,47 @@ open Unix;;
 open Sys;;
 open Gettext;;
 
-(** First of all print the version number. This is useful for problem reports: *)
-Printf.printf "=======================================================\n" ;;
-Printf.printf " Welcome to %s version %s\n" Meta.name Meta.version;; 
-Printf.printf " Please report bugs to marionnet-dev@marionnet.org \n" ;;
-Printf.printf "=======================================================\n\n" ;;
+Printf.printf "=======================================================
+ Welcome to %s
+ Version              : %s
+ Source revision      : %s - %s
+ Ocamlbricks revision : %s - %s
+
+ Built in date %s on system:
+ 
+%s
+ 
+ For bug reporting, please get a launchpad account and
+ either:
+  - report bugs at https://bugs.launchpad.net/marionnet
+ or do *all* the following:
+  - add yourself to the marionnet-dev team
+  - add yourself to the marionnet-dev mailing list
+  - write to marionnet-dev@lists.launchpad.net
+=======================================================\n"
+  Meta.name
+  Meta.version
+  Meta.revision Meta.source_date
+  Meta_ocamlbricks.revision Meta_ocamlbricks.source_date
+  Meta.build_date
+  (StringExtra.fmt ~tab:8 ~width:40 Meta.uname)
+;;  
+(*(** First of all print the version number. This is useful for problem reports: *)
+Printf.printf "========================================================\n" ;;
+Printf.printf " Welcome to %s version %s revision %s\n"
+  Meta.name
+  Meta.version Meta.revision;;
+Printf.printf " %s\n" Meta.uname;;
+Printf.printf " Source date: %s\n" Meta.source_date;;
+Printf.printf " Built in date: %s\n" Meta.build_date;;
+Printf.printf " Using ocamlbricks revno %s (%s)\n"
+Printf.printf " Please get a launchpad account and either:\n";;
+Printf.printf " - report bugs at https://bugs.launchpad.net/marionnet\n" ;;
+Printf.printf " or do *all* the following:\n";;
+Printf.printf " - add yourself to the marionnet-dev team\n";;
+Printf.printf " - add yourself to the marionnet-dev mailing list\n";;
+Printf.printf " - write to marionnet-dev@lists.launchpad.net\n";;
+Printf.printf "========================================================\n\n" ;;*)
 
 (* Seed the random number generator: *)
 Random.self_init ();;

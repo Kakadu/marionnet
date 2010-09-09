@@ -82,8 +82,10 @@ libraries: c-modules libraries-local
 	@($(call BUILD_NATIVE_ANDOR_BYTECODE,libraries) ) # Spaces are ok
 
 # Build programs; bytecode, native, or both:
+# Force the meta.ml regeneration at next make call
 programs: c-modules programs-local
 	@($(call BUILD_NATIVE_ANDOR_BYTECODE,programs) ) # Spaces are ok
+	touch META
 
 # Build the native and/or bytecode version of $(1). $(1) may be either
 # "libraries" or "programs". *Don't* put a space before the argument.
@@ -910,6 +912,10 @@ meta.ml: META
 	echo -e "let libraryprefix = \"$$libraryprefix\";;" >> $@ && \
 	echo -e "let configurationprefix = \"$$configurationprefix\";;" >> $@ && \
 	echo -e "let documentationprefix = \"$$documentationprefix\";;" >> $@ && \
+	echo -e "let revision = \"$(shell bzr revno)\";;" >> $@ && \
+	echo -e "let build_date = \"$(shell date '+%Y-%m-%d %k:%M:%S %z')\";;" >> $@ && \
+	echo -e "let source_date = \"$(shell bzr info --verbose | /bin/grep 'latest revision' | cut -d: -f2- | cut -d' ' -f3-)\";;" >> $@ && \
+	echo -e "let uname = \"$(shell uname -srvmo)\";;" >> $@ && \
 	echo "Success.")
 
 

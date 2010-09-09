@@ -301,16 +301,16 @@ let options_autogenerate_ip_addresses =
  add_check_item (s_ "Auto-generation of IP address" )
   ~active:Global_options.autogenerate_ip_addresses_default
   ~callback:(fun active ->
-         Log.printf "You toggled the option (IP)\n"; flush_all ();
+         Log.printf "You toggled the option (IP)\n";
          Global_options.set_autogenerate_ip_addresses active)
    ()
 
 let options_debug_mode                =
  add_check_item (s_ "Debug mode")
-  ~active:Global_options.debug_mode_default
+  ~active:Global_options.Debug_mode.default
   ~callback:(fun active ->
-         Log.printf "You toggled the option (debug)\n"; flush_all ();
-         Global_options.set_debug_mode active)
+         Log.printf "You toggled the option (debug)\n";
+         Global_options.Debug_mode.set active)
 
  ()
 

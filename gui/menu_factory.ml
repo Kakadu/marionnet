@@ -82,7 +82,7 @@ module Make (M: Parents) = struct
 
  let not_implemented_yet _ = (Printf.eprintf "NOT IMPLEMENTED YET!!!!!\n"; (flush stderr))
  let monitor label _       =
-   if Global_options.get_debug_mode () then
+   if Global_options.Debug_mode.get () then
    (Printf.eprintf "Menu entry with label \"%s\" selected by user\n" label; (flush stderr))
    else ()
 

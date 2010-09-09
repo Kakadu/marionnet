@@ -105,7 +105,7 @@ let make_system_tap_for_socket (tap_name : tap_name) uid bridge_name =
 (** Actually destroy a tap at the OS level: *)
 let destroy_system_tap (tap_name : tap_name) =
   Log.printf "Destroying the tap %s...\n" tap_name;
-  let redirection = Global_options.debug_mode_redirection () in
+  let redirection = Global_options.Debug_mode.redirection () in
   let command_line =
     Printf.sprintf
       "while ! (ifconfig %s down && tunctl -d %s %s); do echo 'I can not destroy %s yet %s...'; sleep 1; done&"

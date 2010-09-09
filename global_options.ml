@@ -22,28 +22,8 @@ let mutex = Recursive_mutex.create ();;
 let with_mutex thunk =
   Recursive_mutex.with_mutex mutex thunk;;
 
-(** Debug mode: *)
-let debug_mode_default =
-  Initialization.configuration#bool "MARIONNET_DEBUG";;
-
-let debug_mode =
-  ref debug_mode_default;;
-let set_debug_mode value =
-  with_mutex
-    (fun () ->
-      debug_mode := value);;
-let get_debug_mode () =
-  with_mutex
-    (fun () ->
-      let result = !debug_mode in
-      result);;
-
-(** Link the function used by Log with get_debug_mode: *)
-let () = Log.set_debug_mode_function get_debug_mode;;
-
-(** Interpret the value of debug_mode as suffix to append to shell commands. *)
-let debug_mode_redirection () : string =
-    if get_debug_mode () then "" else " >/dev/null 2>/dev/null " ;;
+(** Debug mode related functions are accessible also from this module: *)
+module Debug_mode = Initialization.Debug_mode;;
 
 (** Automatically generate IP addresses: *)
 let autogenerate_ip_addresses_default =
@@ -54,7 +34,6 @@ let autogenerate_ip_addresses =
 let set_autogenerate_ip_addresses value =
   with_mutex
     (fun () ->
-(*      Log.printf "'Autogenerate IP addresses' now has value %b\n" value; flush_all ();*)
       autogenerate_ip_addresses := value);;
 let get_autogenerate_ip_addresses () =
   with_mutex
@@ -69,7 +48,6 @@ let workaround_wirefilter_problem =
 let set_workaround_wirefilter_problem value =
   with_mutex
     (fun () ->
-(*      Log.printf "'Work-around the wirefilter problem' now has value %b\n" value; flush_all ();*)
       workaround_wirefilter_problem := value);;
 let get_workaround_wirefilter_problem () =
   with_mutex

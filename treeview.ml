@@ -1064,10 +1064,10 @@ object(self)
             (next_identifier_and_content_forest_marshaler#from_file file_name) in
           self#set_next_identifier next_identifier;
           self#set_complete_forest complete_forest;
-          (if Global_options.get_debug_mode () then
+          (if Global_options.Debug_mode.get () then
             Forest.print_forest complete_forest pretty_print_row);
         with e -> begin
-          Log.printf "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e); flush_all ();
+          Log.printf "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e);
         end);
     (* This must be executed with the view attached, as it operates on the GUI: *)
     self#collapse_everything;

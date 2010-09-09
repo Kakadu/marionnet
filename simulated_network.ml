@@ -303,7 +303,7 @@ class virtual process_which_creates_a_socket_at_spawning_time =
   method spawn =
     Log.printf "Spawning the process which will create the socket %s\n" socket_name;
     super#spawn;
-    let redirection = Global_options.debug_mode_redirection () in
+    let redirection = Global_options.Debug_mode.redirection () in
     let command_line =
       Printf.sprintf "grep \"%s\" /proc/net/unix %s" socket_name redirection in
     (* We also check that the process is alive: if spawning it failed than the death
@@ -710,7 +710,7 @@ class uml_process =
       ~unexpected_death_callback
       () ->
   let debug_mode =
-    Global_options.get_debug_mode () in
+    Global_options.Debug_mode.get () in
   let console =
     (* Always use an xterm in debug mode: *)
     if debug_mode then
@@ -832,7 +832,7 @@ object(self)
   method private gracefully_terminate_with_mconsole =
     self#stop_monitoring;
     ignore (Daemon_client.ask_the_server (Destroy (Tap tap_name)));
-    let redirection = Global_options.debug_mode_redirection () in
+    let redirection = Global_options.Debug_mode.redirection () in
     Unix.system ("uml_mconsole " ^ umid ^ " cad "^redirection)
 
   (** There is a specific and better way to terminate a UML processes, using
@@ -885,7 +885,7 @@ object(self)
   method terminate =
     self#revoke_host_x_server_access;
     self#delete_swap_file;
-    let redirection = Global_options.debug_mode_redirection () in
+    let redirection = Global_options.Debug_mode.redirection () in
     match !pid with
       Some p -> begin
         self#stop_monitoring;
@@ -950,7 +950,7 @@ object(self)
     ()
 
   method private grant_host_x_server_access =
-    let redirection = Global_options.debug_mode_redirection () in
+    let redirection = Global_options.Debug_mode.redirection () in
     try
       ignore (Unix.system ("xhost +" ^ ip42 ^ " " ^ redirection))
     with _ -> begin
@@ -958,7 +958,7 @@ object(self)
     end
 
   method private revoke_host_x_server_access =
-    let redirection = Global_options.debug_mode_redirection () in
+    let redirection = Global_options.Debug_mode.redirection () in
     try
       ignore (Unix.system ("xhost -" ^ ip42 ^ " " ^redirection))
     with _ -> begin

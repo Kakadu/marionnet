@@ -96,6 +96,22 @@ let configuration_variable_or ?k ?(default="") variable_name =
    match k with None -> result | Some f -> (f result)
  ;;
 
+(** Firstly read if the debug mode must be activated.
+    In this way the variable parsing can be monitored. *)
+module Debug_mode = struct
+  let default = configuration#bool "MARIONNET_DEBUG"
+  let current = ref default
+  let set x = (current := x)
+  let get () = !current;;
+  (** Interpret the value of debug_mode as suffix to append to shell commands. *)
+  let redirection () =
+    if get () then "" else " >/dev/null 2>/dev/null " ;;
+end
+
+(** Link the function used by Log with Debug_mode.get: *)
+let () = Log.set_debug_mode_function Debug_mode.get;;
+Log.printf "MARIONNET_DEBUG is %b\n" (Debug_mode.get ());; (* is true iff you read the message *)
+
 (* Used as continuation (~k) calling configuration_variable_or: *)
 let append_slash x = x ^ "/" ;;
 

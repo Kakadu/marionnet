@@ -35,18 +35,18 @@ module Make (State:sig val st:State.globalState end) = struct
    let module Tk = Gui_dialog_toolkit.Make (struct let toplevel = d#toplevel end) in
 
    let kernel = Widget.ComboTextTree.fromList
-      ~callback:(Some (Log.printf "%s\n"))
+      ~callback:None
       ~packing:(Some (dialog#table#attach ~left:2 ~top:6 ~right:4))
       (Mariokit.MSys.kernel_list ())  in
 
     let distrib = Widget.ComboTextTree.fromListWithSlave
-      ~masterCallback:(Some (Log.printf "%s\n"))
+      ~masterCallback:None
       ~masterPacking: (Some (dialog#table#attach ~left:2 ~top:4 ~right:4))
       (* The user can't change filesystem and variant any more once the device has been created:*)
       (match update with
         None -> (Mariokit.MSys.machine_filesystem_list ())
       | Some m -> [m#get_distrib])
-      ~slaveCallback: (Some (Log.printf "%s\n"))
+      ~slaveCallback: None
       ~slavePacking:  (Some (dialog#table#attach ~left:2 ~top:5 ~right:4))
       (fun unprefixed_filesystem ->
         match update with
@@ -60,7 +60,7 @@ module Make (State:sig val st:State.globalState end) = struct
         )  in
 
     let terminal = Widget.ComboTextTree.fromList
-      ~callback:(Some (Log.printf "%s\n"))
+      ~callback:None
       ~packing:(Some (dialog#table#attach ~left:2 ~top:8 ~right:4))
       Mariokit.MSys.termList in
 

@@ -106,10 +106,16 @@ module Debug_mode = struct
   (** Interpret the value of debug_mode as suffix to append to shell commands. *)
   let redirection () =
     if get () then "" else " >/dev/null 2>/dev/null " ;;
+
+  let get_current_verbosity () =
+    match get () with
+    | false -> 0
+    | true  -> 1
+    
 end
 
 (** Link the function used by Log with Debug_mode.get: *)
-let () = Log.set_debug_mode_function Debug_mode.get;;
+let () = Log.Tuning.Set.get_current_verbosity Debug_mode.get_current_verbosity;;
 Log.printf "MARIONNET_DEBUG is %b\n" (Debug_mode.get ());; (* is true iff you read the message *)
 
 (* Used as continuation (~k) calling configuration_variable_or: *)

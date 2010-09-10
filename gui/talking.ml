@@ -464,13 +464,13 @@ let ask_for_fresh_writable_filename
  ?(filters = allfilters)
  ?(help=None) =
 
-  let valid = fun x ->
+  let valid x =
     if (Sys.file_exists x)
     then ((Simple_dialogs.error
              (s_ "Name choice")
              (s_ "A file with the same name already exists!\n\nChoose another name for your file.")
              ()); false)
-    else (Log.printf "valid: x=%s" x; (Shell.freshname_possible x)) 
+    else (Shell.freshname_possible x)
   in
   let result =
     ask_for_file ~enrich ~title ~valid ~filters ~action:`SAVE ~gen_id:"filename" ~help in

@@ -234,9 +234,6 @@ let () = begin
 st#mainwin#toplevel#set_icon (Some Icon.icon_pixbuf);
 st#mainwin#window_MARIONNET#set_title Command_line.window_title;
 
-(*st#mainwin#window_MARIONNET#event#connect#key_press
-    ~callback:(fun ev -> (Printf.eprintf "Marionnet: Key pressed: %s\n" (GdkEvent.Key.string ev)); (flush stderr); true);*)
-
 Motherboard.sensitiveness_manager#add_sensitive_when_Active   st#mainwin#notebook_CENTRAL#coerce;
 Motherboard.sensitiveness_manager#add_sensitive_when_Runnable st#mainwin#hbuttonbox_BASE#coerce ;
 ignore Motherboard.sensitiveness_manager#stabilize;

@@ -80,11 +80,8 @@ module Make (M: Parents) = struct
 
  (* Now tools: *)
 
- let not_implemented_yet _ = (Printf.eprintf "NOT IMPLEMENTED YET!!!!!\n"; (flush stderr))
- let monitor label _       =
-   if Global_options.Debug_mode.get () then
-   (Printf.eprintf "Menu entry with label \"%s\" selected by user\n" label; (flush stderr))
-   else ()
+ let not_implemented_yet _ = Log.printf "NOT IMPLEMENTED YET!!!!!\n"
+ let monitor label _ = Log.printf "Menu entry with label \"%s\" selected by user\n" label
 
  let add_item ?(menu = get_current_menu ()) ?submenu ?(key=0) label ?(callback=(monitor label)) () =
    let result = menu#add_item label ~key ~callback in
@@ -132,7 +129,7 @@ end
 module Compose_dialog_and_reaction = Compose_heuristic_and_procedure
  (struct
    type t = env
-   let none_effect () = Log.printf "--- Dialog result: NOTHING TO DO (CANCELED)"
+   let none_effect () = Log.printf "--- Dialog result: NOTHING TO DO (CANCELED)\n"
    let some_effect (e:env)  =
     let printf = Log.printf in
     (printf "--- Dialog result:\n");

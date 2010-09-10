@@ -16,7 +16,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
-Printf.printf "=======================================================
+Log.printf ~v:0 ~banner:false
+  "=======================================================
  Welcome to %s
  Version              : %s
  Source revision      : %s - %s
@@ -98,25 +99,34 @@ let configuration_variable_or ?k ?(default="") variable_name =
 
 (** Firstly read if the debug mode must be activated.
     In this way the variable parsing can be monitored. *)
-module Debug_mode = struct
-  let default = configuration#bool "MARIONNET_DEBUG"
-  let current = ref default
-  let set x = (current := x)
-  let get () = !current;;
-  (** Interpret the value of debug_mode as suffix to append to shell commands. *)
-  let redirection () =
-    if get () then "" else " >/dev/null 2>/dev/null " ;;
+module Debug_level = struct
 
-  let get_current_verbosity () =
-    match get () with
+  let of_bool = function
     | false -> 0
     | true  -> 1
-    
+  
+  let default_level = of_bool (configuration#bool "MARIONNET_DEBUG")
+  
+  let current = ref default_level
+  let set x = (current := x)
+  let get () = !current
+
+  let are_we_debugging () = ((get ())>0)
+  let set_from_bool b = set (of_bool b)
+  
+  (** Interpret the current state as suffix to append to shell commands. *)
+  let redirection () =
+    if are_we_debugging () then "" else " >/dev/null 2>/dev/null "
+
 end
 
 (** Link the function used by Log with Debug_mode.get: *)
-let () = Log.Tuning.Set.get_current_verbosity Debug_mode.get_current_verbosity;;
-Log.printf "MARIONNET_DEBUG is %b\n" (Debug_mode.get ());; (* is true iff you read the message *)
+let () = Log.Tuning.Set.debug_level Debug_level.get;;
+Log.printf
+  "MARIONNET_DEBUG is %b (debug level %d)\n" 
+  (Debug_level.are_we_debugging ()) (* is true iff you read the message *)
+  (Debug_level.get ()) 
+;;
 
 (* Used as continuation (~k) calling configuration_variable_or: *)
 let append_slash x = x ^ "/" ;;

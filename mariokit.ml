@@ -2239,7 +2239,9 @@ class network () =
     in a task managed by the Task_runner. In this case, we have not to call
     the task runner method [wait_for_all_currently_scheduled_tasks]. *)
  method reset ?(scheduled=false) () =
-   Log.printf "network#reset: begin\n\tdestroying all cables...\n";
+   Log.print_string "---\n";
+   Log.printf "network#reset: begin\n";
+   Log.printf "\tDestroying all cables...\n";
    (List.iter
       (fun cable -> try cable#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       cables);
@@ -2255,7 +2257,7 @@ class network () =
    (List.iter
       (fun cloud -> try cloud#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       clouds);
-   Log.printf "\nDestroying all world bridges...\n";
+   Log.printf "\tDestroying all world bridges...\n";
    (List.iter
       (fun world_bridge -> try world_bridge#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       world_bridges);
@@ -2279,6 +2281,7 @@ class network () =
        on: we don't want them to lose filesystem access: *)
    Log.printf "\tAll devices did terminate.\n";
    Log.printf "network#reset: end (success)\n";
+   Log.print_string "---\n";
 
  method destroy_process_before_quitting () =
   begin

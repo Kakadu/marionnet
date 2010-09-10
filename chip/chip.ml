@@ -42,7 +42,9 @@ type tracing_policy =
  | Top_tracing_policy (** If the system is traced, all components are traced. *)
  | Bot_tracing_policy (** Each component decides individually. *)
 
-let tracing_enable = Global_options.Debug_mode.get
+(* let tracing_enable = Global_options.Debug_level.get *)
+let tracing_enable = Log.Tuning.is_log_enabled ~v:2
+
 let tracing_policy = Top_tracing_policy
 
 class type tracing_methods =
@@ -121,7 +123,7 @@ class tracing_methods_for_systems ~(name:string) ~(tracing:unit->bool) =
   object (self)
 
   method is_enabled = tracing ()
-  method set x = Global_options.Debug_mode.set x
+  method set x = Global_options.Debug_level.set_from_bool x
 
   val mutable level = 0
   method level = level

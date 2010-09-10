@@ -307,10 +307,10 @@ let options_autogenerate_ip_addresses =
 
 let options_debug_mode                =
  add_check_item (s_ "Debug mode")
-  ~active:Global_options.Debug_mode.default
+  ~active:(Global_options.Debug_level.are_we_debugging ())
   ~callback:(fun active ->
          Log.printf "You toggled the option (debug)\n";
-         Global_options.Debug_mode.set active)
+         Global_options.Debug_level.set 1)
 
  ()
 

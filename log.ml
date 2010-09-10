@@ -15,10 +15,18 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 (* A simple ocamlbricks' functor application: *)
-include Log_builder.Make_simple (struct
+(*include Log_builder.Make_simple (struct
   (* Initialized later, by Global_options, in order to break the ciclic dependency: *)
   let is_log_enabled () = false
- end)
+ end)*)
+
+(* Initialized later, by Global_options, in order to break the ciclic dependency: *)
+include Log_builder.Make (struct
+  let debug_level () = 0                  (* the debug_level must be greater or equal to the verbosity, otherwise do nothing *)
+  let verbosity = 1                       (* the default value of verbosity for printing functions *)
+  let log_channel = `stderr               (* put messages here *)
+  let synchronized = true                 (* using threads *)
+ end);;
 
 (* Wrappers providing a logged version of functions defined elsewhere. *)
 
@@ -32,7 +40,7 @@ include Log_builder.Make_simple (struct
     nothing will be appended to the command (in debug mode or not). *)
 let system_or_fail ?on_error ?hide_output ?hide_errors command_line =
   let extract_hide_decision h = match h with
-  | None          -> not (Tuning.is_debug_enabled ())
+  | None          -> not (Tuning.is_log_enabled ())
   | Some decision -> decision in
   let hide_output = extract_hide_decision hide_output in
   let hide_errors = extract_hide_decision hide_errors in

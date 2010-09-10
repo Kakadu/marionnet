@@ -1048,11 +1048,10 @@ object(self)
 
   method save =
     let file_name = self#file_name in (* this failwiths if no filename was set *)
-    Log.printf "Saving into %s\n" file_name; flush_all ();
+    Log.printf ~v:2 "treeview#save: saving into %s\n" file_name;
     next_identifier_and_content_forest_marshaler#to_file
       (self#get_next_identifier, self#get_complete_forest)
       file_name;
-    Log.printf "Saved into %s: success.\n" file_name; flush_all ();
 
   method load =
     self#detach_view_in
@@ -1064,7 +1063,7 @@ object(self)
             (next_identifier_and_content_forest_marshaler#from_file file_name) in
           self#set_next_identifier next_identifier;
           self#set_complete_forest complete_forest;
-          (if Global_options.Debug_mode.get () then
+          (if (Global_options.Debug_level.get ()) >= 3 then (* we are manually setting the verbosity 3 *)
             Forest.print_forest complete_forest pretty_print_row);
         with e -> begin
           Log.printf "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e);

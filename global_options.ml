@@ -23,7 +23,7 @@ let with_mutex thunk =
   Recursive_mutex.with_mutex mutex thunk;;
 
 (** Debug mode related functions are accessible also from this module: *)
-module Debug_mode = Initialization.Debug_mode;;
+module Debug_level = Initialization.Debug_level;;
 
 (** Automatically generate IP addresses: *)
 let autogenerate_ip_addresses_default =

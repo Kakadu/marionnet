@@ -15,7 +15,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Treeview;;
-open Initialization;;
 open ListExtra;;
 open Sugar;;
 open Row_item;;
@@ -369,11 +368,11 @@ object(self)
         ~header:"Type"
         ~shown_header:(s_ "Type")
         ~strings_and_pixbufs:[
-           "machine", marionnet_home_images^"treeview-icons/machine.xpm";
-           "router",  marionnet_home_images^"treeview-icons/router.xpm";
-           "machine-port", marionnet_home_images^"treeview-icons/network-card.xpm";
-           "router-port",  marionnet_home_images^"treeview-icons/port.xpm";
-           "other-device-port", marionnet_home_images^"treeview-icons/port.xpm";
+           "machine", Initialization.Path.images^"treeview-icons/machine.xpm";
+           "router",  Initialization.Path.images^"treeview-icons/router.xpm";
+           "machine-port", Initialization.Path.images^"treeview-icons/network-card.xpm";
+           "router-port",  Initialization.Path.images^"treeview-icons/port.xpm";
+           "other-device-port", Initialization.Path.images^"treeview-icons/port.xpm";
             ]
         () in
     let _ =

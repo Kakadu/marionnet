@@ -346,7 +346,7 @@ class hub_or_switch_process =
  in
  object(self)
   inherit process_which_creates_a_socket_at_spawning_time
-      (Initialization.vde_prefix ^ "vde_switch")
+      (Initialization.Path.vde_prefix ^ "vde_switch")
       (List.append
          (match tap_name with
            None ->
@@ -460,7 +460,7 @@ class slirpvde_process =
   in
   object(self)
    inherit process
-      (Initialization.vde_prefix ^ "slirpvde")
+      (Initialization.Path.vde_prefix ^ "slirpvde")
       arguments
       ~stdin:an_input_descriptor_never_sending_anything
       ~stdout:dev_null_out
@@ -514,7 +514,7 @@ class ethernet_cable_process =
       () ->
 object(self)
   inherit process
-      (Initialization.vde_prefix ^ "wirefilter")
+      (Initialization.Path.vde_prefix ^ "wirefilter")
       ((List.fold_left List.append []) (* append all the lists within the given list *)
          [ (match left_blink_command with
              Some(c) -> [](* [ "-L"; c ] *) (* !!! old blinking support *)

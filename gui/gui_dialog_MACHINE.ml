@@ -34,24 +34,26 @@ module Make (State:sig val st:State.globalState end) = struct
    let d = dialog in (* Convenient alias *)
    let module Tk = Gui_dialog_toolkit.Make (struct let toplevel = d#toplevel end) in
 
+   let vm_installations = Disk.get_machine_installations () in
+
    let kernel = Widget.ComboTextTree.fromList
       ~callback:None
       ~packing:(Some (dialog#table#attach ~left:2 ~top:6 ~right:4))
-      (Mariokit.MSys.kernel_list ())  in
+      (vm_installations#kernels#get_epithet_list)  in
 
     let distrib = Widget.ComboTextTree.fromListWithSlave
       ~masterCallback:None
       ~masterPacking: (Some (dialog#table#attach ~left:2 ~top:4 ~right:4))
       (* The user can't change filesystem and variant any more once the device has been created:*)
       (match update with
-        None -> (Mariokit.MSys.machine_filesystem_list ())
-      | Some m -> [m#get_distrib])
+        None -> (vm_installations#filesystems#get_epithet_list)
+      | Some m -> [m#get_epithet])
       ~slaveCallback: None
       ~slavePacking:  (Some (dialog#table#attach ~left:2 ~top:5 ~right:4))
-      (fun unprefixed_filesystem ->
+      (fun epithet ->
         match update with
           None ->
-            "none"::Mariokit.MSys.variant_list_of ("machine-" ^ unprefixed_filesystem) ()
+            "none"::(vm_installations#variants_of epithet)#get_epithet_list
         | Some m ->
             (match m#get_variant with
              | None   -> ["none"]
@@ -62,7 +64,7 @@ module Make (State:sig val st:State.globalState end) = struct
     let terminal = Widget.ComboTextTree.fromList
       ~callback:None
       ~packing:(Some (dialog#table#attach ~left:2 ~top:8 ~right:4))
-      Mariokit.MSys.termList in
+      ((vm_installations#terminal_manager_of "unused epithet")#get_choice_list) in
 
    (* Labels *)
    let () = begin
@@ -111,7 +113,7 @@ module Make (State:sig val st:State.globalState end) = struct
 	let min_eth = (st#network#max_busy_receptacle_index m#get_name Mariokit.Netmodel.Eth)+1 in
 	dialog#eth#adjustment#set_bounds ~lower:(float_of_int (max min_eth 1)) ()  ;
 
-	distrib#set_active_value       m#get_distrib;
+	distrib#set_active_value m#get_epithet;
 	(match m#get_variant with
 	 | None         -> distrib#slave#box#misc#set_sensitive false
 	 | Some variant -> distrib#slave#set_active_value variant
@@ -126,22 +128,33 @@ module Make (State:sig val st:State.globalState end) = struct
    (* Parse the widget in order to generate the environment. *)
    let env_of_dialog () =
      begin
-     let n     = dialog#name#text                                                   in
+     let n     = dialog#name#text in
      let (c,o) = match update with None -> ("add","") | Some m -> ("update",m#name) in
-     let m     = (string_of_int dialog#memory#value_as_int)                         in
-     let e     = (string_of_int dialog#eth#value_as_int)                            in
-     let d     = distrib#selected                                                   in
-     let v     = distrib#slave#selected                                             in
-     let k     = kernel#selected                                                    in
-     let t     = terminal#selected                                                  in
+     let m     = (string_of_int dialog#memory#value_as_int) in
+     let e     = (string_of_int dialog#eth#value_as_int) in
+     let d     = distrib#selected in
+     let v     = distrib#slave#selected in
+     let k     = kernel#selected in
+     let t     = terminal#selected in
+     let root_export_dirname = vm_installations#root_export_dirname d in
+     let user_export_dirname = vm_installations#user_export_dirname d in
      if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog  else
      let result =
        mkenv [("name",n) ; ("action",c)  ; ("oldname",o) ; ("memory",m) ; ("eth",e) ;
-              ("distrib",d); ("kernel",k) ; ("term",t)  ]
+              ("distrib",d);
+              ("root_export_dirname",root_export_dirname);
+              ("user_export_dirname",user_export_dirname);
+              ("kernel",k) ;
+              ("term",t)  ]
      in
      let () = match v with
       | "none" -> ()
-      | _      -> result#add ("variant",v)
+      | _      ->
+         let variant_realpath =
+           (vm_installations#variants_of d)#realpath_of_epithet v
+         in
+         result#add ("variant_name", v);
+         result#add ("variant_realpath", variant_realpath);
      in
      result
 

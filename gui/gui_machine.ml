@@ -40,24 +40,28 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       let (name,eth) = (r#get "name"),(r#get "eth") in
-(*      let (name,eth) = (r#get "name"), "2" in*)
       details#add_device name "machine" (int_of_string eth);
       defects#add_device name "machine" (int_of_string eth);
       let m =
         (new Mariokit.Netmodel.machine ~network:st#network ~name
-          ~mem:     (int_of_string (r#get "memory"))
-          ~ethnum:  (int_of_string eth)
-          ~distr:   (r#get "distrib")
-          ?variant: (Option.of_fallible_application r#get "variant")
-          ~ker:     (r#get "kernel")
-          ~ter:     (r#get "term") ()) in
-      (* Don't store the variant as a symlink: *)
-      m#resolve_variant;
+          ~memory:   (int_of_string (r#get "memory"))
+          ~ethnum:   (int_of_string eth)
+          ~epithet:  (r#get "distrib")
+          ?variant:  (Option.of_fallible_application r#get "variant_name")
+          ~kernel:   (r#get "kernel")
+          ~terminal: (r#get "term") ()) in
+      (* Don't store the variant as a symlink: Why not???? *)
+(*      m#resolve_variant;*)
       st#network_change st#network#add_machine m;
       Filesystem_history.add_device
          ~name
-         ~prefixed_filesystem:("machine-"^(r#get "distrib"))
-         ?variant:m#get_variant
+         ~prefixed_filesystem:("machine-"^(m#get_epithet))
+         ~root_export_dirname:(r#get "root_export_dirname")
+         ~user_export_dirname:(r#get "user_export_dirname")
+         ?variant:
+            (Option.of_fallible_application r#get "variant_name")
+         ?variant_realpath:
+            (Option.of_fallible_application r#get "variant_realpath")
          ~icon:"machine"
          ()
 

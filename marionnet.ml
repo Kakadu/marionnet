@@ -38,7 +38,7 @@ let st = new globalState ()
 
 (** Add a global thunk allowing to invoke the sketch refresh method, visible from many
     modules: *)
-let () = Mariokit.set_refresh_sketch_thunk (fun () -> st#refresh_sketch ())
+let () = Mariokit.Refresh_sketch_thunk.set (fun () -> st#refresh_sketch ())
 let () = st#gui_coherence ()
 
 module State     = struct let st = st end
@@ -59,13 +59,18 @@ let filesystem_history_interface =
     ()
 
 (** See the comment in states_interface.ml for why we need this ugly kludge: *)
-let () = Filesystem_history.set_startup_functions
-  (fun name ->
-    let node = st#network#get_node_by_name name in
-    node#can_startup)
-  (fun name ->
-    let node = st#network#get_node_by_name name in
-    node#startup)
+let () = 
+ let can_startup =
+   (fun name ->
+      let node = st#network#get_node_by_name name in
+      node#can_startup)
+ in
+ let startup = 
+   (fun name ->
+      let node = st#network#get_node_by_name name in
+      node#startup)
+ in
+ Filesystem_history.Startup_functions.set (can_startup, startup)
 
 let shutdown_or_restart_relevant_device device_name =
   Log.printf "Shutdown or restart \"%s\".\n" device_name;
@@ -172,9 +177,9 @@ end
 end
 
 (** Make sure that the user installed all the needed software: *)
-let check_dependency command_line error_message =
+let check_call ~action ~arg ~error_message =
   try
-    Log.system_or_fail command_line
+    ignore (action arg)
   with e -> (
     flush_all ();
     Simple_dialogs.error
@@ -182,44 +187,40 @@ let check_dependency command_line error_message =
       (error_message ^ (s_ "\nContinuing anyway, but *some important features will be missing*."))
       ())
 
+let check_dependency command_line error_message =
+  check_call ~action:Log.system_or_fail ~arg:command_line ~error_message
+
+let machine_installations = Disk.get_machine_installations ()
+let router_installations = Disk.get_router_installations ()
+
 (** Check whether we have UML computer filesystems: *)
 let () =
-  check_dependency
-    (Printf.sprintf
-       "ls -l %s/machine-default"
-       Initialization.marionnet_home_filesystems)
-    (s_ "You don't have a default filesystem for virtual computers")
+  let error_message = (s_ "You don't have a default filesystem for virtual computers") in
+  let action () = Option.extract machine_installations#filesystems#get_default_epithet  in
+  check_call ~action ~arg:() ~error_message
 
 (** Check whether we have UML router filesystems: *)
-let () = begin
- let command_line =
-   (Printf.sprintf
-     "ls -l %s/router-%s"
-     Initialization.marionnet_home_filesystems Strings.router_unprefixed_filesystem)
- in
- check_dependency
-    command_line
-    ((s_ "You don't have a default filesystem for virtual routers"))
-  end
+let () =
+  let error_message = (s_ "You don't have a default filesystem for virtual routers") in
+  let action () = Option.extract router_installations#filesystems#get_default_epithet in
+  check_call ~action ~arg:() ~error_message
 
 (** Check whether we have UML kernels: *)
 let () =
-  check_dependency
-    (Printf.sprintf
-       "ls -l %s/linux-default"
-       Initialization.marionnet_home_kernels)
-    (s_ "You don't have a default UML kernel")
+  let error_message = (s_ "You don't have a default UML kernel for virtual computers") in
+  let action () = Option.extract machine_installations#kernels#get_default_epithet  in
+  check_call ~action ~arg:() ~error_message
 
 (** Check whether we have (our patched) VDE: *)
 let () =
   check_dependency
-    ("which `basename " ^ Initialization.vde_prefix ^ "vde_switch`")
+    ("which `basename " ^ Initialization.Path.vde_prefix ^ "vde_switch`")
     (s_ "You don't have the VDE tool vde_switch")
 
 (** Check whether we have (our patched) VDE: *)
 let () =
   check_dependency
-    ("which `basename " ^ Initialization.vde_prefix ^ "slirpvde`")
+    ("which `basename " ^ Initialization.Path.vde_prefix ^ "slirpvde`")
     (s_ "You don't have the VDE tool slirpvde")
 
 (** Check whether we have Graphviz: *)

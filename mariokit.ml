@@ -36,118 +36,8 @@ end;;
 
 (** A thunk allowing to invoke the sketch refresh method, accessible from many
     modules: *)
-let the_refresh_sketch_thunk : (unit -> unit) option ref = ref None;;
-let set_refresh_sketch_thunk refresh_sketch_thunk =
-  assert(!the_refresh_sketch_thunk = None);
-  the_refresh_sketch_thunk := Some refresh_sketch_thunk;;
-(** The sketch-refreshing procedure, implemented using the global thunk: *)
-let refresh_sketch () =
-  match !the_refresh_sketch_thunk with
-    Some refresh_sketch_thunk ->
-      refresh_sketch_thunk ()
-  | None ->
-      failwith "get_refresh_sketch_thunk: no global state has been set";;
-
-(* **************************************** *
-              Module MSys
- * **************************************** *)
-
-(** Marionnet specific additionnal tools for system operations. *)
-module MSys = struct
- type x_policy = HostXServer | Xnest | NoX;;
-
- let x_policies       = [ HostXServer; Xnest; NoX ];;
- let hostxserver_name = "X HOST";;
- let xnest_name       = "X NEST";;
- let nox_name         = "No X";;
-
- let x_policy_of_string s =
-   if s = hostxserver_name then HostXServer
-   else if s = xnest_name then Xnest
-   else if s = nox_name then NoX
-   else failwith (Printf.sprintf "x_policy_of_string: ill-formed argument %s" s);;
-
- let string_of_x_policy p =
-   match p with
-     HostXServer -> hostxserver_name
-   | Xnest -> xnest_name
-   | NoX   -> nox_name;;
-
- let x_policies_as_strings = List.map string_of_x_policy x_policies;;
-
- let marionnet_home             = Initialization.marionnet_home ;;
- let marionnet_home_filesystems = Initialization.marionnet_home_filesystems ;;
- let marionnet_home_kernels     = Initialization.marionnet_home_kernels ;;
- let marionnet_home_images      = Initialization.marionnet_home_images ;;
-
- let machine_prefix = "machine-" ;;
- let router_prefix  = "router-"  ;;
- let kernel_prefix  = "linux-"   ;;
-
- let machine_pathname_prefix = marionnet_home_filesystems ^ machine_prefix ;;
- let router_pathname_prefix  = marionnet_home_filesystems ^ router_prefix  ;;
- let kernel_pathname_prefix  = marionnet_home_kernels     ^ kernel_prefix  ;;
-
- (** Read the given directory searching for names like [~prefix ^ "xxxxx"];
-     return the list of ["xxxxx"]. *)
- let get_unprefixed_file_list ~prefix ~dir =
-   let prefix_length = String.length prefix in
-   let remove_prefix s = String.sub s prefix_length ((String.length s) - prefix_length) in
-   let name_filter file_name =
-    ((String.length file_name) > prefix_length) &&
-    ((String.sub file_name 0 prefix_length) = prefix)
-   in
-   let xs =
-     SysExtra.readdir_as_list
-       ~only_not_directories:()
-       ~name_filter
-       ~name_converter:remove_prefix
-       dir in
-   xs
-   ;;
-
-
- (** Return the list of unprefixed machine filesystem file names: *)
-  let machine_filesystem_list () =
-    get_unprefixed_file_list
-      ~prefix:machine_prefix
-      ~dir:marionnet_home_filesystems;;
-
- (** Return the list of unprefixed router filesystem file names: *)
-  let router_filesystem_list () =
-    get_unprefixed_file_list
-      ~prefix:router_prefix
-      ~dir:marionnet_home_filesystems;;
-
- (** Return the list of unprefixed kernel file names: *)
- let kernel_list () =
-    get_unprefixed_file_list
-      ~prefix:kernel_prefix
-      ~dir:marionnet_home_kernels;;
-
- (** Return the list of unprefixed variant file names for the given (prefixed)
-     filesystem; if an entry named like filename_which_should_be_first_if_present,
-     when specified, exists, then return it before everything else including
-     no_variant_text.*)
- let variant_list_of prefixed_filesystem () =
-     get_unprefixed_file_list
-       ~prefix:""
-       ~dir:(marionnet_home_filesystems ^ "/" ^ prefixed_filesystem ^ "_variants")
-
- (** Terminal choices to handle uml machines *)
- let termList = List.map string_of_x_policy [HostXServer; Xnest] (*x_policies_as_strings*);;
-
- (** Kinds for Marionnet related files *)
- type file_kind = Icon | Patch | Network | Distrib | Script ;;
-
- (** Correct the name of a program resource (not a project resource!)
-     according to the install directory of the application *)
- let whereis filename kind = match kind with         (* TO IMPLEMENT *)
- | Icon   -> Initialization.marionnet_home^"/images/"^filename
- |  _     -> filename
- ;;
-end;;
-
+module Refresh_sketch_thunk = Stateful_modules.Variable (struct type t = unit->unit end)
+let refresh_sketch () = Refresh_sketch_thunk.get () ()
 
 
 (* *************************** *
@@ -1535,17 +1425,18 @@ let rec mkrecepts network k portkind portprefix = match k with
         class device
  * *************************** *)
 
-(** A device is a nodes s.t. nodekind=Device. Defects may be added after the creation. *)
-class device =
- fun
+(** Final class for hubs, switches and world_gateways
+   (routers have a more specialized class): *)
+class device
   ~network
   ?(name="nodevicename")
   ?(label="")
   ?(devkind=Hub)
-  ?variant
-  (ethnum:int) () ->
-  let intial_receptacles = (mkrecepts network (ethnum-1) Eth "port") in
-
+  ~port_no
+  ()
+  =
+  let intial_receptacles = (mkrecepts network (port_no-1) Eth "port")
+  in
   object (self)
 
   inherit node ~network ~name ~label ~nodekind:Device ~devkind ~rlist:intial_receptacles () as super
@@ -1553,28 +1444,14 @@ class device =
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity =
    match self#devkind with
-   | Router  -> MDI
    | World_gateway -> Intelligent (* Because of the ambiguity router/switch *)
    | _       -> MDI_X
-
-  (** Get the full host pathname to the directory containing the guest hostfs
-      filesystem: *)
-  method hostfs_directory_pathname =
-    if self#devkind = Router then
-      match !simulated_device with
-        Some d ->
-          (d :> Simulated_network.router)#hostfs_directory_pathname
-      | None ->
-          failwith (self#name ^ " is not being simulated right now")
-    else
-      failwith "You can't use call hostfs_directory_pathname on a non-router device"
 
   (** Dot adjustments *)
 
   (** Returns an image representig the device with the given iconsize. *)
   method dotImg (z:iconsize) =
-    let imgDir = (MSys.whereis "" MSys.Icon) in
-    (imgDir^"ico."^(string_of_devkind self#devkind)^"."^(self#string_of_simulated_device_state)^"."^z^".png")
+    (Initialization.Path.images^"ico."^(string_of_devkind self#devkind)^"."^(self#string_of_simulated_device_state)^"."^z^".png")
 
   (** Returns the label to use for cable representation.
       For devices, the port X is represented by the string "[X]". *)
@@ -1604,41 +1481,15 @@ class device =
 
   (** Create the simulated device *)
   method private make_simulated_device =
-    let id = self#id in
     let ethernet_receptacles = self#get_receptacles ~portkind:(Some Eth) () in
-    if self#devkind != Router then
-      let name = self#get_name in
-      let hublet_no = List.length ethernet_receptacles in
-      let unexpected_death_callback = self#destroy_because_of_unexpected_death in
-      (match self#devkind with
-      | Hub     -> new Simulated_network.hub
-      | Switch  -> new Simulated_network.switch
-      | _ -> assert false)
-        ~name ~hublet_no ~unexpected_death_callback ()
-    else begin
-      let cow_file_name =
-        (Filesystem_history.get_states_directory ()) ^
-        (Filesystem_history.add_state_for_device self#name) in
-      Log.printf
-        "About to start the router %s with the cow file %s\n"
-        self#name
-        cow_file_name;
-      Log.printf "=================================\n";
-      (let cmd=Printf.sprintf "ls -l %s" cow_file_name in
-       ignore (Sys.command cmd));
-      flush_all ();
-      Log.printf "=================================\n";
-      new Simulated_network.router
-        ~name:self#get_name
-        ~kernel_file_name:(MSys.marionnet_home_kernels ^ "linux-default")
-        ~cow_file_name (* To do: use the variant!!! *)
-        ~filesystem_file_name:(MSys.router_pathname_prefix^Strings.router_unprefixed_filesystem)
-        ~ethernet_interface_no:(List.length ethernet_receptacles)
-        ~umid:self#get_name
-        ~id
-        ~unexpected_death_callback:self#destroy_because_of_unexpected_death
-        ()
-    end
+    let name = self#get_name in
+    let hublet_no = List.length ethernet_receptacles in
+    let unexpected_death_callback = self#destroy_because_of_unexpected_death in
+    (match self#devkind with
+    | Hub     -> new Simulated_network.hub
+    | Switch  -> new Simulated_network.switch
+    | _ -> assert false)
+       ~name ~hublet_no ~unexpected_death_callback ()
 
   (** Here we also have to manage LED grids: *)
   method private startup_right_now =
@@ -1647,44 +1498,203 @@ class device =
     (* ...and also show the LED grid: *)
     network#ledgrid_manager#show_device_ledgrid ~id:(self#id) ()
 
-  (** Here we also have to manage cow files... *)
+
   method private gracefully_shutdown_right_now =
     (* Do as usual... *)
     super#gracefully_shutdown_right_now;
     (* ...and also hide the LED grid... *)
     network#ledgrid_manager#hide_device_ledgrid ~id:(self#id) ();
-    (* Only for routers: we have to manage the hostfs stuff (when in exam mode) and
-       destroy the simulated device, so that we can use a new cow file the next time: *)
-    if self#devkind = Router then begin
-      Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
-      let hostfs_directory_pathname = self#hostfs_directory_pathname in
-      Log.printf "Ok, we're still alive\n"; flush_all ();
-      (* If we're in exam mode then make the report available in the texts treeview: *)
-      (if Command_line.are_we_in_exam_mode then begin
-        let texts_interface = Texts_interface.get_texts_interface () in
-        Log.printf "Adding the report on %s to the texts interface\n" self#name;
-        texts_interface#import_report
-          ~machine_or_router_name:self#name
-          ~pathname:(hostfs_directory_pathname ^ "/report.html")
-          ();
-        Log.printf "Added the report on %s to the texts interface\n" self#name;
-      end);
-      (* ...And destroy, so that the next time we have to re-create the process command line
-         can use a new cow file (see the make_simulated_device method) *)
-      self#destroy_right_now
-    end;
 
 
-  (** Here we also have to manage LED grids and, for routers, cow files: *)
+  (** Here we also have to manage LED grids: *)
   method private poweroff_right_now =
     (* Do as usual... *)
     super#poweroff_right_now;
     (* ...and also hide the LED grid... *)
     network#ledgrid_manager#hide_device_ledgrid ~id:(self#id) ();
-    (* ...and if this is a router then destroy, so that the next time we have to
-       re-create a simulated device, and we start with a new cow *)
-    if self#devkind = Router then
-      self#destroy_right_now
+
+end;;
+
+
+(* ************************************* *
+          class virtual_machine
+   (common class for machine and router)
+ * ************************************* *)
+
+class virtual virtual_machine
+  ?epithet   (* Ex: "debian-lenny-42178" *)
+  ?variant
+  ?kernel    (* Also en epithet, ex: "2.6.18-ghost" *)
+  ?terminal
+  ~(vm_installations:Disk.virtual_machine_installations)
+  ()
+  =
+  let epithet = match epithet with
+   | Some x -> x
+   | None   -> Option.extract vm_installations#filesystems#get_default_epithet
+  in
+  let kernel = match kernel with
+   | Some x -> x
+   | None   -> Option.extract vm_installations#kernels#get_default_epithet
+  in
+  let terminal = match terminal with
+   | Some x -> x
+   | None   -> (vm_installations#terminal_manager_of epithet)#get_default
+  in
+
+  object (self)
+
+  method private banner =
+    (Printf.sprintf "Mariokit.virtual_machine: setting %s: " self#name)
+
+  method sprintf : 'a. ('a, unit, string, string) format4 -> 'a =
+    Printf.ksprintf (fun x->self#banner^x)
+
+  method failwith : 'a 'b. ('a, unit, string, string) format4 -> 'b =
+    Obj.magic (Printf.ksprintf (fun x->failwith (self#banner^x)))
+  
+  (** A machine has a Linux filesystem *)
+  val mutable epithet : string = epithet
+  initializer ignore (self#check_epithet epithet)
+  method get_epithet = epithet
+  method set_epithet x = epithet <- self#check_epithet x
+  method private check_epithet x =
+    match (vm_installations#filesystems#epithet_exists x) with
+    | true  -> x
+    | false -> self#failwith "unknown filesystem %s" x
+
+  (** A machine may have an associated initial variant: *)
+  val mutable variant : string option = variant
+  initializer ignore (Option.map (self#check_variant) variant)
+  method get_variant = variant
+  method get_variant_as_string = match variant with None -> "" | Some x -> x
+  method set_variant (x:string option) = variant <- (Option.map (self#check_variant) x)
+  method private check_variant x =
+   let v = vm_installations#variants_of epithet in
+   match v#epithet_exists x with
+   | true -> x
+   | false -> self#failwith "the variant %s is not available" x
+
+  (** A machine has an associated linux kernel, expressed by en epithet: *)
+  val mutable kernel : string = kernel
+  initializer ignore (self#check_kernel kernel)
+  method get_kernel   = kernel
+  method set_kernel x = kernel <- self#check_kernel x
+  method private check_kernel x =
+    match (vm_installations#kernels#epithet_exists kernel) with
+    | true -> x
+    | false -> self#failwith "unknown kernel %s" x
+
+  (** A machine can be used accessed in a specific terminal mode. *)
+  val mutable terminal : string = terminal
+  initializer ignore (self#check_terminal terminal)
+  method get_terminal   = terminal
+  method set_terminal x = terminal <- self#check_terminal x
+  method private check_terminal x =
+    match (vm_installations#terminal_manager_of epithet)#is_valid_choice x with
+    | true  -> x
+    | false -> self#failwith "invalid terminal choice \"%s\"" x
+
+  method get_filesystem_file_name =
+      vm_installations#filesystems#realpath_of_epithet self#get_epithet
+   
+  method get_kernel_file_name =
+      vm_installations#kernels#realpath_of_epithet self#get_kernel
+  
+  method is_xnest_enabled =
+      (vm_installations#terminal_manager_of self#get_epithet)#is_xnest self#get_terminal
+
+end;; (* class virtual_machine *)
+
+(* *************************** *
+        class router
+ * *************************** *)
+
+class router
+  ~network
+  ?name
+  ?label
+  ?epithet
+  ?variant
+  ?kernel
+  ?terminal
+  ~port_no
+  ()
+  =
+  let vm_installations = Disk.get_router_installations () in
+  object (self)
+
+  inherit device ~network ?name ?label ~devkind:Router ~port_no () as self_as_device
+  inherit virtual_machine ?epithet ?variant ?kernel ?terminal ~vm_installations ()
+
+  (** See the comment in the 'node' class for the meaning of this method: *)
+  method polarity = MDI
+
+  (** Get the full host pathname to the directory containing the guest hostfs
+      filesystem: *)
+  method hostfs_directory_pathname =
+    match !simulated_device with
+    | Some d -> (d :> Simulated_network.router)#hostfs_directory_pathname
+    | None   -> failwith (self#name ^ " is not being simulated right now")
+
+
+  (** Create the simulated device *)
+  method private make_simulated_device =
+    let id = self#id in
+    let ethernet_receptacles = self#get_receptacles ~portkind:(Some Eth) () in
+    let cow_file_name =
+      (Filesystem_history.get_states_directory ()) ^
+      (Filesystem_history.add_state_for_device self#name) in
+    Log.printf
+      "About to start the router %s with the cow file %s\n"
+      self#name
+      cow_file_name;
+    Log.printf "=================================\n";
+    (let cmd=Printf.sprintf "ls -l %s" cow_file_name in
+      ignore (Sys.command cmd));
+    flush_all ();
+    Log.printf "=================================\n";
+    new Simulated_network.router
+      ~name:self#get_name
+      ~kernel_file_name:self#get_kernel_file_name
+      ~cow_file_name
+      ~filesystem_file_name:self#get_filesystem_file_name
+      ~ethernet_interface_no:(List.length ethernet_receptacles)
+      ~umid:self#get_name
+      ~id
+      ~unexpected_death_callback:self#destroy_because_of_unexpected_death
+      ()
+
+
+  (** Here we also have to manage cow files... *)
+  method private gracefully_shutdown_right_now =
+    self_as_device#gracefully_shutdown_right_now;
+    (* We have to manage the hostfs stuff (when in exam mode) and
+       destroy the simulated device, so that we can use a new cow file the next time: *)
+    Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
+    let hostfs_directory_pathname = self#hostfs_directory_pathname in
+    Log.printf "Ok, we're still alive\n";
+    (* If we're in exam mode then make the report available in the texts treeview: *)
+    (if Command_line.are_we_in_exam_mode then begin
+      let texts_interface = Texts_interface.get_texts_interface () in
+      Log.printf "Adding the report on %s to the texts interface\n" self#name;
+      texts_interface#import_report
+	~machine_or_router_name:self#name
+	~pathname:(hostfs_directory_pathname ^ "/report.html")
+	();
+      Log.printf "Added the report on %s to the texts interface\n" self#name;
+    end);
+    (* ...And destroy, so that the next time we have to re-create the process command line
+	can use a new cow file (see the make_simulated_device method) *)
+    self#destroy_right_now
+
+
+  (** Here we also have to manage LED grids and, for routers, cow files: *)
+  method private poweroff_right_now =
+    self_as_device#poweroff_right_now;
+    (* Destroy, so that the next time we have to re-create a simulated device,
+       and we start with a new cow: *)
+    self#destroy_right_now
 
 end;;
 
@@ -1696,53 +1706,32 @@ end;;
 (** A machine is a node (a container of receptacles) s.t.
     nodekind=Machine. Some receptacles are immediatly added
     at creation time. *)
-class machine =
-
-  fun ~network
-      ?(name="nomachinename")
-      ?(label="")
-      ?(mem:int=48)
-      ?(ethnum:int=1)
-      ?(distr:string="default")
-      ?variant
-      ?(ker:string="default")
-      ?(ter:string="X HOST") () ->
-
-  (* Some checks over machine parameters *)
-
-  let check_mem x = if x<8 or x>1024 then
-    failwith ("Setting machine "^name^": value "^(string_of_int x)^" not in the memory range [8,1024]")
-    else x in
-
-  let check_ethnum x = if x<1 or x>5 then
-    failwith ("Setting machine "^name^": value "^(string_of_int x)^" not in the eth's number range [1,5]")
-    else x in
-
-  let check_distrib x = if (not (x = "default")) && not (List.mem x (MSys.machine_filesystem_list ())) then
-    failwith ("Setting machine "^name^": unknown GNU/Linux filesystem "^x)
-    else x in
-
-  let check_variant distrib x =
-    let variants = MSys.variant_list_of ("machine-" ^ distrib) () in
-    if not (List.mem x variants) then
-      let msg = Printf.sprintf "Setting machine %s: the variant %s is not available" name x in
-      failwith msg
-    else x in
-
-  let check_kernel x = if not (List.mem x (MSys.kernel_list ())) then
-    raise (Failure ("Setting machine "^name^": unknown kernel "^x))
-    else x in
-
-  let check_term x = if not (List.mem x (MSys.termList)) then
-    raise (Failure ("Setting machine "^name^": unexpected uml terminal choice "^x))
-    else x in
-
-  let intial_receptacles =
-   (mkrecepts network ((check_ethnum ethnum)-1) Eth "eth") in
+class machine
+   ~network
+   ?(name="nomachinename")
+   ?(label="")
+   ?(memory:int=48)
+   ?(ethnum:int=1)
+   ?epithet   (* Ex: "debian-lenny-42178" *)
+   ?variant
+   ?kernel    (* Also en epithet, ex: "2.6.18-ghost" *)
+   ?terminal
+   ()
+   =
+  let vm_installations = Disk.get_machine_installations ()
+  in
+  let check_eth_number ?(name=name) x =
+    if x<1 or x>5
+      then failwith "value not in the eth's number range [1,5]"
+      else x
+  in
+  let intial_receptacles = (mkrecepts network ((check_eth_number ethnum)-1) Eth "eth")
+  in
 
   object (self)
 
   inherit node ~network ~name ~label ~nodekind:Machine ~rlist:intial_receptacles () as super
+  inherit virtual_machine ?epithet ?variant ?kernel ?terminal ~vm_installations ()
 
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity = MDI
@@ -1757,60 +1746,28 @@ class machine =
         failwith (self#name ^ " is not being simulated right now")
 
   (** Redefining node methods for adding checks *)
-  method set_eth_number ?(prefix="eth") x = self#readjust_receptacle_number ~prefix:(Some prefix) Eth (check_ethnum  x)
+  method set_eth_number ?(prefix="eth") x =
+    self#readjust_receptacle_number ~prefix:(Some prefix) Eth (self#check_eth_number x)
+
+  method private check_eth_number x = check_eth_number ~name:self#name x
 
   (** A machine will be started with a certain amount of memory *)
-  val mutable memory : int = check_mem mem
-  method get_memory   = memory
-  method set_memory x = memory <- check_mem x
-
-  (** A machine has a Linux filesystem *)
-  val mutable distrib : string = check_distrib distr
-  method get_distrib   = distrib
-  method set_distrib x = distrib <- check_distrib x
-
-  (** A machine has an associated initial variant *)
-  val mutable variant : string option = Option.map (check_variant distr) variant
-  method get_variant = variant
-  method get_variant_as_string = match variant with None -> "" | Some x -> x
-  method set_variant (x:string option) = variant <- (Option.map (check_variant distr) x)
-
-  (** Don't store the variant name as a symlink; resolve it if it's a symlink:
-      Let's support this on *every* device; it's simpler... *)
-  method resolve_variant =
-    try begin
-     (match self#get_variant with
-     | None -> ()
-     | Some variant ->
-       (try
-	  let marionnet_home_filesystems = Initialization.marionnet_home_filesystems in
-	  let prefixed_filesystem = "machine-" ^ self#get_distrib in
-	  let variant_pathname =
-	    marionnet_home_filesystems ^ "/" ^ prefixed_filesystem ^ "_variants/" ^ variant in
-	  let resolved_variant =
-	    Filename.basename (Unix.readlink variant_pathname) in
-	  self#set_variant (Some resolved_variant);
-	  Log.printf "The variant \"%s\" was a symlink. Resolved into \"%s\".\n" variant resolved_variant;
-        with _ -> Log.printf "The variant \"%s\" is not a symlink.\n" variant)
-     )
-    end with _ -> ()
-
-  (** A machine has a linux kernel. *)
-  val mutable kernel : string = check_kernel ker
-  method get_kernel   = kernel
-  method set_kernel x = kernel <- check_kernel x
-
-  (** A machine can be used accessed in a specific terminal mode. *)
-  val mutable terminal : string = check_term ter
-  method get_terminal   = terminal
-  method set_terminal x = terminal <- check_term x
+  (* TODO: read a marionnet variable to fix limits: *)
+  val mutable memory : int = memory
+  initializer ignore (self#check_memory memory)
+  method get_memory = memory
+  method set_memory x = memory <- self#check_memory x
+  method private check_memory x =
+    match (x>=8) && (x<=1024) with
+    | true  -> x
+    | false -> self#failwith "value %d not in the memory range [8,1024]" x
 
   (** Show for debugging *)
   method show = name
 
   (** Return an image representing the machine with the given iconsize. *)
   method dotImg (z:iconsize) =
-    let imgDir = (MSys.whereis "" MSys.Icon) in
+    let imgDir = Initialization.Path.images in
     (imgDir^"ico.machine."^(self#string_of_simulated_device_state)^"."^z^".png") (* distinguer redhat,debian, etc ? *)
 
   (** Machine to forest encoding. *)
@@ -1818,7 +1775,7 @@ class machine =
    Forest.leaf ("machine", [
                    ("name"     ,  self#get_name );
                    ("memory"   ,  (string_of_int self#get_memory));
-                   ("distrib"  ,  self#get_distrib  );
+                   ("distrib"  ,  self#get_epithet  );
                    ("variant"  ,  self#get_variant_as_string);
                    ("kernel"   ,  self#get_kernel   );
                    ("terminal" ,  self#get_terminal );
@@ -1829,7 +1786,7 @@ class machine =
  method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x
   | ("memory"   , x ) -> self#set_memory (int_of_string x)
-  | ("distrib"  , x ) -> self#set_distrib x
+  | ("distrib"  , x ) -> self#set_epithet x
   | ("variant"  , "aucune" ) -> self#set_variant None (* backward-compatibility *)
   | ("variant"  , "" )-> self#set_variant None
   | ("variant"  , x ) -> self#set_variant (Some x)
@@ -1845,27 +1802,33 @@ class machine =
     let ethernet_receptacles = self#get_receptacles ~portkind:(Some Eth) () in
     let cow_file_name =
       (Filesystem_history.get_states_directory ()) ^
-      (Filesystem_history.add_state_for_device self#name) in
-    Log.printf
-      "About to start the machine %s with the cow file %s\n"
-      self#name
-      cow_file_name;
+      (Filesystem_history.add_state_for_device self#name)
+    in
+    let () =
+     Log.printf
+       "About to start the machine %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n  xnest: %b\n"
+       self#name
+       self#get_filesystem_file_name
+       cow_file_name
+       self#get_kernel_file_name
+       self#is_xnest_enabled
+    in
     new Simulated_network.machine
       ~name:self#get_name
-      ~kernel_file_name:(MSys.kernel_pathname_prefix ^ kernel)
-      ~filesystem_file_name:(MSys.machine_pathname_prefix^distrib)
+      ~kernel_file_name:self#get_kernel_file_name
+      ~filesystem_file_name:self#get_filesystem_file_name
       ~cow_file_name
       ~ethernet_interface_no:(List.length ethernet_receptacles)
       ~memory:self#get_memory
       ~umid:self#get_name
       ~id
-      ~xnest:(match MSys.x_policy_of_string terminal with MSys.Xnest -> true | _ -> false)
+      ~xnest:self#is_xnest_enabled
       ~unexpected_death_callback:self#destroy_because_of_unexpected_death
       ()
 
   (** Here we also have to manage cow files... *)
   method private gracefully_shutdown_right_now =
-    Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name; flush_all ();
+    Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
     let hostfs_directory_pathname = self#hostfs_directory_pathname in
     Log.printf "Ok, we're still alive\n"; flush_all ();
     (* Do as usual... *)
@@ -1873,7 +1836,7 @@ class machine =
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Command_line.are_we_in_exam_mode then begin
       let texts_interface = Texts_interface.get_texts_interface () in
-      Log.printf "Adding the report on %s to the texts interface\n" self#name; flush_all ();
+      Log.printf "Adding the report on %s to the texts interface\n" self#name;
       texts_interface#import_report
         ~machine_or_router_name:self#name
         ~pathname:(hostfs_directory_pathname ^ "/report.html")
@@ -1930,7 +1893,7 @@ class cloud =
 
   (** Return an image representing the cloud with the given iconsize. *)
   method dotImg (z:iconsize) =
-    let imgDir = (MSys.whereis "" MSys.Icon) in
+    let imgDir = Initialization.Path.images in
     (imgDir^"ico.cloud."^(self#string_of_simulated_device_state)^"."^z^".png")
 
   (** Cloud endpoints are represented in the same way of devices ones, with "[X]". *)
@@ -1987,7 +1950,7 @@ class world_bridge =
 
   (** Return an image representing the machine with the given iconsize. *)
   method dotImg (z:iconsize) =
-    let imgDir = (MSys.whereis "" MSys.Icon) in
+    let imgDir = Initialization.Path.images in
     (imgDir^"ico.world_bridge."^(self#string_of_simulated_device_state)^"."^z^".png")
 
   (** Returns the label to use for cable representation.*)
@@ -2033,7 +1996,8 @@ class world_gateway =
       ?(user_port_no=4)
       () ->
   object (self)
-  inherit device ~network ~name ~label ~devkind:World_gateway user_port_no () as super
+  inherit device ~network ~name ~label ~devkind:World_gateway ~port_no:user_port_no ()
+  as super
 
   method show = (self#name^" (world gateway)")
 
@@ -2057,7 +2021,7 @@ class world_gateway =
     Ipv4.string_of_ipv4 self#gw_ipv4_address
 
   method dotImg (z:iconsize) =
-    let imgDir = (MSys.whereis "" MSys.Icon) in
+    let imgDir = Initialization.Path.images in
     (imgDir^"ico.world_gateway."^(self#string_of_simulated_device_state)^"."^z^".png")
 
   (** Redefined:*)
@@ -2331,7 +2295,7 @@ class network () =
 
  | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
       let ethno = List.assoc "eth" attrs in
-      let x = new device ~network:self (int_of_string ethno) () in
+      let x = new device ~network:self ~port_no:(int_of_string ethno) () in
       x#from_forest ("device", attrs) childs ;
       self#add_device x
 
@@ -2501,7 +2465,7 @@ class network () =
                | World_gateway -> ("World gateway")
                | _ -> assert false)
        ~port_no:(d#number_of_receptacles ~portkind:(Some Eth) ())
-       ~image_directory:(MSys.marionnet_home_images^"/leds/"^led_subdirectory)
+       ~image_directory:(Initialization.Path.leds^led_subdirectory)
        ();
      (* Set port connection state: *)
      let busy_ports =
@@ -2523,13 +2487,6 @@ class network () =
     else begin
       devices  <- (devices@[d]);
       self#make_device_ledgrid d;
-      if (d#devkind = Router) &&
-         ((Filesystem_history.number_of_states_with_name d#name) = 0) then (* not after load *)
-        Filesystem_history.add_device
-          ~name:d#name
-          ~prefixed_filesystem:(MSys.router_prefix ^ Strings.router_unprefixed_filesystem)
-          ~icon:"router"
-          ()
     end
 
  (** Machines must have a unique name in the network *)
@@ -2541,6 +2498,7 @@ class network () =
         appropriate list: *)
      machines  <- (machines@[m]);
    end
+
  (** Cable must connect free socketnames  *)
  method add_cable (c:cable) =
     if (self#name_exists c#name)
@@ -2554,8 +2512,8 @@ class network () =
         let left_endpoint, right_endpoint = c#endpoints in
         let left_port_name, right_port_name = c#receptacle_names in
         let left_port_index = (left_endpoint#get_receptacle_by_name left_port_name)#index in
-        let right_port_index = (right_endpoint#get_receptacle_by_name right_port_name)#index in
-(*         Log.print_string ("\nLeft side: " ^ left_port_name ^ "\n Right side: "^right_port_name^"\n"); *)
+        let right_port_index = (right_endpoint#get_receptacle_by_name right_port_name)#index
+        in
         if left_endpoint#devkind != NotADevice then
           self#ledgrid_manager#set_port_connection_state
             ~id:(left_endpoint#id)
@@ -2901,36 +2859,6 @@ initializer
  self#set_dotoptions (new Dotoptions.network self);
 
 end
-
-
-(** {2 Simplified constructors } *)
-
-(** Simplified machine constructor *)
-let newMachine ~network name = new machine ~name ~ter:(MSys.string_of_x_policy MSys.HostXServer) ();;
-
-(** Simplified hub constructor (by default 8 ports). *)
-let newHub ~network name = new device ~network ~name ~devkind:Hub 8 ();;
-
-(** Simplified switch constructor (by default 8 ports). *)
-let newSwitch ~network name = new device ~network ~name ~devkind:Switch 8 ();;
-
-(** Simplified router constructor (by default 8 ports). *)
-let newRouter ~network name = new device ~network ~name ~devkind:Router 8 ();;
-
-(** Simplified direct cable constructor.
-
-    {[ Example: newDirectCable "dc1" ("rome","eth0") ("A","port0") ]}   *)
-let newDirectCable ~network name ((m1,r1):(nodename*receptname)) ((m2,r2):(nodename*receptname)) =
-  new cable ~network ~name ~cablekind:Direct ~left:{nodename=m1;receptname=r1} ~right:{nodename=m2;receptname=r2} ()
-
-(** Simplified crossover cable constructor.
-
-    {[ Example: newCrossoverCable "cc1" ("rome","eth0") ("paris","eth1") ]}  *)
-let newCrossoverCable ~network name ((m1,r1):(nodename*receptname)) ((m2,r2):(nodename*receptname)) =
-  new cable ~network ~name ~cablekind:Crossover ~left:{nodename=m1;receptname=r1} ~right:{nodename=m2;receptname=r2} ()
-
-(** Simplified cloud with defect parameters. *)
-let newCloud ~network name = new cloud ~network ~name ;;
 
 
 (** {2 Saving and loading a Netmodel.network } *)

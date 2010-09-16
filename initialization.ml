@@ -59,7 +59,6 @@ let configuration =
                 "MARIONNET_DVI_READER";
                 "MARIONNET_HTML_READER";
                 "MARIONNET_TEXT_EDITOR";
-                "MARIONNET_ROUTER_PORT0_IPV4_DEFAULT";
                 (* *Optional* configuration variables: *)
 		"MARIONNET_TERMINAL";
                 "MARIONNET_PREFIX";
@@ -67,6 +66,9 @@ let configuration =
                 "MARIONNET_KERNELS_PATH";
                 "MARIONNET_VDE_PREFIX";
                 "MARIONNET_ROUTER_FILESYSTEM";
+                "MARIONNET_ROUTER_KERNEL";
+                "MARIONNET_MACHINE_FILESYSTEM";
+                "MARIONNET_MACHINE_KERNEL";
                 "MARIONNET_ROUTER_PORT0_DEFAULT_IPV4_CONFIG";
               ]
     ();;
@@ -131,30 +133,64 @@ Log.printf
 (* Used as continuation (~k) calling configuration_variable_or: *)
 let append_slash x = x ^ "/" ;;
 
-let marionnet_home =
-  let default = (Meta.prefix ^ "/share/" ^ Meta.name) in
-  configuration_variable_or ~k:append_slash ~default "MARIONNET_PREFIX" ;;
-
-let marionnet_home_filesystems =
-  let default = (marionnet_home^"/filesystems/") in
-  configuration_variable_or ~k:append_slash ~default "MARIONNET_FILESYSTEMS_PATH" ;;
-
-let marionnet_home_kernels =
-  let default = (marionnet_home^"/kernels/") in
-  configuration_variable_or ~k:append_slash ~default "MARIONNET_KERNELS_PATH" ;;
-
-(* The prefix to prepend to VDE executables; this allows us to install
-    patched versions in an easy way, before our changes are integrated
-    into VDE's mainline... *)
-let vde_prefix = configuration_variable_or "MARIONNET_VDE_PREFIX";;
-
 (* What is terminal that Marionnet must use to lanch a virtual host *)
 let marionnet_terminal =
   let default = "xterm,-T,-e" in
   configuration_variable_or ~default "MARIONNET_TERMINAL" ;;
 
-let marionnet_home_images = marionnet_home^"/images/";;
-let marionnet_home_bin = marionnet_home^"/bin/";;
+let router_filesystem_default_epithet =
+  let default = "default" in
+  configuration_variable_or ~default "MARIONNET_ROUTER_FILESYSTEM"
+
+let router_kernel_default_epithet =
+  let default = "default" in
+  configuration_variable_or ~default "MARIONNET_ROUTER_KERNEL"
+
+let machine_filesystem_default_epithet =
+  let default = "default" in
+  configuration_variable_or ~default "MARIONNET_MACHINE_FILESYSTEM"
+
+let machine_kernel_default_epithet =
+  let default = "default" in
+  configuration_variable_or ~default "MARIONNET_MACHINE_KERNEL"
+
+(* TODO: make it more robust and logged *)
+module Path = struct
+
+ let marionnet_home =
+   let default = (Meta.prefix ^ "/share/" ^ Meta.name) in
+   configuration_variable_or ~k:append_slash ~default "MARIONNET_PREFIX"
+
+ let filesystems =
+   let default = (marionnet_home^"/filesystems/") in
+   configuration_variable_or ~k:append_slash ~default "MARIONNET_FILESYSTEMS_PATH"
+
+ let kernels =
+   let default = (marionnet_home^"/kernels/") in
+   configuration_variable_or ~k:append_slash ~default "MARIONNET_KERNELS_PATH"
+
+ let images = marionnet_home^"/images/"
+ let leds   = marionnet_home^"/images/leds/"
+ let bin    = marionnet_home^"/bin/"
+
+ (* The prefix to prepend to VDE executables; this allows us to install
+    patched versions in an easy way, before our changes are integrated
+    into VDE's mainline... *)
+ let vde_prefix = configuration_variable_or "MARIONNET_VDE_PREFIX";;
+
+ (* User installation: *)
+
+ let user_home =
+   try (Sys.getenv "HOME") with Not_found ->
+   try ("/home/"^(Sys.getenv "USER")) with Not_found ->
+   try ("/home/"^(Sys.getenv "LOGNAME")) with Not_found ->
+   try (Sys.getenv "PWD") with Not_found ->
+   "."
+
+ let user_filesystems = user_home^"/.marionnet/filesystems"
+ let user_kernels = user_home^"/.marionnet/kernels"
+
+end;;
 
 (* Default for the factory-set configuration address for routers.
    The result is a couple (ip,nm) where ip is the 4-tuple IPv4 and nm is the CIDR netmask. *)
@@ -172,6 +208,6 @@ let router_port0_default_ipv4_config  =
 
 (* Enter the right directory: *)
 try
-  Unix.chdir marionnet_home;
+  Unix.chdir Path.marionnet_home;
 with _ ->
-  failwith ("Could not enter the directory (" ^ marionnet_home ^ ")");;
+  failwith ("Could not enter the directory (" ^ Path.marionnet_home ^ ")");;

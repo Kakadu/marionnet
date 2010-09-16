@@ -18,6 +18,6 @@
 let icon_pixbuf = 
   GdkPixbuf.from_file  
     (if Command_line.are_we_in_exam_mode then
-      Initialization.marionnet_home_images^"launcher-icons/marionnet-exam-launcher.png"
+      Initialization.Path.images^"launcher-icons/marionnet-exam-launcher.png"
     else
-      Initialization.marionnet_home_images^"launcher-icons/marionnet-launcher.png");;
+      Initialization.Path.images^"launcher-icons/marionnet-launcher.png");;

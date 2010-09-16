@@ -38,6 +38,8 @@ INCLUDES=$(echo $CMD | tr ' ' '\n' | /bin/grep '^-I$' -A1 | tr '\n' ' ' \
 # Add the current _build/ directory to include directories (very important):
 INCLUDES="$INCLUDES -I $PWD/_build"
 
+export MARIONNET_DEBUG=true
+
 # Launch the toplevel:
 if   which rlwrap &>/dev/null; then rlwrap $TOP $INCLUDES "$@"
 elif which ledit  &>/dev/null; then ledit $TOP $INCLUDES "$@"

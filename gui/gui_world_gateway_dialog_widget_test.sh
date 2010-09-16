@@ -23,7 +23,7 @@ ocamlc -c -I +lablgtk2 lablgtk.cma gui_bricks.ml
 # Manually resolving pointers ;-)
 #sed -i -e "s/Initialization\.marionnet_home_images^//g" $SOURCE
 ESCAPED_IMAGE_DIR=$(echo "$IMAGE_DIR" | sed -e 's/\//\\\//g')
-SUBST='s/Initialization\.marionnet_home_images/'${ESCAPED_IMAGE_DIR}'/g'
+SUBST='s/Initialization\.Path\.images/'${ESCAPED_IMAGE_DIR}'/g'
 sed -i -e $SUBST $SOURCE
 
 echo "let _ = make ();;" >> $SOURCE

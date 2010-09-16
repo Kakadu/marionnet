@@ -33,6 +33,8 @@ module Make (State:sig val st:State.globalState end) = struct
    let d = dialog in (* Convenient alias *)
    let module Tk = Gui_dialog_toolkit.Make (struct let toplevel = d#toplevel end) in
 
+   let vm_installations =  Disk.get_router_installations () in
+
    (* Labels *)
    let () = begin
      Tk.Label.set d#label_dialog_ROUTER_name (s_ "Name" );
@@ -90,21 +92,31 @@ module Make (State:sig val st:State.globalState end) = struct
    (* router dialog parser *)
    let env_of_dialog () =
      begin
-     let n     = dialog#router_name #text                                                in
-     let l     = dialog#router_label#text                                                in
-     let ip_a  = int_of_float dialog#spin_dialog_ROUTER_ip_a#value                       in
-     let ip_b  = int_of_float dialog#spin_dialog_ROUTER_ip_b#value                       in
-     let ip_c  = int_of_float dialog#spin_dialog_ROUTER_ip_c#value                       in
-     let ip_d  = int_of_float dialog#spin_dialog_ROUTER_ip_d#value                       in
-     let ip    = Printf.sprintf "%i.%i.%i.%i" ip_a ip_b ip_c ip_d                        in
-     let cidr  = int_of_float dialog#spin_dialog_ROUTER_ip_netmask#value            in
+     let n     = dialog#router_name #text in
+     let l     = dialog#router_label#text in
+     let ip_a  = int_of_float dialog#spin_dialog_ROUTER_ip_a#value in
+     let ip_b  = int_of_float dialog#spin_dialog_ROUTER_ip_b#value in
+     let ip_c  = int_of_float dialog#spin_dialog_ROUTER_ip_c#value in
+     let ip_d  = int_of_float dialog#spin_dialog_ROUTER_ip_d#value in
+     let ip    = Printf.sprintf "%i.%i.%i.%i" ip_a ip_b ip_c ip_d in
+     let cidr  = int_of_float dialog#spin_dialog_ROUTER_ip_netmask#value in
      let (nm_a, nm_b, nm_c, nm_d) = Ipv4.netmask_of_cidr cidr in
-     let nmask = Printf.sprintf "%i.%i.%i.%i" nm_a nm_b nm_c nm_d                        in
-     let (c,o) = match update with None -> ("add","") | Some h -> ("update",h#name)      in
-     let eth   = (string_of_int dialog#router_ports#value_as_int)                        in
+     let nmask = Printf.sprintf "%i.%i.%i.%i" nm_a nm_b nm_c nm_d in
+     let (c,o) = match update with None -> ("add","") | Some h -> ("update",h#name) in
+     let port_no = (string_of_int dialog#router_ports#value_as_int) in
 
+     (* Not currently asked: *)
+     let kernel  = Option.extract vm_installations#kernels#get_default_epithet in
+     let distrib = Option.extract vm_installations#filesystems#get_default_epithet in
+     let root_export_dirname = vm_installations#root_export_dirname distrib in
+     let user_export_dirname = vm_installations#user_export_dirname distrib in
+     
      if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog
-     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("eth",eth);
+     else mkenv [("name",n); ("action",c); ("oldname",o); ("label",l); ("port_no",port_no);
+                 ("distrib",distrib);
+                 ("root_export_dirname",root_export_dirname);
+                 ("user_export_dirname",user_export_dirname);
+                 ("kernel",kernel);
                  ("ip",ip);  ("nmask",nmask);]
      end in
 

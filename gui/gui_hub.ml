@@ -34,16 +34,24 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Add = struct
     let key      = Some (GdkKeysyms._H)
-    let dialog   = let module M = Gui_dialog_HUB.Make (State) in M.dialog ~title:(s_ "Add hub") ~update:None
+    let dialog   =
+      let module M = Gui_dialog_HUB.Make (State) in
+      M.dialog ~title:(s_ "Add hub") ~update:None
 
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
       let (name,eth) = (r#get "name"),(r#get "eth") in
       defects#add_device name "hub" (int_of_string eth);
-      let d = (new Mariokit.Netmodel.device ~network:st#network ~name ~label:(r#get "label")
-                ~devkind:Mariokit.Netmodel.Hub
-                (int_of_string eth) ()) in
-      st#network_change st#network#add_device d
+      let device =
+        new Mariokit.Netmodel.device
+          ~network:st#network
+          ~name
+          ~label:(r#get "label")
+          ~devkind:Mariokit.Netmodel.Hub
+          ~port_no:(int_of_string eth)
+          ()
+      in
+      st#network_change st#network#add_device device
 
   end
 

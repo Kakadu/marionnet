@@ -15,7 +15,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 open Treeview;;
-open Initialization;;
 open Sugar;;
 open Row_item;;
 open Gettext;;
@@ -406,22 +405,22 @@ object(self)
         ~header:"Type"
         ~shown_header:(s_ "Type")
         ~strings_and_pixbufs:[
-	    "machine", marionnet_home_images^"treeview-icons/machine.xpm";
-	    "hub",     marionnet_home_images^"treeview-icons/hub.xpm";
-	    "switch",  marionnet_home_images^"treeview-icons/switch.xpm";
-	    "router",  marionnet_home_images^"treeview-icons/router.xpm";
-	    "cloud",   marionnet_home_images^"treeview-icons/cloud.xpm";
-	    "world_bridge",  marionnet_home_images^"treeview-icons/world.xpm";
-	    "gateway" (* retro-compatibility: *),  marionnet_home_images^"treeview-icons/world.xpm";
-	    "straight-cable",    marionnet_home_images^"treeview-icons/cable-grey.xpm";
-	    "crossover-cable",   marionnet_home_images^"treeview-icons/cable-blue.xpm";
-	    "machine-port",      marionnet_home_images^"treeview-icons/network-card.xpm";
-	    "other-device-port", marionnet_home_images^"treeview-icons/port.xpm";
+	    "machine", Initialization.Path.images^"treeview-icons/machine.xpm";
+	    "hub",     Initialization.Path.images^"treeview-icons/hub.xpm";
+	    "switch",  Initialization.Path.images^"treeview-icons/switch.xpm";
+	    "router",  Initialization.Path.images^"treeview-icons/router.xpm";
+	    "cloud",   Initialization.Path.images^"treeview-icons/cloud.xpm";
+	    "world_bridge",  Initialization.Path.images^"treeview-icons/world.xpm";
+	    "gateway" (* retro-compatibility: *),  Initialization.Path.images^"treeview-icons/world.xpm";
+	    "straight-cable",    Initialization.Path.images^"treeview-icons/cable-grey.xpm";
+	    "crossover-cable",   Initialization.Path.images^"treeview-icons/cable-blue.xpm";
+	    "machine-port",      Initialization.Path.images^"treeview-icons/network-card.xpm";
+	    "other-device-port", Initialization.Path.images^"treeview-icons/port.xpm";
 
-	    "rightward", marionnet_home_images^"treeview-icons/left-to-right.xpm";
-	    "leftward",  marionnet_home_images^"treeview-icons/right-to-left.xpm";
-	    "outward",   marionnet_home_images^"treeview-icons/in-to-out.xpm";
-	    "inward",    marionnet_home_images^"treeview-icons/out-to-in.xpm";
+	    "rightward", Initialization.Path.images^"treeview-icons/left-to-right.xpm";
+	    "leftward",  Initialization.Path.images^"treeview-icons/right-to-left.xpm";
+	    "outward",   Initialization.Path.images^"treeview-icons/in-to-out.xpm";
+	    "inward",    Initialization.Path.images^"treeview-icons/out-to-in.xpm";
             ]
         () in
     let loss =

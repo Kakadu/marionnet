@@ -39,10 +39,16 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       let (name,eth) = (r#get "name"),(r#get "eth") in
       defects#add_device name "switch" (int_of_string eth);
-      let d = (new Mariokit.Netmodel.device ~network:st#network ~name ~label:(r#get "label")
-                ~devkind:Mariokit.Netmodel.Switch
-                (int_of_string eth) ()) in
-      st#network_change st#network#add_device d;
+      let device =
+        new Mariokit.Netmodel.device
+          ~network:st#network
+          ~name
+          ~label:(r#get "label")
+          ~devkind:Mariokit.Netmodel.Switch
+          ~port_no:(int_of_string eth)
+          ()
+      in
+      st#network_change st#network#add_device device
 
   end
 

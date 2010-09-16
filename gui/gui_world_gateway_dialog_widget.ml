@@ -27,14 +27,14 @@ let make
  ?(user_port_no=4)
  ?help_callback
  ?(ok_callback=(fun data -> Some data))
- ?(dialog_image_file=Initialization.marionnet_home_images^"ico.world_gateway.dialog.png")
+ ?(dialog_image_file=Initialization.Path.images^"ico.world_gateway.dialog.png")
  () :'result option =
   let (b1,b2,b3,b4,b5) = match network with
    | Some tuple -> tuple
    | None       -> (10,0,2,1,24)
   in
   let icon =
-    let icon_file = Initialization.marionnet_home_images^"marionnet-launcher.png" in
+    let icon_file = Initialization.Path.images^"marionnet-launcher.png" in
     GdkPixbuf.from_file icon_file
   in
   let w = GWindow.dialog ~icon ~title ~modal:true ~position:`CENTER () in

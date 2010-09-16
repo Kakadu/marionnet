@@ -22,7 +22,6 @@
  *)
 
 open Treeview;;
-open Initialization;;
 open Row_item;;
 open Gettext;;
 
@@ -198,7 +197,7 @@ object(self)
       self#add_icon_column
         ~shown_header:(s_ "Icon")
         ~header:"Icon"
-        ~strings_and_pixbufs:[ "text", marionnet_home_images^"treeview-icons/text.xpm"; ]
+        ~strings_and_pixbufs:[ "text", Initialization.Path.images^"treeview-icons/text.xpm"; ]
         ~default:(fun () -> Icon "text")
         () in
     let _ =

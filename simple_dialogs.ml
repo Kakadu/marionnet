@@ -15,7 +15,6 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Initialization;;
 open Gettext;;
 
 (** Convert ocaml (ISO-8859-1) string in UTF-8 format *)
@@ -31,7 +30,7 @@ let message win_title msg_title msg_content img_file () =
   d#title#set_use_markup true; 
   d#title#set_label     ("<b>"^msg_title^"</b>");
   d#content#set_label msg_content;
-  d#image#set_file (marionnet_home_images ^ img_file);
+  d#image#set_file (Initialization.Path.images ^ img_file);
   ()
 ;;
 
@@ -151,6 +150,11 @@ let ask_text_dialog
     end
   in
   ignore (button_ok#connect#clicked ~callback:(ok_callback window entry));
+  let _ = window#event#connect#key_press ~callback:
+  begin fun ev ->
+   (if GdkEvent.Key.keyval ev = GdkKeysyms._Return then ok_callback window entry ());
+   false
+  end in
   button_ok#misc#set_can_default true;
   button_ok#misc#grab_default ();
   window#show ();;

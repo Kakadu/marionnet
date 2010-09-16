@@ -40,19 +40,42 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
-      let (name,eth) = (r#get "name"), (int_of_string (r#get "eth")) in
+      let (name,port_no) = (r#get "name"), (int_of_string (r#get "port_no")) in
       let port_row_completions =
        [ ("port0",
               [ "IPv4 address", Row_item.String (r#get "ip");
                 "IPv4 netmask", Row_item.String (r#get "nmask"); ])
        ] in
-      details#add_device ~port_row_completions name "router" eth;
-      defects#add_device name "router" eth;
-      let d = (new Mariokit.Netmodel.device ~network:st#network ~name ~label:(r#get "label")
-                    ~devkind:Mariokit.Netmodel.Router
-                    eth ()) in
+      details#add_device ~port_row_completions name "router" port_no;
+      defects#add_device name "router" port_no;
+      let router =
+        new Mariokit.Netmodel.router
+          ~network:st#network
+          ~name
+          ~label:(r#get "label")
+          ~epithet:  (r#get "distrib")
+          ?variant:  (Option.of_fallible_application r#get "variant_name")
+          ~kernel:   (r#get "kernel")
+	  ~port_no
+          ()
+      in
 (*    d#resolve_variant; (* don't store the variant as a symlink *) *)
-      st#network_change st#network#add_device d;
+      st#network_change st#network#add_device (router :> Mariokit.Netmodel.device);
+      if (Filesystem_history.number_of_states_with_name name) > 0
+      then ()
+      else begin (* not after load *)
+       Filesystem_history.add_device
+          ~name
+          ~prefixed_filesystem:("router-"^(router#get_epithet))
+          ~root_export_dirname:(r#get "root_export_dirname")
+          ~user_export_dirname:(r#get "user_export_dirname")
+          ?variant:
+             (Option.of_fallible_application r#get "variant_name")
+          ?variant_realpath:
+             (Option.of_fallible_application r#get "variant_realpath")
+          ~icon:"router"
+          ()
+       end 
 
   end
 
@@ -71,22 +94,22 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let reaction r =
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
-      let (name,oldname,eth) = (r#get "name"),(r#get "oldname"), (int_of_string (r#get "eth")) in
+      let (name,oldname,port_no) = (r#get "name"),(r#get "oldname"), (int_of_string (r#get "port_no")) in
       let d = st#network#get_device_by_name oldname in
       d#destroy;
       st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
       st#network#change_node_name oldname name  ;
       d#set_label (r#get "label");
-      d#set_eth_number ~prefix:"port" eth;
+      d#set_eth_number ~prefix:"port" port_no;
       st#refresh_sketch () ;
       st#network#make_device_ledgrid d;
       Filesystem_history.rename_device oldname name;
       details#rename_device oldname name;
-      details#update_port_no name eth;
+      details#update_port_no name port_no;
       details#set_port_string_attribute_by_index name 0 "IPv4 address" (r#get "ip");
       details#set_port_string_attribute_by_index name 0 "IPv4 netmask" (r#get "nmask");
       defects#rename_device oldname name;
-      defects#update_port_no name eth;
+      defects#update_port_no name port_no;
       st#update_cable_sensitivity ()
 
   end

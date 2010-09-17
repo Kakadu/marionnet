@@ -324,7 +324,7 @@ object(self)
     self#set_row_highlight_color "dark red" row_id;
     self#highlight_row row_id
 
-  method private show_that_it_i_not_defective row_id =
+  method private show_that_it_is_not_defective row_id =
     self#unhighlight_row row_id
 
   (** Return true iff there exists at least a defect in the given row.
@@ -359,7 +359,7 @@ object(self)
     if self#is_defective ?minimum_delay ?maximum_delay row_id then
       self#show_that_it_is_defective row_id
     else
-      self#show_that_it_i_not_defective row_id
+      self#show_that_it_is_not_defective row_id
 
   method private relevant_device_name_for_row_id row_id =
     let id_forest = self#get_id_forest in

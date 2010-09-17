@@ -645,19 +645,19 @@ class virtual simulated_device = object(self)
 
         | _ -> raise_forbidden_transition "poweroff_right_now")
 
-  method set_hublet_processe_no n =
+  method set_hublet_process_no n =
     Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.printf "Updating the number of hublets of the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
         | DeviceOff, Some(d) ->
-            d#set_hublet_processe_no n (* update hublets and don't change state *)
+            d#set_hublet_process_no n (* update hublets and don't change state *)
 
         | NoDevice, None ->
            (self#create_right_now;         (* Make hublets... *)
-            self#set_hublet_processe_no n) (* ...and do the real work in state Off *)
+            self#set_hublet_process_no n) (* ...and do the real work in state Off *)
 
-        | _ ->  raise_forbidden_transition "set_hublet_processe_no")
+        | _ ->  raise_forbidden_transition "set_hublet_process_no")
 
   (** Return true iff the current state allows to 'startup' the device from the GUI. *)
   method can_startup =

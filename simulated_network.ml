@@ -926,7 +926,8 @@ object(self)
       Unix.out_channel_of_descr descriptor in
     List.iter
       (fun (name, value) -> Printf.fprintf out_channel "%s='%s'\n" name value)
-      (("ethernet_interface_no", (string_of_int ethernet_interface_no)) ::
+      (* Here we leave "ethernet_interfaces_no" instead of "ethernet_interface_no" *)
+      (("ethernet_interfaces_no", (string_of_int ethernet_interface_no)) ::
        (List.append
           (List.flatten
              (List.map
@@ -1156,7 +1157,7 @@ object(self)
     ! current_hublet_processes
 
   (** Update the hublets number. This can only be done in the 'off' state *)
-  method set_hublet_processe_no new_hublet_no =
+  method set_hublet_process_no new_hublet_no =
     match !state with
       Off ->
         let old_hublet_no = self#get_hublet_no in

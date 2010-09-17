@@ -308,7 +308,7 @@ class virtual device :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method virtual spawn_processes : unit
     method startup : unit
@@ -340,7 +340,7 @@ class ethernet_cable :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -369,7 +369,7 @@ class virtual main_process_with_n_hublets_and_cables :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -399,7 +399,7 @@ class virtual hub_or_switch :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -428,7 +428,7 @@ class hub :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -457,7 +457,7 @@ class switch :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -487,7 +487,7 @@ class world_gateway :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -524,7 +524,7 @@ class virtual machine_or_router :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -559,7 +559,7 @@ class machine :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -592,7 +592,7 @@ class router :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -620,7 +620,7 @@ class world_bridge :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -647,7 +647,7 @@ class cloud :
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_processe_no : int -> unit
+    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit

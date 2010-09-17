@@ -21,8 +21,8 @@ DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 C_OBJECTS_TO_LINK +=
 
-OCAMLBRICS=$(LIBRARYPREFIX)/ocamlbricks
-PP_OPTION = camlp4of -I $(OCAMLBRICS) gettext_extract_pot_p4.cmo -I chip
+OCAMLBRICKS=$(LIBRARYPREFIX)/ocamlbricks
+PP_OPTION = camlp4of -I $(OCAMLBRICKS) gettext_extract_pot_p4.cmo -I chip
 
 OBJECTS_TO_LINK = gtkThread
 BYTE_PROGRAMS = marionnet.byte chip_example.byte

@@ -1,0 +1,252 @@
+#!/bin/bash
+
+# This file is part of marionnet
+# Copyright (C) 2010 Jean-Vincent Loddo
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e
+
+if [[ $1 = "--help" || $1 = "-h" || $1 = "-help" ]]; then
+ echo "Usage: $(basename $0) [--prefix <dir>] [REPOS_OPTIONS] [--ocamlbricks <revno>] [<revno>]"
+ echo "where REPOS_OPTIONS may be:
+  (--marionnet-repo   | -m)  <path>
+  (--ocamlbricks-repo | -o)  <path>"
+ echo '
+Build a marionnet bytecode of a given revision (by default the current).
+The good ocamlbricks revno is calculated from the marionnet one, but you
+can set a particular ocamlbricks revision with the option --ocamlbricks.
+
+Repositories are get from "lp:marionnet" and "lp:ocamlbricks", but you
+can override this behaviour with options --marionnet-repo (or -m) and
+--ocamlbricks-repo (or -o).
+
+A working directory prefix may be specified with --prefix (by default /tmp).
+The resulting bytecodes (marionnet and daemon) will be generated in a prefix
+sub-directory created by the script.'
+ echo
+ echo -e "Examples:
+\t$(basename $0) 207
+\t$(basename $0) --prefix /tmp/testing 246
+\t$(basename $0) --ocamlbricks 176 245"
+ exit 0
+fi
+
+if [[ "$1" = '--prefix' && -d "$2" ]]; then
+ PREFIX=$(realpath "$2")
+ shift 2
+else
+ PREFIX=/tmp
+fi
+
+if [[ "$1" = '--marionnet-repo' || "$1" = "-m" ]]; then
+ MARIONNET_REPO="$2"
+ shift 2
+else
+ MARIONNET_REPO=lp:marionnet
+fi
+echo -e "Marionnet repository\r\t\t\t: $MARIONNET_REPO" >/dev/stderr
+
+if [[ "$1" = '--ocamlbricks-repo' || "$1" = "-o" ]]; then
+ OCAMLBRICKS_REPO="$2"
+ shift 2
+else
+ OCAMLBRICKS_REPO=lp:ocamlbricks
+fi
+echo -e "Ocamlbricks repository\r\t\t\t: $OCAMLBRICKS_REPO" >/dev/stderr
+
+
+if [[ "$1" = '--ocamlbricks' && -n "$2" ]]; then
+ OCAMLBRICKS_REQUESTED_REVNO=$2
+ shift 2
+fi
+
+echo -e "Prefix \r\t\t\t: $PREFIX"
+cd "$PREFIX"
+
+REPODIR=$(mktemp -d tmp_repositories_XXXXXXXX)
+REPODIR=$(realpath $REPODIR)
+echo -e "Working directory \r\t\t\t: $REPODIR"
+cd $REPODIR
+LOGFILE=$REPODIR/log
+echo -e "Log file \r\t\t\t: $LOGFILE"
+COMMAND_RESULT=$REPODIR/result
+touch $COMMAND_RESULT
+
+function launch_and_log_in_a_xterm {
+ local MSG="$1"
+ local CMD="{ ($2 2>&1) || echo 1 > $COMMAND_RESULT; } | tee -a $LOGFILE"
+ echo -e "===\n$MSG\n===\n" >> $LOGFILE
+ echo -n "* $MSG..."
+ echo 0 > $COMMAND_RESULT
+ xterm -fa "Monospace" -fs 10 -lc -geometry 120x60 -T "$MSG" -e "/bin/bash -c \"$CMD\""
+ sync
+ local RETURN_CODE=$(<$COMMAND_RESULT)
+ if [[ $RETURN_CODE -eq 1 ]]; then
+  echo "FAILED!"
+  echo "Last 20 lines of $LOGFILE:"
+  echo "======"
+  tail -n 20 $LOGFILE  
+  echo "======"
+  echo "Exiting."
+ else
+  echo
+ fi
+ return $RETURN_CODE
+}
+
+# Suppose that $CWD is a bzr repository
+function bzr_date_of_revno {
+ local CMD
+ if [[ $# = 0 ]]; then
+  CMD="{print}"
+ else
+  CMD='$1 == "'$1'" {print $2,$3,$4}'
+ fi
+ bzr log | awk '/^revno:/ {revno=$2} /^timestamp:/ {print revno,$3,$4,$5}' | awk "$CMD"
+}
+
+# Suppose variable REPODIR set
+function ocamlbricks_good_revno_for_marionnet_revno {
+ local M_REVNO=$1
+ pushd $REPODIR >/dev/null
+ M_REVNO_DATE=$(cd marionnet; bzr_date_of_revno $M_REVNO)
+ if [[ -z "$M_REVNO_DATE" ]]; then
+   echo "Error: no date found for marionnet revno $M_REVNO. Aborting."
+   return 1
+ fi
+ M_REVNO_DATE_SECONDS=$(date -d "$M_REVNO_DATE" +%s)
+ cd ocamlbricks
+ bzr_date_of_revno | while read r d; do echo -n "$r $d "; date -d "$d" +%s; done | \
+   awk "\$5 < $M_REVNO_DATE_SECONDS" | head -n 1 | cut -f1 -d' '
+ popd >/dev/null
+}
+
+
+function marionnet_home_heuristic {
+ local path
+ find /usr/local /usr/share /opt -type d -name marionnet |\
+   while read path; do [[ -d $path/filesystems && -d $path/kernels ]] && echo $path; done |\
+   head -n 1
+}
+
+# Prepare a pseudo ocaml directory removing (the link to) ocamlbricks
+mkdir lib_ocaml
+cd lib_ocaml/
+for i in $(ocamlc -where || exit -1)/*; do ln -s $i; done
+rm -f ocamlbricks*
+LIB_OCAML=$PWD
+cd ..
+
+echo
+echo "* Getting ocamlbricks from $OCAMLBRICKS_REPO..."
+bzr get --verbose $OCAMLBRICKS_REPO
+echo "* Getting marionnet from $MARIONNET_REPO..."
+bzr get --verbose $MARIONNET_REPO
+
+cd marionnet
+marionnet_revno=$(bzr revno)
+MARIONNET_REQUESTED_REVNO=${1:-$marionnet_revno}
+if [[ -z "$OCAMLBRICKS_REQUESTED_REVNO" ]]; then
+  OCAMLBRICKS_REQUESTED_REVNO=$(ocamlbricks_good_revno_for_marionnet_revno $MARIONNET_REQUESTED_REVNO)
+fi
+
+launch_and_log_in_a_xterm \
+  "Reverting to the marionnet revision $MARIONNET_REQUESTED_REVNO" \
+  "bzr revert -r $MARIONNET_REQUESTED_REVNO"
+
+marionnet_revno=$MARIONNET_REQUESTED_REVNO
+marionnet_revno_date=$(bzr_date_of_revno $marionnet_revno | tr ' ' '_')
+cd ..
+
+cd ocamlbricks
+
+launch_and_log_in_a_xterm \
+  "Reverting to the ocamlbricks revision $OCAMLBRICKS_REQUESTED_REVNO" \
+  "bzr revert -r $OCAMLBRICKS_REQUESTED_REVNO"
+
+ocamlbricks_revno=$OCAMLBRICKS_REQUESTED_REVNO
+ocamlbricks_revno_date=$(bzr_date_of_revno $ocamlbricks_revno | tr ' ' '_')
+cat >CONFIGME <<EOF
+libraryprefix=$LIB_OCAML
+prefix=./install_here_please
+configurationprefix=\$prefix/etc
+documentationprefix=\$prefix/doc
+localeprefix=\$prefix/locale
+ocaml_sources=/usr/include/caml
+EOF
+
+launch_and_log_in_a_xterm \
+  "Compiling the ocamlbricks revision $OCAMLBRICKS_REQUESTED_REVNO" \
+  'make && make install'
+
+cd ..
+
+cd marionnet
+cp ../ocamlbricks/CONFIGME .
+
+# The Makefile must be modified to remove inclusion directives of the form -I +library
+# which refer to the standard library, not our pseudo; so:
+echo -n "* Fixing the marionnet Makefile..."
+awk <Makefile '/echo -en "A / && /+\$\$/ {print "\t echo -n;\\"; next} {print}' > Makefile.tmp_copy
+mv -f Makefile.tmp_copy Makefile
+echo
+
+launch_and_log_in_a_xterm \
+  "Compiling the marionnet revision $MARIONNET_REQUESTED_REVNO" \
+  'make'
+
+launch_and_log_in_a_xterm \
+  "Installing the marionnet revision $MARIONNET_REQUESTED_REVNO" \
+  'make install'
+
+# We try to complete the installation:
+MARIONNET_HOME=$(marionnet_home_heuristic)
+if [[ -n $MARIONNET_HOME ]]; then
+ TARGET=install_here_please/share/marionnet
+ pushd $TARGET >/dev/null
+ for i in filesystems kernels; do
+   rmdir $i
+   ln -s $MARIONNET_HOME/$i
+ done
+ popd >/dev/null
+fi
+
+# Build a script for marionnet.byte
+SCRIPT_NAME=marionnet.byte.$marionnet_revno.$marionnet_revno_date.with_ocamlbricks_$ocamlbricks_revno
+cat >$SCRIPT_NAME <<EOF
+#!/bin/bash
+MARIONNET_PREFIX=$PWD/install_here_please/share/marionnet $PWD/install_here_please/bin/marionnet.byte
+EOF
+
+# and for the daemon:
+DAEMON_SCRIPT_NAME=marionnet-daemon.byte.$marionnet_revno.$marionnet_revno_date.with_ocamlbricks_$ocamlbricks_revno
+cat >$DAEMON_SCRIPT_NAME <<EOF
+#!/bin/bash
+MARIONNET_PREFIX=$PWD/install_here_please/share/marionnet $PWD/install_here_please/sbin/marionnet-daemon.byte
+EOF
+
+chmod +x $SCRIPT_NAME $DAEMON_SCRIPT_NAME
+cd ..
+mv marionnet/{$SCRIPT_NAME,$DAEMON_SCRIPT_NAME} .
+echo "The resulting executables are:
+---
+* Marionnet        : $PWD/$SCRIPT_NAME
+* Marionnet daemon : $PWD/$DAEMON_SCRIPT_NAME
+---"
+echo "In order to include in the PATH all the binaries built with this prefix,
+let me suggest the command line:
+export PATH=\$(find $PREFIX/tmp_repositories_*/ -maxdepth 0 | tr '\n' ':'):\$PATH
+"
+

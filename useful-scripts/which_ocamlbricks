@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# This file is part of marionnet
+# Copyright (C) 2010 Jean-Vincent Loddo
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+function usage_and_exit {
+ echo "Usage: $(basename $0) [--quiet|-q] [(--marionnet-repo|-m) <path>] [(--ocamlbricks-repo|-o) <path>] [<revno>]"
+ echo "   or: $(basename $0) (--help|-help|-h)"
+ echo
+ echo "Get a plausibly good ocamlbricks revno for the given marionnet revno."
+ echo 'By default queried repositories are "lp:marionnet" and "lp:ocamlbricks".'
+ echo "If not provided, the marionnet revno is set to the current one."
+ echo "The --quiet option may be used to suppress any message (on stdout) except the answer."
+ echo
+ echo -e "Examples:
+\t\t$(basename $0)
+\t\t$(basename $0) 246
+\t\t$(basename $0) -m . -o ../ocambricks 238
+"
+ exit ${1:-0}
+}
+
+if [[ $1 = "--help" || $1 = "-h" || $1 = "-help" ]]; then
+ usage_and_exit 0
+fi
+
+if [[ "$1" = '--quiet' || "$1" = "-q" ]]; then
+ QUIET=y
+ shift
+fi
+
+if [[ "$1" = '--marionnet-repo' || "$1" = "-m" ]]; then
+ MARIONNET_REPO="$2"
+ shift 2
+else
+ MARIONNET_REPO=lp:marionnet
+fi
+echo "Marionnet repository   : $MARIONNET_REPO" >/dev/stderr
+
+if [[ "$1" = '--ocamlbricks-repo' || "$1" = "-o" ]]; then
+ OCAMLBRICKS_REPO="$2"
+ shift 2
+else
+ OCAMLBRICKS_REPO=lp:ocamlbricks
+fi
+echo "Ocamlbricks repository : $OCAMLBRICKS_REPO" >/dev/stderr
+
+if [[ ! $1 -ge 1 ]]; then
+ REVNO=$(bzr revno $MARIONNET_REPO)
+ echo "Marionnet curent revno : $REVNO" >/dev/stderr
+else
+ REVNO=$1
+fi
+
+function bzr_date_of_revno {
+ local repo=$1
+ local CMD='$1 == "'$2'" {print $2,$3,$4}'
+ bzr log -q $repo | awk '/^revno:/ {revno=$2} /^timestamp:/ {print revno,$3,$4,$5}' | awk "$CMD"
+}
+
+function bzr_revno_date_list {
+ local repo=$1
+ bzr log -q $repo | awk '/^revno:/ {revno=$2} /^timestamp:/ {print revno,$3,$4,$5}'
+}
+
+function ocamlbricks_good_revno_for_marionnet_revno {
+ local M_REVNO=$1
+ local M_REVNO_DATE=$(bzr_date_of_revno "$MARIONNET_REPO" $M_REVNO)
+ if [[ -z "$M_REVNO_DATE" ]]; then
+   echo "Error: no date found for marionnet revno $M_REVNO. Aborting."
+   return 1
+ fi
+ M_REVNO_DATE_SECONDS=$(date -d "$M_REVNO_DATE" +%s)
+ bzr_revno_date_list "$OCAMLBRICKS_REPO" | \
+   while read r d; do echo -n "$r $d "; date -d "$d" +%s; done | \
+   awk "\$5 < $M_REVNO_DATE_SECONDS" | head -n 1 | cut -f1 -d' '
+}
+
+function ocamlbricks_good_revno_for_marionnet_revno_verbose {
+ local M_REVNO=$1
+ local M_REVNO_DATE=$(bzr_date_of_revno "$MARIONNET_REPO" $M_REVNO)
+ if [[ -z "$M_REVNO_DATE" ]]; then
+   echo "Error: no date found for marionnet revno $M_REVNO. Aborting."
+   return 1
+ fi
+ M_REVNO_DATE_SECONDS=$(date -d "$M_REVNO_DATE" +%s)
+ echo -e "marionnet   : $M_REVNO\t $M_REVNO_DATE \t$M_REVNO_DATE_SECONDS"
+ echo -n "ocamlbricks : "
+ bzr_revno_date_list "$OCAMLBRICKS_REPO" | \
+   while read r d; do echo -en "$r\t $d \t"; date -d "$d" +%s; done | \
+   awk "\$5 < $M_REVNO_DATE_SECONDS {print \$0,\"(\"($M_REVNO_DATE_SECONDS-\$5)/(3600*24),\"days before)\"}" | \
+   head -n 1
+}
+
+if [[ $QUIET = y ]]; then
+ ocamlbricks_good_revno_for_marionnet_revno $REVNO
+else
+ ocamlbricks_good_revno_for_marionnet_revno_verbose $REVNO
+fi

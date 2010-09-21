@@ -21,6 +21,8 @@ open Gettext;;
 (* Shortcuts *)
 type env  = string Environment.string_env
 let mkenv = Environment.make_string_env
+let env_to_string t = t#to_string (fun s->s)
+
 module Netmodel = Mariokit.Netmodel
 
 module Make_menus
@@ -61,6 +63,9 @@ module Make_menus
 
   module Add = struct
 
+    type t = env
+    let to_string = env_to_string
+    
     let key      = match cablekind with
       | Netmodel.Direct    -> Some GdkKeysyms._D
       | Netmodel.Crossover -> Some GdkKeysyms._C
@@ -85,6 +90,9 @@ module Make_menus
   end
 
   module Properties = struct
+
+    type t = env
+    let to_string = env_to_string
 
     let dynlist () = get_cable_names ()
     let dialog name =
@@ -113,6 +121,9 @@ module Make_menus
 
   module Remove = struct
 
+    type t = env
+    let to_string = env_to_string
+
     let dynlist     = Properties.dynlist
 
     let dialog name =
@@ -140,6 +151,8 @@ module Make_menus
   end
 
   module Disconnect = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist () =
       List.filter (fun x -> (st#network#get_cable_by_name x)#can_suspend) (get_cable_names ())
@@ -150,6 +163,8 @@ module Make_menus
   end
 
   module Reconnect = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist () =
       List.filter (fun x -> (st#network#get_cable_by_name x)#can_resume) (get_cable_names ())

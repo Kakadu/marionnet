@@ -22,6 +22,7 @@ open Gettext;;
 (* Shortcuts *)
 type env  = string Environment.string_env
 let mkenv = Environment.make_string_env
+let env_to_string t = t#to_string (fun s->s)
 
 module Make_menus (State : sig val st:State.globalState end) = struct
 
@@ -33,6 +34,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Add = struct
+    type t = env
+    let to_string = env_to_string
     let key      = Some (GdkKeysyms._M)
     let dialog   = let module M = Gui_dialog_MACHINE.Make (State) in M.dialog ~title:(s_ "Add machine") ~update:None
 
@@ -68,6 +71,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Properties = struct
+    type t = env
+    let to_string = env_to_string
 
     (* Only not running machines (which can startup) can be modified. *)
     let dynlist =
@@ -104,6 +109,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Remove = struct
+    type t = env
+    let to_string = env_to_string
 
     (* As for properties, only not running machines can be removed. *)
     let dynlist = Properties.dynlist
@@ -128,6 +135,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Startup = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog
@@ -136,6 +145,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Stop = struct
+    type t = env
+    let to_string = env_to_string
 
     (* For machines "stop" means "shutdown". *)
     let dynlist =
@@ -158,6 +169,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Suspend = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist =
      fun () -> List.filter
@@ -170,6 +183,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Resume = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist =
      fun () -> List.filter
@@ -182,6 +197,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Ungracefully_stop = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist =
      fun () -> List.filter

@@ -21,6 +21,7 @@ open Gettext;;
 (* Shortcuts *)
 type env  = string Environment.string_env
 let mkenv = Environment.make_string_env
+let env_to_string t = t#to_string (fun s->s)
 
 module Make_menus (State : sig val st:State.globalState end) = struct
 
@@ -32,6 +33,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Add = struct
+    type t = env
+    let to_string = env_to_string
     let key      = Some (GdkKeysyms._S)
     let dialog   = let module M = Gui_dialog_SWITCH.Make (State) in M.dialog ~title:(s_ "Add switch") ~update:None
 
@@ -53,6 +56,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Properties = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist () =
       List.filter
@@ -84,6 +89,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Remove = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist     = Properties.dynlist
     let dialog name =
@@ -106,6 +113,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Startup = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog
@@ -114,6 +123,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Stop = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist () =
       List.filter
@@ -125,6 +136,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Suspend = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist () =
       List.filter
@@ -137,6 +150,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Resume = struct
+    type t = env
+    let to_string = env_to_string
 
     let dynlist () =
       List.filter

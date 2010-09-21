@@ -308,7 +308,8 @@ name must start with a letter and can contain letters, numbers, dashes ('-') and
 module EDialog = struct
 
 (** An edialog is a dialog which returns an env as result if succeed *)
-type edialog = unit -> ((string Environment.string_env) option) ;;
+type env = string Environment.string_env
+type edialog = unit -> env option
 
 (** Dialog related exceptions. *)
 exception BadDialog     of string * string;;
@@ -316,15 +317,15 @@ exception StrangeDialog of string * string * (string Environment.string_env);;
 exception IncompleteDialog;;
 
 (** The (and) composition of edialogs is again an env option *)
-let rec compose (dl:edialog list) () : ((('a,'b) Environment.env) option) =
+let rec compose (dl:edialog list) () (*: ((('a,'b) Environment.env) option)*) =
   match dl with
   | []  -> raise (Failure "EDialog.compose")
   | [d] -> d ()
   | d::l -> (match d () with
              | None   -> None
-             | Some r -> (match (compose l ()) with
+             | Some (r:env) -> (match (compose l ()) with
                           | None   -> None
-                          | Some z -> (Some (r#updatedBy z))
+                          | Some z -> Some (Environment.string_env_updated_by r z)
                           )
              )
 ;;

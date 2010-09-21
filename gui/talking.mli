@@ -28,8 +28,8 @@ module EDialog :
     exception StrangeDialog of string * string * string Environment.string_env
     exception IncompleteDialog
 
-    val compose  : edialog list -> unit -> (string, string) Environment.env option
-    val sequence : edialog list -> unit -> (string, string) Environment.env option
+    val compose  : edialog list -> unit -> (string Environment.string_env) option
+    val sequence : edialog list -> unit -> (string Environment.string_env) option
     val default : 'a -> 'a option -> 'a
 
     val image_filter  : unit -> GFile.filter

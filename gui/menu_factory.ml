@@ -116,27 +116,36 @@ let mkenv = Environment.make_string_env
 
 (** Useful when there is no dialog preceeding the reaction.
     This pseudo dialog transmits the name by mean of an environment. *)
-let no_dialog = fun name () -> Some (mkenv [("name",name)])
+(* let no_dialog = fun name () -> Some (mkenv [("name",name)]) *)
+let no_env_dialog = fun name () -> Some (mkenv [("name",name)])
+let no_typed_dialog = fun name () -> Some [`name name]
+let no_dialog = no_env_dialog
 
+module Side_effects_of
+  (E:sig
+      type t
+      val to_string : t -> string
+     end)
+ = struct
 
-module Compose_heuristic_and_procedure (M: sig type t val none_effect : unit->unit val some_effect : t->unit end) = struct
- let compose (heuristic:'a -> 'b option) (procedure:'b -> unit) =
-  fun x -> match (heuristic x) with
-  | None   -> let () = M.none_effect () in ()
-  | Some y -> let () = M.some_effect y in (procedure y)
-end
+    let none_effect () =
+      Log.printf "--- Dialog result: NOTHING TO DO (CANCELED)\n"
 
-module Compose_dialog_and_reaction = Compose_heuristic_and_procedure
- (struct
-   type t = env
-   let none_effect () = Log.printf "--- Dialog result: NOTHING TO DO (CANCELED)\n"
-   let some_effect (e:env)  =
-    let printf = Log.printf in
-    (printf "--- Dialog result:\n");
-    (List.iter (fun (k,v) -> printf " %s \r\t\t\t= \"%s\"\n" k v) e#to_list);
-    (printf "------------------\n");
-    (flush stderr)
-  end)
+    let some_effect t =
+      let msg =
+        Printf.sprintf
+          "--- Dialog result:\n%s------------------\n"
+          (E.to_string t)
+      in
+      (Log.printf "%s" msg)
+ end
+ 
+let compose ?none_effect ?some_effect (heuristic:'a -> 'b option) (procedure:'b -> unit) =
+  fun x -> match (heuristic x), none_effect, some_effect with
+  | None   , None  , _      -> ()
+  | None   , Some f, _      -> let () = f () in ()
+  | Some y , _     , None   -> procedure y
+  | Some y , _     , Some f -> let () = f y in (procedure y)
 
 
 module Make_entry =
@@ -146,7 +155,9 @@ module Make_entry =
     let item =
       let key = match E.key with None -> 0 | Some k -> k in
       F.add_stock_item ~key E.text ~stock:E.stock ()
-    let callback = Compose_dialog_and_reaction.compose (E.dialog) (E.reaction)
+
+    include Side_effects_of (E)  
+    let callback = compose ~none_effect ~some_effect (E.dialog) (E.reaction)
     let connect  = item#connect#activate ~callback
    end
 
@@ -163,12 +174,19 @@ module Make_entry_with_children =
       let window = F.window
       end)
 
-    let callback name = Compose_dialog_and_reaction.compose (E.dialog name) (E.reaction)
+    include Side_effects_of (E)
+    let callback name = compose ~none_effect ~some_effect (E.dialog name) (E.reaction)
 
     let item_callback () = begin
       ignore (Submenu.recreate_subshell ());
       (List.iter
-        (fun name -> ignore (Submenu.add_stock_item name ~stock:E.stock ~callback:(fun () -> callback name ()) ()))
+        (fun name ->
+           ignore (Submenu.add_stock_item name
+                      ~stock:E.stock
+                      ~callback:(fun () -> callback name ())
+                      ()
+                   )
+        )
         (E.dynlist ()))
       end
 

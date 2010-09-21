@@ -61,8 +61,13 @@ module Common_dialogs = struct
 
 end
 
+type env  = string Environment.string_env
+let env_to_string (t:env) = t#to_string (fun s->s)
+
 module Created_entry_project_new = Menu_factory.Make_entry
  (struct
+   type t = env
+   let to_string = env_to_string
    let text  = (s_ "New" )
    let stock = `NEW
    let key   = (Some _N)
@@ -98,6 +103,8 @@ let project_new = Created_entry_project_new.item
 
 module Created_entry_project_open = Menu_factory.Make_entry
  (struct
+   type t = env
+   let to_string = env_to_string
    let text  = (s_ "Open" )
    let stock = `OPEN
    let key   = (Some _O)
@@ -144,6 +151,8 @@ let project_save =
 
 module Created_entry_project_save_as = Menu_factory.Make_entry
  (struct
+   type t = env
+   let to_string = env_to_string
    let text  = (s_ "Save as" )
    let stock = `SAVE_AS
    let key   = None
@@ -167,6 +176,8 @@ let project_save_as = Created_entry_project_save_as.item
 
 module Created_entry_project_copy_to = Menu_factory.Make_entry
  (struct
+   type t = env
+   let to_string = env_to_string
    let text  = (s_ "Copy to" )
    let stock = `SAVE_AS
    let key   = None
@@ -190,6 +201,8 @@ let project_copy_to = Created_entry_project_copy_to.item
 
 module Created_entry_project_close = Menu_factory.Make_entry
  (struct
+   type t = env
+   let to_string = env_to_string
    let text  = (s_ "Close" )
    let stock = `CLOSE
    let key   = (Some _W)
@@ -216,6 +229,8 @@ let separator       = project#add_separator ()
 
 module Created_entry_project_export = Menu_factory.Make_entry
  (struct
+   type t = env
+   let to_string = env_to_string
    let text  = (s_ "Export image" )
    let stock = `CONVERT
    let key   = None
@@ -243,6 +258,8 @@ let project_export = Created_entry_project_export.item
 
 module Created_entry_project_quit = Menu_factory.Make_entry
  (struct
+   type t = env
+   let to_string = env_to_string
    let text  = (s_ "Quit")
    let stock = `QUIT
    let key   = (Some _Q)
@@ -286,6 +303,8 @@ let options         = add_menu (s_ "_Options")
 
 module Created_entry_options_cwd = Menu_factory.Make_entry
  (struct
+   type t = env
+   let to_string = env_to_string
    let text  = (s_ "Change working directory")
    let stock = `DIRECTORY
    let key   = None

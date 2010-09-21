@@ -81,38 +81,49 @@ type env  = string Environment.string_env
 type name = string
 
 val mkenv     : (string * 'a) list -> 'a Environment.string_env
+val no_env_dialog : 'a -> unit -> 'a Environment.string_env option
 val no_dialog : 'a -> unit -> 'a Environment.string_env option
+
+val no_typed_dialog : string -> unit -> [> `name of string ] list option
 
 module type Entry_definition =
   sig
-    val text     : string
-    val stock    : GtkStock.id
-    val key      : Gdk.keysym option
-    val dialog   : unit -> env option
-    val reaction : env -> unit
+    type t
+    val text      : string
+    val stock     : GtkStock.id
+    val key       : Gdk.keysym option
+    val to_string : t -> string
+    val dialog    : unit -> t option
+    val reaction  : t -> unit
   end
 
 module type Entry_with_children_definition =
   sig
-    val text     : string
-    val stock    : GtkStock.id
-    val dynlist  : unit -> string list
-    val dialog   : name -> unit -> env option
-    val reaction : env -> unit
+    type t
+    val text      : string
+    val stock     : GtkStock.id
+    val dynlist   : unit -> string list
+    val to_string : t -> string
+    val dialog    : name -> unit -> t option
+    val reaction  : t -> unit
   end
 
 module type Entry_callbacks =
   sig
-    val key      : Gdk.keysym option
-    val dialog   : unit -> env option
-    val reaction : env -> unit
+    type t
+    val key       : Gdk.keysym option
+    val to_string : t -> string
+    val dialog    : unit -> t option
+    val reaction  : t -> unit
   end
 
 module type Entry_with_children_callbacks =
   sig
-    val dynlist  : unit -> string list
-    val dialog   : name -> unit -> env option
-    val reaction : env -> unit
+    type t
+    val dynlist   : unit -> string list
+    val to_string : t -> string
+    val dialog    : name -> unit -> t option
+    val reaction  : t -> unit
   end
 
 module Make_entry :

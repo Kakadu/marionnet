@@ -72,7 +72,7 @@ if [[ -n "$1" && "$1" = "${1#-}" ]]; then
   FUNCTION_NAME=$2
   shift
  else
-  FUNCTION_NAME="make" 
+  FUNCTION_NAME="test" 
  fi
  cat >$TOP.init <<EOF
 module M=$MODULE_NAME;;

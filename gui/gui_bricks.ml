@@ -163,22 +163,27 @@ let make_tooltips_for_container w =
   let _ = w#connect#destroy ~callback:(fun _ -> result#destroy ()) in
   fun (widget:GObj.widget) text -> result#set_tip widget ~text
 
+let add_help_button_if_necessary window = function
+| None   -> (fun () -> ())
+| Some f -> (window#add_button_stock `HELP `HELP; f)
+
+
+(** Wrappers for the method [run] of a dialog window. *)
+module Dialog_run = struct
+
 (** Wrapper for the method [run] of a dialog window.
     The function [get_widget_data] must extract the values from the dialog.
     The function [ok_callback] must check these values: if it consider that
     are incorrect, it returns [None] in order to continue the loop.
     Otherwise it builds the result [Some something] of the loop.
     If the [?help_callback] is not provided, the help button is not built.  *)
-let dialog_loop
+let ok_or_cancel
     (w:[ `CANCEL | `DELETE_EVENT | `HELP | `OK ] GWindow.dialog)
     ~(get_widget_data:unit -> 'a) 
     ~(ok_callback:'a -> 'b option) 
     ?help_callback () =
   begin
-  let help_callback = match help_callback with
-   | None   -> (fun () -> ())
-   | Some f -> (w#add_button_stock `HELP `HELP; f)
-  in
+  let help_callback = add_help_button_if_necessary w help_callback in
   w#add_button_stock `CANCEL `CANCEL;
   w#add_button_stock `OK `OK;
   w#set_default_response `OK;
@@ -210,3 +215,114 @@ let dialog_loop
   !result
   end
 
+
+let set_key_meaning_to window key result value =
+  let f_key () =
+    (result := value; ignore (window#event#send (GdkEvent.create `DELETE)))
+  in
+  ignore (window#event#connect#key_press ~callback:
+    begin fun ev ->
+      (if GdkEvent.Key.keyval ev = key then f_key ());
+      false
+    end)
+
+
+let yes_or_cancel
+    (w:[ `CANCEL | `DELETE_EVENT | `HELP | `YES  ] GWindow.dialog)
+    ?help_callback
+    ~(context:'a)
+    () : 'a option =
+  begin
+  let help_callback = add_help_button_if_necessary w help_callback in
+  w#add_button_stock `CANCEL `CANCEL;
+  w#add_button_stock `YES `YES;
+  w#set_default_response `YES;
+  w#set_response_sensitive `YES true;
+  let result = ref None in
+  let rec loop () =
+    match w#run () with
+    | `DELETE_EVENT | `CANCEL -> ()
+    | `HELP -> (help_callback ()); loop ()
+    | `YES -> result := Some context
+  in
+  (* The enter key has the same effect than pressing the YES button: *)
+  set_key_meaning_to w GdkKeysyms._Return result (Some context);
+  loop ();
+  w#destroy ();
+  !result
+  end
+
+(* Example: do you want to save the project before quitting? *)
+let yes_no_or_cancel
+    (w:[ `CANCEL | `DELETE_EVENT | `HELP | `NO | `YES  ] GWindow.dialog)
+    ?help_callback
+    ~(context:'a)
+    () : ('a * bool) option =
+  begin
+  let help_callback = add_help_button_if_necessary w help_callback in
+  w#add_button_stock `CANCEL `CANCEL;
+  w#add_button_stock `NO `NO;
+  w#add_button_stock `YES `YES;
+  w#set_default_response `YES;
+  w#set_response_sensitive `YES true;
+  let result = ref None in
+  let rec loop () =
+    match w#run () with
+    | `DELETE_EVENT | `CANCEL -> ()
+    | `HELP -> (help_callback ()); loop ()
+    | `YES -> result := Some (context,true)
+    | `NO  -> result := Some (context,false)
+  in
+  (* The enter key has the same effect than pressing the YES button: *)
+  set_key_meaning_to w GdkKeysyms._Return result (Some (context,true));
+  loop ();
+  w#destroy ();
+  !result
+  end
+
+end (* module Dialog_run *)
+
+
+let set_marionnet_icon window =
+  let icon =
+    let icon_file = Initialization.Path.images^"marionnet-launcher.png" in
+    GdkPixbuf.from_file icon_file
+  in
+  (window#set_icon (Some icon))
+
+
+module Dialog = struct
+
+let make_a_window_for_a_question
+ ?(title="Question")
+ ?(image_filename=Initialization.Path.images^"ico.question-2.orig.png")
+ ?markup
+ ?text
+ ()
+ =
+ let w = GWindow.dialog ~destroy_with_parent:true ~title ~modal:true ~resizable:false ~position:`CENTER () in
+ set_marionnet_icon w;
+ let hbox = GPack.hbox ~homogeneous:false ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
+ let _image = GMisc.image ~file:image_filename ~xalign:0.5 ~packing:hbox#add () in
+ let _label = GMisc.label ?markup ?text ~justify:`CENTER ~xalign:0.5 ~xpad:10 ~ypad:10 ~packing:hbox#add () in
+ w
+ 
+
+let yes_or_cancel_question ?title ?help_callback ?image_filename ?markup ?text
+ ~(context:'a)
+ () : 'a option
+ =
+  let w = make_a_window_for_a_question ?title ?image_filename ?markup ?text () in
+  Dialog_run.yes_or_cancel w ?help_callback ~context ()
+
+
+let yes_no_or_cancel_question ?title ?help_callback ?image_filename ?markup ?text
+ ~(context:'a)
+ () : ('a * bool) option
+ =
+  let w = make_a_window_for_a_question ?title ?image_filename ?markup ?text () in
+  Dialog_run.yes_no_or_cancel w ?help_callback ~context ()
+
+end (* module Dialog *)
+
+let test () = Dialog.yes_or_cancel_question ~markup:"prova <b>bold</b>" ~context:'a' ()

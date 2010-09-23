@@ -16,13 +16,7 @@
 
 open Gettext;;
 
-(** Toolbar entry for the component 'gateway' *)
-
-(* Shortcuts *)
-type env  = string Environment.string_env
-let mkenv = Environment.make_string_env
-let env_to_string t = t#to_string (fun s->s)
-;;
+(** Gui-related stuff for the user-level component "world gateway". *)
 
 (* The module containing the add/update dialog is defined later,
    using the syntax extension "where" *)
@@ -68,7 +62,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let name = st#network#suggestedName "G" in
       let s_ = Gettext.s_ in
       Dialog_add_or_update.make
-        ~title:(s_ "Add world gateway") ~s_ ~name ~ok_callback (*~help_callback TODO*) ()
+        ~title:(s_ "Add world gateway") ~name ~ok_callback (*~help_callback TODO*) ()
 
     let network_address_of_config config =
       let ((i1,i2,i3,_),_) = config in
@@ -119,7 +113,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      let dhcp_enabled = g#get_dhcp_enabled in
      let user_port_no = g#get_eth_number in
      Dialog_add_or_update.make
-       ~title ~s_ ~name ~label ~network_config ~dhcp_enabled ~user_port_no
+       ~title ~name ~label ~network_config ~dhcp_enabled ~user_port_no
        ~ok_callback:Add.ok_callback ~help_callback:Add.help_callback ()
 
 
@@ -145,7 +139,6 @@ module Make_menus (State : sig val st:State.globalState end) = struct
             defects#rename_device oldname name;
             st#network#make_device_ledgrid (d :> Mariokit.Netmodel.device);
           end
-      | _ -> ()
       );
       d#set_label label;
       d#set_network_address (Add.network_address_of_config network_config);
@@ -158,76 +151,74 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
   module Remove = struct
-    type t = env
-    let to_string = env_to_string
+    type t = string (* just the name *)
+    let to_string = (Printf.sprintf "name = %s\n")
 
     let dynlist     = Properties.dynlist
-    let dialog name =
-      Talking.EDialog.ask_question ~help:None ~cancel:false
-        ~enrich:(mkenv [("name",name)])
-        ~gen_id:"answer"
-        ~title:(s_ "Remove")
-        ~question:(Printf.sprintf (f_ "Are you sure that you want to remove %s\nand all the cables connected to this %s?") name (s_ "gateway"))
 
-    let reaction r =
+    let dialog name () =
+      Gui_bricks.Dialog.yes_or_cancel_question
+        ~title:(s_ "Remove")
+        ~markup:(Printf.sprintf (f_ "Are you sure that you want to remove %s\nand all the cables connected to this %s?") name (s_ "gateway"))
+        ~context:name
+        ()
+
+    let reaction name =
       let defects = Defects_interface.get_defects_interface () in
-      if (r#get "answer")="yes" then
-        let name   = r#get("name") in
-        st#network_change st#network#del_world_gateway name;
-        defects#remove_device name;
-      else ()
+      st#network_change st#network#del_world_gateway name;
+      defects#remove_device name;
 
   end
 
   module Startup = struct
-    type t = env
-    let to_string = env_to_string
+    type t = string (* just the name *)
+    let to_string = (Printf.sprintf "name = %s\n")
 
     let dynlist    = Properties.dynlist
-    let dialog     = Menu_factory.no_dialog
-    let reaction r = (st#network#get_world_gateway_by_name (r#get "name"))#startup
+    let dialog     = Menu_factory.no_dialog_but_simply_return_name
+    let reaction name = (st#network#get_world_gateway_by_name name)#startup
 
   end
 
   module Stop = struct
-    type t = env
-    let to_string = env_to_string
+    type t = string (* just the name *)
+    let to_string = (Printf.sprintf "name = %s\n")
 
     let dynlist () =
       List.filter
        (fun x -> (st#network#get_world_gateway_by_name x)#can_gracefully_shutdown)
        (st#network#get_world_gateway_names)
 
-    let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#get_world_gateway_by_name (r#get "name"))#gracefully_shutdown
+    let dialog = Menu_factory.no_dialog_but_simply_return_name
+    let reaction name = (st#network#get_world_gateway_by_name name)#gracefully_shutdown
 
   end
 
   module Suspend = struct
-    type t = env
-    let to_string = env_to_string
+    type t = string (* just the name *)
+    let to_string = (Printf.sprintf "name = %s\n")
 
     let dynlist () =
       List.filter
        (fun x -> (st#network#get_world_gateway_by_name x)#can_suspend)
        (st#network#get_world_gateway_names)
 
-    let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#get_world_gateway_by_name (r#get "name"))#suspend
+    let dialog = Menu_factory.no_dialog_but_simply_return_name
+    let reaction name = (st#network#get_world_gateway_by_name name)#suspend
 
   end
 
   module Resume = struct
-    type t = env
-    let to_string = env_to_string
+    type t = string (* just the name *)
+    let to_string = (Printf.sprintf "name = %s\n")
 
     let dynlist () =
       List.filter
        (fun x -> (st#network#get_world_gateway_by_name x)#can_resume)
        (st#network#get_world_gateway_names)
 
-    let dialog = Menu_factory.no_dialog
-    let reaction r = (st#network#get_world_gateway_by_name (r#get "name"))#resume
+    let dialog = Menu_factory.no_dialog_but_simply_return_name
+    let reaction name = (st#network#get_world_gateway_by_name name)#resume
 
   end
 
@@ -246,7 +237,6 @@ module Dialog_add_or_update = struct
    recompiling the whole project. *)
 let make
  ?(title="Add a world gateway")
- ?(s_=fun x->x) (* Gettext support. Not useful when testing. *)
  ?(name="")
  ?label
  ?(network_config:Ipv4.config option)
@@ -261,11 +251,8 @@ let make
    | Some x -> x
    | None   -> ((10,0,2,1),24)
   in
-  let icon =
-    let icon_file = Initialization.Path.images^"marionnet-launcher.png" in
-    GdkPixbuf.from_file icon_file
-  in
-  let w = GWindow.dialog ~icon ~title ~modal:true ~position:`CENTER () in
+  let w = GWindow.dialog ~destroy_with_parent:true ~title ~modal:true ~position:`CENTER () in
+  Gui_bricks.set_marionnet_icon w;
   let tooltips = Gui_bricks.make_tooltips_for_container w in
 
   let (name,label) =
@@ -336,7 +323,7 @@ let make
         Data.oldname = oldname; }
   in
   (* The result of make is the result of the dialog loop (of type 'result option): *)
-  Gui_bricks.dialog_loop w ~ok_callback ?help_callback ~get_widget_data ()
+  Gui_bricks.Dialog_run.ok_or_cancel w ~ok_callback ?help_callback ~get_widget_data ()
 
 end
 

@@ -72,9 +72,53 @@ val make_tooltips_for_container :
   GObj.widget ->
   string -> unit
 
-val dialog_loop :
-  [ `CANCEL | `DELETE_EVENT | `HELP | `OK ] GWindow.dialog ->
-  get_widget_data:(unit -> 'a) ->
-  ok_callback:('a -> 'b option) ->
-  ?help_callback:(unit -> unit) ->
-  unit -> 'b option
+module Dialog_run : sig
+
+  val ok_or_cancel :
+    [ `CANCEL | `DELETE_EVENT | `HELP | `OK ] GWindow.dialog ->
+    get_widget_data:(unit -> 'a) ->
+    ok_callback:('a -> 'b option) ->
+    ?help_callback:(unit -> unit) ->
+    unit -> 'b option
+
+  val yes_or_cancel :
+    [ `CANCEL | `DELETE_EVENT | `HELP | `YES ] GWindow.dialog ->
+    ?help_callback:(unit -> unit) ->
+    context:'a ->
+    unit -> 'a option
+
+  val yes_no_or_cancel :
+    [ `CANCEL | `DELETE_EVENT | `HELP | `NO | `YES ] GWindow.dialog ->
+    ?help_callback:(unit -> unit) ->
+    context:'a ->
+    unit -> ('a * bool) option
+
+end (* Dialog_loop *)
+
+module Dialog : sig
+
+  val yes_or_cancel_question :
+    ?title:string ->
+    ?help_callback:(unit -> unit) ->
+    ?image_filename:string ->
+    ?markup:string ->
+    ?text:string ->
+    context:'a ->
+    unit -> 'a option
+
+  val yes_no_or_cancel_question :
+    ?title:string ->
+    ?help_callback:(unit -> unit) ->
+    ?image_filename:string ->
+    ?markup:string ->
+    ?text:string ->
+    context:'a ->
+    unit -> ('a * bool) option
+
+end (* Dialog_loop *)
+
+
+val set_marionnet_icon : [> ] GWindow.dialog -> unit
+(*   < set_icon : GdkPixbuf.pixbuf option -> 'a; .. > -> 'a = <fun> *)
+  
+val test: unit -> char option

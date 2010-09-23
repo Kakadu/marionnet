@@ -120,6 +120,7 @@ let mkenv = Environment.make_string_env
 let no_env_dialog = fun name () -> Some (mkenv [("name",name)])
 let no_typed_dialog = fun name () -> Some [`name name]
 let no_dialog = no_env_dialog
+let no_dialog_but_simply_return_name = fun name () -> Some name
 
 module Side_effects_of
   (E:sig

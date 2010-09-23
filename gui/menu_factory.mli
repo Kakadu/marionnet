@@ -84,7 +84,7 @@ val mkenv     : (string * 'a) list -> 'a Environment.string_env
 val no_env_dialog : 'a -> unit -> 'a Environment.string_env option
 val no_dialog : 'a -> unit -> 'a Environment.string_env option
 
-val no_typed_dialog : string -> unit -> [> `name of string ] list option
+val no_dialog_but_simply_return_name : string -> unit -> string option
 
 module type Entry_definition =
   sig

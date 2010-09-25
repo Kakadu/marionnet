@@ -301,6 +301,7 @@ let vm_installations_and_epithet_of_prefixed_filesystem prefixed_filesystem =
     (match prefix with
      | "machine-" -> get_machine_installations ()
      | "router-"  -> get_router_installations ()
+     | _ -> (assert false)
      )
   in
   (vm_installations, epithet)

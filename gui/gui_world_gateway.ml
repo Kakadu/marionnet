@@ -60,7 +60,6 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let dialog () =
       let name = st#network#suggestedName "G" in
-      let s_ = Gettext.s_ in
       Dialog_add_or_update.make
         ~title:(s_ "Add world gateway") ~name ~ok_callback (*~help_callback TODO*) ()
 

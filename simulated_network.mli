@@ -264,6 +264,7 @@ class uml_process :
   console:string ->
   ?umid:string ->
   id:int ->
+  ?show_unix_terminal:bool ->
   ?xnest_display_number:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
@@ -508,6 +509,7 @@ class virtual machine_or_router :
   xnest:bool ->
   ?umid:string ->
   id:int ->
+  ?show_unix_terminal:bool ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
@@ -576,6 +578,7 @@ class router :
   ethernet_interface_no:int ->
   ?umid:string ->
   id:int ->
+  show_unix_terminal:bool ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object

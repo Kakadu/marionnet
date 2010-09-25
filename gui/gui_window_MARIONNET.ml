@@ -108,6 +108,11 @@ let () =
   set w#button_BASE_SHUTDOWN_EVERYTHING#coerce ~text:(s_ "Gracefully stop every element of the network")
  end
 
+(* Hide this never implemented feature! *)
+let () =
+ w#button_BASE_BROADCAST#misc#hide ()
+ 
+
 (* Connections *)
 let () =
 

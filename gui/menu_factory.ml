@@ -116,7 +116,6 @@ let mkenv = Environment.make_string_env
 
 (** Useful when there is no dialog preceeding the reaction.
     This pseudo dialog transmits the name by mean of an environment. *)
-(* let no_dialog = fun name () -> Some (mkenv [("name",name)]) *)
 let no_env_dialog = fun name () -> Some (mkenv [("name",name)])
 let no_typed_dialog = fun name () -> Some [`name name]
 let no_dialog = no_env_dialog

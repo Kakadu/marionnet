@@ -104,36 +104,10 @@ not be increased without a reason, because the number of processes needed for th
 device emulation is proportional to his ports number.")
    in Simple_dialogs.help title msg ;;
 
- let help_router_insert_update =
-   let title = (s_ "ADD OR MODIFY A ROUTER") in
-   let msg   = (s_ "\
-In this dialog window you can define the name of an IP router \
-and set many parameters for it:\n\n\
-- Label: a string appearing near the router icon in the network graph; \
-this field is exclusively for graphic purposes, is not taken in consideration \
-for the configuration.\n\
-- Nb of Ports: the number of ports of the router (default 4); this number must \
-not be increased without a reason, because the number of processes needed for the \
-device emulation is proportional to his ports number.\n\n\
-The emulation of this device is realised with the program 'quagga' derived from \
-the project 'zebra'.\n\n\
-Every interface of the router can be configured in the tab \
-'Interfaces'. Once started, the router will answer to the telnet \
-protocol on every configured interface, on the following tcp ports:\n\n\
-zebra\t\t2601/tcp\t\t# zebra vty\n\
-ripd\t\t\t2602/tcp\t\t# RIPd vty\n\
-ripngd\t\t2603/tcp\t\t# RIPngd vty\n\
-ospfd\t\t2604/tcp\t\t# OSPFd vty\n\
-bgpd\t\t2605/tcp\t\t# BGPd vty\n\
-ospf6d\t\t2606/tcp\t\t# OSPF6d vty\n\
-isisd\t\t\t2608/tcp\t\t# ISISd vty\n\n\
-Password: zebra")
-   in Simple_dialogs.help title msg ;;
 
  let help_device_insert_update = function
   | Mariokit.Netmodel.Hub    -> help_hub_insert_update
   | Mariokit.Netmodel.Switch -> help_switch_insert_update
-  | Mariokit.Netmodel.Router -> help_router_insert_update
   | _ -> ignore
  ;;
 

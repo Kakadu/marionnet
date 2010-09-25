@@ -59,8 +59,6 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Filesystem_history.add_device
          ~name
          ~prefixed_filesystem:("machine-"^(m#get_epithet))
-         ~root_export_dirname:(r#get "root_export_dirname")
-         ~user_export_dirname:(r#get "user_export_dirname")
          ?variant:
             (Option.of_fallible_application r#get "variant_name")
          ?variant_realpath:

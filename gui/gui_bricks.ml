@@ -15,6 +15,18 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+(** {b Example}:
+{[
+let tooltips = Gui_Bricks.make_tooltips_for_container window in
+tooltips label#coerce "hello";
+tooltips entry#coerce "salut";
+]}
+*)
+let make_tooltips_for_container w =
+  let result = (GData.tooltips ()) in
+  let _ = w#connect#destroy ~callback:(fun _ -> result#destroy ()) in
+  fun (widget:GObj.widget) text -> result#set_tip widget ~text
+
 (** Make a classic rectangular input form with field labels at the left side
     and input widgets at the right side of each line.
     Labels are get from the input string list while input widgets are
@@ -32,25 +44,46 @@ let dhcp_enabled = GButton.check_button ~packing:form#add () in
 let make_form_with_labels ?(row_spacings=10) ?(col_spacings=10) ?packing string_list =
  let rows = List.length string_list in
  let table = GPack.table ~row_spacings ~col_spacings ~rows ~columns:2 ~homogeneous:false ?packing () in
- let () =
+(* let () =
    Array.iteri
      (fun i label_text ->
         let label = GMisc.label ~xalign:0. ~text:label_text () in
         table#attach ~left:0 ~top:i label#coerce)
      (Array.of_list string_list)
+ in*)
+ let labels =
+   Array.mapi
+     (fun i label_text ->
+        let label = GMisc.label ~xalign:0. ~text:label_text () in
+        table#attach ~left:0 ~top:i label#coerce;
+        label)
+     (Array.of_list string_list)
  in
- object
+ let tooltip = make_tooltips_for_container table in
+ object (self)
    method table = table
    method coerce = table#coerce
    val mutable index = 0
-   method add widget =
-     let aligned_widget =
-       let box = GBin.alignment ~xalign:0. ~yalign:0.5 ~xscale:0.0 ~yscale:0.0 () in
-       box#add widget#coerce;
-       box
-     in
-     table#attach ~left:1 ~top:index aligned_widget#coerce;
-     index <- index+1
+   method private aligned_widget widget =
+     let box = GBin.alignment ~xalign:0. ~yalign:0.5 ~xscale:0.0 ~yscale:0.0 () in
+     box#add widget#coerce;
+     box
+     
+   method add =
+     let top = index in (* top is in the closure *)
+     index <- index+1;
+     (function widget ->
+       table#attach ~left:1 ~top (self#aligned_widget widget)#coerce)
+
+   method add_with_tooltip text =
+     let top = index in (* top is in the closure *)
+     index <- index+1;
+     (function widget ->
+       table#attach ~left:1 ~top (self#aligned_widget widget)#coerce;
+       tooltip widget text;
+       tooltip ((Array.get labels top)#coerce) text;
+       )
+
  end
 
 (** Wrap the given widget with a label, using an hidden table which will be packaged
@@ -62,7 +95,7 @@ let entry_with_label ?packing ?max_length ?entry_text ?labelpos label_text =
   Gui_Bricks.wrap_with_label ?packing ?labelpos label_text entry
 ]}
 *)
-let wrap_with_label ?packing ?(labelpos=`NORTH) label_text widget =
+let wrap_with_label ?tooltip ?packing ?(labelpos=`NORTH) label_text widget =
  let label = GMisc.label ~text:label_text () in
  let (rows, columns) =
    match labelpos with
@@ -76,24 +109,25 @@ let wrap_with_label ?packing ?(labelpos=`NORTH) label_text widget =
    | `WEST  -> table#attach ~left:0 ~top:0 label#coerce;  table#attach ~left:1 ~top:0 widget#coerce
    | `EAST  -> table#attach ~left:0 ~top:0 widget#coerce; table#attach ~left:1 ~top:0 label#coerce
  in
+ Option.iter ((make_tooltips_for_container table) table#coerce) tooltip;
  widget
 
 (** A simple [GEdit.entry] equipped by a label specified as a string. *)
-let entry_with_label ?packing ?max_length ?entry_text ?labelpos label_text =
+let entry_with_label ?tooltip ?packing ?max_length ?entry_text ?labelpos label_text =
   let entry = GEdit.entry ?text:entry_text ?max_length () in
-  wrap_with_label ?packing ?labelpos label_text entry
+  wrap_with_label ?tooltip ?packing ?labelpos label_text entry
 
 (** Not in the interface.*)
-let add_label_and_labelpos_parameters ?label ?labelpos ?packing maker =
+let add_tooltip_label_and_labelpos_parameters ?tooltip ?label ?labelpos ?packing maker =
   match label with
   | None   -> maker ?packing ()
   | Some label_text ->
       let result = maker ?packing:None () in
-      let _ = wrap_with_label ?packing ?labelpos label_text result in
+      let _ = wrap_with_label ?tooltip ?packing ?labelpos label_text result in
       result
 
 (** A spin for bytes, i.e. for values in the range [0..255].  *)
-let spin_byte ?label ?labelpos ?(lower=0) ?(upper=255) ?(step_incr=1) ?packing value =
+let spin_byte ?tooltip ?label ?labelpos ?(lower=0) ?(upper=255) ?(step_incr=1) ?packing value =
   let lower = float_of_int lower in
   let upper = float_of_int upper in
   let step_incr = float_of_int step_incr in
@@ -103,11 +137,11 @@ let spin_byte ?label ?labelpos ?(lower=0) ?(upper=255) ?(step_incr=1) ?packing v
     sb#set_value (float_of_int value);
     sb
   in
-  add_label_and_labelpos_parameters ?label ?labelpos ?packing maker
+  add_tooltip_label_and_labelpos_parameters ?tooltip ?label ?labelpos ?packing maker
 ;;
 
 (** Four spins for asking for an ipv4 address. *)
-let spin_ipv4_address ?label ?labelpos ?packing v1 v2 v3 v4 =
+let spin_ipv4_address ?tooltip ?label ?labelpos ?packing v1 v2 v3 v4 =
   let maker ?packing () =
     let table = GPack.table ~rows:1 ~columns:7 ~homogeneous:false ?packing () in
     let dot ~left = GMisc.label ~packing:(table#attach ~left ~top:0) ~width:15 ~markup:"<b>.</b>" () in
@@ -124,12 +158,12 @@ let spin_ipv4_address ?label ?labelpos ?packing v1 v2 v3 v4 =
   | None   -> snd (maker ?packing ())
   | Some label_text ->
       let (table,(s1,s2,s3,s4)) = maker ?packing:None () in
-      let _ = wrap_with_label ?packing ?labelpos label_text table in
+      let _ = wrap_with_label ?tooltip ?packing ?labelpos label_text table in
       (s1,s2,s3,s4)
 
 (** Four spins for asking for an ipv4 address, and a fifth for
     the netmask (in CIDR notation).  *)
-let spin_ipv4_address_with_cidr_netmask ?label ?labelpos ?packing v1 v2 v3 v4 v5 =
+let spin_ipv4_address_with_cidr_netmask ?tooltip ?label ?labelpos ?packing v1 v2 v3 v4 v5 =
   let maker ?packing () =
     let table = GPack.table ~rows:1 ~columns:9 ~homogeneous:false ?packing () in
     let dot ~left = GMisc.label ~packing:(table#attach ~left ~top:0) ~width:15 ~markup:"<b>.</b>" () in
@@ -148,20 +182,9 @@ let spin_ipv4_address_with_cidr_netmask ?label ?labelpos ?packing v1 v2 v3 v4 v5
   | None   -> snd (maker ?packing ())
   | Some label_text ->
       let (table,(s1,s2,s3,s4,s5)) = maker ?packing:None () in
-      let _ = wrap_with_label ?packing ?labelpos label_text table in
+      let _ = wrap_with_label ?tooltip ?packing ?labelpos label_text table in
       (s1,s2,s3,s4,s5)
 
-(** {b Example}:
-{[
-let tooltips = Gui_Bricks.make_tooltips_for_container window in
-tooltips label#coerce "hello";
-tooltips entry#coerce "salut";
-]}
-*)
-let make_tooltips_for_container w =
-  let result = (GData.tooltips ()) in
-  let _ = w#connect#destroy ~callback:(fun _ -> result#destroy ()) in
-  fun (widget:GObj.widget) text -> result#set_tip widget ~text
 
 let add_help_button_if_necessary window = function
 | None   -> (fun () -> ())
@@ -324,5 +347,74 @@ let yes_no_or_cancel_question ?title ?help_callback ?image_filename ?markup ?tex
   Dialog_run.yes_no_or_cancel w ?help_callback ~context ()
 
 end (* module Dialog *)
+
+
+type packing_function = GObj.widget -> unit
+
+let make_combo_boxes_of_vm_installations
+  ?distribution
+  ?variant
+  ?kernel
+  ?updating
+  ~packing
+  vm_installations
+  =
+  (* Convert updating as boolean: *)
+  let updating = (updating<>None) in
+  (* Resolve the initial choice for distribution: *)
+  let distribution = match distribution with
+   | None   -> Option.extract vm_installations#filesystems#get_default_epithet
+   | Some x -> x
+   in
+  (* Resolve the initial choice for variant: *)
+  let variant = match variant with
+   | None   -> "none"
+   | Some x -> x
+  in
+  let (packing_distribution, packing_variant, packing_kernel) = packing in  
+  let distribution_widget =
+     Widget.ComboTextTree.fromListWithSlave
+      ~masterCallback:None
+      ~masterPacking:(Some packing_distribution)
+      (* The user can't change filesystem and variant any more once the device has been created:*)
+      (match updating with
+      | false -> (vm_installations#filesystems#get_epithet_list)
+      | true  -> [distribution])
+      ~slaveCallback: None
+      ~slavePacking: (Some packing_variant)
+      (fun epithet ->
+        match updating with
+        | false ->
+            "none"::(vm_installations#variants_of epithet)#get_epithet_list
+        | true -> [variant]
+        )
+  in
+  let initial_variant_widget = distribution_widget#slave
+  in
+  (* Resolve the initial choice for kernel: *)
+  let kernel = match kernel with
+   | None -> Option.extract vm_installations#kernels#get_default_epithet
+   | Some x -> x
+  in
+  let kernel_widget =
+    Widget.ComboTextTree.fromList
+      ~callback:None
+      ~packing:(Some packing_kernel)
+      (vm_installations#kernels#get_epithet_list)
+  in
+  (* Setting active values: *)
+  distribution_widget#set_active_value distribution;
+  initial_variant_widget#set_active_value variant;
+  kernel_widget#set_active_value kernel;
+  (* Blocking changes updating: *)
+  if updating then begin
+    distribution_widget#box#misc#set_sensitive false;
+    initial_variant_widget#box#misc#set_sensitive false;
+  end else ();
+
+  (* The result: *)
+  (distribution_widget, kernel_widget)
+
+
 
 let test () = Dialog.yes_or_cancel_question ~markup:"prova <b>bold</b>" ~context:'a' ()

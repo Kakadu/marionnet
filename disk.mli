@@ -124,3 +124,9 @@ val get_router_installations :
   ?filesystem_default_epithet:string ->
   unit -> virtual_machine_installations
 
+val vm_installations_and_epithet_of_prefixed_filesystem :
+  string -> virtual_machine_installations * epithet
+  
+val user_export_dirname_of_prefixed_filesystem : string -> dirname
+val root_export_dirname_of_prefixed_filesystem : string -> dirname
+ 

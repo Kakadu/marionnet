@@ -153,35 +153,32 @@ object(self)
         ()
     else
     let cow_name = item_to_string (self#get_row_item row_id "File name") in
-    let variant_dir = item_to_string (self#get_row_item row_id "user_export_dirname")
+    let variant_dir =
+      (* For backward compatibility I can't change the treeview structure
+         to store these informations once. On the contrary, I re-calculate
+	 them at each export; *)
+      let prefixed_filesystem = item_to_string (self#get_row_item row_id "Prefixed filesystem") in
+      Disk.user_export_dirname_of_prefixed_filesystem prefixed_filesystem
     in
-    if router then begin (* the given row is about a router *)
-      (* We don't need to choose a name because there can be only one variant for
-         routers; don't ask anything: just export. *)
-      self#actually_export_as_variant
-        ~cow_name
-        ~variant_dir
-        ~variant_name:"default" ();
-    end else begin (* the given row is about a machine *)
-      (* Just show the dialog window, and bind a method which does all the real work to the
-         'Ok' button. This continuation-based logic is the best we can do here, because we
-         can't loop waiting for the user without giving control back to Gtk+: *)
-      Simple_dialogs.ask_text_dialog
-        ~title:(s_ "Choose the variant name")
-        ~label:(s_ "Enter the new variant name; this name must begin with a letter and can contain letters, numbers, dashes and underscores.")
-        ~constraint_predicate:
-           (fun s ->
-              (String.length s > 0) &&
-              (StrExtra.wellFormedName ~allow_dash:true s))
-        ~invalid_text_message:(s_ "The name must begin with a letter and can contain letters, numbers, dashes and underscores.")
-        ~enable_cancel:true
-        ~ok_callback:(fun variant_name ->
-          self#actually_export_as_variant
-            ~cow_name
-            ~variant_dir
-            ~variant_name ())
-        ();
-    end
+    (* Just show the dialog window, and bind a method which does all the real work to the
+       'Ok' button. This continuation-based logic is the best we can do here, because we
+       can't loop waiting for the user without giving control back to Gtk+: *)
+    Simple_dialogs.ask_text_dialog
+      ~title:(s_ "Choose the variant name")
+      ~label:(s_ "Enter the new variant name; this name must begin with a letter and can contain letters, numbers, dashes and underscores.")
+      ~constraint_predicate:
+	  (fun s ->
+	    (String.length s > 0) &&
+	    (StrExtra.wellFormedName ~allow_dash:true s))
+      ~invalid_text_message:(s_ "The name must begin with a letter and can contain letters, numbers, dashes and underscores.")
+      ~enable_cancel:true
+      ~ok_callback:(fun variant_name ->
+	self#actually_export_as_variant
+	  ~cow_name
+	  ~variant_dir
+	  ~variant_name ())
+      ()
+
 
   method private actually_export_as_variant ~variant_dir ~cow_name ~variant_name () =
     (* Perform the actual copy: *)
@@ -264,16 +261,6 @@ the machine itself (you should expand the tree).") new_variant_pathname)
         ~header:"Prefixed filesystem"
         ~hidden:true
         () in
-    let _ =
-      self#add_string_column
-        ~header:"root_export_dirname"
-        ~hidden:true
-        () in
-    let _ =
-      self#add_string_column
-        ~header:"user_export_dirname"
-        ~hidden:true
-        () in
 
     (* Make internal data structures: no more columns can be added now: *)
     self#create_store_and_view;
@@ -292,7 +279,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
         let row_id = get selected_rowid_if_any in
         self#export_as_machine_variant row_id);
     self#add_menu_item
-      (s_ "Export as (only) router variant")
+      (s_ "Export as router variant")
       (fun selected_rowid_if_any ->
         (is_some selected_rowid_if_any) &&
         (let row_id = get selected_rowid_if_any in
@@ -436,8 +423,6 @@ let add_row
     ~date
     ~scenario
     ~prefixed_filesystem
-    ~root_export_dirname
-    ~user_export_dirname
     ~file_name
     () =
   Log.printf "Adding a row to the filesystem history model... begin\n";
@@ -449,8 +434,6 @@ let add_row
       "Activation scenario", String scenario;
       "Timestamp", String date;
       "Prefixed filesystem", String prefixed_filesystem;
-      "root_export_dirname", String root_export_dirname;
-      "user_export_dirname", String user_export_dirname;
       "File name", String file_name ] in
   let result =
     states_interface#add_row ?parent_row_id:parent row
@@ -473,8 +456,6 @@ let number_of_states_with_name
 let add_device
   ~name
   ~prefixed_filesystem
-  ~root_export_dirname
-  ~user_export_dirname
   ?variant
   ?variant_realpath
   ~icon ()
@@ -502,8 +483,6 @@ let add_device
       ~comment:(prefixed_filesystem ^ comment_suffix)
       ~file_name
       ~prefixed_filesystem
-      ~root_export_dirname
-      ~user_export_dirname
       ~date:"-"
       ~scenario:"[no scenario]"
       ~toggle:false
@@ -586,8 +565,6 @@ let add_substate_of parent_file_name =
             ~date:(Timestamp.current_timestamp_as_string ())
             ~scenario:"[no scenario]"
             ~prefixed_filesystem:(item_to_string (lookup_alist "Prefixed filesystem" row_to_copy))
-            ~root_export_dirname:(item_to_string (lookup_alist "root_export_dirname" row_to_copy))
-            ~user_export_dirname:(item_to_string (lookup_alist "user_export_dirname" row_to_copy))
             () in
         states_interface#highlight_row new_row_id)
     complete_forest;

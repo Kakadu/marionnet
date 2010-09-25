@@ -19,32 +19,28 @@ val make_form_with_labels :
   ?col_spacings:int ->
   ?packing:(GObj.widget -> unit) ->
   string list ->
-  < add : < coerce : GObj.widget; .. > -> unit;
+  < add : GObj.widget -> unit;
+    add_with_tooltip : string -> GObj.widget -> unit;
     coerce : GObj.widget;
     table : GPack.table >
 
 val wrap_with_label :
+  ?tooltip:string ->
   ?packing:(GObj.widget -> unit) ->
   ?labelpos:[< `EAST | `NORTH | `SOUTH | `WEST > `NORTH ] ->
   string ->
   (< coerce : GObj.widget; .. > as 'a) -> 'a
 
 val entry_with_label :
+  ?tooltip:string ->
   ?packing:(GObj.widget -> unit) ->
   ?max_length:int ->
   ?entry_text:string ->
   ?labelpos:[< `EAST | `NORTH | `SOUTH | `WEST > `NORTH ] ->
   string -> GEdit.entry
 
-val add_label_and_labelpos_parameters :
-  ?label:string ->
-  ?labelpos:[< `EAST | `NORTH | `SOUTH | `WEST > `NORTH ] ->
-  ?packing:(GObj.widget -> unit) ->
-  (?packing:(GObj.widget -> unit) ->
-   unit ->
-   (< coerce : GObj.widget; .. > as 'a)) -> 'a
-
 val spin_byte :
+  ?tooltip:string ->
   ?label:string ->
   ?labelpos:[< `EAST | `NORTH | `SOUTH | `WEST > `NORTH ] ->
   ?lower:int -> 
@@ -54,6 +50,7 @@ val spin_byte :
   int -> GEdit.spin_button
 
 val spin_ipv4_address :
+  ?tooltip:string ->
   ?label:string ->
   ?labelpos:[< `EAST | `NORTH | `SOUTH | `WEST > `NORTH ] ->
   ?packing:(GObj.widget -> unit) ->
@@ -61,6 +58,7 @@ val spin_ipv4_address :
   GEdit.spin_button * GEdit.spin_button * GEdit.spin_button * GEdit.spin_button
 
 val spin_ipv4_address_with_cidr_netmask :
+  ?tooltip:string ->
   ?label:string ->
   ?labelpos:[< `EAST | `NORTH | `SOUTH | `WEST > `NORTH ] ->
   ?packing:(GObj.widget -> unit) ->
@@ -120,5 +118,18 @@ end (* Dialog_loop *)
 
 val set_marionnet_icon : [> ] GWindow.dialog -> unit
 (*   < set_icon : GdkPixbuf.pixbuf option -> 'a; .. > -> 'a = <fun> *)
-  
+
+type packing_function = GObj.widget -> unit
+
+val make_combo_boxes_of_vm_installations:
+  ?distribution:string ->
+  ?variant:string ->
+  ?kernel:string ->
+  ?updating:unit ->
+  packing:(packing_function * packing_function * packing_function) ->
+  Disk.virtual_machine_installations
+  ->
+  Widget.ComboTextTree.comboTextTree *
+  Widget.ComboTextTree.comboTextTree
+
 val test: unit -> char option

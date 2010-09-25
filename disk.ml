@@ -291,3 +291,29 @@ let get_machine_installations
        ~kernel_default_epithet
        ~filesystem_default_epithet
        ()
+
+let vm_installations_and_epithet_of_prefixed_filesystem prefixed_filesystem =
+ try
+  let p = String.index prefixed_filesystem '-' in
+  let prefix = String.sub prefixed_filesystem 0 (p+1) in
+  let epithet = String.sub prefixed_filesystem (p+1) ((String.length prefixed_filesystem)-(p+1)) in
+  let vm_installations =
+    (match prefix with
+     | "machine-" -> get_machine_installations ()
+     | "router-"  -> get_router_installations ()
+     )
+  in
+  (vm_installations, epithet)
+ with _ -> failwith (Printf.sprintf "vm_installations_and_epithet_of_prefixed_filesystem: %s" prefixed_filesystem)
+ 
+let user_export_dirname_of_prefixed_filesystem prefixed_filesystem =
+  let (vm_installations, epithet) =
+    vm_installations_and_epithet_of_prefixed_filesystem prefixed_filesystem
+  in
+  vm_installations#user_export_dirname epithet
+  
+let root_export_dirname_of_prefixed_filesystem prefixed_filesystem =
+  let (vm_installations, epithet) =
+    vm_installations_and_epithet_of_prefixed_filesystem prefixed_filesystem
+  in
+  vm_installations#root_export_dirname epithet

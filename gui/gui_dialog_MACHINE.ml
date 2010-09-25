@@ -136,14 +136,10 @@ module Make (State:sig val st:State.globalState end) = struct
      let v     = distrib#slave#selected in
      let k     = kernel#selected in
      let t     = terminal#selected in
-     let root_export_dirname = vm_installations#root_export_dirname d in
-     let user_export_dirname = vm_installations#user_export_dirname d in
      if not (StrExtra.wellFormedName n) then raise Talking.EDialog.IncompleteDialog  else
      let result =
        mkenv [("name",n) ; ("action",c)  ; ("oldname",o) ; ("memory",m) ; ("eth",e) ;
               ("distrib",d);
-              ("root_export_dirname",root_export_dirname);
-              ("user_export_dirname",user_export_dirname);
               ("kernel",k) ;
               ("term",t)  ]
      in

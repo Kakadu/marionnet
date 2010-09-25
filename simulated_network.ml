@@ -706,6 +706,7 @@ class uml_process =
       ~(console)
       ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
       ~id
+      ?(show_unix_terminal=false)
       ?xnest_display_number
       ~unexpected_death_callback
       () ->
@@ -713,7 +714,7 @@ class uml_process =
     Global_options.Debug_level.are_we_debugging () in
   let console =
     (* Always use an xterm in debug mode: *)
-    if debug_mode then
+    if debug_mode || show_unix_terminal then
       "xterm"
     else
       (* Don't show the xterm console if we're using an Xnest, in non-debug mode. *)
@@ -1522,6 +1523,7 @@ class virtual machine_or_router =
       ~xnest
       ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
       ~id
+      ?show_unix_terminal
       ~unexpected_death_callback
       () ->
 let half_hublet_no = ethernet_interface_no in
@@ -1587,6 +1589,7 @@ object(self)
               ~umid
               ~console
               ~id
+              ?show_unix_terminal
               ?xnest_display_number:(if xnest then
                                        Some self#get_xnest_process#display_number_as_server
                                      else
@@ -1703,6 +1706,7 @@ class router =
       ~(ethernet_interface_no)
       ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
       ~id
+      ~show_unix_terminal
       ~unexpected_death_callback
       () ->
 object(self)
@@ -1718,6 +1722,7 @@ object(self)
       (* Change this when debugging the router device *)
       ~console:"none" (* To do: this should be "none" for releases and "xterm" for debugging *)
       ~id
+      ~show_unix_terminal
       ~xnest:false
       ~unexpected_death_callback
       ()

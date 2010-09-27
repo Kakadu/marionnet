@@ -20,7 +20,7 @@ val make_form_with_labels :
   ?packing:(GObj.widget -> unit) ->
   string list ->
   < add : GObj.widget -> unit;
-    add_with_tooltip : string -> GObj.widget -> unit;
+    add_with_tooltip : ?just_for_label:unit -> string -> GObj.widget -> unit;
     coerce : GObj.widget;
     table : GPack.table >
 
@@ -51,6 +51,7 @@ val spin_byte :
 
 val spin_ipv4_address :
   ?tooltip:string ->
+  ?byte_tooltips: string array ->
   ?label:string ->
   ?labelpos:[< `EAST | `NORTH | `SOUTH | `WEST > `NORTH ] ->
   ?packing:(GObj.widget -> unit) ->
@@ -59,6 +60,7 @@ val spin_ipv4_address :
 
 val spin_ipv4_address_with_cidr_netmask :
   ?tooltip:string ->
+  ?byte_tooltips: string array ->
   ?label:string ->
   ?labelpos:[< `EAST | `NORTH | `SOUTH | `WEST > `NORTH ] ->
   ?packing:(GObj.widget -> unit) ->

@@ -14,6 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext
 
 (** {b Example}:
 {[
@@ -44,13 +45,6 @@ let dhcp_enabled = GButton.check_button ~packing:form#add () in
 let make_form_with_labels ?(row_spacings=10) ?(col_spacings=10) ?packing string_list =
  let rows = List.length string_list in
  let table = GPack.table ~row_spacings ~col_spacings ~rows ~columns:2 ~homogeneous:false ?packing () in
-(* let () =
-   Array.iteri
-     (fun i label_text ->
-        let label = GMisc.label ~xalign:0. ~text:label_text () in
-        table#attach ~left:0 ~top:i label#coerce)
-     (Array.of_list string_list)
- in*)
  let labels =
    Array.mapi
      (fun i label_text ->
@@ -75,12 +69,12 @@ let make_form_with_labels ?(row_spacings=10) ?(col_spacings=10) ?packing string_
      (function widget ->
        table#attach ~left:1 ~top (self#aligned_widget widget)#coerce)
 
-   method add_with_tooltip text =
+   method add_with_tooltip ?just_for_label text =
      let top = index in (* top is in the closure *)
      index <- index+1;
      (function widget ->
        table#attach ~left:1 ~top (self#aligned_widget widget)#coerce;
-       tooltip widget text;
+       (if just_for_label = None then tooltip widget text);
        tooltip ((Array.get labels top)#coerce) text;
        )
 
@@ -120,9 +114,9 @@ let entry_with_label ?tooltip ?packing ?max_length ?entry_text ?labelpos label_t
 (** Not in the interface.*)
 let add_tooltip_label_and_labelpos_parameters ?tooltip ?label ?labelpos ?packing maker =
   match label with
-  | None   -> maker ?packing ()
+  | None   -> maker ?tooltip ?packing ()
   | Some label_text ->
-      let result = maker ?packing:None () in
+      let result = maker ?tooltip:None ?packing:None () in
       let _ = wrap_with_label ?tooltip ?packing ?labelpos label_text result in
       result
 
@@ -131,27 +125,45 @@ let spin_byte ?tooltip ?label ?labelpos ?(lower=0) ?(upper=255) ?(step_incr=1) ?
   let lower = float_of_int lower in
   let upper = float_of_int upper in
   let step_incr = float_of_int step_incr in
-  let maker ?packing () =
+  let maker ?tooltip ?packing () =
     let sb = GEdit.spin_button ?packing ~width:60 ~digits:0 ~numeric:true () in
     sb#adjustment#set_bounds ~lower ~upper ~step_incr ();
     sb#set_value (float_of_int value);
+    Option.iter ((make_tooltips_for_container sb) sb#coerce) tooltip;
     sb
   in
   add_tooltip_label_and_labelpos_parameters ?tooltip ?label ?labelpos ?packing maker
 ;;
 
+let byte_tooltips_default_array = 
+  Array.of_list [
+    (s_ "First byte of the IPv4 address" );
+    (s_ "Second byte of the IPv4 address" );
+    (s_ "Third byte of the IPv4 address" );
+    (s_ "Fourth byte of the IPv4 address" );
+    (s_ "Netmask (CIDR notation)" );
+    ]
+
 (** Four spins for asking for an ipv4 address. *)
-let spin_ipv4_address ?tooltip ?label ?labelpos ?packing v1 v2 v3 v4 =
+let spin_ipv4_address ?tooltip ?byte_tooltips ?label ?labelpos ?packing v1 v2 v3 v4 =
+  let byte_tooltips = match byte_tooltips with
+  | None   -> byte_tooltips_default_array
+  | Some a -> a
+  in
+  let (tooltip_s1, tooltip_s2, tooltip_s3, tooltip_s4) =
+   let a = byte_tooltips in 
+   (a.(0), a.(1), a.(2), a.(3))
+  in
   let maker ?packing () =
     let table = GPack.table ~rows:1 ~columns:7 ~homogeneous:false ?packing () in
     let dot ~left = GMisc.label ~packing:(table#attach ~left ~top:0) ~width:15 ~markup:"<b>.</b>" () in
-    let s1 = spin_byte ~packing:(table#attach ~left:0 ~top:0) v1 in
+    let s1 = spin_byte ~tooltip:tooltip_s1 ~packing:(table#attach ~left:0 ~top:0) v1 in
     let _1 = dot ~left:1 in
-    let s2 = spin_byte ~packing:(table#attach ~left:2 ~top:0) v2 in
+    let s2 = spin_byte ~tooltip:tooltip_s2 ~packing:(table#attach ~left:2 ~top:0) v2 in
     let _2 = dot ~left:3 in
-    let s3 = spin_byte ~packing:(table#attach ~left:4 ~top:0) v3 in
+    let s3 = spin_byte ~tooltip:tooltip_s3 ~packing:(table#attach ~left:4 ~top:0) v3 in
     let _3 = dot ~left:5 in
-    let s4 = spin_byte ~packing:(table#attach ~left:6 ~top:0) v4 in
+    let s4 = spin_byte ~tooltip:tooltip_s4 ~packing:(table#attach ~left:6 ~top:0) v4 in
     (table,(s1,s2,s3,s4))
   in
   match label with
@@ -163,19 +175,29 @@ let spin_ipv4_address ?tooltip ?label ?labelpos ?packing v1 v2 v3 v4 =
 
 (** Four spins for asking for an ipv4 address, and a fifth for
     the netmask (in CIDR notation).  *)
-let spin_ipv4_address_with_cidr_netmask ?tooltip ?label ?labelpos ?packing v1 v2 v3 v4 v5 =
+let spin_ipv4_address_with_cidr_netmask
+  ?tooltip ?byte_tooltips ?label ?labelpos ?packing v1 v2 v3 v4 v5
+  =
+  let byte_tooltips = match byte_tooltips with
+  | None   -> byte_tooltips_default_array
+  | Some a -> a
+  in
+  let (tooltip_s1, tooltip_s2, tooltip_s3, tooltip_s4, tooltip_s5) =
+   let a = byte_tooltips in
+   (a.(0), a.(1), a.(2), a.(3), a.(4))
+  in
   let maker ?packing () =
     let table = GPack.table ~rows:1 ~columns:9 ~homogeneous:false ?packing () in
     let dot ~left = GMisc.label ~packing:(table#attach ~left ~top:0) ~width:15 ~markup:"<b>.</b>" () in
-    let s1 = spin_byte ~packing:(table#attach ~left:0 ~top:0) v1 in
+    let s1 = spin_byte ~tooltip:tooltip_s1 ~packing:(table#attach ~left:0 ~top:0) v1 in
     let _1 = dot ~left:1 in
-    let s2 = spin_byte ~packing:(table#attach ~left:2 ~top:0) v2 in
+    let s2 = spin_byte ~tooltip:tooltip_s2 ~packing:(table#attach ~left:2 ~top:0) v2 in
     let _2 = dot ~left:3 in
-    let s3 = spin_byte ~packing:(table#attach ~left:4 ~top:0) v3 in
+    let s3 = spin_byte ~tooltip:tooltip_s3 ~packing:(table#attach ~left:4 ~top:0) v3 in
     let _3 = dot ~left:5 in
-    let s4 = spin_byte ~packing:(table#attach ~left:6 ~top:0) v4 in
+    let s4 = spin_byte ~tooltip:tooltip_s4 ~packing:(table#attach ~left:6 ~top:0) v4 in
     let _slash = GMisc.label ~packing:(table#attach ~left:7 ~top:0) ~width:15 ~markup:"<b>/</b>" () in
-    let s5 = spin_byte ~packing:(table#attach ~left:8 ~top:0) v5 in
+    let s5 = spin_byte ~tooltip:tooltip_s5 ~packing:(table#attach ~left:8 ~top:0) v5 in
     (table,(s1,s2,s3,s4,s5))
   in
   match label with

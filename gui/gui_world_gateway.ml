@@ -259,10 +259,14 @@ let make
     let image = GMisc.image ~file:dialog_image_file ~xalign:0.5 ~packing:hbox#add () in
     tooltips image#coerce (s_ "Gateway");
     let vbox = GPack.vbox ~spacing:10 ~packing:hbox#add () in
-    let name  = Gui_bricks.entry_with_label ~packing:vbox#add ~entry_text:name  (s_ "Name") in
-    let label = Gui_bricks.entry_with_label ~packing:vbox#add ?entry_text:label (s_ "Label") in
-    tooltips name#coerce (s_ "Gateway name. This name must be unique in the virtual network. Suggested: G1, G2, ...");
-    tooltips label#coerce (s_ "Label to be written in the network sketch, next to the element icon." );
+    let name  =
+      let tooltip = (s_ "Gateway name. This name must be unique in the virtual network. Suggested: G1, G2, ...") in
+      Gui_bricks.entry_with_label ~tooltip ~packing:vbox#add ~entry_text:name  (s_ "Name")
+    in
+    let label =
+      let tooltip = (s_ "Label to be written in the network sketch, next to the element icon." ) in
+      Gui_bricks.entry_with_label ~tooltip ~packing:vbox#add ?entry_text:label (s_ "Label")
+    in
     (name,label)
   in
 
@@ -277,27 +281,22 @@ let make
     in
     let network_config =
       Gui_bricks.spin_ipv4_address_with_cidr_netmask
-        ~packing:form#add
+        ~packing:(form#add_with_tooltip ~just_for_label:() "IPv4 address of the gateway")
         b1 b2 b3 b4 b5
     in
     let dhcp_enabled =
       GButton.check_button
         ~active:dhcp_enabled
-        ~packing:form#add ()
+        ~packing:(form#add_with_tooltip (s_ "Should the gateway provide a DHCP service?" )) ()
     in
     let user_port_no =
-      Gui_bricks.spin_byte ~lower:2 ~upper:16 ~step_incr:2 ~packing:form#add user_port_no
+      Gui_bricks.spin_byte
+        ~packing:(form#add_with_tooltip (s_ "The number of ports of the integrated switch" ))
+        ~lower:2 ~upper:16 ~step_incr:2
+        user_port_no
     in
-    tooltips form#coerce (s_ "IPv4 configuration and required services" );
-    tooltips dhcp_enabled#coerce (s_ "The gateway should provide a DHCP service?" );
     (network_config, dhcp_enabled, user_port_no)
   in
-  tooltips s1#coerce (s_ "First octet of the IPv4 address" );
-  tooltips s2#coerce (s_ "Second octet of the IPv4 address" );
-  tooltips s3#coerce (s_ "Third octet of the IPv4 address" );
-  tooltips s4#coerce (s_ "Fourth octet of the IPv4 address" );
-  tooltips s5#coerce (s_ "Netmask (CIDR notation)" );
-  tooltips user_port_no#coerce (s_ "The number of ports of the integrated switch" );
   s4#misc#set_sensitive false;
   s5#misc#set_sensitive false;
 

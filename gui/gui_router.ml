@@ -352,7 +352,9 @@ let make
     in
     let port_0_ip_config =
       Gui_bricks.spin_ipv4_address_with_cidr_netmask
-        ~packing:(form#add_with_tooltip (s_ "IPv4 configuration of the first router port (0)"))
+        ~packing:(form#add_with_tooltip
+                    ~just_for_label:()
+                    (s_ "IPv4 configuration of the first router port (0)"))
         b1 b2 b3 b4 b5
     in
     let port_no =
@@ -386,13 +388,6 @@ let make
     in
     tooltips form#coerce (s_ "Router configuration" );
     (port_0_ip_config, port_no, distribution, variant, kernel, show_unix_terminal)
-  in
-  let () =
-    tooltips s1#coerce (s_ "First octet of the IPv4 address" );
-    tooltips s2#coerce (s_ "Second octet of the IPv4 address" );
-    tooltips s3#coerce (s_ "Third octet of the IPv4 address" );
-    tooltips s4#coerce (s_ "Fourth octet of the IPv4 address" );
-    tooltips s5#coerce (s_ "Netmask (CIDR notation)" );
   in
   let get_widget_data () :'result =
     let name = name#text in

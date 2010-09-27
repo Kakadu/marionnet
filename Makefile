@@ -207,7 +207,7 @@ PERFORM_MANUALLY_POST_ACTIONS = \
 
 # Edit all ml/mli files and Makefile.local with your $EDITOR
 edit:
-	test -n "$$EDITOR" && $$EDITOR Makefile.local $$(find . \( -wholename "./_build/*" -o -wholename "./_darcs/*" -o -name "meta.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
+	test -n "$$EDITOR" && $$EDITOR Makefile.local $$(find . \( -wholename "./_build/*" -o -wholename "./_darcs/*" -o -name "meta.ml" -o -name "version.ml" -o -name "gui.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
 
 # Create the documentation
 documentation: world documentation-local
@@ -852,9 +852,9 @@ myocamlbuild.ml:
 	echo -e "];;" >> $@; \
 	echo -en "let our_include_options = [ " >> $@; \
 	echo -en "A \"-I\"; A \"$$libraryprefix\"; " >> $@; \
-	for x in $(DIRECTORIES_TO_INCLUDE); do \
-		echo -en "A \"-I\"; A \"+$$x\"; " >> $@; \
-	done; \
+# 	for x in $(DIRECTORIES_TO_INCLUDE); do \
+# 		echo -en "A \"-I\"; A \"+$$x\"; " >> $@; \
+# 	done; \
 	for x in $(DIRECTORIES_TO_INCLUDE); do \
 		echo -en "A \"-I\"; A \"$$libraryprefix/$$x\"; " >> $@; \
 	done; \

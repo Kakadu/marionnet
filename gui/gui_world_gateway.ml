@@ -56,12 +56,10 @@ module Make_menus (State : sig val st:State.globalState end) = struct
         then None   (* refused *)
         else Some t (* accepted *)
 
-    let help_callback () = () (* TODO *)
-
     let dialog () =
       let name = st#network#suggestedName "G" in
       Dialog_add_or_update.make
-        ~title:(s_ "Add world gateway") ~name ~ok_callback (*~help_callback TODO*) ()
+        ~title:(s_ "Add world gateway") ~name ~ok_callback ()
 
     let network_address_of_config config =
       let ((i1,i2,i3,_),_) = config in
@@ -113,7 +111,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      let user_port_no = g#get_eth_number in
      Dialog_add_or_update.make
        ~title ~name ~label ~network_config ~dhcp_enabled ~user_port_no
-       ~ok_callback:Add.ok_callback ~help_callback:Add.help_callback ()
+       ~ok_callback:Add.ok_callback ()
 
 
     let reaction : t -> unit =
@@ -241,7 +239,7 @@ let make
  ?(network_config:Ipv4.config option)
  ?(dhcp_enabled=true)
  ?(user_port_no=4)
- ?help_callback
+ ?(help_callback=help_callback) (* defined backward with "WHERE" *)
  ?(ok_callback=(fun data -> Some data))
  ?(dialog_image_file=Initialization.Path.images^"ico.world_gateway.dialog.png")
  () :'result option =
@@ -321,7 +319,33 @@ let make
         Data.oldname = oldname; }
   in
   (* The result of make is the result of the dialog loop (of type 'result option): *)
-  Gui_bricks.Dialog_run.ok_or_cancel w ~ok_callback ?help_callback ~get_widget_data ()
+  Gui_bricks.Dialog_run.ok_or_cancel w ~ok_callback ~help_callback ~get_widget_data ()
+
+(*-----*)
+  WHERE
+(*-----*)
+
+ let help_callback =
+   let title = (s_ "ADD OR MODIFY A WORLD GATEWAY") in
+   let msg   = (s_ "\
+In this dialog window you can define the name of a gateway \
+to the real world (i.e. the world of the host machine) \
+and set many parameters for it:\n\n\
+- Label: a string appearing near the router icon in the network graph; \
+this field is exclusively for graphic purposes, is not taken in consideration \
+for the configuration.\n\n\
+- Ipv4 address: the address of the gateway that will be used by the virtual \
+machines connected to it.\n\n\
+- DHCP service: enabling this option, machines will be able to use the world gateway \
+as DHCP server, receiving leases in the range defined by the Ipv4 address. \
+This service also provides a DNS proxy\n\n\
+- Integrated switch ports: \
+the number of ports of the integrated switch (default 4); this number must \
+not be increased without a good reason, because the number of processes needed for the \
+device emulation is proportional to its ports number.\n\n\
+The emulation of this device is realised with the program 'slirpvde' derived from \
+the project VDE.\n")
+   in Simple_dialogs.help title msg ;;
 
 end
 

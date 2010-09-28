@@ -62,7 +62,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dynlist () =
       List.filter
         (fun x -> (st#network#get_device_by_name x)#can_startup)
-        (st#network#get_switch_names)
+        (st#network#get_device_names ~devkind:Mariokit.Netmodel.Switch ())
 
     let dialog =
      fun name -> let m = (st#network#get_device_by_name name) in
@@ -129,7 +129,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dynlist () =
       List.filter
        (fun x -> (st#network#get_device_by_name x)#can_gracefully_shutdown)
-       (st#network#get_switch_names)
+       (st#network#get_device_names ~devkind:Mariokit.Netmodel.Switch ())
 
     let dialog = Menu_factory.no_dialog
     let reaction r = (st#network#get_device_by_name (r#get "name"))#gracefully_shutdown
@@ -142,7 +142,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dynlist () =
       List.filter
        (fun x -> (st#network#get_device_by_name x)#can_suspend)
-       (st#network#get_switch_names)
+       (st#network#get_device_names ~devkind:Mariokit.Netmodel.Switch ())
 
     let dialog = Menu_factory.no_dialog
     let reaction r = (st#network#get_device_by_name (r#get "name"))#suspend
@@ -156,7 +156,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dynlist () =
       List.filter
        (fun x -> (st#network#get_device_by_name x)#can_resume)
-       (st#network#get_switch_names)
+       (st#network#get_device_names ~devkind:Mariokit.Netmodel.Switch ())
 
     let dialog = Menu_factory.no_dialog
     let reaction r = (st#network#get_device_by_name (r#get "name"))#resume

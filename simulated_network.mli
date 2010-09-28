@@ -316,6 +316,8 @@ class virtual device :
     method virtual stop_processes : unit
     method suspend : unit
     method virtual terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
+
   end
 
 class ethernet_cable :
@@ -348,6 +350,7 @@ class ethernet_cable :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
 class virtual main_process_with_n_hublets_and_cables :
@@ -377,6 +380,7 @@ class virtual main_process_with_n_hublets_and_cables :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
 class virtual hub_or_switch :
@@ -407,6 +411,7 @@ class virtual hub_or_switch :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
 class hub :
@@ -436,6 +441,7 @@ class hub :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
 class switch :
@@ -465,9 +471,10 @@ class switch :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-class world_gateway :
+(*class world_gateway :
   name:string ->
   user_port_no:int ->
   network_address:process_name ->
@@ -495,7 +502,8 @@ class world_gateway :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
-  end
+    method execute_the_unexpected_death_callback : int -> string -> unit
+  end*)
 
 class virtual machine_or_router :
   name:string ->
@@ -533,6 +541,7 @@ class virtual machine_or_router :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
 class machine :
@@ -568,6 +577,7 @@ class machine :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
 (*class router :
@@ -602,6 +612,7 @@ class machine :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end*)
 
 class world_bridge :
@@ -630,6 +641,7 @@ class world_bridge :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
 class cloud :
@@ -657,4 +669,5 @@ class cloud :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method execute_the_unexpected_death_callback : int -> string -> unit
   end

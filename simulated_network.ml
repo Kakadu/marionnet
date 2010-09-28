@@ -1108,13 +1108,9 @@ object(self)
     state := Destroyed;
     Log.printf "The method destroy has been called on the device %s: end\n" name
 
-  method private execute_the_unexpected_death_callback pid process_name =
+  method (* protected *) execute_the_unexpected_death_callback pid process_name =
     let process_name = Filename.basename process_name in
-    let title =
-      Printf.sprintf
-        "Un processus (%s) permettant la simulation de\n%s est mort de façon inattendue"
-        process_name
-        name in
+    let title = (s_ "A process died unexpectedly") in
     let message =
       Printf.sprintf
         (f_ "The process %s with pid %i allowing the simulation of %s %s died unexpectedly. It was necessary %s \"%s\" to maintain a consistent state.")
@@ -1424,70 +1420,6 @@ object(self)
       ()
       as super
   method device_type = "switch"
-end;;
-
-let unit_option_of_bool = function
- | false -> None
- | true  -> Some ()
-
-
-(** A switch: just a [hub_or_switch] with [hub = false] *)
-class world_gateway =
-  fun ~name
-      ~user_port_no
-      ~network_address (* default 10.0.2.0 *)
-      ~dhcp_enabled
-      ~unexpected_death_callback
-      () ->
- (* an additional port will be used by the world *)
- let hublet_no = user_port_no + 1 in
- let last_user_visible_port_index = user_port_no - 1 in
- object(self)
-  inherit switch ~name ~hublet_no ~last_user_visible_port_index ~unexpected_death_callback () as super
-  method device_type = "world_gateway"
-
-  val mutable slirpvde_process = None
-  method private get_slirpvde_process =
-    match slirpvde_process with
-    | Some p -> p
-    | None -> assert false
-
-  method private terminate_slirpvde_process =
-   (try self#get_slirpvde_process#terminate with _ -> ())
-
-  (* Redefined: *)
-  method destroy =
-   self#terminate_slirpvde_process;
-   super#destroy
-
-  (* Redefined: *)
-  method gracefully_shutdown =
-   self#terminate_slirpvde_process;
-   super#gracefully_shutdown
-
-  (* Redefined: *)
-  method shutdown =
-   self#terminate_slirpvde_process;
-   super#shutdown
-
-  (* Redefined: *)
-  method startup =
-   super#startup;
-   self#get_slirpvde_process#spawn
-
-  initializer
-
-    let last_reserved_port = user_port_no in
-    let slirpvde_socket = (self#get_hublet_process last_reserved_port)#get_socket_name in
-
-    slirpvde_process <-
-      Some (new slirpvde_process
-              ~existing_socket_name:slirpvde_socket
-              ~network:network_address
-              ?dhcp:(unit_option_of_bool dhcp_enabled)
-              ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-             ())
-
 end;;
 
 (** {2 machine and router implementation} *)

@@ -35,7 +35,8 @@ type t = {
   variant_realpath   : string option;   
   kernel             : string;          (* epithet *)
   show_unix_terminal : bool;
-  oldname            : string;
+  old_name           : string;
+  old_port_no        : int;
   }
 
 let to_string t = "<obj>" (* TODO? *)
@@ -77,7 +78,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 	variant_realpath = variant_realpath;
 	kernel = kernel;
         show_unix_terminal = show_unix_terminal;
-        oldname = _ }
+        old_name = _ ; old_port_no = _ }
       ->
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
@@ -126,7 +127,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dynlist =
      fun () -> List.filter
                   (fun x -> (st#network#get_device_by_name x)#can_startup)
-                  (st#network#get_router_names)
+                  (st#network#get_device_names ~devkind:Mariokit.Netmodel.Router ())
 
     let dialog name () =
      let details = Network_details_interface.get_network_details_interface () in
@@ -166,24 +167,28 @@ module Make_menus (State : sig val st:State.globalState end) = struct
         port_no = port_no;
 	kernel = kernel;
         show_unix_terminal = show_unix_terminal;
-        oldname = oldname }
+        old_name = old_name ; old_port_no = old_port_no }
       ->
       let details = Network_details_interface.get_network_details_interface () in
       let defects = Defects_interface.get_defects_interface () in
       (* name *)
-      let d = st#network#get_device_by_name oldname in
+      let d = st#network#get_device_by_name old_name in
       let r = ((Obj.magic d):> User_level.router) in
-      (match name = oldname with
+      (match (name = old_name) && (port_no = old_port_no)  with
       | true -> ()
       | false ->
           begin
-           d#destroy;
-           st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
-           st#network#change_node_name oldname name;
-           details#rename_device oldname name;
-           defects#rename_device oldname name;
-           Filesystem_history.rename_device oldname name;
-           st#network#make_device_ledgrid d;
+            d#destroy;
+	    (* port_no *)
+	    d#set_eth_number ~prefix:"port" port_no;
+	    details#update_port_no name port_no;
+	    defects#update_port_no name port_no;
+            st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
+            st#network#change_node_name old_name name;
+            details#rename_device old_name name;
+            defects#rename_device old_name name;
+            Filesystem_history.rename_device old_name name;
+            st#network#make_device_ledgrid d;
           end
        );
       (* label *)
@@ -192,10 +197,6 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let netmask_string = (Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr)) in
       details#set_port_string_attribute_by_index name 0 "IPv4 address" (Ipv4.string_of_ipv4 ipv4);
       details#set_port_string_attribute_by_index name 0 "IPv4 netmask" netmask_string;
-      (* port_no *)
-      d#set_eth_number ~prefix:"port" port_no;
-      details#update_port_no name port_no;
-      defects#update_port_no name port_no;
       (* kernel *)
       r#set_kernel kernel;
       (* show_terminal *)
@@ -245,7 +246,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dynlist () =
       List.filter
        (fun x -> (st#network#get_device_by_name x)#can_gracefully_shutdown)
-       (st#network#get_router_names)
+       (st#network#get_device_names ~devkind:Mariokit.Netmodel.Router ())
 
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
@@ -259,7 +260,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dynlist () =
       List.filter
        (fun x -> (st#network#get_device_by_name x)#can_suspend)
-       (st#network#get_router_names)
+       (st#network#get_device_names ~devkind:Mariokit.Netmodel.Router ())
 
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#suspend
@@ -273,7 +274,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dynlist () =
       List.filter
        (fun x -> (st#network#get_device_by_name x)#can_resume)
-       (st#network#get_router_names)
+       (st#network#get_device_names ~devkind:Mariokit.Netmodel.Router ())
 
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#resume
@@ -312,7 +313,8 @@ let make
  ?(ok_callback=(fun data -> Some data))
  ?(dialog_image_file=Initialization.Path.images^"ico.router.dialog.png")
  () :'result option =
-  let oldname = name in
+  let old_name = name in
+  let old_port_no = port_no in
   let ((b1,b2,b3,b4),b5) = match port_0_ip_config  with
    | Some x -> x
    | None   -> ((192,168,1,254), 24)
@@ -421,7 +423,8 @@ let make
         Data.variant_realpath = variant_realpath;
         Data.kernel = kernel;
         Data.show_unix_terminal = show_unix_terminal;
-        Data.oldname = oldname;
+        Data.old_name = old_name;
+        Data.old_port_no = old_port_no;
         }
         
   in
@@ -493,6 +496,7 @@ module Eval_forest_child = struct
    )
   with _ -> false
 end (* module Eval_forest_child *)
+
 
 (*-----*)
   WHERE
@@ -658,9 +662,9 @@ object(self)
       ()
       as super
   method device_type = "router"
-end;;
-
 end
+
+end (* module Simulation_level *)
 
 
 (** Just for testing: *)

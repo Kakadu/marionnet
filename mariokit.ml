@@ -291,6 +291,7 @@ let devkind_of_string x = match x with
   | "hub"     -> Hub
   | "switch"  -> Switch
   | "router"  -> Router
+  | "world_gateway"  -> World_gateway
   | _         -> raise (Failure ("devkind_of_string"^x))
 ;;
 
@@ -497,11 +498,10 @@ class virtual simulated_device = object(self)
 
   (** The unit parameter is needed: see how it's used in simulated_network: *)
   method private destroy_because_of_unexpected_death () =
-    Log.printf "You don't deadlock here %s, do you? -1\n" self#get_name; flush_all ();
+    Log.printf "You don't deadlock here %s, do you? -1\n" self#get_name;
     Recursive_mutex.with_mutex mutex
       (fun () ->
         Log.printf "You don't deadlock here %s, do you? 0\n" self#get_name;
-        flush_all ();
         (try
           self#destroy_right_now
         with e -> begin
@@ -1606,126 +1606,6 @@ class virtual virtual_machine
 
 end;; (* class virtual_machine *)
 
-(* *************************** *
-        class router
- * *************************** *)
-(*class router
-  ~network
-  ?name
-  ?label
-  ?epithet
-  ?variant
-  ?kernel
-  ?(show_unix_terminal=false)
-  ?terminal
-  ~port_no
-  ()
-  =
-  let vm_installations = Disk.get_router_installations () in
-  object (self)
-
-  inherit device ~network ?name ?label ~devkind:Router ~port_no () as self_as_device
-  inherit virtual_machine ?epithet ?variant ?kernel ?terminal ~vm_installations ()
-
-  (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity = MDI
-
-  (** Get the full host pathname to the directory containing the guest hostfs
-      filesystem: *)
-  method hostfs_directory_pathname =
-    match !simulated_device with
-    | Some d -> (d :> Simulated_network.router)#hostfs_directory_pathname
-    | None   -> failwith (self#name ^ " is not being simulated right now")
-
-  val mutable show_unix_terminal : bool = show_unix_terminal
-  method get_show_unix_terminal = show_unix_terminal
-  method set_show_unix_terminal x = show_unix_terminal <- x
-
-  (** Create the simulated device *)
-  method private make_simulated_device =
-    let id = self#id in
-    let ethernet_receptacles = self#get_receptacles ~portkind:(Some Eth) () in
-    let cow_file_name =
-      (Filesystem_history.get_states_directory ()) ^
-      (Filesystem_history.add_state_for_device self#name) in
-    let () =
-     Log.printf
-       "About to start the router %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n"
-       self#name
-       self#get_filesystem_file_name
-       cow_file_name
-       self#get_kernel_file_name
-    in
-    new Simulated_network.router
-      ~name:self#get_name
-      ~kernel_file_name:self#get_kernel_file_name
-      ~filesystem_file_name:self#get_filesystem_file_name
-      ~cow_file_name
-      ~ethernet_interface_no:(List.length ethernet_receptacles)
-      ~umid:self#get_name
-      ~id
-      ~show_unix_terminal:self#get_show_unix_terminal
-      ~unexpected_death_callback:self#destroy_because_of_unexpected_death
-      ()
-
-
-  (** Here we also have to manage cow files... *)
-  method private gracefully_shutdown_right_now =
-    self_as_device#gracefully_shutdown_right_now;
-    (* We have to manage the hostfs stuff (when in exam mode) and
-       destroy the simulated device, so that we can use a new cow file the next time: *)
-    Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
-    let hostfs_directory_pathname = self#hostfs_directory_pathname in
-    Log.printf "Ok, we're still alive\n";
-    (* If we're in exam mode then make the report available in the texts treeview: *)
-    (if Command_line.are_we_in_exam_mode then begin
-      let texts_interface = Texts_interface.get_texts_interface () in
-      Log.printf "Adding the report on %s to the texts interface\n" self#name;
-      texts_interface#import_report
-	~machine_or_router_name:self#name
-	~pathname:(hostfs_directory_pathname ^ "/report.html")
-	();
-      Log.printf "Added the report on %s to the texts interface\n" self#name;
-    end);
-    (* ...And destroy, so that the next time we have to re-create the process command line
-	can use a new cow file (see the make_simulated_device method) *)
-    self#destroy_right_now
-
-
-  (** Here we also have to manage LED grids and, for routers, cow files: *)
-  method private poweroff_right_now =
-    self_as_device#poweroff_right_now;
-    (* Destroy, so that the next time we have to re-create a simulated device,
-       and we start with a new cow: *)
-    self#destroy_right_now
-
-  method to_forest =
-   Forest.leaf ("router", [
-                   ("name"     ,  self#get_name );
-                   ("label"   ,   self#get_label);
-                   ("distrib"  ,  self#get_epithet  );
-                   ("variant"  ,  self#get_variant_as_string);
-                   ("kernel"   ,  self#get_kernel   );
-                   ("show_unix_terminal" , string_of_bool (self#get_show_unix_terminal));
-                   ("terminal" ,  self#get_terminal );
-                   ("port_no"  ,  (string_of_int self#get_eth_number))  ;
-	           ])
-
- (** A machine has just attributes (no childs) in this version. *)
- method eval_forest_attribute = function
-  | ("name"     , x ) -> self#set_name x
-  | ("label"    , x ) -> self#set_label x
-  | ("distrib"  , x ) -> self#set_epithet x
-  | ("variant"  , "") -> self#set_variant None
-  | ("variant"  , x ) -> self#set_variant (Some x)
-  | ("kernel"   , x ) -> self#set_kernel x
-  | ("show_unix_terminal", x ) -> self#set_show_unix_terminal (bool_of_string x)
-  | ("terminal" , x ) -> self#set_terminal x
-  | ("port_no"  , x ) -> self#set_eth_number  (int_of_string x)
-  | _ -> () (* Forward-comp. *)
-
-end;;*)
-
 
 (* *************************** *
         class machine
@@ -2008,83 +1888,6 @@ class world_bridge =
 end;; (* world_bridge *)
 
 
-(* *************************** *
-        class world_gateway
- * *************************** *)
-
-(** A gateway has an associated network address and a dhcp server
-    feature enabled or not. *)
-class world_gateway =
-
-  fun ~network
-      ?(name="world_gatewayname")
-      ?(label="")
-      ?(network_address="10.0.2.0")
-      ?(dhcp_enabled=true)
-      ?(user_port_no=4)
-      () ->
-  object (self)
-  inherit device ~network ~name ~label ~devkind:World_gateway ~port_no:user_port_no ()
-  as super
-
-  method show = (self#name^" (world gateway)")
-
-  val mutable network_address : string = network_address
-  method get_network_address = network_address
-  method set_network_address x = network_address <- self#check_network_address x
-  method private check_network_address x = x (* TODO *)
-
-  val mutable dhcp_enabled : bool = dhcp_enabled
-  method get_dhcp_enabled = dhcp_enabled
-  method set_dhcp_enabled x = dhcp_enabled <- self#check_dhcp_enabled x
-  method private check_dhcp_enabled x = x (* TODO *)
-
-  (** Redefined:*)
-  method gw_ipv4_address =
-    let (b1,b2,b3,_) = Ipv4.ipv4_of_string self#get_network_address in
-    let last_byte = 2 in
-    (b1,b2,b3, last_byte)
-
-  method gw_ipv4_address_as_string : string =
-    Ipv4.string_of_ipv4 self#gw_ipv4_address
-
-  method dotImg (z:iconsize) =
-    let imgDir = Initialization.Path.images in
-    (imgDir^"ico.world_gateway."^(self#string_of_simulated_device_state)^"."^z^".png")
-
-  (** Redefined:*)
-  method label_for_dot =
-    let ip_gw = Ipv4.string_of_ipv4 ~cidr:24 self#gw_ipv4_address in
-    match self#get_label with
-    | "" -> ip_gw
-    | _  -> Printf.sprintf "%s <br/> %s" ip_gw self#get_label
-
-  method to_forest =
-   Forest.leaf ("world_gateway", [
-                  ("name",  self#get_name);
-                  ("label", self#get_label);
-                  ("network_address", self#get_network_address);
-                  ("dhcp_enabled", (string_of_bool self#get_dhcp_enabled));
-                  ])
-
-  (** A world_bridge has just attributes (no childs) in this version. *)
-  method eval_forest_attribute = function
-  | ("name"  , x ) -> self#set_name x
-  | ("label" , x ) -> self#set_label x
-  | ("network_address", x ) -> self#set_network_address x
-  | ("dhcp_enabled", x) -> self#set_dhcp_enabled (bool_of_string x)
-  | _ -> assert false
-
-  (** Create the simulated device *)
-  method private make_simulated_device =
-    new Simulated_network.world_gateway
-      ~name:self#get_name
-      ~user_port_no:self#get_eth_number
-      ~network_address
-      ~dhcp_enabled
-      ~unexpected_death_callback:self#destroy_because_of_unexpected_death
-      ()
-end;; (* world_gateway *)
 
 
 (*********************
@@ -2227,19 +2030,6 @@ open Edge;;
    )
   with _ -> false
 
- let try_to_add_world_gateway network (f:Xforest.tree) =
-  try
-   (match f with
-    | Forest.NonEmpty (("world_gateway", attrs) , childs , Forest.Empty) ->
-	let x = new world_gateway ~network () in
-	x#from_forest ("world_gateway", attrs) childs  ;
-	network#add_world_gateway x;
-        true
-   | _ ->
-        false
-   )
-  with _ -> false
-
  let try_to_add_cable network (f:Xforest.tree) =
   try
    (match f with
@@ -2284,7 +2074,6 @@ class network () =
  val mutable cables   : (cable   list) = []
  val mutable clouds   : (cloud   list) = []
  val mutable world_bridges : (world_bridge list) = []
- val mutable world_gateways : (world_gateway list) = []
 
  val ledgrid_manager = Ledgrid_manager.the_one_and_only_ledgrid_manager
 
@@ -2294,7 +2083,6 @@ class network () =
  val mutable cables_buffer   : (cable   list) = []
  val mutable clouds_buffer   : (cloud   list) = []
  val mutable world_bridges_buffer : (world_bridge list) = []
- val mutable world_gateways_buffer : (world_gateway list) = []
 
  (** Accessors *)
 
@@ -2303,7 +2091,6 @@ class network () =
  method cables          = cables
  method clouds          = clouds
  method world_bridges  = world_bridges
- method world_gateways  = world_gateways
  method ledgrid_manager = ledgrid_manager
 
  (** Related dot options fro drawing this virtual network.
@@ -2317,7 +2104,6 @@ class network () =
     (devices  :> component list) @
     (clouds   :> component list) @
     (world_bridges :> component list) @
-    (world_gateways :> component list) @
     (cables   :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
     )
 
@@ -2337,7 +2123,7 @@ class network () =
    (List.iter
       (fun machine -> try machine#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       machines);
-   Log.printf "\tDestroying all switchs, hubs and routers...\n";
+   Log.printf "\tDestroying all devices (switchs, hubs, routers, etc)...\n";
    (List.iter
       (fun device -> try device#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       devices);
@@ -2349,10 +2135,6 @@ class network () =
    (List.iter
       (fun world_bridge -> try world_bridge#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
       world_bridges);
-   Log.printf "\tDestroying all world gateways...\n";
-   (List.iter
-      (fun x -> try x#destroy with _ -> ())
-      world_gateways);
    Log.printf "\tSynchronously wait that everything terminates...\n";
    (if not scheduled then Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks);
 
@@ -2361,7 +2143,6 @@ class network () =
    devices  <- [] ;
    clouds   <- [] ;
    world_bridges <- [] ;
-   world_gateways <- [] ;
    cables   <- [] ;
 
    Log.printf "\tWait for all devices to terminate...\n";
@@ -2379,7 +2160,6 @@ class network () =
    (List.iter (fun device -> try device#destroy_right_now with _ -> ()) devices);
    (List.iter (fun cloud -> try cloud#destroy_right_now with _ -> ()) clouds);
    (List.iter (fun world_bridge -> try world_bridge#destroy_right_now with _ -> ()) world_bridges);
-   (List.iter (fun x -> try x#destroy_right_now with _ -> ()) world_gateways);
    Log.printf "destroy_process_before_quitting: END (success)\n";
   end
 
@@ -2390,7 +2170,6 @@ class network () =
    devices  <- devices_buffer  ;
    clouds   <- clouds_buffer   ;
    world_bridges <- world_bridges_buffer ;
-   world_gateways <- world_gateways_buffer ;
    cables   <- cables_buffer
  end
 
@@ -2400,7 +2179,6 @@ class network () =
    devices_buffer  <- devices  ;
    clouds_buffer   <- clouds   ;
    world_bridges_buffer <- world_bridges ;
-   world_gateways_buffer <- world_gateways ;
    cables_buffer   <- cables
   end
 
@@ -2418,7 +2196,7 @@ class network () =
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cloud;
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_device;
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_bridge;
-   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_gateway;
+(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_gateway; *)
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cable;
    
  (** We redefine just the interpretation of a childs.
@@ -2440,85 +2218,6 @@ class network () =
     | _ -> assert false
     )
 
- (** We redefine just the interpretation of a childs.
-     We ignore (in this version) network attributes. *)
-(* method eval_forest_child_old (f:Xforest.tree) : unit = try begin
-  match f with
-  | Forest.NonEmpty (("machine", attrs) , childs , Forest.Empty) ->
-      let x = new machine ~network:self () in
-      x#from_forest ("machine", attrs) childs ;
-      self#add_machine x
-
-  | Forest.NonEmpty (("router", attrs) , childs , Forest.Empty) ->
-      let port_no = int_of_string (List.assoc "port_no" attrs) in
-      let x = new router ~network:self ~port_no () in
-      x#from_forest ("router", attrs) childs ;
-      self#add_device ((Obj.magic x) :> device)
-
-  | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
-      let ethno = List.assoc "eth" attrs in
-      let devkind = devkind_of_string (List.assoc "kind" attrs) in
-      let x =
-        (match devkind with
-         | Router -> (* backward compatibility *)
-	     let r = new router ~network:self ~port_no:(int_of_string ethno) () in
-	     ((Obj.magic r) :> device)
-         | _ ->
-           new device ~network:self ~port_no:(int_of_string ethno) ()
-	 )
-      in
-      x#from_forest ("device", attrs) childs ;
-      self#add_device x
-
- | Forest.NonEmpty (("cloud", attrs) , childs , Forest.Empty) ->
-      let x = new cloud ~network:self () in
-      x#from_forest ("cloud", attrs) childs ;
-      self#add_cloud x;
-
- | Forest.NonEmpty (("world_bridge", attrs) , childs , Forest.Empty)
- | Forest.NonEmpty (("gateway" (* retro-compatibility *) , attrs) , childs , Forest.Empty) ->
-      let x = new world_bridge ~network:self () in
-      x#from_forest ("world_bridge", attrs) childs  ;
-      self#add_world_bridge x;
-
- | Forest.NonEmpty (("world_gateway", attrs) , childs , Forest.Empty) ->
-      let x = new world_gateway ~network:self () in
-      x#from_forest ("world_gateway", attrs) childs  ;
-      self#add_world_gateway x;
-
- | Forest.NonEmpty (("cable", attrs) , childs , Forest.Empty) ->
-      (* Cables represent a special case: they must be builded knowing their endpoints. *)
-      let ln = List.assoc "leftnodename"    attrs in
-      let lr = List.assoc "leftreceptname"  attrs in
-      let rn = List.assoc "rightnodename"   attrs in
-      let rr = List.assoc "rightreceptname" attrs in
-      let ck = List.assoc "kind"            attrs in
-      let left  = { nodename=ln; receptname=lr }  in
-      let right = { nodename=rn; receptname=rr }  in
-      let cablekind = cablekind_of_string ck      in
-      let x = new cable ~motherboard:self#motherboard ~cablekind ~network:self ~left ~right () in
-      x#from_forest ("cable", attrs) childs ;
-      self#add_cable x;
-
-  | Forest.NonEmpty ((nodename, _) , _ , _)
-     -> (Log.printf "network#eval_forest_child: I can't interpret this nodename '%s'.\n" nodename)
-        (* Forward-compatibility *)
-
-  | Forest.Empty
-     -> (Log.printf "network#eval_forest_child: I can't interpret the empty forest.\n")
-        (* Forward-compatibility *)
- end
- with e  ->
-   Log.printf "network#eval_forest_child: something goes wrong interpreting a child (%s).\n"
-   (Printexc.to_string e); () (* Forward-compatibility *)*)
-
- (* Destruct the x-value into a concrete xml string *)
-(* method xml : string =
-    let trad = ref "" in
-    let update x = trad:=!trad ^ x in
-    let _ = Ocamlduce.Print.print_xml update self#xvalue in
-    let s = Xml.parse_string !trad in
-    Printf.sprintf "%s" (Xml.to_string_fmt s)*)
 
  method nodes : (node list) =
   List.concat [
@@ -2526,7 +2225,6 @@ class network () =
     (devices  :> node list);
     (clouds   :> node list);
     (world_bridges :> node list);
-    (world_gateways :> node list);
     ]
 
  method names = (List.map (fun x->x#name) self#components)
@@ -2546,9 +2244,7 @@ class network () =
  method get_cloud_by_name   n = try List.find (fun x->x#name=n) clouds     with _ -> failwith ("get_cloud_by_name "^n)
  method get_world_bridge_by_name n =
    try List.find (fun x->x#name=n) world_bridges with _ -> failwith ("get_world_bridge_by_name "^n)
- method get_world_gateway_by_name n =
-   try List.find (fun x->x#name=n) world_gateways with _ -> failwith ("get_world_gateway_by_name "^n)
- method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _ -> failwith ("get_node_by_name \""^n^"\"")
+method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _ -> failwith ("get_node_by_name \""^n^"\"")
 
  (** Managing socketnames *)
 
@@ -2621,7 +2317,6 @@ class network () =
  method cable_exists   n = let f=(fun x->x#name=n) in (List.exists f cables  )
  method cloud_exists   n = let f=(fun x->x#name=n) in (List.exists f clouds  )
  method world_bridge_exists n = let f=(fun x->x#name=n) in (List.exists f world_bridges)
- method world_gateway_exists n = let f=(fun x->x#name=n) in (List.exists f world_gateways)
  method name_exists    n = List.mem n self#names
 
  (** What kind of node is it ? *)
@@ -2716,11 +2411,6 @@ class network () =
           then raise (Failure ("add_world_bridge: name "^b#name^" already used in the network"))
           else world_bridges  <- (world_bridges@[b])
 
- method add_world_gateway (g:world_gateway) =
-   (if (self#name_exists g#name)
-      then raise (Failure ("add_world_gateway: name "^g#name^" already used in the network"))
-      else world_gateways  <- (world_gateways@[g]));
-    self#make_device_ledgrid (g:> device);
 
  (** Removing components *)
 
@@ -2782,16 +2472,7 @@ class network () =
          ~value:false
          ());
      cables <- (List.filter (fun x->not (x=c)) cables);
-(* To do: c#destroy_right_now was at the beginning, but I think it should be here. *)
-     c#destroy;(*      c#destroy_right_now; *) (* This was here before the radical synchronization changes *)
-     (* Remove the cable also from the defects interface (cables are not in the network
-        details interface): *)
-     (* (* This should not be needed; it's actually harmful *)
-     (try
-       let defects = Defects_interface.get_defects_interface () in
-       defects#remove_cable cname
-     with _ ->
-       ()); *)
+     c#destroy;
 
  (** Remove a cloud from the network. Remove it from the [clouds] list and remove all related cables *)
  method del_cloud clname =
@@ -2822,21 +2503,6 @@ class network () =
      g#destroy;(*      g#destroy_right_now; *) (* This was here before the radical synchronization changes *)
      world_bridges  <- List.filter (fun x->not (x=g)) world_bridges
 
- (** Remove a world_gateway from the network.
-     Remove it from the [world_gateways] list and remove all related cables *)
- method del_world_gateway gname =
-     let g  = self#get_world_gateway_by_name gname in
-     (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#i_node_nvolved gname) cables in
-     let defects = Defects_interface.get_defects_interface () in
-     List.iter
-       (fun cable ->
-         defects#remove_cable cable#name;
-         self#del_cable cable#name)
-       cables_to_remove;
-     g#destroy;(*      g#destroy_right_now; *) (* This was here before the radical synchronization changes *)
-     self#ledgrid_manager#destroy_device_ledgrid ~id:(g#id) ();
-     world_gateways  <- List.filter (fun x->not (x=g)) world_gateways
 
  (** Change the name of a node => change all cable socketnames refering this node *)
  method change_node_name oldname newname =
@@ -2862,29 +2528,17 @@ class network () =
  method get_machine_names     =
    List.map (fun x->x#name) machines
 
- (** List of device names in the network *)
- method get_device_names     =
-   List.map (fun x->x#name) devices
-
  (** List of node names in the network *)
  method get_node_names  =
    List.map (fun x->x#name) (self#nodes)
 
- (** List of hub names in the network *)
- method get_hub_names     =
-   let hublist= List.filter (fun x->x#devkind=Hub) devices in
-   List.map (fun x->x#name) hublist
-
- (** List of switch names in the network *)
- method get_switch_names  =
-   let swlist= List.filter (fun x->x#devkind=Switch) devices in
-   List.map (fun x->x#name) swlist
-
- (** List of router names in the network *)
- method get_router_names  =
-   let routerlist= List.filter (fun x->x#devkind=Router) devices in
-   List.map (fun x->x#name) routerlist
-
+ method get_device_names ?devkind () =
+  let xs= match devkind with
+  | None   -> devices
+  | Some k -> List.filter (fun x -> x#devkind = k) devices
+  in
+  List.map (fun x->x#name) xs
+ 
  (** List of direct cable names in the network *)
  method get_direct_cable_names  =
    let clist= List.filter (fun x->x#cablekind=Direct) cables in
@@ -2902,10 +2556,6 @@ class network () =
  (** List of world_bridge names in the network *)
  method get_world_bridge_names     =
    List.map (fun x->x#name) world_bridges
-
- (** List of world_gateway names in the network *)
- method get_world_gateway_names     =
-   List.map (fun x->x#name) world_gateways
 
  (** Starting and showing the network *)
 
@@ -2942,11 +2592,6 @@ class network () =
         (StringExtra.Fold.commacat (List.map (fun c->c#show) world_bridges))
         with _ -> ""
    in Log.printf "World bridges \r\t\t: %s\n" msg;
-   (* show world_gateways *)
-   let msg=try
-        (StringExtra.Fold.commacat (List.map (fun c->c#show) world_gateways))
-        with _ -> ""
-   in Log.printf "World gateways \r\t\t: %s\n" msg;
    (* show links *)
    let msg=try
         (StringExtra.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables))

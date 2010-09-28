@@ -213,6 +213,29 @@ let add_help_button_if_necessary window = function
 | Some f -> (window#add_button_stock `HELP `HELP; f)
 
 
+module Ok_callback = struct
+
+let check_name name name_exists t =
+  if not (StrExtra.wellFormedName name)
+  then begin
+    Simple_dialogs.error
+      (s_ "Ill-formed name" )
+      ("Admissible characters are letters and underscores." ) ();
+    None   (* refused *)
+  end else
+  if name_exists name
+  then begin
+    Simple_dialogs.error
+      (s_ "Name conflict" )
+      (Printf.sprintf(f_ "The name '%s' is already used in the virtual network. The names of virtual network elements must be unique." ) name)
+      ();
+    None   (* refused *)
+  end else
+  Some t (* accepted *)
+
+end (* module Ok_callback *)
+
+
 (** Wrappers for the method [run] of a dialog window. *)
 module Dialog_run = struct
 

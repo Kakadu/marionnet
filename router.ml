@@ -56,10 +56,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let key = Some GdkKeysyms._R
 
-    let ok_callback t =
-      if not (StrExtra.wellFormedName t.name)
-        then None   (* refused *)
-        else Some t (* accepted *)
+    let ok_callback t = Gui_bricks.Ok_callback.check_name t.name st#network#name_exists t
 
     let dialog () =
       let name = st#network#suggestedName "R" in

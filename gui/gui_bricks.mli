@@ -72,6 +72,10 @@ val make_tooltips_for_container :
   GObj.widget ->
   string -> unit
 
+module Ok_callback : sig
+ val check_name : string -> (string->bool) -> 'a -> 'a option
+end
+
 module Dialog_run : sig
 
   val ok_or_cancel :

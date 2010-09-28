@@ -20,14 +20,14 @@
 module Make (State : sig val st:State.globalState end) = struct
  module Direct    = struct let cablekind = Mariokit.Netmodel.Direct    end
  module Crossover = struct let cablekind = Mariokit.Netmodel.Crossover end
- module Created_menus_for_machine = Gui_machine.Make_menus (State)
- module Created_menus_for_hub     = Gui_hub.    Make_menus (State)
- module Created_menus_for_switch  = Gui_switch. Make_menus (State)
- module Created_menus_for_router  = Gui_router. Make_menus (State)
- module Created_menus_for_direct_cable    = Gui_cable. Make_menus (State) (Direct)
- module Created_menus_for_crossover_cable = Gui_cable. Make_menus (State) (Crossover)
- module Created_menus_for_cloud   = Gui_cloud.  Make_menus (State)
- module Created_menus_for_world_gateway = Gui_world_gateway. Make_menus (State)
- module Created_menus_for_world_bridge  = Gui_world_bridge. Make_menus (State)
+ module Menus_for_machine = Gui_machine.Make_menus (State)
+ module Menus_for_hub     = Gui_hub.    Make_menus (State)
+ module Menus_for_switch  = Gui_switch. Make_menus (State)
+ module Menus_for_router  = Router. Make_menus (State)
+ module Menus_for_direct_cable    = Gui_cable. Make_menus (State) (Direct)
+ module Menus_for_crossover_cable = Gui_cable. Make_menus (State) (Crossover)
+ module Menus_for_cloud   = Gui_cloud.  Make_menus (State)
+ module Menus_for_world_gateway = Gui_world_gateway. Make_menus (State)
+ module Menus_for_world_bridge  = Gui_world_bridge. Make_menus (State)
 end
 

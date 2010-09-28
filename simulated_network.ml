@@ -1697,38 +1697,6 @@ object(self)
   method device_type = "computer"
 end;;
 
-(** A router: just a [machine_or_router] with [router = true] *)
-class router =
-  fun ~name
-      ~(cow_file_name)
-      ~(kernel_file_name)
-      ~(filesystem_file_name)
-      ~(ethernet_interface_no)
-      ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
-      ~id
-      ~show_unix_terminal
-      ~unexpected_death_callback
-      () ->
-object(self)
-  inherit machine_or_router
-      ~name
-      ~router:true
-      ~filesystem_file_name(* :"/usr/marionnet/filesystems/router.debian.lenny.sid.fs" *)
-      ~kernel_file_name
-      ~cow_file_name
-      ~ethernet_interface_no
-      ~memory:40(*32*)
-      ~umid
-      (* Change this when debugging the router device *)
-      ~console:"none" (* To do: this should be "none" for releases and "xterm" for debugging *)
-      ~id
-      ~show_unix_terminal
-      ~xnest:false
-      ~unexpected_death_callback
-      ()
-      as super
-  method device_type = "router"
-end;;
 
 class world_bridge =
   fun (* ~id *)

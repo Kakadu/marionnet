@@ -92,7 +92,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       details#add_device ~port_row_completions name "router" port_no;
       defects#add_device name "router" port_no;
       let router =
-        new Mariokit.Netmodel.router
+        new User_level.router (* defined later with WHERE *)
           ~network:st#network
           ~name
           ~label
@@ -131,7 +131,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dialog name () =
      let details = Network_details_interface.get_network_details_interface () in
      let r = (st#network#get_device_by_name name) in
-     let r = ((Obj.magic r):> Mariokit.Netmodel.router) in
+     let r = ((Obj.magic r):> User_level.router) in
      let title = (s_ "Modify router")^" "^name in
      let label = r#get_label in
      let distribution = r#get_epithet in
@@ -172,7 +172,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       (* name *)
       let d = st#network#get_device_by_name oldname in
-      let r = ((Obj.magic d):> Mariokit.Netmodel.router) in
+      let r = ((Obj.magic d):> User_level.router) in
       (match name = oldname with
       | true -> ()
       | false ->
@@ -282,6 +282,9 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
  module Create_entries =
   Gui_toolbar_COMPONENTS_layouts.Layout_for_network_node (State) (Toolbar_entry) (Add) (Properties) (Remove) (Startup) (Stop) (Suspend) (Resume)
+
+ (* Subscribe this kind of component to the network club: *)
+ st#network#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_router;
 
 end
 
@@ -458,5 +461,209 @@ Password: zebra")
 
 end
 
+(*-----*)
+  WHERE
+(*-----*)
+
+module Eval_forest_child = struct  
+ let try_to_add_router (network:Mariokit.Netmodel.network) (f:Xforest.tree) =
+  try
+   (match f with
+    | Forest.NonEmpty (("router", attrs) , childs , Forest.Empty) ->
+	let port_no = int_of_string (List.assoc "port_no" attrs) in
+	let x = new User_level.router ~network ~port_no () in
+	x#from_forest ("router", attrs) childs ;
+	network#add_device ((Obj.magic x) :> Mariokit.Netmodel.device);
+        true
+
+   (* backward compatibility *)
+   | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
+      let ethno = List.assoc "eth" attrs in
+      let devkind = Mariokit.Netmodel.devkind_of_string (List.assoc "kind" attrs) in
+      (match devkind with
+      | Mariokit.Netmodel.Router ->
+	  let r = new User_level.router ~network ~port_no:(int_of_string ethno) () in
+	  let x = ((Obj.magic r) :> Mariokit.Netmodel.device) in
+	  x#from_forest ("device", attrs) childs ;
+	  network#add_device x;
+          true
+      | _ -> false
+      )
+   | _ -> false
+   )
+  with _ -> false
+end (* module Eval_forest_child *)
+
+(*-----*)
+  WHERE
+(*-----*)
+
+
+module User_level = struct
+
+class router
+  ~network
+  ?name
+  ?label
+  ?epithet
+  ?variant
+  ?kernel
+  ?(show_unix_terminal=false)
+  ?terminal
+  ~port_no
+  ()
+  =
+  let vm_installations = Disk.get_router_installations () in
+  object (self)
+
+  inherit Mariokit.Netmodel.device ~network ?name ?label ~devkind:Mariokit.Netmodel.Router ~port_no ()
+    as self_as_device
+  inherit Mariokit.Netmodel.virtual_machine ?epithet ?variant ?kernel ?terminal ~vm_installations ()
+
+  (** See the comment in the 'node' class for the meaning of this method: *)
+  method polarity = Mariokit.Netmodel.MDI
+
+  (** Get the full host pathname to the directory containing the guest hostfs
+      filesystem: *)
+  method hostfs_directory_pathname =
+    match !simulated_device with
+    | Some d -> (d :> Simulation_level.router)#hostfs_directory_pathname
+    | None   -> failwith (self#name ^ " is not being simulated right now")
+
+  val mutable show_unix_terminal : bool = show_unix_terminal
+  method get_show_unix_terminal = show_unix_terminal
+  method set_show_unix_terminal x = show_unix_terminal <- x
+
+  (** Create the simulated device *)
+  method private make_simulated_device =
+    let id = self#id in
+    let ethernet_receptacles = self#get_receptacles ~portkind:(Some Mariokit.Netmodel.Eth) () in
+    let cow_file_name =
+      (Filesystem_history.get_states_directory ()) ^
+      (Filesystem_history.add_state_for_device self#name) in
+    let () =
+     Log.printf
+       "About to start the router %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n"
+       self#name
+       self#get_filesystem_file_name
+       cow_file_name
+       self#get_kernel_file_name
+    in
+    new Simulation_level.router
+      ~name:self#get_name
+      ~kernel_file_name:self#get_kernel_file_name
+      ~filesystem_file_name:self#get_filesystem_file_name
+      ~cow_file_name
+      ~ethernet_interface_no:(List.length ethernet_receptacles)
+      ~umid:self#get_name
+      ~id
+      ~show_unix_terminal:self#get_show_unix_terminal
+      ~unexpected_death_callback:self#destroy_because_of_unexpected_death
+      ()
+
+
+  (** Here we also have to manage cow files... *)
+  method private gracefully_shutdown_right_now =
+    self_as_device#gracefully_shutdown_right_now;
+    (* We have to manage the hostfs stuff (when in exam mode) and
+       destroy the simulated device, so that we can use a new cow file the next time: *)
+    Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
+    let hostfs_directory_pathname = self#hostfs_directory_pathname in
+    Log.printf "Ok, we're still alive\n";
+    (* If we're in exam mode then make the report available in the texts treeview: *)
+    (if Command_line.are_we_in_exam_mode then begin
+      let texts_interface = Texts_interface.get_texts_interface () in
+      Log.printf "Adding the report on %s to the texts interface\n" self#name;
+      texts_interface#import_report
+	~machine_or_router_name:self#name
+	~pathname:(hostfs_directory_pathname ^ "/report.html")
+	();
+      Log.printf "Added the report on %s to the texts interface\n" self#name;
+    end);
+    (* ...And destroy, so that the next time we have to re-create the process command line
+	can use a new cow file (see the make_simulated_device method) *)
+    self#destroy_right_now
+
+
+  (** Here we also have to manage LED grids and, for routers, cow files: *)
+  method private poweroff_right_now =
+    self_as_device#poweroff_right_now;
+    (* Destroy, so that the next time we have to re-create a simulated device,
+       and we start with a new cow: *)
+    self#destroy_right_now
+
+  method to_forest =
+   Forest.leaf ("router", [
+                   ("name"     ,  self#get_name );
+                   ("label"   ,   self#get_label);
+                   ("distrib"  ,  self#get_epithet  );
+                   ("variant"  ,  self#get_variant_as_string);
+                   ("kernel"   ,  self#get_kernel   );
+                   ("show_unix_terminal" , string_of_bool (self#get_show_unix_terminal));
+                   ("terminal" ,  self#get_terminal );
+                   ("port_no"  ,  (string_of_int self#get_eth_number))  ;
+	           ])
+
+ (** A machine has just attributes (no childs) in this version. *)
+ method eval_forest_attribute = function
+  | ("name"     , x ) -> self#set_name x
+  | ("label"    , x ) -> self#set_label x
+  | ("distrib"  , x ) -> self#set_epithet x
+  | ("variant"  , "") -> self#set_variant None
+  | ("variant"  , x ) -> self#set_variant (Some x)
+  | ("kernel"   , x ) -> self#set_kernel x
+  | ("show_unix_terminal", x ) -> self#set_show_unix_terminal (bool_of_string x)
+  | ("terminal" , x ) -> self#set_terminal x
+  | ("port_no"  , x ) -> self#set_eth_number  (int_of_string x)
+  | _ -> () (* Forward-comp. *)
+
+end;;
+
+end (* module User_level *)
+
+(*-----*)
+  WHERE
+(*-----*)
+
+module Simulation_level = struct
+(** A router: just a [machine_or_router] with [router = true] *)
+class router =
+  fun ~name
+      ~(cow_file_name)
+      ~(kernel_file_name)
+      ~(filesystem_file_name)
+      ~(ethernet_interface_no)
+       (* TODO fresh id*)
+      ?umid
+      ~id
+      ~show_unix_terminal
+      ~unexpected_death_callback
+      () ->
+object(self)
+  inherit Simulated_network.machine_or_router
+      ~name
+      ~router:true
+      ~filesystem_file_name(* :"/usr/marionnet/filesystems/router.debian.lenny.sid.fs" *)
+      ~kernel_file_name
+      ~cow_file_name
+      ~ethernet_interface_no
+      ~memory:40(*32*)
+      ?umid
+      (* Change this when debugging the router device *)
+      ~console:"none" (* To do: this should be "none" for releases and "xterm" for debugging *)
+      ~id
+      ~show_unix_terminal
+      ~xnest:false
+      ~unexpected_death_callback
+      ()
+      as super
+  method device_type = "router"
+end;;
+
+end
+
+
 (** Just for testing: *)
 let test = Dialog_add_or_update.make
+
+

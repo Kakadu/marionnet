@@ -1609,7 +1609,7 @@ end;; (* class virtual_machine *)
 (* *************************** *
         class router
  * *************************** *)
-class router
+(*class router
   ~network
   ?name
   ?label
@@ -1724,7 +1724,7 @@ class router
   | ("port_no"  , x ) -> self#set_eth_number  (int_of_string x)
   | _ -> () (* Forward-comp. *)
 
-end;;
+end;;*)
 
 
 (* *************************** *
@@ -2168,6 +2168,102 @@ end;; (* Module Edge *)
 open Edge;;
 
 
+ module Eval_forest_child = struct
+
+ let try_to_add_machine network (f:Xforest.tree) =
+  try
+   (match f with
+   | Forest.NonEmpty (("machine", attrs) , childs , Forest.Empty) ->
+        let x = new machine ~network () in
+        x#from_forest ("machine", attrs) childs ;
+        network#add_machine x;
+        true
+   | _ -> false
+   )
+  with _ -> false
+
+ let try_to_add_device network (f:Xforest.tree) =
+  try
+   (match f with
+    | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
+	let ethno = List.assoc "eth" attrs in
+	let devkind = devkind_of_string (List.assoc "kind" attrs) in
+	(match devkind with
+	| Router -> false
+	| _      ->
+	    let x = new device ~network ~port_no:(int_of_string ethno) () in
+	    x#from_forest ("device", attrs) childs ;
+	    network#add_device x;
+	    true
+	)
+   | _ -> false
+   )
+  with _ -> false
+
+ let try_to_add_cloud network (f:Xforest.tree) =
+  try
+   (match f with
+    | Forest.NonEmpty (("cloud", attrs) , childs , Forest.Empty) ->
+	let x = new cloud ~network () in
+        x#from_forest ("cloud", attrs) childs ;
+	network#add_cloud x;
+        true
+   | _ ->
+        false
+   )
+  with _ -> false
+
+ let try_to_add_world_bridge network (f:Xforest.tree) =
+  try
+   (match f with
+    | Forest.NonEmpty (("world_bridge", attrs) , childs , Forest.Empty)
+    | Forest.NonEmpty (("gateway" (* retro-compatibility *) , attrs) , childs , Forest.Empty) ->
+        let x = new world_bridge ~network () in
+	x#from_forest ("world_bridge", attrs) childs  ;
+	network#add_world_bridge x;
+        true
+   | _ ->
+        false
+   )
+  with _ -> false
+
+ let try_to_add_world_gateway network (f:Xforest.tree) =
+  try
+   (match f with
+    | Forest.NonEmpty (("world_gateway", attrs) , childs , Forest.Empty) ->
+	let x = new world_gateway ~network () in
+	x#from_forest ("world_gateway", attrs) childs  ;
+	network#add_world_gateway x;
+        true
+   | _ ->
+        false
+   )
+  with _ -> false
+
+ let try_to_add_cable network (f:Xforest.tree) =
+  try
+   (match f with
+   | Forest.NonEmpty (("cable", attrs) , childs , Forest.Empty) ->
+	(* Cables represent a special case: they must be builded knowing their endpoints. *)
+	let ln = List.assoc "leftnodename"    attrs in
+	let lr = List.assoc "leftreceptname"  attrs in
+	let rn = List.assoc "rightnodename"   attrs in
+	let rr = List.assoc "rightreceptname" attrs in
+	let ck = List.assoc "kind"            attrs in
+	let left  = { nodename=ln; receptname=lr }  in
+	let right = { nodename=rn; receptname=rr }  in
+	let cablekind = cablekind_of_string ck      in
+	let x = new cable ~motherboard:network#motherboard ~cablekind ~network ~left ~right () in
+	x#from_forest ("cable", attrs) childs ;
+	network#add_cable x;
+        true
+   | _ ->
+        false
+   )
+  with _ -> false
+
+ end (* module Eval_forest_child *)
+
 (* *************************** *
         class network
  * *************************** *)
@@ -2312,9 +2408,41 @@ class network () =
    let l = List.map (fun x->x#to_forest) self#components in
    Forest.tree ("network",[]) (Forest.of_treelist l)
 
+ val try_to_add_procedure_list= ref []
+ method subscribe_a_try_to_add_procedure p =
+   try_to_add_procedure_list := p::(!try_to_add_procedure_list)
+
+ initializer
+   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_machine;
+(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_router; *)
+   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cloud;
+   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_device;
+   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_bridge;
+   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_gateway;
+   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cable;
+   
  (** We redefine just the interpretation of a childs.
      We ignore (in this version) network attributes. *)
- method eval_forest_child (f:Xforest.tree) : unit = try begin
+ method eval_forest_child (f:Xforest.tree) : unit =
+  let xs = List.rev !try_to_add_procedure_list in
+  let result = List.exists (fun p -> p self f) xs in
+  match result with
+  | true -> ()
+  | false ->
+    (match f with
+    | Forest.NonEmpty ((nodename, _) , _ , _)
+     -> (Log.printf "network#eval_forest_child: I can't interpret this nodename '%s'.\n" nodename)
+        (* Forward-compatibility *)
+
+    | Forest.Empty
+     -> (Log.printf "network#eval_forest_child: I can't interpret the empty forest.\n")
+        (* Forward-compatibility *)
+    | _ -> assert false
+    )
+
+ (** We redefine just the interpretation of a childs.
+     We ignore (in this version) network attributes. *)
+(* method eval_forest_child_old (f:Xforest.tree) : unit = try begin
   match f with
   | Forest.NonEmpty (("machine", attrs) , childs , Forest.Empty) ->
       let x = new machine ~network:self () in
@@ -2382,7 +2510,7 @@ class network () =
  end
  with e  ->
    Log.printf "network#eval_forest_child: something goes wrong interpreting a child (%s).\n"
-   (Printexc.to_string e); () (* Forward-compatibility *)
+   (Printexc.to_string e); () (* Forward-compatibility *)*)
 
  (* Destruct the x-value into a concrete xml string *)
 (* method xml : string =

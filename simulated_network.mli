@@ -570,7 +570,7 @@ class machine :
     method terminate_processes : unit
   end
 
-class router :
+(*class router :
   name:string ->
   cow_file_name:string ->
   kernel_file_name:process_name ->
@@ -602,7 +602,7 @@ class router :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
-  end
+  end*)
 
 class world_bridge :
   name:string ->

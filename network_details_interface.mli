@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+type port_row_completions = (string * (string * Row_item.row_item) list) list
+
 class network_details_interface :
   packing:(GObj.widget -> unit) ->
   after_user_edit_callback:(string -> unit) ->
@@ -30,7 +32,7 @@ class network_details_interface :
     unit -> Treeview.checkbox_column
 
   method add_device :
-    ?port_row_completions:(string * (string * Row_item.row_item) list) list ->
+    ?port_row_completions:port_row_completions ->
     string -> string -> int -> unit
 
   method add_editable_string_column :
@@ -125,6 +127,7 @@ class network_details_interface :
   method reset : unit
   method reset_file_name : unit
   method reset_identifier : unit
+  method row_exists_with_binding : key:string -> value:string -> bool
   method row_id_such_that : (Treeview.row -> bool) -> string
   method row_ids_such_that : (Treeview.row -> bool) -> string list
   method row_such_that : (Treeview.row -> bool) -> (string * Row_item.row_item) list

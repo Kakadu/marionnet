@@ -142,19 +142,19 @@ object (self)
     ignore (List.map
               (fun port -> self#set_port_connection_state ~id ~port ~value:true ())
               connected_ports);
-    Log.printf "Ok, done.\n";
-    Log.printf "Testing (1): is id=%d present in the table?...\n" id;
+    Log.printf ~v:2 "Ok, done.\n";
+    Log.printf ~v:2 "Testing (1): is id=%d present in the table?...\n" id;
     (try
       let _ = self#id_to_device id in
-      Log.printf "Ok, passed.\n";
+      Log.printf ~v:2 "Ok, passed.\n";
     with _ ->
-      Log.printf "FAILED.\n");
-    Log.printf "Testing (2): is id=%d present in the table?...\n" id;
+      Log.printf ~v:2 "FAILED.\n");
+    Log.printf ~v:2 "Testing (2): is id=%d present in the table?...\n" id;
     (try
       let _ = self#lookup id in
-      Log.printf "Ok, passed.\n";
+      Log.printf ~v:2 "Ok, passed.\n";
     with _ ->
-      Log.printf "FAILED.\n");
+      Log.printf ~v:2 "FAILED.\n");
     self#unlock
 
   method show_device_ledgrid ~id () =

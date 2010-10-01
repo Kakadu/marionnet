@@ -75,7 +75,7 @@ object(self)
     Task_runner.the_task_runner#schedule
       (fun () ->
         self#set_row_item row_id "Timestamp" (String correct_date));
-    self#save
+    
 
   method delete_state row_id =
     let name = item_to_string (self#get_row_item row_id "Name") in
@@ -97,7 +97,7 @@ object(self)
           else
             self#unhighlight_row (item_to_string an_id)))
       (self#get_complete_forest);
-    self#save
+    
 
   method get_the_most_recent_state_with_name name =
     let forest = self#get_complete_forest in

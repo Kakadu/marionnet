@@ -18,7 +18,7 @@
 
 (** Some modules for managing the virtual network *)
 
-open Sugar;;
+(*open Sugar;;*)
 open UnixExtra;;
 open Environment;;
 open Oomarshal;;
@@ -105,7 +105,7 @@ class network =
   method extrasize = extrasize
 
   method iconsize_for_dot  = iconsize#get
-  method shuffler_as_function = shuffler#get => ListExtra.asFunction  (* returns the permutation function *)
+  method shuffler_as_function = ListExtra.asFunction shuffler#get (* returns the permutation function *)
   method rankdir_for_dot   = "rankdir="^(rankdir#get)^";"
   method nodesep_for_dot   = let s=(string_of_float nodesep#get) in ("nodesep="^s^"; ranksep="^s)
   method labeldistance_for_dot = "labeldistance="^(string_of_float labeldistance#get)
@@ -143,13 +143,13 @@ class network =
    let extrasize = extrasize#get in
    if (extrasize = 0.) then "ratio=compress;" else
    begin
-    let x = self#toolbar_driver#get_image_original_width  => Widget.Image.inch_of_pixels in
-    let y = self#toolbar_driver#get_image_original_height => Widget.Image.inch_of_pixels in
+    let x = Widget.Image.inch_of_pixels self#toolbar_driver#get_image_original_width in
+    let y = Widget.Image.inch_of_pixels self#toolbar_driver#get_image_original_height in
     let area  = x *. y in
     let delta_area = extrasize *. area /. 100. in
     let delta = sqrt( (x+.y)**2. +. 4.*. delta_area  )  -.  (x+.y)  in
-    let x = x +. delta => string_of_float in
-    let y = y +. delta => string_of_float in
+    let x = string_of_float (x +. delta) in
+    let y = string_of_float (y +. delta) in
     "size=\""^x^","^y^
     "\";\nratio=fill;"
    end
@@ -347,7 +347,11 @@ let raise_forbidden_transition msg =
     conveniently hide the complexity of managing switches and cables; when the
     user tries to invoke any forbidden state transition an exception is
     raised. *)
-class virtual simulated_device = object(self)
+class virtual simulated_device () = object(self)
+
+  initializer
+    self#add_destroy_callback (lazy self#destroy_my_simulated_device);
+
   (** We have critical sections here: *)
   val mutex = Recursive_mutex.create ()
 
@@ -451,7 +455,8 @@ class virtual simulated_device = object(self)
     (* This is invisible for the user: don't set the next state *)
     the_task_runner#schedule ~name:("create "^self#get_name) (fun () -> self#create_right_now)
 
-  method destroy =
+  method (*private*) destroy_my_simulated_device =
+    Log.printf "component \"%s\": destroying my simulated device.\n" self#get_name;
     (* This is invisible for the user: don't set the next state *)
     the_task_runner#schedule ~name:("destroy "^self#get_name)(fun () -> self#destroy_right_now)
 
@@ -720,7 +725,7 @@ let generator = Counter.make_int_generator ();;
 class id_name_label = fun ?(name="noname") ?(label="") () ->
 
   (* Some checks over used name and label *)
-  let wellFormedLabel =  (StrExtra.Bool.match_string ".*[><].*") || not in
+  let wellFormedLabel x = not (StrExtra.Bool.match_string ".*[><].*" x) in
 
   let check_name  x =
   	if not (StrExtra.wellFormedName  x)
@@ -807,9 +812,11 @@ class receptacle = fun ~network (name:receptname) (index:int) label (kind:portki
 
   (** A receptacle has an index in its container. This field is normally coherent with the label.
       For instance, one expects that a receptacle with the label "eth2" will have the index=2. *)
-  method index = if (index>=0)
-                 then index
-                 else name => ((StrExtra.extract_groups (Str.regexp "[a-z]*\\([0-9]+\\)")) || List.hd || int_of_string)
+  method index =
+    let (||) = Sugar.(||) in
+    if (index>=0)
+    then index
+    else ((StrExtra.extract_groups (Str.regexp "[a-z]*\\([0-9]+\\)")) || List.hd || int_of_string) name 
 end;;
 
 
@@ -829,17 +836,26 @@ class virtual node = fun
    ?(label="")
    ?(nodekind = Machine)
    ?(devkind  = NotADevice)
-   ?(rlist:receptacle list = []) () ->
+   ?(rlist:receptacle list = [])
+   ~(port_prefix:string)
+   () ->
 
    object (self)
    inherit component ~network ~name ~label ()
-   inherit simulated_device
+   inherit simulated_device ()
 
+   (* TODO: deve diventare virtuale!!! temporaneamente definito durante il refactoring
+      ma deve essere implementato in tutte le classi concrete: *)
+   method virtual destroy : unit (*=
+     self#destroy_my_simulated_device*)
+     
   (** 'Static' methods (in the sense of C++/Java). Polarity is used to decide the correct
       kind of Ethernet cable needed to connect a pair of devices: the cable should be
       crossover iff both endpoints have the same polarity: *)
   method virtual polarity : polarity
 
+  method port_prefix = port_prefix
+  
   (** Constant fields (methods) *)
 
   (** The mutable list of receptacle of this component. *)
@@ -953,9 +969,18 @@ class virtual node = fun
 
   (** {b Convenient aliases} *)
 
-  method get_eth_number                   = self#number_of_receptacles ~portkind:(Some Eth) ()
-  method set_eth_number ?(prefix="eth") x = self#readjust_receptacle_number ~prefix:(Some prefix) Eth x
+  (* TODO: remove them and use instead {get_,set_}port_no *)
+  method get_eth_number = self#number_of_receptacles ~portkind:(Some Eth) ()
+  method set_eth_number ?(port_prefix="eth") x =
+    self#readjust_receptacle_number ~prefix:(Some port_prefix) Eth x
 
+  method set_port_no new_port_no =
+    let prefix = self#port_prefix in
+    self#readjust_receptacle_number ~prefix:(Some prefix) Eth new_port_no
+
+  (* alias *)
+  method get_port_no = self#number_of_receptacles ~portkind:(Some Eth) ()
+  
   (** Node dot traduction *)
 
   (** Returns an image representig the node with the given iconsize. *)
@@ -1027,17 +1052,18 @@ class cable =
       let result = thunk () in
       result
     with e -> begin
-      Log.printf "I disabled synchronization here: RE-RAISING %s\n" (Printexc.to_string e); flush_all ();
+      Log.printf "I disabled synchronization here: RE-RAISING %s\n" (Printexc.to_string e);
       raise e;
     end
   in
 object (self)
+  inherit OoExtra.destroy_methods ()
   inherit component ~network ~name ~label ()
-  inherit simulated_device as super_simulated_device
+  inherit simulated_device () as self_as_simulated_device
 
   (* Redefinition: *)
   method destroy =
-    super_simulated_device#destroy;
+    self#destroy_my_simulated_device;
     self#dotoptions#destroy ()
 
   val cablekind = cablekind
@@ -1278,7 +1304,6 @@ object (self)
               simulated device later, at startup time, referring the correct hublets
               that will exist then, rather than the ones existing now *)
            Log.printf "The reference count dropped below three: destroying a cable\n";
-(*        self#destroy_right_now; (\* Before radical synchronization changes *\) *)
            self#destroy_right_now;
          end)
 
@@ -1329,7 +1354,7 @@ object (self)
            connected := true;
          end else begin
            let current_alive_endpoint_no = !alive_endpoint_no in
-           super_simulated_device#destroy_because_of_unexpected_death ();
+           self_as_simulated_device#destroy_because_of_unexpected_death ();
            connected := true;
            alive_endpoint_no := 0;
            for i = 1 to current_alive_endpoint_no do
@@ -1425,21 +1450,67 @@ let rec mkrecepts network k portkind portprefix = match k with
         class device
  * *************************** *)
 
-(** Final class for hubs, switches and world_gateways
+class virtual device_with_defects ~network () = object (self)
+
+  method virtual defects_device_type : string
+  method virtual get_name : string
+  method virtual get_eth_number : int
+  
+  method private add_my_defects =
+   match
+     (network#defects:Defects_interface.defects_interface)#row_exists_with_binding
+        "Name"
+        self#get_name
+   with
+   | true ->
+       Log.printf "The %s %s has already defects defined...\n"
+         self#defects_device_type
+         self#get_name
+   | false -> network#defects#add_device self#get_name self#defects_device_type self#get_eth_number;
+
+  method private destroy_my_defects =
+    Log.printf "component \"%s\": destroying my defects.\n" self#get_name;
+    network#defects#remove_device self#get_name;
+
+  initializer
+    self#add_my_defects;
+    self#add_destroy_callback (lazy self#destroy_my_defects);
+   
+end
+
+(** Common class for hubs, switches and world_gateways
    (routers have a more specialized class): *)
-class device
+class virtual device_with_ledgrid_and_defects
   ~network
-  ?(name="nodevicename")
+  ~name
   ?(label="")
-  ?(devkind=Hub)
+  ~devkind
   ~port_no
+  ~(port_prefix:string) (* "port" or "eth" *)
   ()
   =
-  let intial_receptacles = (mkrecepts network (port_no-1) Eth "port")
-  in
+  let intial_receptacles = (mkrecepts network (port_no-1) Eth port_prefix) in
+  let network_alias = network in
   object (self)
 
-  inherit node ~network ~name ~label ~nodekind:Device ~devkind ~rlist:intial_receptacles () as super
+  inherit node
+    ~network
+    ~name ~label
+    ~nodekind:Device
+    ~devkind
+    ~rlist:intial_receptacles
+    ~port_prefix ()
+  as self_as_node
+
+  initializer
+    (* TODO: the following line must be moved the a node initializer: *)
+    network#add_device_new (self :> device_with_ledgrid_and_defects);
+    self#add_destroy_callback (lazy (network#del_device_new self#get_name));
+    (* this is correct here: *)
+    self#add_my_ledgrid;
+    self#add_destroy_callback (lazy self#destroy_my_ledgrid);
+
+  inherit device_with_defects ~network:network_alias () as self_as_device_with_defects
 
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity =
@@ -1450,8 +1521,7 @@ class device
   (** Dot adjustments *)
 
   (** Returns an image representig the device with the given iconsize. *)
-  method dotImg (z:iconsize) =
-    (Initialization.Path.images^"ico."^(string_of_devkind self#devkind)^"."^(self#string_of_simulated_device_state)^"."^z^".png")
+  method virtual dotImg : iconsize -> string
 
   (** Returns the label to use for cable representation.
       For devices, the port X is represented by the string "[X]". *)
@@ -1463,7 +1533,7 @@ class device
       Ignore the receptname and returns the empty string. *)
   method dotPortForEdges (receptname:string) = ""
 
-  method to_forest =
+  method to_forest = (* TODO remove it, is obsolete *)
    Forest.leaf ("device",[
   		  ("name" , self#get_name) ;
                   ("label", self#get_label);
@@ -1486,7 +1556,7 @@ class device
     let hublet_no = List.length ethernet_receptacles in
     let unexpected_death_callback = self#destroy_because_of_unexpected_death in
     (match self#devkind with
-    | Hub     -> new Simulated_network.hub
+(*     | Hub     -> new Simulated_network.hub *)
     | Switch  -> new Simulated_network.switch
     | _ -> assert false)
        ~name ~hublet_no ~unexpected_death_callback ()
@@ -1494,14 +1564,14 @@ class device
   (** Here we also have to manage LED grids: *)
   method private startup_right_now =
     (* Do as usual... *)
-    super#startup_right_now;
+    self_as_node#startup_right_now;
     (* ...and also show the LED grid: *)
     network#ledgrid_manager#show_device_ledgrid ~id:(self#id) ()
 
 
   method private gracefully_shutdown_right_now =
     (* Do as usual... *)
-    super#gracefully_shutdown_right_now;
+    self_as_node#gracefully_shutdown_right_now;
     (* ...and also hide the LED grid... *)
     network#ledgrid_manager#hide_device_ledgrid ~id:(self#id) ();
 
@@ -1509,11 +1579,103 @@ class device
   (** Here we also have to manage LED grids: *)
   method private poweroff_right_now =
     (* Do as usual... *)
-    super#poweroff_right_now;
+    self_as_node#poweroff_right_now;
     (* ...and also hide the LED grid... *)
     network#ledgrid_manager#hide_device_ledgrid ~id:(self#id) ();
 
+  method ledgrid_image_directory =
+   let leds_relative_subdir = string_of_devkind self#devkind in
+   (Initialization.Path.leds ^ leds_relative_subdir)
+
+  (* may be redefined *)
+  method ledgrid_title = self#get_name
+  method virtual ledgrid_label : string
+  
+  method add_my_ledgrid =
+     (* Make a new device LEDgrid: *)
+     (network#ledgrid_manager:Ledgrid_manager.ledgrid_manager)#make_device_ledgrid
+       ~id:(self#id)
+       ~title:(self#get_name)
+       ~label:(self#ledgrid_label)
+       ~port_no:(self#number_of_receptacles ~portkind:(Some Eth) ())
+       ~image_directory:self#ledgrid_image_directory 
+       ();
+     (* Set port connection state: *)
+     let busy_ports = 
+       network#busy_receptacles_of_node self#get_name Eth
+     in
+     let busy_ports_as_indices =
+       List.map (fun receptacle -> receptacle#index) busy_ports
+     in
+     ignore (List.map
+               (fun port_index ->
+                  (network#ledgrid_manager#set_port_connection_state
+                     ~id:self#id
+                     ~port:port_index
+                     ~value:true
+                     ()))
+               busy_ports_as_indices)
+
+  method destroy_my_ledgrid : unit =
+    Log.printf "component \"%s\": destroying my ledgrid.\n" self#get_name;
+    (network#ledgrid_manager:Ledgrid_manager.ledgrid_manager)#destroy_device_ledgrid
+      ~id:(self#id)
+      ()
+
+  (* REDEFINED: *)
+  method set_name new_name =
+    let old_name = self#get_name in
+    if old_name <> new_name then begin
+      network#defects#rename_device old_name new_name;
+      network#change_cable_references ~old_name ~new_name; (* TODO: remove it using ids or objects!!*)
+      self_as_node#set_name new_name;
+    end;
+ 
+  (* REDEFINED: *)
+  method set_port_no new_port_no =
+    let old_port_no = self#get_eth_number in
+    if new_port_no <> old_port_no then begin
+      network#defects#update_port_no self#get_name new_port_no;
+      self_as_node#set_port_no new_port_no;      
+    end;
+
+  method private update_really_needed ~(name:string) ~(label:string) ~(port_no:int) : bool =
+   ((name    <> self#get_name)  ||
+    (label   <> self#get_label) ||
+    (port_no <> self#get_port_no))
+    
+  method update_with ~name ~label ~port_no =
+    if self#update_really_needed ~name ~label ~port_no then
+    begin
+      self#destroy_my_simulated_device;
+      self#destroy_my_ledgrid;
+      self#set_name name;
+      self#set_port_no port_no;
+      self#set_label label;
+      self#add_my_ledgrid; (* may use all previous properties (including the label) *)
+    end
+
+
 end;;
+
+class switch ~network ~name ?label ~port_no () =
+ object (self) inherit OoExtra.destroy_methods ()
+
+ inherit device_with_ledgrid_and_defects
+   ~network
+   ~name ?label ~devkind:Switch
+   ~port_no
+   ~port_prefix:"port"
+   ()
+
+ method ledgrid_label = "Switch"
+ method defects_device_type = "switch"
+
+ method dotImg (z:iconsize) =
+   let imgDir = Initialization.Path.images in
+   (imgDir^"ico.switch."^(self#string_of_simulated_device_state)^"."^z^".png")
+ 
+end
 
 
 (* ************************************* *
@@ -1521,11 +1683,15 @@ end;;
    (common class for machine and router)
  * ************************************* *)
 
-class virtual virtual_machine
+class virtual virtual_machine_with_history_and_details
+  ~network
   ?epithet   (* Ex: "debian-lenny-42178" *)
   ?variant
   ?kernel    (* Also en epithet, ex: "2.6.18-ghost" *)
   ?terminal
+  ~(history_icon:string)
+  ~(details_device_type:string)
+  ?(details_port_row_completions:Network_details_interface.port_row_completions option)
   ~(vm_installations:Disk.virtual_machine_installations)
   ()
   =
@@ -1544,8 +1710,18 @@ class virtual virtual_machine
 
   object (self)
 
+  initializer
+    self#add_my_details ?port_row_completions:details_port_row_completions self#get_port_no;
+    self#add_destroy_callback (lazy self#destroy_my_details);
+    self#add_my_history;
+    self#add_destroy_callback (lazy self#destroy_my_history);
+
+  (* Paramters *)
+  method history_icon = history_icon
+  method details_device_type = details_device_type
+
   method private banner =
-    (Printf.sprintf "Mariokit.virtual_machine: setting %s: " self#name)
+    (Printf.sprintf "Mariokit.virtual_machine: setting %s: " self#get_name)
 
   method sprintf : 'a. ('a, unit, string, string) format4 -> 'a =
     Printf.ksprintf (fun x->self#banner^x)
@@ -1574,6 +1750,9 @@ class virtual virtual_machine
    match v#epithet_exists x with
    | true -> x
    | false -> self#failwith "the variant %s is not available" x
+
+ method get_variant_realpath : string option =
+   Option.map (vm_installations#variants_of self#get_epithet)#realpath_of_epithet self#get_variant
 
   (** A machine has an associated linux kernel, expressed by en epithet: *)
   val mutable kernel : string = kernel
@@ -1604,7 +1783,57 @@ class virtual virtual_machine
   method is_xnest_enabled =
       (vm_installations#terminal_manager_of self#get_epithet)#is_xnest self#get_terminal
 
-end;; (* class virtual_machine *)
+  (* Used only to add a filesystem history device: *)
+  method private prefixed_epithet = (vm_installations#prefix ^ self#get_epithet)
+
+  method add_my_history =
+   let icon = self#history_icon in
+   let name = self#get_name in
+   match ((network#history:Filesystem_history.states_interface)#number_of_states_with_name name) > 0 with
+   | true -> Log.printf "The virtual machine %s has already history defined...\n" name
+   | false ->
+      Filesystem_history.add_device
+          ~name
+          ~prefixed_filesystem:self#prefixed_epithet
+          ?variant:self#get_variant
+          ?variant_realpath:self#get_variant_realpath
+          ~icon
+          ()
+  
+  method add_my_details
+    ?(port_row_completions:Network_details_interface.port_row_completions option)
+    (port_no:int) : unit
+   =
+   match
+     (network#details:Network_details_interface.network_details_interface)#row_exists_with_binding
+        "Name"
+        self#get_name
+   with
+   | true  -> Log.printf "The %s %s has already details defined...\n" self#details_device_type self#get_name
+   | false ->
+      begin
+      network#details#add_device
+        ?port_row_completions
+        self#get_name
+        details_device_type
+        self#get_eth_number
+      end
+
+  method destroy_my_details =
+    Log.printf "component \"%s\": destroying my details.\n" self#get_name;
+    network#details#remove_device self#get_name;
+
+  method destroy_my_history =
+    Log.printf "component \"%s\": destroying my history.\n" self#get_name;
+    Filesystem_history.remove_device_tree self#get_name;
+
+  method update_virtual_machine_with ~name ~port_no kernel =
+    network#details#update_port_no self#get_name port_no;
+    network#details#rename_device self#get_name name;
+    Filesystem_history.rename_device self#get_name name;
+    self#set_kernel kernel;
+
+end;; (* class virtual_machine_with_history_and_details *)
 
 
 (* *************************** *
@@ -1628,18 +1857,32 @@ class machine
    =
   let vm_installations = Disk.get_machine_installations ()
   in
-  let check_eth_number ?(name=name) x =
-    if x<1 or x>5
-      then failwith "value not in the eth's number range [1,5]"
+  let check_eth_number ?(name=name) x = 
+    if x<1 or x>8 (* TODO: fix the limit with a MARIONNET variable *)
+      then failwith "value not in the eth's number range [1,8]"
       else x
   in
   let intial_receptacles = (mkrecepts network ((check_eth_number ethnum)-1) Eth "eth")
   in
-
+  let network_alias = network in
   object (self)
 
-  inherit node ~network ~name ~label ~nodekind:Machine ~rlist:intial_receptacles () as super
-  inherit virtual_machine ?epithet ?variant ?kernel ?terminal ~vm_installations ()
+  inherit OoExtra.destroy_methods ()
+  
+  inherit node
+    ~network
+    ~name ~label ~nodekind:Machine ~rlist:intial_receptacles
+    ~port_prefix:"eth"
+    ()
+    as self_as_node
+
+  inherit virtual_machine_with_history_and_details
+    ~network:network_alias
+    ?epithet ?variant ?kernel ?terminal
+    ~history_icon:"machine"
+    ~details_device_type:"machine"
+    ~vm_installations ()
+    as self_as_virtual_machine_with_history_and_details
 
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity = MDI
@@ -1653,9 +1896,10 @@ class machine
     | None ->
         failwith (self#name ^ " is not being simulated right now")
 
-  (** Redefining node methods for adding checks *)
-  method set_eth_number ?(prefix="eth") x =
-    self#readjust_receptacle_number ~prefix:(Some prefix) Eth (self#check_eth_number x)
+  (** REDEFINED for checking *)
+  method set_eth_number ?port_prefix x =
+    let x = (self#check_eth_number x) in
+    self_as_node#set_eth_number ?port_prefix x
 
   method private check_eth_number x = check_eth_number ~name:self#name x
 
@@ -1740,7 +1984,7 @@ class machine
     let hostfs_directory_pathname = self#hostfs_directory_pathname in
     Log.printf "Ok, we're still alive\n"; flush_all ();
     (* Do as usual... *)
-    super#gracefully_shutdown_right_now;
+    self_as_node#gracefully_shutdown_right_now;
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Command_line.are_we_in_exam_mode then begin
       let texts_interface = Texts_interface.get_texts_interface () in
@@ -1764,7 +2008,7 @@ class machine
   (** Here we also have to manage cow files... *)
   method private poweroff_right_now =
     (* Do as usual... *)
-    super#poweroff_right_now;
+    self_as_node#poweroff_right_now;
     (* ...And destroy, so that the next time we have to re-create the process command line
        can use a new cow file (see the make_simulated_device method) *)
     self#destroy_right_now
@@ -1783,19 +2027,27 @@ class cloud =
       ?(label="")
       () ->
 
-  let gwnum             = 2 in
-  let intial_receptacles = (mkrecepts network (gwnum-1) Eth "port") in
+  let port_prefix = "port" in
+  let port_no = 2 in
+  let intial_receptacles = (mkrecepts network (port_no-1) Eth port_prefix) in
 
-  object (self)
+  object (self) inherit OoExtra.destroy_methods ()
 
-  inherit node ~network ~name ~label ~nodekind:Cloud ~rlist:intial_receptacles ()
+  inherit node
+    ~network
+    ~name ~label ~nodekind:Cloud ~rlist:intial_receptacles
+    ~port_prefix
+    ()
 
+  (* TODO: this is temporary and not correct: *)
+  method destroy = self#destroy_my_simulated_device
+ 
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity = Intelligent (* Because it is didactically meaningless *)
 
   method show = self#name
 
-  method eth_number        = 2
+  method eth_number = 2 (* TODO *)
 
   (** Dot adjustments *)
 
@@ -1843,11 +2095,20 @@ class world_bridge =
       ?(label="")
       () ->
 
-  let intial_receptacles = (mkrecepts network 0 Eth "eth") in
+  let port_prefix = "eth" in
+  let intial_receptacles = (mkrecepts network 0 Eth port_prefix) in
 
-  object (self)
+  object (self) inherit OoExtra.destroy_methods ()
 
-  inherit node ~network ~name ~label ~nodekind:World_bridge ~rlist:intial_receptacles ()
+
+  inherit node
+    ~network
+    ~name ~label ~nodekind:World_bridge ~rlist:intial_receptacles
+    ~port_prefix
+    ()
+
+  (* TODO: this is temporary and not correct: *)
+  method destroy = self#destroy_my_simulated_device
 
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity = Intelligent (* Because is not pedagogic anyway. *)
@@ -1985,19 +2246,20 @@ open Edge;;
    )
   with _ -> false
 
- let try_to_add_device network (f:Xforest.tree) =
+ let try_to_add_switch network (f:Xforest.tree) =
   try
    (match f with
     | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
-	let ethno = List.assoc "eth" attrs in
+	let name = List.assoc "name" attrs in
+	let port_no = int_of_string (List.assoc "eth" attrs) in
 	let devkind = devkind_of_string (List.assoc "kind" attrs) in
 	(match devkind with
-	| Router -> false
-	| _      ->
-	    let x = new device ~network ~port_no:(int_of_string ethno) () in
+	| Switch ->
+	    let x = new switch ~network ~name ~port_no () in
 	    x#from_forest ("device", attrs) childs ;
-	    network#add_device x;
+(* 	    network#add_device x; *)
 	    true
+	| _ -> false
 	)
    | _ -> false
    )
@@ -2060,9 +2322,13 @@ open Edge;;
 
 (** Class modelling the virtual network *)
 class network () =
-
+ let ledgrid_manager = Ledgrid_manager.the_one_and_only_ledgrid_manager in
  object (self)
  inherit Xforest.interpreter ()
+
+ method defects = Defects_interface.get_defects_interface ()
+ method details = Network_details_interface.get_network_details_interface ()
+ method history = Filesystem_history.get_states_interface ()
 
  (** Motherboard is set in Gui_motherboard. *)
  val mutable motherboard : State_types.motherboard option = None
@@ -2070,16 +2336,15 @@ class network () =
  method set_motherboard m = motherboard <- Some m
 
  val mutable machines : (machine list) = []
- val mutable devices  : (device  list) = []
+ val mutable devices  : (device_with_ledgrid_and_defects  list) = []
  val mutable cables   : (cable   list) = []
  val mutable clouds   : (cloud   list) = []
  val mutable world_bridges : (world_bridge list) = []
 
- val ledgrid_manager = Ledgrid_manager.the_one_and_only_ledgrid_manager
 
  (** Buffers to backup/restore data. *)
  val mutable machines_buffer : (machine list) = []
- val mutable devices_buffer  : (device  list) = []
+ val mutable devices_buffer  : (device_with_ledgrid_and_defects  list) = []
  val mutable cables_buffer   : (cable   list) = []
  val mutable clouds_buffer   : (cloud   list) = []
  val mutable world_bridges_buffer : (world_bridge list) = []
@@ -2117,23 +2382,23 @@ class network () =
    Log.printf "network#reset: begin\n";
    Log.printf "\tDestroying all cables...\n";
    (List.iter
-      (fun cable -> try cable#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
+      (fun cable -> try cable#destroy with _ -> ())
       cables);
    Log.printf "\tDestroying all machines...\n";
    (List.iter
-      (fun machine -> try machine#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
+      (fun machine -> try machine#destroy with _ -> ()) 
       machines);
    Log.printf "\tDestroying all devices (switchs, hubs, routers, etc)...\n";
    (List.iter
-      (fun device -> try device#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
+      (fun device -> try device#destroy with _ -> ()) 
       devices);
    Log.printf "\tDestroying all clouds...\n";
    (List.iter
-      (fun cloud -> try cloud#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
+      (fun cloud -> try cloud#destroy with _ -> ())
       clouds);
    Log.printf "\tDestroying all world bridges...\n";
    (List.iter
-      (fun world_bridge -> try world_bridge#destroy with _ -> ()) (* "right_now" was here before the recent radical synchronization changes*)
+      (fun world_bridge -> try world_bridge#destroy with _ -> ())
       world_bridges);
    Log.printf "\tSynchronously wait that everything terminates...\n";
    (if not scheduled then Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks);
@@ -2194,7 +2459,8 @@ class network () =
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_machine;
 (*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_router; *)
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cloud;
-   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_device;
+(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_hub; *)
+   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_switch;
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_bridge;
 (*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_gateway; *)
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cable;
@@ -2208,14 +2474,14 @@ class network () =
   | true -> ()
   | false ->
     (match f with
-    | Forest.NonEmpty ((nodename, _) , _ , _)
-     -> (Log.printf "network#eval_forest_child: I can't interpret this nodename '%s'.\n" nodename)
+    | Forest.NonEmpty ((nodename, attrs) , _ , _)
+     -> let name  = List.assoc "name" attrs in
+        (Log.printf "network#eval_forest_child: I can't interpret this \"%s\" name \"%s\".\n" nodename name)
         (* Forward-compatibility *)
 
     | Forest.Empty
      -> (Log.printf "network#eval_forest_child: I can't interpret the empty forest.\n")
         (* Forward-compatibility *)
-    | _ -> assert false
     )
 
 
@@ -2324,42 +2590,25 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
 
  (** Adding components *)
 
- method make_device_ledgrid (d:device) =
-     let led_subdirectory = string_of_devkind d#devkind in
-     (* Make a new device LEDgrid: *)
-     self#ledgrid_manager#make_device_ledgrid
-       ~id:(d#id)
-       ~title:(d#get_name(*  ^ " (" ^(string_of_devkind d#devkind) ^ ")" *))
-       ~label:(match d#devkind with
-                 Hub -> ("Hub")
-               | Switch -> ("Switch")
-               | Router -> ("Router")
-               | World_gateway -> ("World gateway")
-               | _ -> assert false)
-       ~port_no:(d#number_of_receptacles ~portkind:(Some Eth) ())
-       ~image_directory:(Initialization.Path.leds^led_subdirectory)
-       ();
-     (* Set port connection state: *)
-     let busy_ports =
-       self#busy_receptacles_of_node d#get_name Eth in
-     let busy_ports_as_indices =
-       List.map (fun receptacle -> receptacle#index) busy_ports in
-     ignore (List.map
-               (fun port_index -> (self#ledgrid_manager#set_port_connection_state
-                                     ~id:d#id
-                                     ~port:port_index
-                                     ~value:true
-                                     ()))
-               busy_ports_as_indices)
-
  (** Devices must have a unique name in the network *)
- method add_device (d:device) =
+ method add_device_new (d:device_with_ledgrid_and_defects) =
     if (self#name_exists d#name) then
       raise (Failure "add_device: name already used in the network")
     else begin
       devices  <- (devices@[d]);
-      self#make_device_ledgrid d;
     end
+
+ (** Remove a device from the network. Remove it from the [devices] list and remove all related cables *)
+ method del_device_new dname =
+     let d  = self#get_device_by_name dname in
+     (* Destroy cables first: they refer what we're removing... *)
+     let cables_to_remove = List.filter (fun c->c#i_node_nvolved dname) cables in
+     List.iter 
+       (fun cable -> (* TODO: this must became simply cable#destroy or (better) cable#update *)
+         self#defects#remove_cable cable#name;
+         self#del_cable cable#name)
+       cables_to_remove;
+     devices  <- List.filter (fun x->not (x=d)) devices
 
  (** Machines must have a unique name in the network *)
  method add_machine (m:machine) =
@@ -2428,7 +2677,7 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
          self#del_cable cable#name)
        cables_to_remove;
      Filesystem_history.remove_device_tree mname;
-     m#destroy;(*      m#destroy_right_now; *) (* This was here before the radical synchronization changes *)
+     m#destroy;
      machines  <- List.filter (fun x->not (x=m)) machines
 
  (** Remove a device from the network. Remove it from the [devices] list and remove all related cables *)
@@ -2445,7 +2694,7 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
      (if d#devkind = Router then
        Filesystem_history.remove_device_tree dname);
      self#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
-     d#destroy;(*      d#destroy_right_now; *) (* This was here before the radical synchronization changes *)
+     d#destroy;
      devices  <- List.filter (fun x->not (x=d)) devices
 
  (** Remove a cable from network *)
@@ -2485,7 +2734,7 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
          defects#remove_cable cable#name;
          self#del_cable cable#name)
        cables_to_remove;
-     cl#destroy;(*      cl#destroy_right_now; *) (* This was here before the radical synchronization changes *)
+     cl#destroy;
      clouds  <- List.filter (fun x->not (x=cl)) clouds
 
  (** Remove a world_bridge from the network.
@@ -2500,17 +2749,23 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
          defects#remove_cable cable#name;
          self#del_cable cable#name)
        cables_to_remove;
-     g#destroy;(*      g#destroy_right_now; *) (* This was here before the radical synchronization changes *)
+     g#destroy;
      world_bridges  <- List.filter (fun x->not (x=g)) world_bridges
 
 
  (** Change the name of a node => change all cable socketnames refering this node *)
+ (* TODO: remove it and use change_cable_references *)
  method change_node_name oldname newname =
    if oldname = newname then () else
    let node = self#get_node_by_name oldname in
    node#set_name newname ;
-   ListExtra.foreach cables (fun c->c#change_node_name oldname newname)
+   List.iter (fun c->c#change_node_name oldname newname) cables
 
+ method change_cable_references ~old_name ~new_name =
+   if old_name = new_name
+   then ()
+   else List.iter (fun c->c#change_node_name old_name new_name) cables
+ 
  (** Facilities *)
 
   (** Would a hypothetical cable of a given crossoverness be 'correct' if it connected the two
@@ -2538,7 +2793,27 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
   | Some k -> List.filter (fun x -> x#devkind = k) devices
   in
   List.map (fun x->x#name) xs
- 
+
+ method get_devices_that_can_startup ~devkind () =
+  ListExtra.filter_map
+    (fun x -> if (x#devkind = devkind) && x#can_startup then Some x#get_name else None)
+    devices
+
+ method get_devices_that_can_gracefully_shutdown ~devkind () =
+  ListExtra.filter_map
+    (fun x -> if (x#devkind = devkind) && x#can_gracefully_shutdown then Some x#get_name else None)
+    devices
+
+ method get_devices_that_can_suspend ~devkind () =
+  ListExtra.filter_map
+    (fun x -> if (x#devkind = devkind) && x#can_suspend then Some x#get_name else None)
+    devices
+
+ method get_devices_that_can_resume ~devkind () =
+  ListExtra.filter_map
+    (fun x -> if (x#devkind = devkind) && x#can_resume then Some x#get_name else None)
+    devices
+
  (** List of direct cable names in the network *)
  method get_direct_cable_names  =
    let clist= List.filter (fun x->x#cablekind=Direct) cables in

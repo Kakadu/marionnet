@@ -16,10 +16,8 @@
 
 open Gettext;;
 
-(** Gui-related stuff for the user-level component "world gateway". *)
+(** "world gateway" component implementation. *)
 
-(* The module containing the add/update dialog is defined later,
-   using the syntax extension "where" *)
 #load "where_p4.cmo"
 ;;
 
@@ -30,13 +28,20 @@ type t = {
   label            : string;
   network_config   : Ipv4.config;
   dhcp_enabled     : bool;
-  user_port_no     : int;
+  port_no          : int;
   old_name         : string;
-  old_user_port_no : int;
   }
 
 let to_string t = "<obj>" (* TODO? *)
 end (* Data *)
+
+module Tool = struct
+
+ let network_address_of_config (config:Ipv4.config) =
+   let ((i1,i2,i3,_),_) = config in
+   Printf.sprintf "%i.%i.%i.%i" i1 i2 i3 0
+
+end (* module Tool *)
 
 module Make_menus (State : sig val st:State.globalState end) = struct
 
@@ -52,49 +57,39 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let key = Some GdkKeysyms._G
 
-    let ok_callback t = Gui_bricks.Ok_callback.check_name t.name st#network#name_exists t
+    let ok_callback t = Gui_bricks.Ok_callback.check_name t.name t.old_name st#network#name_exists t
 
     let dialog () =
       let name = st#network#suggestedName "G" in
       Dialog_add_or_update.make
         ~title:(s_ "Add world gateway") ~name ~ok_callback ()
-
-    let network_address_of_config config =
-      let ((i1,i2,i3,_),_) = config in
-      Printf.sprintf "%i.%i.%i.%i" i1 i2 i3 0
    
-    let reaction : t -> unit =
-     function
-      { name = name;
-        label = label;
-        network_config = network_config;
-        dhcp_enabled = dhcp_enabled;
-        user_port_no = user_port_no;
-        old_name = _ ; old_user_port_no = _ }
-      ->
-      let g =
-        new User_level.world_gateway
+    let reaction {
+         name = name;
+         label = label;
+         network_config = network_config;
+         dhcp_enabled = dhcp_enabled;
+         port_no = port_no;
+         old_name = _ ;
+         }
+      =
+      let action () = ignore (
+       new User_level.world_gateway
           ~network:st#network
           ~name
           ~label
-          ~network_address:(network_address_of_config network_config)
+          ~port_no
+          ~network_address:(Tool.network_address_of_config network_config)
           ~dhcp_enabled
-          ~user_port_no
-          ()
+          ())
       in
-      (* The "world" port is hidden for defects: *)
-      let defects = Defects_interface.get_defects_interface () in
-      defects#add_device name "router" user_port_no;
-      st#network_change st#network#add_device (g :> Mariokit.Netmodel.device);
+      st#network_change action ();
   end
 
   module Properties = struct
     include Data
 
-    let dynlist =
-     fun () -> List.filter
-                  (fun x -> (st#network#get_device_by_name x)#can_startup)
-                  (st#network#get_device_names ~devkind:Mariokit.Netmodel.World_gateway ())
+    let dynlist () = st#network#get_devices_that_can_startup ~devkind:Mariokit.Netmodel.World_gateway ()
 
     let dialog name () =
      let d = (st#network#get_device_by_name name) in
@@ -107,45 +102,27 @@ module Make_menus (State : sig val st:State.globalState end) = struct
        ((Ipv4.ipv4_of_string g#get_network_address), fixed_cidr)
      in
      let dhcp_enabled = g#get_dhcp_enabled in
-     let user_port_no = g#get_eth_number in
+     let port_no = g#get_eth_number in
+     (* The user cannot remove receptacles used by a cable. *)
+     let port_no_lower = st#network#port_no_lower_of g#get_name in
      Dialog_add_or_update.make
-       ~title ~name ~label ~network_config ~dhcp_enabled ~user_port_no
+       ~title ~name ~label ~network_config ~dhcp_enabled ~port_no ~port_no_lower
        ~ok_callback:Add.ok_callback ()
 
 
-    let reaction : t -> unit =
-     function
-      { name = name;
-        label = label;
-        network_config = network_config;
-        dhcp_enabled = dhcp_enabled;
-        user_port_no = user_port_no;
-        old_name = old_name;
-        old_user_port_no = old_user_port_no;
-        }
-      ->
-      let defects = Defects_interface.get_defects_interface () in
+    let reaction {
+         name = name;
+         label = label;
+         network_config = network_config;
+         dhcp_enabled = dhcp_enabled;
+         port_no = port_no;
+         old_name = old_name ;
+         }
+      =
       let d = (st#network#get_device_by_name old_name) in
-      let d = ((Obj.magic d):> User_level.world_gateway) in
-      (match (name = old_name) && (user_port_no = old_user_port_no)  with
-      | true -> ()
-      | false ->
-          begin
-            d#destroy; (* VERIFICARE *)
-            d#set_eth_number ~prefix:"port" user_port_no;
-            defects#update_port_no name user_port_no;
-            st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
-            st#network#change_node_name old_name name  ;
-            Filesystem_history.rename_device old_name name;
-            defects#rename_device old_name name;
-            st#network#make_device_ledgrid (d :> Mariokit.Netmodel.device);
-          end
-      );
-      d#set_label label;
-      d#set_network_address (Add.network_address_of_config network_config);
-      d#set_dhcp_enabled dhcp_enabled;
-      st#update_cable_sensitivity ();
-      st#refresh_sketch ();
+      let g = ((Obj.magic d):> User_level.world_gateway) in
+      let action () = g#update_world_gateway_with ~name ~label ~network_config ~dhcp_enabled ~port_no in
+      st#network_change action ();
 
   end
 
@@ -163,16 +140,16 @@ module Make_menus (State : sig val st:State.globalState end) = struct
         ()
 
     let reaction name =
-      let defects = Defects_interface.get_defects_interface () in
-      st#network_change st#network#del_device name;
-      defects#remove_device name;
+      let d = (st#network#get_device_by_name name) in
+      let g = ((Obj.magic d):> User_level.world_gateway) in
+      let action () = g#destroy in
+      st#network_change action ();
 
   end
 
   module Startup = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#startup
@@ -182,12 +159,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-
-    let dynlist () =
-      List.filter
-       (fun x -> (st#network#get_device_by_name x)#can_gracefully_shutdown)
-       (st#network#get_device_names ~devkind:Mariokit.Netmodel.World_gateway ())
-
+    let dynlist = st#network#get_devices_that_can_gracefully_shutdown ~devkind:Mariokit.Netmodel.World_gateway
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
 
@@ -196,12 +168,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-
-    let dynlist () =
-      List.filter
-       (fun x -> (st#network#get_device_by_name x)#can_suspend)
-       (st#network#get_device_names ~devkind:Mariokit.Netmodel.World_gateway ())
-
+    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:Mariokit.Netmodel.World_gateway ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#suspend
 
@@ -210,12 +177,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-
-    let dynlist () =
-      List.filter
-       (fun x -> (st#network#get_device_by_name x)#can_resume)
-       (st#network#get_device_names ~devkind:Mariokit.Netmodel.World_gateway ())
-
+    let dynlist () = st#network#get_devices_that_can_resume ~devkind:Mariokit.Netmodel.World_gateway ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#resume
 
@@ -243,40 +205,28 @@ let make
  ?label
  ?(network_config:Ipv4.config option)
  ?(dhcp_enabled=true)
- ?(user_port_no=4)
+ ?(port_no=4)
+ ?(port_no_lower=2)
  ?(help_callback=help_callback) (* defined backward with "WHERE" *)
  ?(ok_callback=(fun data -> Some data))
  ?(dialog_image_file=Initialization.Path.images^"ico.world_gateway.dialog.png")
  () :'result option =
   let old_name = name in
-  let old_user_port_no = user_port_no in
   let ((b1,b2,b3,b4),b5) = match network_config with
    | Some x -> x
    | None   -> ((10,0,2,1),24)
   in
-  let w = GWindow.dialog ~destroy_with_parent:true ~title ~modal:true ~position:`CENTER () in
-  Gui_bricks.set_marionnet_icon w;
-  let tooltips = Gui_bricks.make_tooltips_for_container w in
-
-  let (name,label) =
-    let hbox = GPack.hbox ~homogeneous:true ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
-    let image = GMisc.image ~file:dialog_image_file ~xalign:0.5 ~packing:hbox#add () in
-    tooltips image#coerce (s_ "Gateway");
-    let vbox = GPack.vbox ~spacing:10 ~packing:hbox#add () in
-    let name  =
-      let tooltip = (s_ "Gateway name. This name must be unique in the virtual network. Suggested: G1, G2, ...") in
-      Gui_bricks.entry_with_label ~tooltip ~packing:vbox#add ~entry_text:name  (s_ "Name")
-    in
-    let label =
-      let tooltip = (s_ "Label to be written in the network sketch, next to the element icon." ) in
-      Gui_bricks.entry_with_label ~tooltip ~packing:vbox#add ?entry_text:label (s_ "Label")
-    in
-    (name,label)
+  let (w,_,name,label) =
+     Gui_bricks.Dialog_add_or_update.make_window_image_name_and_label
+      ~title
+      ~image_file:dialog_image_file
+      ~image_tooltip:(s_ "Wolrd gateway")
+      ~name
+      ~name_tooltip:(s_ "World gateway name. This name must be unique in the virtual network. Suggested: G1, G2, ...")
+      ?label
+      ()
   in
-
-  ignore (GMisc.separator `HORIZONTAL ~packing:w#vbox#add ());
-
-  let ((s1,s2,s3,s4,s5), dhcp_enabled, user_port_no) =
+  let ((s1,s2,s3,s4,s5), dhcp_enabled, port_no) =
     let vbox = GPack.vbox ~homogeneous:false ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
     let form =
       Gui_bricks.make_form_with_labels
@@ -293,13 +243,13 @@ let make
         ~active:dhcp_enabled
         ~packing:(form#add_with_tooltip (s_ "Should the gateway provide a DHCP service?" )) ()
     in
-    let user_port_no =
+    let port_no =
       Gui_bricks.spin_byte
         ~packing:(form#add_with_tooltip (s_ "The number of ports of the integrated switch" ))
-        ~lower:2 ~upper:16 ~step_incr:2
-        user_port_no
+        ~lower:port_no_lower ~upper:16 ~step_incr:2
+        port_no
     in
-    (network_config, dhcp_enabled, user_port_no)
+    (network_config, dhcp_enabled, port_no)
   in
   s4#misc#set_sensitive false;
   s5#misc#set_sensitive false;
@@ -316,14 +266,14 @@ let make
       ((s1,s2,s3,s4),s5)
     in
     let dhcp_enabled = dhcp_enabled#active in
-    let user_port_no = int_of_float user_port_no#value in
+    let port_no = int_of_float port_no#value in
       { Data.name = name;
         Data.label = label;
         Data.network_config = network_config;
         Data.dhcp_enabled = dhcp_enabled;
-        Data.user_port_no = user_port_no;
+        Data.port_no = port_no;
         Data.old_name = old_name;
-        Data.old_user_port_no = old_user_port_no; }
+        }
   in
   (* The result of make is the result of the dialog loop (of type 'result option): *)
   Gui_bricks.Dialog_run.ok_or_cancel w ~ok_callback ~help_callback ~get_widget_data ()
@@ -365,9 +315,12 @@ module Eval_forest_child = struct
   try
    (match f with
     | Forest.NonEmpty (("world_gateway", attrs) , childs , Forest.Empty) ->
-	let x = new User_level.world_gateway ~network () in
-	x#from_forest ("world_gateway", attrs) childs  ;
-	network#add_device ((Obj.magic x) :> Mariokit.Netmodel.device);
+    	let name  = List.assoc "name" attrs in
+    	let port_no  = try int_of_string (List.assoc "port_no" attrs) with _ -> 4 in
+        Log.printf "Importing world gateway \"%s\" with %d ports...\n" name port_no;
+	let x = new User_level.world_gateway ~network ~name ~port_no () in
+	x#from_forest ("world_gateway", attrs) childs;
+        Log.printf "World gateway \"%s\" successfully imported.\n" name;
         true
    | _ ->
         false
@@ -387,16 +340,31 @@ module User_level = struct
     and a dhcp server capability. *)
 class world_gateway =
 
-  fun ~network
-      ?(name="world_gatewayname")
-      ?(label="")
+  fun ~(network:Mariokit.Netmodel.network)
+      ~name
+      ?label
+      ?(port_no=4)
       ?(network_address="10.0.2.0")
       ?(dhcp_enabled=true)
-      ?(user_port_no=4)
       () ->
-  object (self)
-  inherit Mariokit.Netmodel.device ~network ~name ~label ~devkind:Mariokit.Netmodel.World_gateway ~port_no:user_port_no ()
-  as super
+  object (self) inherit OoExtra.destroy_methods ()
+
+  inherit Mariokit.Netmodel.device_with_ledgrid_and_defects
+    ~network
+    ~name
+    ?label
+    ~devkind:Mariokit.Netmodel.World_gateway
+    ~port_no
+    ~port_prefix:"port" (* because these ports are of the integrated switch *)
+    ()
+    as self_as_device_with_ledgrid_and_defects
+
+  method ledgrid_label = "World gateway"
+  method defects_device_type = "router"
+
+  method dotImg (z:Mariokit.Netmodel.iconsize) =
+    let imgDir = Initialization.Path.images in
+    (imgDir^"ico.world_gateway."^(self#string_of_simulated_device_state)^"."^z^".png")
 
   method show = (self#name^" (world gateway)")
 
@@ -418,11 +386,7 @@ class world_gateway =
 
   method gw_ipv4_address_as_string : string =
     Ipv4.string_of_ipv4 self#gw_ipv4_address
-
-  method dotImg (z:Mariokit.Netmodel.iconsize) =
-    let imgDir = Initialization.Path.images in
-    (imgDir^"ico.world_gateway."^(self#string_of_simulated_device_state)^"."^z^".png")
-
+  
   (** Redefined:*)
   method label_for_dot =
     let ip_gw = Ipv4.string_of_ipv4 ~cidr:24 self#gw_ipv4_address in
@@ -436,6 +400,7 @@ class world_gateway =
                   ("label", self#get_label);
                   ("network_address", self#get_network_address);
                   ("dhcp_enabled", (string_of_bool self#get_dhcp_enabled));
+                  ("port_no", (string_of_int self#get_eth_number));
                   ])
 
   (** A world_bridge has just attributes (no childs) in this version. *)
@@ -444,17 +409,24 @@ class world_gateway =
   | ("label" , x ) -> self#set_label x
   | ("network_address", x ) -> self#set_network_address x
   | ("dhcp_enabled", x) -> self#set_dhcp_enabled (bool_of_string x)
+  | ("port_no", x) -> self#set_eth_number (int_of_string x)
   | _ -> assert false
 
   (** Create the simulated device *)
   method private make_simulated_device =
     new Simulation_level.world_gateway
       ~name:self#get_name
-      ~user_port_no:self#get_eth_number
+      ~port_no:self#get_eth_number
       ~network_address
       ~dhcp_enabled
       ~unexpected_death_callback:self#destroy_because_of_unexpected_death
       ()
+
+  method update_world_gateway_with ~name ~label ~port_no ~network_config ~dhcp_enabled =
+    self_as_device_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
+    self#set_network_address (Tool.network_address_of_config network_config);
+    self#set_dhcp_enabled dhcp_enabled;
+
 end (* class world_gateway *)
 
 end (* module User_level *)
@@ -467,14 +439,14 @@ module Simulation_level = struct
 
 class world_gateway =
   fun ~name
-      ~user_port_no
+      ~port_no
       ~network_address (* default 10.0.2.0 *)
       ~dhcp_enabled
       ~unexpected_death_callback
       () ->
  (* an additional port will be used by the world *)
- let hublet_no = user_port_no + 1 in
- let last_user_visible_port_index = user_port_no - 1 in
+ let hublet_no = port_no + 1 in
+ let last_user_visible_port_index = port_no - 1 in
  object(self)
   inherit Simulated_network.switch
     ~name ~hublet_no ~last_user_visible_port_index ~unexpected_death_callback () as super
@@ -512,7 +484,7 @@ class world_gateway =
 
   initializer
 
-    let last_reserved_port = user_port_no in
+    let last_reserved_port = port_no in
     let slirpvde_socket = (self#get_hublet_process last_reserved_port)#get_socket_name in
 
     slirpvde_process <-

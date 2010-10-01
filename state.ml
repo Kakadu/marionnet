@@ -326,10 +326,10 @@ class globalState = fun () ->
 
     (* Second, read the xml file containing the network definition. If something goes wrong, close the project. *)
     (try
-    self#import_network ~emergency:self#close_project ~dotAction self#networkFile ;
-    with e ->
-      Log.printf "Failed with exception %s\n" (Printexc.to_string e);
-      flush_all ());
+       self#import_network ~emergency:self#close_project ~dotAction self#networkFile ;
+     with e ->
+       Log.printf "Failed with exception %s\n" (Printexc.to_string e);
+     );
 
     (* Now undump data and fill all the treeviews: *)
     Filesystem_history.load_states ();

@@ -300,7 +300,6 @@ fun ~treeview
         (Printexc.to_string e);
       flush_all ();
     end);
-    treeview#save;
 
   (** Bind a callback to be called just before an edit is committed to data structures.
       The callback parameters are the row id, the old and the new content. If the callback
@@ -400,7 +399,6 @@ fun ~treeview
       Log.printf "on_toggle: a callback raised an exception, or a constraint was violated.\n";
       flush_all ();
     end);
-    treeview#save;
 
   (** Bind a callback to be called just before an toggle is committed to data structures.
       The callback parameters are the row id, the old and the new value. If the callback
@@ -1048,7 +1046,7 @@ object(self)
 
   method save =
     let file_name = self#file_name in (* this failwiths if no filename was set *)
-    Log.printf ~v:2 "treeview#save: saving into %s\n" file_name;
+    Log.printf "treeview#save: saving into %s\n" file_name;
     next_identifier_and_content_forest_marshaler#to_file
       (self#get_next_identifier, self#get_complete_forest)
       file_name;
@@ -1085,6 +1083,12 @@ object(self)
 
   method get_row_item row_id column_header =
     lookup_alist column_header (self#get_complete_row row_id)
+
+  method row_exists_with_binding ~(key:string) ~(value:string) =
+   try
+    ignore (self#row_id_such_that (fun row -> (lookup_alist key row) = String value));
+    true
+   with _ -> false
 
   (** This needs to be public (it would be 'friend' in C++), but please don't directly
       call it. It's meant for use by the subclasses of 'column. *)

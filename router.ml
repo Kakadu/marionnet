@@ -31,12 +31,10 @@ type t = {
   port_0_ip_config   : Ipv4.config;
   port_no            : int;
   distribution       : string;          (* epithet *)
-  variant_name       : string option;
-  variant_realpath   : string option;   
+  variant            : string option;
   kernel             : string;          (* epithet *)
   show_unix_terminal : bool;
   old_name           : string;
-  old_port_no        : int;
   }
 
 let to_string t = "<obj>" (* TODO? *)
@@ -56,75 +54,45 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let key = Some GdkKeysyms._R
 
-    let ok_callback t = Gui_bricks.Ok_callback.check_name t.name st#network#name_exists t
+    let ok_callback t = Gui_bricks.Ok_callback.check_name t.name t.old_name st#network#name_exists t
 
     let dialog () =
       let name = st#network#suggestedName "R" in
       Dialog_add_or_update.make
         ~title:(s_ "Add router") ~name ~ok_callback ()
 
-   
-    let reaction : t -> unit =
-     function
-      { name = name;
-        label = label;
-        port_0_ip_config = port_0_ip_config;
-        port_no = port_no;
-        distribution = distribution;
-        variant_name = variant_name;
-	variant_realpath = variant_realpath;
-	kernel = kernel;
-        show_unix_terminal = show_unix_terminal;
-        old_name = _ ; old_port_no = _ }
-      ->
-      let details = Network_details_interface.get_network_details_interface () in
-      let defects = Defects_interface.get_defects_interface () in
-      let port_row_completions =
-        let (ipv4,cidr) = port_0_ip_config in
-        let netmask_string = (Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr)) in
-        [ ("port0",
-              [ "IPv4 address", Row_item.String (Ipv4.string_of_ipv4 ipv4);
-                "IPv4 netmask", Row_item.String netmask_string; ])
-        ]
-      in
-      details#add_device ~port_row_completions name "router" port_no;
-      defects#add_device name "router" port_no;
-      let router =
+    let reaction {
+         name = name;
+         label = label;
+         port_0_ip_config = port_0_ip_config;
+         port_no = port_no;
+         distribution = distribution;
+         variant = variant;
+	 kernel = kernel;
+         show_unix_terminal = show_unix_terminal;
+         old_name = _ ;
+         }
+      =
+      let action () = ignore (
         new User_level.router (* defined later with WHERE *)
           ~network:st#network
           ~name
           ~label
+          ~port_0_ip_config
           ~epithet:distribution
-          ?variant:variant_name
+          ?variant:variant
           ~kernel
 	  ~port_no
  	  ~show_unix_terminal
-          ()
+          ())
       in
-      st#network_change st#network#add_device (router :> Mariokit.Netmodel.device);
-      if (Filesystem_history.number_of_states_with_name name) > 0
-      then ()
-      else begin (* not after load *)
-       Filesystem_history.add_device
-          ~name
-          ~prefixed_filesystem:("router-"^distribution)
-          ?variant:variant_name
-          ?variant_realpath
-          ~icon:"router"
-          ()
-       end
-
-
+      st#network_change action ();
 
   end (* Add *)
 
   module Properties = struct
     include Data
-
-    let dynlist =
-     fun () -> List.filter
-                  (fun x -> (st#network#get_device_by_name x)#can_startup)
-                  (st#network#get_device_names ~devkind:Mariokit.Netmodel.Router ())
+    let dynlist () = st#network#get_devices_that_can_startup ~devkind:Mariokit.Netmodel.Router ()
 
     let dialog name () =
      let details = Network_details_interface.get_network_details_interface () in
@@ -156,51 +124,23 @@ module Make_menus (State : sig val st:State.globalState end) = struct
        ~ok_callback:Add.ok_callback  ()
 
 
-    let reaction : t -> unit =
-     function
-      { name = name;
-        label = label;
-        port_0_ip_config = (ipv4,cidr);
-        port_no = port_no;
-	kernel = kernel;
-        show_unix_terminal = show_unix_terminal;
-        old_name = old_name ; old_port_no = old_port_no }
-      ->
-      let details = Network_details_interface.get_network_details_interface () in
-      let defects = Defects_interface.get_defects_interface () in
-      (* name *)
-      let d = st#network#get_device_by_name old_name in
+    let reaction {
+         name = name;
+         label = label;
+         port_0_ip_config = port_0_ip_config;
+         port_no = port_no;
+	 kernel = kernel;
+         show_unix_terminal = show_unix_terminal;
+         old_name = old_name;
+         }
+      =
+      let d = (st#network#get_device_by_name old_name) in
       let r = ((Obj.magic d):> User_level.router) in
-      (match (name = old_name) && (port_no = old_port_no)  with
-      | true -> ()
-      | false ->
-          begin
-            d#destroy;
-	    (* port_no *)
-	    d#set_eth_number ~prefix:"port" port_no;
-	    details#update_port_no name port_no;
-	    defects#update_port_no name port_no;
-            st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
-            st#network#change_node_name old_name name;
-            details#rename_device old_name name;
-            defects#rename_device old_name name;
-            Filesystem_history.rename_device old_name name;
-            st#network#make_device_ledgrid d;
-          end
-       );
-      (* label *)
-      d#set_label label;
-      (* port_0_ip_config *)
-      let netmask_string = (Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr)) in
-      details#set_port_string_attribute_by_index name 0 "IPv4 address" (Ipv4.string_of_ipv4 ipv4);
-      details#set_port_string_attribute_by_index name 0 "IPv4 netmask" netmask_string;
-      (* kernel *)
-      r#set_kernel kernel;
-      (* show_terminal *)
-      r#set_show_unix_terminal show_unix_terminal;
-      (* refresh and return *)
-      st#refresh_sketch () ;
-      st#update_cable_sensitivity ()
+      let action () =
+        r#update_router_with
+          ~name ~label ~port_0_ip_config ~port_no ~kernel ~show_unix_terminal
+      in
+      st#network_change action ();
 
   end (* Properties *)
 
@@ -218,18 +158,16 @@ module Make_menus (State : sig val st:State.globalState end) = struct
         ()
 
     let reaction name =
-      let details = Network_details_interface.get_network_details_interface () in
-      let defects = Defects_interface.get_defects_interface () in
-      st#network_change st#network#del_device name;
-      details#remove_device name;
-      defects#remove_device name;
+      let d = (st#network#get_device_by_name name) in
+      let r = ((Obj.magic d):> User_level.router) in
+      let action () = r#destroy in
+      st#network_change action ();
 
   end
 
   module Startup = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#startup
@@ -239,12 +177,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-
-    let dynlist () =
-      List.filter
-       (fun x -> (st#network#get_device_by_name x)#can_gracefully_shutdown)
-       (st#network#get_device_names ~devkind:Mariokit.Netmodel.Router ())
-
+    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:Mariokit.Netmodel.Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
 
@@ -253,12 +186,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-
-    let dynlist () =
-      List.filter
-       (fun x -> (st#network#get_device_by_name x)#can_suspend)
-       (st#network#get_device_names ~devkind:Mariokit.Netmodel.Router ())
-
+    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:Mariokit.Netmodel.Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#suspend
 
@@ -267,12 +195,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-
-    let dynlist () =
-      List.filter
-       (fun x -> (st#network#get_device_by_name x)#can_resume)
-       (st#network#get_device_names ~devkind:Mariokit.Netmodel.Router ())
-
+    let dynlist () = st#network#get_devices_that_can_resume ~devkind:Mariokit.Netmodel.Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#resume
 
@@ -311,7 +234,6 @@ let make
  ?(dialog_image_file=Initialization.Path.images^"ico.router.dialog.png")
  () :'result option =
   let old_name = name in
-  let old_port_no = port_no in
   let ((b1,b2,b3,b4),b5) = match port_0_ip_config  with
    | Some x -> x
    | None   -> ((192,168,1,254), 24)
@@ -405,9 +327,9 @@ let make
     let port_no = int_of_float port_no#value in
     let variant       = distribution#slave#selected in
     let distribution  = distribution#selected in
-    let (variant_name, variant_realpath) = match variant with
-    | "none" -> (None  , None)
-    | v      -> (Some v, Some ((vm_installations#variants_of distribution)#realpath_of_epithet v))
+    let variant = match variant with
+    | "none" -> None
+    | x      -> Some x
     in
     let kernel = kernel#selected in
     let show_unix_terminal = show_unix_terminal#active in
@@ -416,12 +338,10 @@ let make
         Data.port_0_ip_config = port_0_ip_config;
         Data.port_no = port_no;
         Data.distribution = distribution;
-        Data.variant_name = variant_name;
-        Data.variant_realpath = variant_realpath;
+        Data.variant = variant;
         Data.kernel = kernel;
         Data.show_unix_terminal = show_unix_terminal;
         Data.old_name = old_name;
-        Data.old_port_no = old_port_no;
         }
         
   in
@@ -470,22 +390,26 @@ module Eval_forest_child = struct
   try
    (match f with
     | Forest.NonEmpty (("router", attrs) , childs , Forest.Empty) ->
+    	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
-	let x = new User_level.router ~network ~port_no () in
-	x#from_forest ("router", attrs) childs ;
-	network#add_device ((Obj.magic x) :> Mariokit.Netmodel.device);
+        Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
+	let x = new User_level.router ~network ~name ~port_no () in
+	x#from_forest ("router", attrs) childs;
+        Log.printf "Router \"%s\" successfully imported.\n" name;
         true
 
    (* backward compatibility *)
    | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
-      let ethno = List.assoc "eth" attrs in
+      let name  = List.assoc "name" attrs in
+      let port_no = int_of_string (List.assoc "eth" attrs) in
       let devkind = Mariokit.Netmodel.devkind_of_string (List.assoc "kind" attrs) in
       (match devkind with
       | Mariokit.Netmodel.Router ->
-	  let r = new User_level.router ~network ~port_no:(int_of_string ethno) () in
-	  let x = ((Obj.magic r) :> Mariokit.Netmodel.device) in
+          Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
+	  let r = new User_level.router ~network ~name ~port_no () in
+	  let x = (r :> Mariokit.Netmodel.device_with_ledgrid_and_defects) in
 	  x#from_forest ("device", attrs) childs ;
-	  network#add_device x;
+          Log.printf "Router \"%s\" successfully imported.\n" name;
           true
       | _ -> false
       )
@@ -503,11 +427,13 @@ end (* module Eval_forest_child *)
 module User_level = struct
 
 class router
-  ~network
-  ?name
+  ~(network:Mariokit.Netmodel.network)
+  ~name
+  ?(port_0_ip_config=Initialization.router_port0_default_ipv4_config)
   ?label
   ?epithet
   ?variant
+  ?variant_realpath (* used just for creating the filesystem history device *)
   ?kernel
   ?(show_unix_terminal=false)
   ?terminal
@@ -515,14 +441,46 @@ class router
   ()
   =
   let vm_installations = Disk.get_router_installations () in
-  object (self)
+  let network_alias = network in
+  (* The details treeview wants a port 0 configuration at creation time:*)
+  let details_port_row_completions =
+     let (ipv4,cidr) = port_0_ip_config in (* the class parameter *)
+     let netmask_string = (Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr)) in
+     [ ("port0",
+	    [ "IPv4 address", Row_item.String (Ipv4.string_of_ipv4 ipv4);
+	      "IPv4 netmask", Row_item.String netmask_string; ])
+     ]
+  in
 
-  inherit Mariokit.Netmodel.device ~network ?name ?label ~devkind:Mariokit.Netmodel.Router ~port_no ()
-    as self_as_device
-  inherit Mariokit.Netmodel.virtual_machine ?epithet ?variant ?kernel ?terminal ~vm_installations ()
+  object (self) inherit OoExtra.destroy_methods ()
+
+  inherit Mariokit.Netmodel.device_with_ledgrid_and_defects
+    ~network
+    ~name ?label ~devkind:Mariokit.Netmodel.Router
+    ~port_no
+    ~port_prefix:"port"
+    ()
+    as self_as_device_with_ledgrid_and_defects
+
+  inherit Mariokit.Netmodel.virtual_machine_with_history_and_details
+    ~network:network_alias
+    ?epithet ?variant ?kernel ?terminal
+    ~history_icon:"router"
+    ~details_device_type:"router"
+    ~details_port_row_completions
+    ~vm_installations
+    ()
+    as self_as_virtual_machine_with_history_and_details
 
   (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity = Mariokit.Netmodel.MDI
+
+  method ledgrid_label = "Router"
+  method defects_device_type = "router"
+
+  method dotImg iconsize =
+   let imgDir = Initialization.Path.images in
+   (imgDir^"ico.router."^(self#string_of_simulated_device_state)^"."^iconsize^".png")
 
   (** Get the full host pathname to the directory containing the guest hostfs
       filesystem: *)
@@ -565,7 +523,7 @@ class router
 
   (** Here we also have to manage cow files... *)
   method private gracefully_shutdown_right_now =
-    self_as_device#gracefully_shutdown_right_now;
+    self_as_device_with_ledgrid_and_defects#gracefully_shutdown_right_now;
     (* We have to manage the hostfs stuff (when in exam mode) and
        destroy the simulated device, so that we can use a new cow file the next time: *)
     Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
@@ -588,7 +546,7 @@ class router
 
   (** Here we also have to manage LED grids and, for routers, cow files: *)
   method private poweroff_right_now =
-    self_as_device#poweroff_right_now;
+    self_as_device_with_ledgrid_and_defects#poweroff_right_now;
     (* Destroy, so that the next time we have to re-create a simulated device,
        and we start with a new cow: *)
     self#destroy_right_now
@@ -618,6 +576,39 @@ class router
   | ("port_no"  , x ) -> self#set_eth_number  (int_of_string x)
   | _ -> () (* Forward-comp. *)
 
+ method private get_assoc_list_from_details ~key =
+   List.map
+     (fun i -> (i,network#details#get_port_attribute_by_index self#get_name i key))
+     (ListExtra.range 0 (self#get_eth_number - 1))
+
+ method get_mac_addresses  = self#get_assoc_list_from_details ~key:"MAC address"
+ method get_ipv4_addresses = self#get_assoc_list_from_details ~key:"IPv4 address"
+(* other: "MTU", "IPv4 netmask", "IPv4 broadcast", "IPv6 address" *)
+
+ method set_port_0_ipv4_address (ipv4:Ipv4.ipv4) = 
+   network#details#set_port_string_attribute_by_index
+     self#get_name 0 "IPv4 address"
+     (Ipv4.string_of_ipv4 ipv4);
+
+ method set_port_0_ipv4_netmask_by_cidr cidr =
+   let netmask_as_string = Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr) in
+   network#details#set_port_string_attribute_by_index
+     self#get_name 0 "IPv4 netmask"
+     netmask_as_string
+
+ method set_port_0_ip_config port_0_ip_config =
+   let (ipv4,cidr) = port_0_ip_config in
+   self#set_port_0_ipv4_address ipv4;
+   self#set_port_0_ipv4_netmask_by_cidr cidr;
+
+ method update_router_with ~name ~label ~port_0_ip_config ~port_no ~kernel ~show_unix_terminal =
+   (* first action: *)
+   self_as_virtual_machine_with_history_and_details#update_virtual_machine_with ~name ~port_no kernel;
+   (* then we can set the object property "name" (read by #get_name): *)
+   self_as_device_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
+   self#set_port_0_ip_config port_0_ip_config;
+   self#set_show_unix_terminal show_unix_terminal;
+
 end;;
 
 end (* module User_level *)
@@ -634,7 +625,6 @@ class router =
       ~(kernel_file_name)
       ~(filesystem_file_name)
       ~(ethernet_interface_no)
-       (* TODO fresh id*)
       ?umid
       ~id
       ~show_unix_terminal
@@ -666,5 +656,3 @@ end (* module Simulation_level *)
 
 (** Just for testing: *)
 let test = Dialog_add_or_update.make
-
-

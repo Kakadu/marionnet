@@ -73,6 +73,7 @@ object(self)
       "Maximum delay (ms)", String "100"; ]
 
   method add_device ?(defective_by_default=false) device_name device_type port_no =
+    Log.printf "Making a defect treeview entry for %s \"%s\" with %d ports.\n" device_type device_name port_no;
     let row_id =
       self#add_row
         [ "Name", String device_name;
@@ -80,7 +81,6 @@ object(self)
           "_uneditable", CheckBox true; ] in
     self#update_port_no ~defective_by_default device_name port_no;
     self#collapse_row row_id;
-    self#save;
 (*
     Log.printf "eth0 InToOut Loss %%: %f\n"
       (self#get_port_attribute device_name "eth0" InToOut "Loss %");
@@ -113,13 +113,11 @@ object(self)
              "Type", Icon "rightward"]
             non_defective_defaults));
     self#collapse_row cable_row_id;
-    self#save;
 
   method private remove_device_or_cable device_name =
     let row_id =
       self#device_or_cable_row_id device_name in
     self#remove_subtree row_id;
-    self#save;
 
   method remove_device name =
     self#remove_device_or_cable name
@@ -128,23 +126,8 @@ object(self)
     self#remove_device_or_cable name
 
   method private device_or_cable_row_id device_name =
-(*     Log.printf "!!!!B1 treeview: row_such_that: begin (%s)\n" device_name; flush_all (); *)
-    (*
-    Forest.print_forest
-      self#get_complete_forest
-      (fun row ->
-        List.iter
-          (fun (name, item) ->
-            Log.printf " %s: " name;
-            match item with
-              String s -> Log.printf "%s" s
-            | CheckBox b -> Log.printf "%b" b
-            | Icon i -> Log.printf "%s" i)
-          row);
-    flush_all (); *)
     let result =
       self#row_id_such_that (fun row -> (lookup_alist "Name" row) = String device_name) in
-(*     print_string "!!!!B1 treeview: row_such_that: end\n"; flush_all (); *)
     result
 
   method port_no_of device_name =
@@ -212,13 +195,11 @@ object(self)
       let reversed_port_row_ids = List.rev port_row_ids in
       List.iter self#remove_subtree (take (- ports_delta) reversed_port_row_ids);
     end;
-    self#save;
 
   method private rename_device_or_cable old_name new_name =
     let device_row_id =
       self#device_or_cable_row_id old_name in
     self#set_row_item device_row_id "Name" (String new_name);
-    self#save;
 
   method rename_device =
     self#rename_device_or_cable
@@ -273,7 +254,6 @@ object(self)
       (item_to_string (lookup_alist "_id" rightward_direction))
       "Name"
       (String right_endpoint_name);
-    self#save;
 
   (** Return a single port attribute as an item: *)
   method get_port_attribute device_name port_name port_direction column_header =

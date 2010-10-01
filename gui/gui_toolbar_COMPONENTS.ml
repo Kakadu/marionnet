@@ -21,7 +21,7 @@ module Make (State : sig val st:State.globalState end) = struct
  module Direct    = struct let cablekind = Mariokit.Netmodel.Direct    end
  module Crossover = struct let cablekind = Mariokit.Netmodel.Crossover end
  module Menus_for_machine = Gui_machine.Make_menus (State)
- module Menus_for_hub     = Gui_hub.    Make_menus (State)
+ module Menus_for_hub     = Hub.Make_menus (State)
  module Menus_for_switch  = Gui_switch. Make_menus (State)
  module Menus_for_router  = Router. Make_menus (State)
  module Menus_for_direct_cable    = Gui_cable. Make_menus (State) (Direct)

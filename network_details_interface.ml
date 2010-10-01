@@ -20,6 +20,8 @@ open Sugar;;
 open Row_item;;
 open Gettext;;
 
+type port_row_completions = (string * (string * Row_item.row_item) list) list
+
 (* To do: move this into EXTRA/ *)
 let rec take n xs =
   if n = 0 then
@@ -128,7 +130,6 @@ object(self)
           "IPv6 broadcast", String ""; *) ] in
     self#update_port_no ?port_row_completions device_name port_no;
     self#collapse_row row_id;
-    self#save;
 
   (** Do nothing if there is no such device. *)
   method remove_device device_name =
@@ -136,7 +137,6 @@ object(self)
       let device_row_id =
         self#device_row_id device_name in
       self#remove_subtree device_row_id;
-      self#save;
     with _ ->
       ()
 
@@ -198,13 +198,11 @@ object(self)
       let reversed_port_row_ids = List.rev port_row_ids in
       List.iter self#remove_row (take (- ports_delta) reversed_port_row_ids);
     end;
-    self#save;
 
   method rename_device old_name new_name =
     let device_row_id =
       self#device_row_id old_name in
     self#set_row_item device_row_id "Name" (String new_name);
-    self#save;
 
   (* To do: these validation methods suck. *)
   method private is_a_valid_mac_address address =

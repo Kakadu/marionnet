@@ -189,7 +189,6 @@ object(self)
       self#add_row
         [ "FileName", String internal_file_name;
           "Format", String format ] in
-    self#save;
     row_id
 
   initializer
@@ -270,7 +269,7 @@ object(self)
         let pathname = Printf.sprintf "%s/%s" self#get_working_directory file_name in
         UnixExtra.apply_ignoring_Unix_error Unix.unlink pathname;
         self#remove_row row_id;
-        self#save);
+        );
 
      (* J.V. *)
      self#set_after_update_callback after_user_edit_callback;

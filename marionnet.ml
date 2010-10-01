@@ -25,10 +25,6 @@ open Gui
 open Gettext
 open State
 open Talking
-open Filesystem_history
-open Network_details_interface
-open Defects_interface
-open Texts_interface
 
 let () = Random.self_init ()
 
@@ -74,7 +70,6 @@ let () =
 
 let shutdown_or_restart_relevant_device device_name =
   Log.printf "Shutdown or restart \"%s\".\n" device_name;
-  flush_all ();
   try
     (* Is the device a cable? If so we have to restart it (and do nothing if it
        was not connected) *)
@@ -87,7 +82,7 @@ let shutdown_or_restart_relevant_device device_name =
     (* Ok, the device is not a cable. We have to destroy it, so that its cables
        and hublets are restarted: *)
     let d = st#network#get_node_by_name device_name in
-    d#destroy;
+    d#destroy_my_simulated_device;
   end
 
 let after_user_edit_callback x =
@@ -98,21 +93,21 @@ let after_user_edit_callback x =
  
 (** Make the network details interface: *)
 let network_details_interface =
-  make_network_details_interface
+  Network_details_interface.make_network_details_interface
     ~packing:(st#mainwin#network_details_viewport#add)
     ~after_user_edit_callback
     ()
 
 (** Make the defects interface: *)
 let defects_interface =
-  make_defects_interface
+  Defects_interface.make_defects_interface
     ~packing:(st#mainwin#defects_viewport#add)
     ~after_user_edit_callback
     ()
 
 (** Make the texts interface: *)
 let texts_interface =
-  make_texts_interface
+  Texts_interface.make_texts_interface
     ~packing:(st#mainwin#texts_viewport#add)
     ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
     ()

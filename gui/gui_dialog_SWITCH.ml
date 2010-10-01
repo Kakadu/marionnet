@@ -27,7 +27,7 @@ module Make (State:sig val st:State.globalState end) = struct
   open State
 
   (* User handler for dialog completion. *)
-  let dialog ~title ~(update:Mariokit.Netmodel.device option) () =
+  let dialog ~title ~(update:Mariokit.Netmodel.device_with_ledgrid_and_defects option) () =
 
    let dialog = new Gui.dialog_SWITCH () in
    dialog#toplevel#set_title title;

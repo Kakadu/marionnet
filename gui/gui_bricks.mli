@@ -73,7 +73,7 @@ val make_tooltips_for_container :
   string -> unit
 
 module Ok_callback : sig
- val check_name : string -> (string->bool) -> 'a -> 'a option
+ val check_name : string -> string -> (string->bool) -> 'a -> 'a option
 end
 
 module Dialog_run : sig
@@ -137,5 +137,24 @@ val make_combo_boxes_of_vm_installations:
   ->
   Widget.ComboTextTree.comboTextTree *
   Widget.ComboTextTree.comboTextTree
+
+
+module Dialog_add_or_update : sig
+
+ val make_window_image_name_and_label :
+   title:string ->
+   image_file:string -> 
+   image_tooltip : string ->
+   name:string ->
+   name_tooltip : string ->
+   ?label:string ->
+   ?label_tooltip : string -> 
+   unit ->
+     [ `CANCEL | `DELETE_EVENT | `HELP | `OK ] GWindow.dialog *
+     GMisc.image *
+     GEdit.entry *
+     GEdit.entry
+
+end
 
 val test: unit -> char option

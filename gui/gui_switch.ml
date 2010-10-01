@@ -43,15 +43,15 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let (name,eth) = (r#get "name"),(r#get "eth") in
       defects#add_device name "switch" (int_of_string eth);
       let device =
-        new Mariokit.Netmodel.device
+        new Mariokit.Netmodel.switch
           ~network:st#network
           ~name
           ~label:(r#get "label")
-          ~devkind:Mariokit.Netmodel.Switch
           ~port_no:(int_of_string eth)
           ()
       in
-      st#network_change st#network#add_device device
+      ()
+(*       st#network_change st#network#add_device (device :> Mariokit.Netmodel.device_with_ledgrid_and_defects) *)
 
   end
 
@@ -75,12 +75,12 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let (name,oldname,eth) = (r#get "name"),(r#get "oldname"),(r#get "eth") in
       let d = st#network#get_device_by_name oldname in
       d#destroy;
-      st#network#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
       st#network#change_node_name oldname name  ;
       d#set_label (r#get "label")             ;
-      d#set_eth_number ~prefix:"port"  (int_of_string eth)  ;
+      d#set_eth_number ~port_prefix:"port"  (int_of_string eth)  ;
       st#refresh_sketch () ;
-      st#network#make_device_ledgrid d;
+      d#destroy_my_ledgrid;
+      d#add_my_ledgrid;
       Filesystem_history.rename_device oldname name;
       defects#rename_device oldname name;
       defects#update_port_no name (int_of_string eth);

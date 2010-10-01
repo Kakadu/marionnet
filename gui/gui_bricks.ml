@@ -215,7 +215,7 @@ let add_help_button_if_necessary window = function
 
 module Ok_callback = struct
 
-let check_name name name_exists t =
+let check_name name old_name name_exists t =
   if not (StrExtra.wellFormedName name)
   then begin
     Simple_dialogs.error
@@ -223,7 +223,7 @@ let check_name name name_exists t =
       ("Admissible characters are letters and underscores." ) ();
     None   (* refused *)
   end else
-  if name_exists name
+  if (name <> old_name) && name_exists name
   then begin
     Simple_dialogs.error
       (s_ "Name conflict" )
@@ -461,5 +461,36 @@ let make_combo_boxes_of_vm_installations
   (distribution_widget, kernel_widget)
 
 
+module Dialog_add_or_update = struct
+
+let make_window_image_name_and_label
+  ~title
+  ~image_file
+  ~image_tooltip
+  ~name
+  ~name_tooltip
+  ?label
+  ?label_tooltip
+  ()
+  =
+  let w = GWindow.dialog ~destroy_with_parent:true ~title ~modal:true ~position:`CENTER () in
+  set_marionnet_icon w;
+  let tooltips = make_tooltips_for_container w in
+  let hbox = GPack.hbox ~homogeneous:true ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
+  let image = GMisc.image ~file:image_file ~xalign:0.5 ~packing:hbox#add () in
+  tooltips image#coerce image_tooltip;
+  let vbox = GPack.vbox ~spacing:10 ~packing:hbox#add () in
+  let name  = entry_with_label ~tooltip:name_tooltip ~packing:vbox#add ~entry_text:name  (s_ "Name") in
+  let label =
+    let tooltip = match label_tooltip with
+    | None -> (s_ "Label to be written in the network sketch, next to the element icon." )
+    | Some x -> x
+    in
+    entry_with_label ~tooltip ~packing:vbox#add ?entry_text:label (s_ "Label")
+  in
+  ignore (GMisc.separator `HORIZONTAL ~packing:w#vbox#add ());
+  (w,image,name,label)
+
+end (* module Dialog_add_or_update *)
 
 let test () = Dialog.yes_or_cancel_question ~markup:"prova <b>bold</b>" ~context:'a' ()

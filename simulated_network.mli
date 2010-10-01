@@ -414,7 +414,7 @@ class virtual hub_or_switch :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-class hub :
+(*class hub :
   name:string ->
   hublet_no:int ->
   ?last_user_visible_port_index:int ->
@@ -442,7 +442,7 @@ class hub :
     method suspend : unit
     method terminate_processes : unit
     method execute_the_unexpected_death_callback : int -> string -> unit
-  end
+  end*)
 
 class switch :
   name:string ->

@@ -279,6 +279,7 @@ class hub =
     as self_as_device_with_ledgrid_and_defects 
   method ledgrid_label = "Hub"
   method defects_device_type = "hub"
+  method polarity = Mariokit.Netmodel.MDI_X
 
   method dotImg iconsize =
    let imgDir = Initialization.Path.images in

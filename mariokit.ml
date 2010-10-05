@@ -1512,12 +1512,6 @@ class virtual device_with_ledgrid_and_defects
 
   inherit device_with_defects ~network:network_alias () as self_as_device_with_defects
 
-  (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity =
-   match self#devkind with
-   | World_gateway -> Intelligent (* Because of the ambiguity router/switch *)
-   | _       -> MDI_X
-
   (** Dot adjustments *)
 
   (** Returns an image representig the device with the given iconsize. *)
@@ -1548,18 +1542,6 @@ class virtual device_with_ledgrid_and_defects
   | ("kind"  , x ) -> self#set_devkind (devkind_of_string x)
   | ("eth"   , x ) -> self#set_eth_number (int_of_string x)
   | _ -> assert false
-
-  (** Create the simulated device *)
-  method private make_simulated_device =
-    let ethernet_receptacles = self#get_receptacles ~portkind:(Some Eth) () in
-    let name = self#get_name in
-    let hublet_no = List.length ethernet_receptacles in
-    let unexpected_death_callback = self#destroy_because_of_unexpected_death in
-    (match self#devkind with
-(*     | Hub     -> new Simulated_network.hub *)
-    | Switch  -> new Simulated_network.switch
-    | _ -> assert false)
-       ~name ~hublet_no ~unexpected_death_callback ()
 
   (** Here we also have to manage LED grids: *)
   method private startup_right_now =
@@ -1657,25 +1639,6 @@ class virtual device_with_ledgrid_and_defects
 
 
 end;;
-
-class switch ~network ~name ?label ~port_no () =
- object (self) inherit OoExtra.destroy_methods ()
-
- inherit device_with_ledgrid_and_defects
-   ~network
-   ~name ?label ~devkind:Switch
-   ~port_no
-   ~port_prefix:"port"
-   ()
-
- method ledgrid_label = "Switch"
- method defects_device_type = "switch"
-
- method dotImg (z:iconsize) =
-   let imgDir = Initialization.Path.images in
-   (imgDir^"ico.switch."^(self#string_of_simulated_device_state)^"."^z^".png")
- 
-end
 
 
 (* ************************************* *
@@ -2246,25 +2209,6 @@ open Edge;;
    )
   with _ -> false
 
- let try_to_add_switch network (f:Xforest.tree) =
-  try
-   (match f with
-    | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
-	let name = List.assoc "name" attrs in
-	let port_no = int_of_string (List.assoc "eth" attrs) in
-	let devkind = devkind_of_string (List.assoc "kind" attrs) in
-	(match devkind with
-	| Switch ->
-	    let x = new switch ~network ~name ~port_no () in
-	    x#from_forest ("device", attrs) childs ;
-(* 	    network#add_device x; *)
-	    true
-	| _ -> false
-	)
-   | _ -> false
-   )
-  with _ -> false
-
  let try_to_add_cloud network (f:Xforest.tree) =
   try
    (match f with
@@ -2460,7 +2404,7 @@ class network () =
 (*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_router; *)
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cloud;
 (*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_hub; *)
-   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_switch;
+(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_switch; *)
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_bridge;
 (*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_gateway; *)
    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cable;

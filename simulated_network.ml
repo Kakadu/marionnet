@@ -1385,25 +1385,6 @@ class virtual hub_or_switch =
 end;;
 
 
-(** A switch: just a [hub_or_switch] with [hub = false] *)
-class switch =
-  fun ~name
-      ~hublet_no
-      ?(last_user_visible_port_index:int option)
-      ~unexpected_death_callback
-      () ->
-object(self)
-  inherit hub_or_switch
-      ~name
-      ~hublet_no
-      ?last_user_visible_port_index
-      ~hub:false
-      ~unexpected_death_callback
-      ()
-      as super
-  method device_type = "switch"
-end;;
-
 (** {2 machine and router implementation} *)
 
 (** To do: move this into ListExtra.

@@ -76,26 +76,6 @@ the second allows to have a real graphic server reserved for the virtual \
 machine, with independent windows manager and desktops environments.")
    in Simple_dialogs.help title msg ;;
 
- let help_switch_insert_update =
-   let title = (s_ "ADD OR MODIFY A SWITCH") in
-   let msg   = (s_ "\
-In this dialog window you can define the name of an Ethernet switch \
-and set parameters for it:\n\n\
-- Label: a string appearing near the switch icon in the network graph; it may \
-allow, for example, to know at a glance the Ethernet network realized by the device; \
-this field is exclusively for graphic purposes, is not taken in consideration \
-for the configuration.\n\n\
-- Nb of Ports: the number of ports of the switch (default 4); this number must \
-not be increased without a reason, because the number of processes needed for the \
-device emulation is proportional to his ports number.")
-   in Simple_dialogs.help title msg ;;
-
-
- let help_device_insert_update = function
-  | Mariokit.Netmodel.Switch -> help_switch_insert_update
-  | _ -> ignore
- ;;
-
  let help_cable_direct_insert_update =
    let title = (s_ "ADD OR MODIFY A STRAIGHT CABLE") in
    let msg   = (s_ "\

@@ -361,6 +361,7 @@ class world_gateway =
 
   method ledgrid_label = "World gateway"
   method defects_device_type = "router"
+  method polarity = Mariokit.Netmodel.Intelligent
 
   method dotImg (z:Mariokit.Netmodel.iconsize) =
     let imgDir = Initialization.Path.images in
@@ -448,7 +449,7 @@ class world_gateway =
  let hublet_no = port_no + 1 in
  let last_user_visible_port_index = port_no - 1 in
  object(self)
-  inherit Simulated_network.switch
+  inherit Switch.Simulation_level.switch
     ~name ~hublet_no ~last_user_visible_port_index ~unexpected_death_callback () as super
 
   method device_type = "world_gateway"

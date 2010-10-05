@@ -4,8 +4,6 @@ module Msg :
   sig
     val help_repertoire_de_travail : unit -> unit
     val help_machine_insert_update : unit -> unit
-    val help_switch_insert_update  : unit -> unit
-    val help_device_insert_update  : Mariokit.Netmodel.devkind   -> unit -> unit
     val help_cable_insert_update   : Mariokit.Netmodel.cablekind -> unit -> unit
     val help_cable_direct_insert_update    : unit -> unit
     val help_cable_crossover_insert_update : unit -> unit

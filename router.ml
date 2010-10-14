@@ -239,28 +239,16 @@ let make
    | None   -> ((192,168,1,254), 24)
   in
   let vm_installations =  Disk.get_router_installations () in
-  let w = GWindow.dialog ~destroy_with_parent:true ~title ~modal:true ~position:`CENTER () in
-  Gui_bricks.set_marionnet_icon w;
-  let tooltips = Gui_bricks.make_tooltips_for_container w in
-
-  let (name,label) =
-    let hbox = GPack.hbox ~homogeneous:true ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
-    let image = GMisc.image ~file:dialog_image_file ~xalign:0.5 ~packing:hbox#add () in
-    tooltips image#coerce (s_ "Router");
-    let vbox = GPack.vbox ~spacing:10 ~packing:hbox#add () in
-    let name  =
-      let tooltip = (s_ "Router name. This name must be unique in the virtual network. Suggested: R1, R2, ...") in
-      Gui_bricks.entry_with_label ~tooltip ~packing:vbox#add ~entry_text:name  (s_ "Name")
-    in
-    let label =
-      let tooltip = (s_ "Label to be written in the network sketch, next to the element icon." ) in
-      Gui_bricks.entry_with_label ~tooltip ~packing:vbox#add ?entry_text:label (s_ "Label")
-    in
-   (name,label)
+  let (w,_,name,label) =
+    Gui_bricks.Dialog_add_or_update.make_window_image_name_and_label
+      ~title
+      ~image_file:dialog_image_file
+      ~image_tooltip:(s_ "Router")
+      ~name
+      ~name_tooltip:(s_ "Router name. This name must be unique in the virtual network. Suggested: R1, R2, ...")
+      ?label
+      ()
   in
-
-  ignore (GMisc.separator `HORIZONTAL ~packing:w#vbox#add ());
-
   let ((s1,s2,s3,s4,s5), port_no, distribution, variant, kernel, show_unix_terminal) =
     let vbox = GPack.vbox ~homogeneous:false ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
     let form =
@@ -310,7 +298,6 @@ let make
         ~packing:(form#add_with_tooltip (s_ "Do you want access the router also by a Unix terminal?" ))
         ()
     in
-    tooltips form#coerce (s_ "Router configuration" );
     (port_0_ip_config, port_no, distribution, variant, kernel, show_unix_terminal)
   in
   let get_widget_data () :'result =

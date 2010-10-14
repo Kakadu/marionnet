@@ -267,6 +267,31 @@ object(self)
     display_number_as_server
 end;;
 
+class reserved_socket_name ~prefix ~program () =
+ let socket_name =
+  UnixExtra.temp_file
+    ~parent:(Global_options.get_project_working_directory ())
+    ~prefix
+    ()
+ in
+ object (self)
+  method name = socket_name
+ 
+  method exists =
+    let redirection = Global_options.Debug_level.redirection () in
+    let command_line = 
+      Printf.sprintf "grep \"%s\" /proc/net/unix %s" socket_name redirection
+    in
+    (Unix.system command_line = (Unix.WEXITED 0))
+
+  method unlink = (try Unix.unlink socket_name with _ -> ())
+
+  initializer
+    Log.printf "Socket name \"%s\" reserved for %s.\n" socket_name program;
+    self#unlink;
+
+end (* reserved_socket_name *)
+
 (** Process creating a socket. Spawning and terminating methods are specific. *)
 class virtual process_which_creates_a_socket_at_spawning_time =
  fun program
@@ -275,41 +300,42 @@ class virtual process_which_creates_a_socket_at_spawning_time =
     ?stdout
     ?stderr
     ?(socket_name_prefix="socket-")
+    ?management_socket
     ~unexpected_death_callback
     () ->
-
- (* Make a unique socket name: *)
- let socket_name =
-  UnixExtra.temp_file
-    ~parent:(Global_options.get_project_working_directory ())
-    ~prefix:socket_name_prefix
-    () in
- let _ =
-  Log.printf "Socket name \"%s\" reserved for %s.\n" socket_name program;
-  (try Unix.unlink socket_name with _ -> ()) in
 
  object(self)
   inherit process program arguments ?stdin ?stdout ?stderr ~unexpected_death_callback ()
   as super
 
+  val listening_socket  = new reserved_socket_name ~prefix:socket_name_prefix ~program ()
+  val management_socket =
+    let prefix = socket_name_prefix^"mgmt-" in
+    Option.map (new reserved_socket_name ~prefix ~program) management_socket
+
+  method private management_socket_unused_or_exists =
+    match management_socket with
+    | None   -> true
+    | Some s -> s#exists
+  
   (** Return the automatically-generated Unix socket name. The name is generated
       once and for all at initialization time, so this method can be safely used
       also before spawning the process. *)
-  method get_socket_name =
-    socket_name
+  method get_socket_name = listening_socket#name
+  method get_management_socket_name = Option.map (fun s -> s#name) management_socket
 
+  method private sockets_have_been_created =
+    listening_socket#exists && self#management_socket_unused_or_exists
+    
   (** hub_or_switch_processes need to be up before we connect cables or UMLs to
       them, so they have to be spawned in a *synchronous* way: *)
   method spawn =
-    Log.printf "Spawning the process which will create the socket %s\n" socket_name;
+    Log.printf "Spawning the process which will create the socket %s\n" self#get_socket_name;
     super#spawn;
-    let redirection = Global_options.Debug_level.redirection () in
-    let command_line =
-      Printf.sprintf "grep \"%s\" /proc/net/unix %s" socket_name redirection in
     (* We also check that the process is alive: if spawning it failed than the death
        monitor will take care of everything it's needed and destroy the device: in
        this case we just exit and let the death monitor clean up after us. *)
-    while self#is_alive && not (Unix.system command_line = (Unix.WEXITED 0)) do
+    while self#is_alive && not (self#sockets_have_been_created) do
       (* The socket is not ready yet, but the process is up: let's wait and then
          check again: *)
       Thread.delay 0.05;
@@ -325,9 +351,8 @@ class virtual process_which_creates_a_socket_at_spawning_time =
   method terminate =
     super#terminate;
     super#kill_with_signal Sys.sigkill;
-    let command_line =
-      Printf.sprintf "rm -f '%s'" self#get_socket_name in
-    ignore (Unix.system command_line)
+    listening_socket#unlink;
+    Option.iter (fun s -> s#unlink) management_socket;
 
 end;; (* class process_which_creates_a_socket_at_spawning_time *)
 
@@ -338,6 +363,7 @@ class hub_or_switch_process =
      ?port_no:(port_no:int=32)
      ?tap_name
      ?socket_name_prefix
+     ?management_socket
      ~unexpected_death_callback
      () ->
  let socket_name_prefix = match socket_name_prefix with
@@ -362,16 +388,24 @@ class hub_or_switch_process =
       ~stdout:dev_null_out
       ~stderr:dev_null_out
       ~socket_name_prefix
+      ?management_socket
       ~unexpected_death_callback
       ()
   initializer
-    self#append_arguments ["-unix"; self#get_socket_name]
+    let optional_mgmt =
+      List.flatten 
+        (Option.to_list
+           (Option.map (fun name -> ["--mgmt"; name]) self#get_management_socket_name))
+    in
+    self#append_arguments ("-unix" :: self#get_socket_name :: optional_mgmt);
+
 end;; (* class hub_or_switch_process *)
 
 (** A Swtich process is, well, a Switch or Hub process but not a hub: *)
 class switch_process =
   fun ~(port_no:int)
       ?socket_name_prefix
+      ?management_socket
       ~unexpected_death_callback
       () ->
 object(self)
@@ -379,6 +413,7 @@ object(self)
       ~hub:false
       ~port_no
       ?socket_name_prefix
+      ?management_socket
       ~unexpected_death_callback
       ()
       as super
@@ -388,6 +423,7 @@ end;;
 class hub_process =
   fun ~(port_no:int)
       ?socket_name_prefix
+      ?management_socket
       ~unexpected_death_callback
       () ->
 object(self)
@@ -395,6 +431,7 @@ object(self)
       ~hub:true
       ~port_no
       ?socket_name_prefix
+      ?management_socket
       ~unexpected_death_callback
       ()
       as super
@@ -469,6 +506,50 @@ class slirpvde_process =
       ()
 end;; (* class slirpvde_process *)
 
+
+(** This is used to implement the switch component. *)
+class unixterm_process =
+  fun ?xterm_title
+      ~management_socket_name
+      ~unexpected_death_callback
+      () ->
+  let xterm_title = match xterm_title with
+   | None    -> [] 
+   | Some t  -> ["-T"; t]
+  in
+  let unixterm = (Initialization.Path.vde_prefix ^ "unixterm") in
+  let command_launched_by_xterm =
+    Printf.sprintf
+       "%s %s"
+       unixterm management_socket_name
+  in
+  (* Redefined if rlwrap, ledit or rlfe are installed: *)
+  let command_launched_by_xterm =
+   try
+     let wrapper =
+       (* TODO: move in Initialization: *)
+       List.find (fun p -> (UnixExtra.is_executable_in_PATH p)<>None) ["ledit"; "rlfe"; "rlwrap"; ]
+     in
+     Printf.sprintf "%s %s" wrapper command_launched_by_xterm
+   with
+     Not_found -> command_launched_by_xterm
+  in
+  let arguments = List.concat [
+       xterm_title;
+       [ "-e"; command_launched_by_xterm ];
+       ]
+  in
+  object(self)
+   inherit process
+      "xterm"
+      arguments
+      ~stdin:an_input_descriptor_never_sending_anything
+      ~stdout:dev_null_out
+      ~stderr:dev_null_out
+      ~unexpected_death_callback
+      () as super
+
+end;; (* class unixterm_process *)
 
 (** Return a list of option arguments to be passed to wirefilter in order to implement
     the given defects: *)
@@ -597,7 +678,7 @@ object(self)
                        (match self#get_pid_option with
                          Some pid -> begin
                            (if Global_options.get_workaround_wirefilter_problem () then begin
-                             Log.printf "*** Rebooting the wirefilter with pid %i\n" pid; flush_all ();
+                             Log.printf "*** Rebooting the wirefilter with pid %i\n" pid;
                              (* Restart the cable: *)
                              super#terminate;
                              super#spawn;
@@ -1329,7 +1410,10 @@ object(self)
         (List.combine
            (ListExtra.range 0 (hublet_no-1))
            hublets));
-    Task_runner.do_in_parallel
+    (* WARNING: cables must be created sequentially in order to make the mapping
+       between VDE and marionnet port numbering deterministic. *)
+    (* So, do not perform Task_runner.do_in_parallel but simply iter: *)
+    List.iter (fun thunk -> thunk ())
       (List.map (* Here map returns a list of thunks *)
          (fun internal_cable_process () -> internal_cable_process#spawn)
          !internal_cable_processes)
@@ -1345,23 +1429,20 @@ object(self)
     (* Unreference cable processes: *)
     internal_cable_processes := [];
 
-  (** Stop/continue aren't distinguishable from terminate/spawn from the user's point
-      of view: *)
-  method stop_processes = self#terminate_processes
+ method stop_processes =
+    self#get_main_process#stop
 
-  (** Stop/continue aren't distinguishable from terminate/spawn from the user's point
-      of view: *)
-  method continue_processes = self#spawn_processes
+  method continue_processes =
+    self#get_main_process#continue
+
 end;; (* class main_process_with_n_hublets_and_cables *)
 
 
-(** This class implements {e either} a hub or a switch; their implementation
-    is nearly identical, so this is convenient. *)
-class virtual hub_or_switch =
+(** Add some accessory processes running together with the main process. *)
+class virtual main_process_with_n_hublets_and_cables_and_accessory_processes =
   fun ~name
       ~hublet_no
       ?(last_user_visible_port_index:int option)
-      ~(hub:bool)
       ~unexpected_death_callback
       () ->
  object(self)
@@ -1374,14 +1455,83 @@ class virtual hub_or_switch =
       ()
       as super
 
+  val mutable accessory_processes = []
+  method add_accessory_process (p:process) =
+    accessory_processes <- p::accessory_processes
+
+  method private terminate_accessory_processes =
+    List.iter (fun p -> try p#terminate with _ -> ()) accessory_processes
+
+  method private spawn_accessory_processes =
+    List.iter (fun p -> p#spawn) (List.rev accessory_processes)
+
+  method private stop_accessory_processes =
+    List.iter (fun p -> p#stop) accessory_processes
+
+  method private continue_accessory_processes =
+    List.iter (fun p -> p#continue) (List.rev accessory_processes)
+
+  (* Redefined: *)
+  method destroy =
+   self#terminate_accessory_processes;
+   super#destroy
+
+  (* Redefined: *)
+  method gracefully_shutdown =
+   self#terminate_accessory_processes;
+   super#gracefully_shutdown
+
+  method spawn_processes =
+    super#spawn_processes;
+    self#spawn_accessory_processes;
+    
+  method terminate_processes =
+    self#terminate_accessory_processes;
+    super#terminate_processes;
+  
+  method stop_processes = 
+    self#stop_accessory_processes;
+    super#stop_processes;
+
+  method continue_processes =
+    super#continue_processes;
+    self#continue_accessory_processes;
+
+end;;
+
+
+(** This class implements {e either} a hub or a switch; their implementation
+    is nearly identical, so this is convenient. *)
+class virtual hub_or_switch =
+  fun ~name
+      ~hublet_no
+      ?(last_user_visible_port_index:int option)
+      ~(hub:bool)
+      ?management_socket
+      ~unexpected_death_callback
+      () ->
+ object(self)
+
+  inherit main_process_with_n_hublets_and_cables_and_accessory_processes
+      ~name
+      ~hublet_no
+      ?last_user_visible_port_index
+      ~unexpected_death_callback
+      ()
+      as super
+
   initializer
     main_process <-
       Some (new hub_or_switch_process
               ~hub
               ~port_no:hublet_no
+              ?management_socket
               ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ())
 
+  method get_management_socket_name =
+    (Option.extract main_process)#get_management_socket_name
+    
 end;;
 
 

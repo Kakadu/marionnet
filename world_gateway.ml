@@ -415,15 +415,16 @@ class world_gateway =
 
   (** Create the simulated device *)
   method private make_simulated_device =
-    new Simulation_level.world_gateway
-      ~name:self#get_name
-      ~port_no:self#get_eth_number
-      ~network_address
-      ~dhcp_enabled
-      ~unexpected_death_callback:self#destroy_because_of_unexpected_death
-      ()
+    ((new Simulation_level.world_gateway
+	~name:self#get_name
+	~port_no:self#get_eth_number
+	~network_address
+	~dhcp_enabled
+	~unexpected_death_callback:self#destroy_because_of_unexpected_death
+	()) :> Simulated_network.device)
 
   method update_world_gateway_with ~name ~label ~port_no ~network_config ~dhcp_enabled =
+    (* The following call ensure that the simulated device will be destroyed: *)
     self_as_device_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
     self#set_network_address (Tool.network_address_of_config network_config);
     self#set_dhcp_enabled dhcp_enabled;
@@ -454,47 +455,18 @@ class world_gateway =
 
   method device_type = "world_gateway"
 
-  val mutable slirpvde_process = None
-  method private get_slirpvde_process =
-    match slirpvde_process with
-    | Some p -> p
-    | None -> assert false
-
-  method private terminate_slirpvde_process =
-   (try self#get_slirpvde_process#terminate with _ -> ())
-
-  (* Redefined: *)
-  method destroy =
-   self#terminate_slirpvde_process;
-   super#destroy
-
-  (* Redefined: *)
-  method gracefully_shutdown =
-   self#terminate_slirpvde_process;
-   super#gracefully_shutdown
-
-  (* Redefined: *)
-  method shutdown =
-   self#terminate_slirpvde_process;
-   super#shutdown
-
-  (* Redefined: *)
-  method startup =
-   super#startup;
-   self#get_slirpvde_process#spawn
-
   initializer
 
     let last_reserved_port = port_no in
     let slirpvde_socket = (self#get_hublet_process last_reserved_port)#get_socket_name in
 
-    slirpvde_process <-
-      Some (new Simulated_network.slirpvde_process
-              ~existing_socket_name:slirpvde_socket
-              ~network:network_address
-              ?dhcp:(Option.of_bool dhcp_enabled)
-              ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-             ())
+    self#add_accessory_process
+      (new Simulated_network.slirpvde_process
+ 	~existing_socket_name:slirpvde_socket
+ 	~network:network_address
+	?dhcp:(Option.of_bool dhcp_enabled)
+ 	~unexpected_death_callback:self#execute_the_unexpected_death_callback
+	())
 
 end;;
 

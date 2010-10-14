@@ -70,6 +70,7 @@ class virtual process_which_creates_a_socket_at_spawning_time :
   ?stdout:Unix.file_descr ->
   ?stderr:Unix.file_descr ->
   ?socket_name_prefix:string ->
+  ?management_socket:unit ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -78,6 +79,7 @@ class virtual process_which_creates_a_socket_at_spawning_time :
     method get_pid : pid
     method get_pid_option : pid option
     method get_socket_name : string
+    method get_management_socket_name : string option
     method gracefully_terminate : unit
     method is_alive : bool
     method spawn : unit
@@ -91,6 +93,7 @@ class hub_or_switch_process :
   ?port_no:int ->
   ?tap_name:process_name ->
   ?socket_name_prefix:string ->
+  ?management_socket:unit ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -99,6 +102,7 @@ class hub_or_switch_process :
     method get_pid : pid
     method get_pid_option : pid option
     method get_socket_name : process_name
+    method get_management_socket_name : string option
     method gracefully_terminate : unit
     method is_alive : bool
     method spawn : unit
@@ -110,6 +114,7 @@ class hub_or_switch_process :
 class switch_process :
   port_no:int ->
   ?socket_name_prefix:string ->
+  ?management_socket:unit ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -118,6 +123,7 @@ class switch_process :
     method get_pid : pid
     method get_pid_option : pid option
     method get_socket_name : process_name
+    method get_management_socket_name : string option
     method gracefully_terminate : unit
     method is_alive : bool
     method spawn : unit
@@ -129,6 +135,7 @@ class switch_process :
 class hub_process :
   port_no:int ->
   ?socket_name_prefix:string ->
+  ?management_socket:unit ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -137,6 +144,7 @@ class hub_process :
     method get_pid : pid
     method get_pid_option : pid option
     method get_socket_name : process_name
+    method get_management_socket_name : string option
     method gracefully_terminate : unit
     method is_alive : bool
     method spawn : unit
@@ -155,6 +163,7 @@ class hublet_process :
     method get_pid : pid
     method get_pid_option : pid option
     method get_socket_name : process_name
+    method get_management_socket_name : string option
     method gracefully_terminate : unit
     method is_alive : bool
     method spawn : unit
@@ -173,6 +182,7 @@ class world_bridge_hub_process :
     method get_pid : pid
     method get_pid_option : pid option
     method get_socket_name : process_name
+    method get_management_socket_name : string option
     method gracefully_terminate : unit
     method is_alive : bool
     method spawn : unit
@@ -185,6 +195,24 @@ class slirpvde_process :
   ?network:process_name ->
   ?dhcp:unit ->
   existing_socket_name:process_name ->
+  unexpected_death_callback:(int -> process_name -> unit) ->
+  unit ->
+  object
+    method append_arguments : process_name list -> unit
+    method continue : unit
+    method get_pid : pid
+    method get_pid_option : pid option
+    method gracefully_terminate : unit
+    method is_alive : bool
+    method spawn : unit
+    method stop : unit
+    method stop_monitoring : unit
+    method terminate : unit
+  end
+
+class unixterm_process :
+  ?xterm_title:string -> 
+  management_socket_name:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -353,7 +381,7 @@ class ethernet_cable :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-class virtual main_process_with_n_hublets_and_cables :
+class virtual main_process_with_n_hublets_and_cables_and_accessory_processes :
   name:string ->
   hublet_no:int ->
   ?last_user_visible_port_index:int ->
@@ -380,6 +408,7 @@ class virtual main_process_with_n_hublets_and_cables :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method add_accessory_process : process -> unit
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
@@ -388,6 +417,7 @@ class virtual hub_or_switch :
   hublet_no:int ->
   ?last_user_visible_port_index:int ->
   hub:bool ->
+  ?management_socket:unit ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
@@ -411,6 +441,8 @@ class virtual hub_or_switch :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method add_accessory_process : process -> unit
+    method get_management_socket_name : string option
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
@@ -441,6 +473,7 @@ class virtual hub_or_switch :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method add_accessory_process : process -> unit
     method execute_the_unexpected_death_callback : int -> string -> unit
   end*)
 
@@ -471,6 +504,7 @@ class virtual hub_or_switch :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method add_accessory_process : process -> unit
     method execute_the_unexpected_death_callback : int -> string -> unit
   end*)
 
@@ -502,6 +536,7 @@ class virtual hub_or_switch :
     method stop_processes : unit
     method suspend : unit
     method terminate_processes : unit
+    method add_accessory_process : process -> unit
     method execute_the_unexpected_death_callback : int -> string -> unit
   end*)
 

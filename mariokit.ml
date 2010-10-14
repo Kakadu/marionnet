@@ -1627,7 +1627,8 @@ class virtual device_with_ledgrid_and_defects
     (port_no <> self#get_port_no))
     
   method update_with ~name ~label ~port_no =
-    if self#update_really_needed ~name ~label ~port_no then
+  (* No: force because the simulated device may be rebuilded with new values of other parameters *)  
+  (* if self#update_really_needed ~name ~label ~port_no then *)
     begin
       self#destroy_my_simulated_device;
       self#destroy_my_ledgrid;

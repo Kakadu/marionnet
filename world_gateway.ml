@@ -349,7 +349,7 @@ class world_gateway =
       () ->
   object (self) inherit OoExtra.destroy_methods ()
 
-  inherit Mariokit.Netmodel.device_with_ledgrid_and_defects
+  inherit Mariokit.Netmodel.node_with_ledgrid_and_defects
     ~network
     ~name
     ?label
@@ -358,7 +358,7 @@ class world_gateway =
     ~port_prefix:"port" (* because these ports are of the integrated switch *)
     ~user_port_offset:1 (* because is a switch *)
     ()
-    as self_as_device_with_ledgrid_and_defects
+    as self_as_node_with_ledgrid_and_defects
 
   method ledgrid_label = "World gateway"
   method defects_device_type = "router"
@@ -426,7 +426,7 @@ class world_gateway =
 
   method update_world_gateway_with ~name ~label ~port_no ~network_config ~dhcp_enabled =
     (* The following call ensure that the simulated device will be destroyed: *)
-    self_as_device_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
+    self_as_node_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
     self#set_network_address (Tool.network_address_of_config network_config);
     self#set_dhcp_enabled dhcp_enabled;
 

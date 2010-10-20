@@ -394,7 +394,7 @@ module Eval_forest_child = struct
       | Mariokit.Netmodel.Router ->
           Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
 	  let r = new User_level.router ~network ~name ~port_no () in
-	  let x = (r :> Mariokit.Netmodel.device_with_ledgrid_and_defects) in
+	  let x = (r :> Mariokit.Netmodel.node_with_ledgrid_and_defects) in
 	  x#from_forest ("device", attrs) childs ;
           Log.printf "Router \"%s\" successfully imported.\n" name;
           true
@@ -441,13 +441,13 @@ class router
 
   object (self) inherit OoExtra.destroy_methods ()
 
-  inherit Mariokit.Netmodel.device_with_ledgrid_and_defects
+  inherit Mariokit.Netmodel.node_with_ledgrid_and_defects
     ~network
     ~name ?label ~devkind:Mariokit.Netmodel.Router
     ~port_no
     ~port_prefix:"port"
     ()
-    as self_as_device_with_ledgrid_and_defects
+    as self_as_node_with_ledgrid_and_defects
 
   inherit Mariokit.Netmodel.virtual_machine_with_history_and_details
     ~network:network_alias
@@ -507,7 +507,7 @@ class router
 
   (** Here we also have to manage cow files... *)
   method private gracefully_shutdown_right_now =
-    self_as_device_with_ledgrid_and_defects#gracefully_shutdown_right_now;
+    self_as_node_with_ledgrid_and_defects#gracefully_shutdown_right_now;
     (* We have to manage the hostfs stuff (when in exam mode) and
        destroy the simulated device, so that we can use a new cow file the next time: *)
     Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
@@ -530,7 +530,7 @@ class router
 
   (** Here we also have to manage LED grids and, for routers, cow files: *)
   method private poweroff_right_now =
-    self_as_device_with_ledgrid_and_defects#poweroff_right_now;
+    self_as_node_with_ledgrid_and_defects#poweroff_right_now;
     (* Destroy, so that the next time we have to re-create a simulated device,
        and we start with a new cow: *)
     self#destroy_right_now
@@ -589,7 +589,7 @@ class router
    (* first action: *)
    self_as_virtual_machine_with_history_and_details#update_virtual_machine_with ~name ~port_no kernel;
    (* then we can set the object property "name" (read by #get_name): *)
-   self_as_device_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
+   self_as_node_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
    self#set_port_0_ip_config port_0_ip_config;
    self#set_show_unix_terminal show_unix_terminal;
 

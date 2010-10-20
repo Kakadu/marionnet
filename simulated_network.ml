@@ -456,22 +456,6 @@ class hublet_process =
       as super
 end;;
 
-(** A World Bridge hub process is just a hub process with exactly two ports,
-    of which the first one is connected to the given host tun/tap interface: *)
-class world_bridge_hub_process =
-  fun ~tap_name
-      ~unexpected_death_callback
-      () ->
-object(self)
-  inherit hub_or_switch_process
-      ~port_no:2
-      ~hub:true
-      ~tap_name
-      ~socket_name_prefix:"world_bridge_hub-socket-"
-      ~unexpected_death_callback
-      ()
-      as super
-end;;
 
 (** This is used to implement the world gateway component. *)
 class slirpvde_process =
@@ -728,6 +712,40 @@ object(self)
         super#continue;
         self#stop_automatic_reboot_thread)
 end;;
+
+
+(* Simplified constructor. Defects are accessible using a function (get_defect)
+   and the related port index: *)
+let make_ethernet_cable_process
+  ~left_end
+  ~right_end
+  ?blinker_thread_socket_file_name
+  ?left_blink_command
+  ?right_blink_command
+  ~get_defect
+  ~index
+  ~unexpected_death_callback
+  () =
+  let i = index in
+  new ethernet_cable_process
+    ~left_end
+    ~right_end
+    ?blinker_thread_socket_file_name
+    ?left_blink_command
+    ?right_blink_command
+    ~rightward_loss:(get_defect i InToOut "Loss %")
+    ~rightward_duplication:(get_defect i InToOut "Duplication %")
+    ~rightward_flip:(get_defect i InToOut "Flipped bits %")
+    ~rightward_min_delay:(get_defect i InToOut "Minimum delay (ms)")
+    ~rightward_max_delay:(get_defect i InToOut "Maximum delay (ms)")
+    ~leftward_loss:(get_defect i OutToIn "Loss %")
+    ~leftward_duplication:(get_defect i OutToIn "Duplication %")
+    ~leftward_flip:(get_defect i OutToIn "Flipped bits %")
+    ~leftward_min_delay:(get_defect i OutToIn "Minimum delay (ms)")
+    ~leftward_max_delay:(get_defect i OutToIn "Maximum delay (ms)")
+    ~unexpected_death_callback
+    ()
+;;
 
 let ethernet_interface_to_boot_parameters_bindings umid port_index hublet =
 (*   let name = Printf.sprintf "eth_%s_eth%i" umid index in *)
@@ -1310,19 +1328,11 @@ object(self)
       List.map
         (fun (i, hublet_process) ->
            if i <= last_user_visible_port_index then
-            new ethernet_cable_process
+            make_ethernet_cable_process 
 	      ~left_end:self#get_main_process
 	      ~right_end:hublet_process
-	      ~rightward_loss:(get_defect i InToOut "Loss %")
-	      ~rightward_duplication:(get_defect i InToOut "Duplication %")
-	      ~rightward_flip:(get_defect i InToOut "Flipped bits %")
-	      ~rightward_min_delay:(get_defect i InToOut "Minimum delay (ms)")
-	      ~rightward_max_delay:(get_defect i InToOut "Maximum delay (ms)")
-	      ~leftward_loss:(get_defect i OutToIn "Loss %")
-	      ~leftward_duplication:(get_defect i OutToIn "Duplication %")
-	      ~leftward_flip:(get_defect i OutToIn "Flipped bits %")
-	      ~leftward_min_delay:(get_defect i OutToIn "Minimum delay (ms)")
-	      ~leftward_max_delay:(get_defect i OutToIn "Maximum delay (ms)")
+	      ~get_defect
+	      ~index:i
 	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ()
             else (* Hidden ports have no defects: *)
@@ -1670,136 +1680,6 @@ object(self)
   method device_type = "computer"
 end;;
 
-
-class ['parent] world_bridge =
-  fun (* ~id *)
-      ~(parent:'parent)
-      ~bridge_name
-      ~unexpected_death_callback
-      () ->
-object(self)
-  inherit ['parent] device
-      ~parent
-      ~hublet_no:1
-      ~unexpected_death_callback
-      ()
-      as super
-  method device_type = "world_bridge"
-
-  val the_hublet_process = ref None
-  method private get_the_hublet_process =
-    match !the_hublet_process with
-      Some the_hublet_process -> the_hublet_process
-    | None -> failwith "world_bridge: get_the_hublet_process was called when there is no such process"
-
-  val world_bridge_hub_process = ref None
-  method private get_world_bridge_hub_process =
-    match !world_bridge_hub_process with
-    | Some p -> p
-    | None -> failwith "world_bridge: get_world_bridge_hub_process was called when there is no such process"
-
-  val world_bridge_tap_name = ref None
-  method private get_world_bridge_tap_name =
-    match !world_bridge_tap_name with
-    | Some t -> t
-    | None -> failwith "world_bridge_tap_name: non existing tap"
-
-  (** Create the tap via the daemon, and return its name.
-      Fail if a the tap already exists: *)
-  method private make_world_bridge_tap =
-    match !world_bridge_tap_name with
-      None ->
-        let tap_name =
-          let server_response =
-            Daemon_client.ask_the_server
-              (Make (AnySocketTap((Unix.getuid ()), bridge_name))) in
-          (match server_response with
-          | Created (SocketTap(tap_name, _, _)) -> tap_name
-          | _ -> "non-existing-tap") in
-        world_bridge_tap_name := Some tap_name;
-        tap_name
-    | Some _ ->
-        failwith "a tap for the world bridge already exists"
-
-  method private destroy_world_bridge_tap =
-    (try
-      ignore (Daemon_client.ask_the_server
-                (Destroy (SocketTap(self#get_world_bridge_tap_name,
-                                     (Unix.getuid ()),
-                                     bridge_name))));
-    with e -> begin
-      Log.printf
-        "WARNING: Failed in destroying a host tap for a world bridge: %s\n"
-        (Printexc.to_string e);
-    end);
-    world_bridge_tap_name := None
-
-  val internal_cable_process = ref None
-
-  initializer
-    assert ((List.length self#get_hublet_process_list) = 1);
-    the_hublet_process :=
-      Some (self#get_hublet_process_of_port 0);
-    world_bridge_hub_process :=
-      Some self#make_world_bridge_hub_process
-
-  method private make_world_bridge_hub_process =
-    new world_bridge_hub_process
-      ~tap_name:self#make_world_bridge_tap
-      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-      ()
-
-  method spawn_processes =
-    (match !world_bridge_hub_process with
-    | None ->
-        world_bridge_hub_process := Some self#make_world_bridge_hub_process
-    | Some the_world_bridge_hub_process ->
-        ());
-    (* Spawn the hub process, and wait to be sure it's started: *)
-    self#get_world_bridge_hub_process#spawn;
-    (* Create the internal cable process from the single hublet to the hub,
-       and spawn it: *)
-    let the_internal_cable_process =
-      let defects = get_defects_interface () in
-      let name = parent#get_name in
-      new ethernet_cable_process
-        ~rightward_loss:(defects#get_port_attribute_by_index name 0 InToOut "Loss %")
-        ~rightward_duplication:(defects#get_port_attribute_by_index name 0 InToOut "Duplication %")
-        ~rightward_flip:(defects#get_port_attribute_by_index name 0 InToOut "Flipped bits %")
-        ~rightward_min_delay:(defects#get_port_attribute_by_index name 0 InToOut "Minimum delay (ms)")
-        ~rightward_max_delay:(defects#get_port_attribute_by_index name 0 InToOut "Maximum delay (ms)")
-        ~leftward_loss:(defects#get_port_attribute_by_index name 0 OutToIn "Loss %")
-        ~leftward_duplication:(defects#get_port_attribute_by_index name 0 OutToIn "Duplication %")
-        ~leftward_flip:(defects#get_port_attribute_by_index name 0 OutToIn "Flipped bits %")
-        ~leftward_min_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Minimum delay (ms)")
-        ~leftward_max_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Maximum delay (ms)")
-        ~left_end:self#get_world_bridge_hub_process
-        ~right_end:self#get_the_hublet_process
-        ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-        () in
-    internal_cable_process := Some the_internal_cable_process;
-    the_internal_cable_process#spawn
-
-  method terminate_processes =
-    (* Terminate the internal cable process and the hub process: *)
-    (match !internal_cable_process with
-      Some the_internal_cable_process ->
-        Task_runner.do_in_parallel
-          [ (fun () -> the_internal_cable_process#terminate);
-            (fun () -> self#get_world_bridge_hub_process#terminate) ]
-    | None ->
-        assert false);
-    (* Destroy the tap, via the daemon: *)
-    self#destroy_world_bridge_tap;
-    (* Unreference everything: *)
-    internal_cable_process := None;
-    world_bridge_hub_process := None;
-
-  (** As world bridges are stateless from the point of view of the user, stop/continue
-      aren't distinguishable from terminate/spawn: *)
-  method stop_processes = self#terminate_processes
-  method continue_processes = self#spawn_processes
-end;;
 
 class ['parent] cloud =
   fun (* ~id *)

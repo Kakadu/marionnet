@@ -282,14 +282,14 @@ class hub =
   object (self) inherit OoExtra.destroy_methods ()
 
   inherit
-    Mariokit.Netmodel.device_with_ledgrid_and_defects
+    Mariokit.Netmodel.node_with_ledgrid_and_defects
       ~network
       ~name ?label ~devkind:Mariokit.Netmodel.Hub
       ~port_no
       ~user_port_offset:1 (* in order to have a perfect mapping with VDE *)
       ~port_prefix:"port"
       ()
-    as self_as_device_with_ledgrid_and_defects 
+    as self_as_node_with_ledgrid_and_defects 
   method ledgrid_label = "Hub"
   method defects_device_type = "hub"
   method polarity = Mariokit.Netmodel.MDI_X
@@ -300,7 +300,6 @@ class hub =
 
   (** Create the simulated device *)
   method private make_simulated_device =
-    let name = self#get_name in
     let hublet_no = self#get_port_no in
     let unexpected_death_callback = self#destroy_because_of_unexpected_death in
     ((new Simulation_level.hub

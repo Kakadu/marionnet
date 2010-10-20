@@ -23,10 +23,13 @@ open Gettext;;
     of each defect, for each port: *)
 type port_direction =
     InToOut | OutToIn;;
+
 let string_of_port_direction d =
   match d with
     InToOut ->  "outward"
   | OutToIn -> "inward";;
+
+type column_header = string
 
 (** The direction in which data flow in a single port; this is the 'resolution'
     of each defect, for each port: *)

@@ -28,6 +28,6 @@ module Make (State : sig val st:State.globalState end) = struct
  module Menus_for_crossover_cable = Gui_cable. Make_menus (State) (Crossover)
  module Menus_for_cloud   = Gui_cloud.  Make_menus (State)
  module Menus_for_world_gateway = World_gateway. Make_menus (State)
- module Menus_for_world_bridge  = Gui_world_bridge. Make_menus (State)
+ module Menus_for_world_bridge  = World_bridge. Make_menus (State)
 end
 

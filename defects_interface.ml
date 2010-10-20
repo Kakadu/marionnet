@@ -72,14 +72,24 @@ object(self)
       "Minimum delay (ms)", String "50";
       "Maximum delay (ms)", String "100"; ]
 
-  method add_device ?(defective_by_default=false) device_name device_type port_no =
-    Log.printf "Making a defect treeview entry for %s \"%s\" with %d ports.\n" device_type device_name port_no;
+  method add_device
+    ?(defective_by_default=false)
+    ~device_name
+    ~device_type
+    ~port_no
+    ~port_prefix
+    ~user_port_offset
+    ()
+    =
+    Log.printf
+      "Making a defect treeview entry for %s \"%s\" with %d ports (prefix %s, user port offset %d).\n"
+      device_type device_name port_no port_prefix user_port_offset;
     let row_id =
       self#add_row
         [ "Name", String device_name;
           "Type", Icon device_type;
           "_uneditable", CheckBox true; ] in
-    self#update_port_no ~defective_by_default device_name port_no;
+    self#update_port_no ~defective_by_default ~device_name ~port_no ~port_prefix ~user_port_offset ();
     self#collapse_row row_id;
 (*
     Log.printf "eth0 InToOut Loss %%: %f\n"
@@ -137,27 +147,49 @@ object(self)
       Forest.children_nodes device_row_id !id_forest in
     List.length port_row_ids
 
-  method private add_port ?(defective_by_default=false) device_name =
+
+  (* Used importing hub/switch/.. for backward compatibility: *)
+  method change_port_user_offset ~device_name ~user_port_offset =
+    let offset = user_port_offset in
+    let update name = 
+      try  Scanf.sscanf name "eth%i"  (fun i -> Printf.sprintf "eth%d"  (i+offset)) with _ ->
+      try  Scanf.sscanf name "port%i" (fun i -> Printf.sprintf "port%d" (i+offset)) with _ ->
+      name
+    in
+    let device_row_id = self#device_or_cable_row_id device_name in
+    let port_row_ids = Forest.children_nodes device_row_id !id_forest in
+    List.iter
+      (fun row_id ->
+         let name =
+           match self#get_row_item row_id "Name" with
+           | String x -> x
+           | _ -> assert false
+         in
+         self#set_row_item row_id "Name" (String (update name)))
+      port_row_ids
+
+  method private add_port
+    ?(defective_by_default=false)
+    ~device_name
+    ~port_prefix
+    ~user_port_offset
+    =
     let defaults =
       if defective_by_default then defective_defaults else non_defective_defaults in
     let device_row_id =
       self#device_or_cable_row_id device_name in
     let current_port_no =
       self#port_no_of device_name in
+    let current_user_port_index = current_port_no + user_port_offset in
     let port_type =
       match item_to_string (self#get_row_item device_row_id "Type") with
       | "machine" (*| "world_bridge"*) -> "machine-port"
       | "gateway" (* retro-compatibility *) -> "machine-port"
       | _ -> "other-device-port" in
-    let port_prefix =
-      match item_to_string (self#get_row_item device_row_id "Type") with
-      | "machine" (*| "world_bridge"*) -> "eth"
-      | "gateway" (* retro-compatibility *) -> "eth"
-      | _ -> "port" in
     let port_row_id =
       self#add_row
         ~parent_row_id:device_row_id
-        [ "Name", String (Printf.sprintf "%s%i" port_prefix current_port_no);
+        [ "Name", String (Printf.sprintf "%s%i" port_prefix current_user_port_index);
           "Type", Icon port_type;
           "_uneditable", CheckBox true; ] in
     let _inward_row_id =
@@ -179,7 +211,16 @@ object(self)
       self#show_that_it_is_defective outward_row_id;
     end
 
-  method update_port_no ?(defective_by_default=false) device_name new_port_no =
+
+  method update_port_no
+    ?(defective_by_default=false)
+    ~device_name
+    ~port_no
+    ~port_prefix
+    ~user_port_offset
+    ()
+    =
+    let new_port_no = port_no in
     let device_row_id =
       self#device_or_cable_row_id device_name in
     let port_row_ids =
@@ -189,7 +230,7 @@ object(self)
     let ports_delta = new_port_no - old_port_no in
     if ports_delta >= 0 then
       for i = old_port_no + 1 to new_port_no do
-        self#add_port ~defective_by_default device_name
+        self#add_port ~defective_by_default ~device_name ~port_prefix ~user_port_offset
       done
     else begin
       let reversed_port_row_ids = List.rev port_row_ids in
@@ -277,6 +318,19 @@ object(self)
       let port_name = Printf.sprintf "port%i" port_index in
       self#get_port_attribute device_name port_name port_direction column_header
 
+  method get_port_attribute_of
+    ~device_name
+    ~port_prefix
+    ~port_index
+    ~user_port_offset
+    ~port_direction
+    ~column_header
+    ()
+    =
+    let user_port_index = port_index + user_port_offset in
+    let port_name = Printf.sprintf "%s%i" port_prefix user_port_index in
+    self#get_port_attribute device_name port_name port_direction column_header
+
   (** Return a single cable attribute as an item: *)
   method get_cable_attribute cable_name cable_direction column_header =
     float_of_string
@@ -362,7 +416,7 @@ object(self)
         grandparent_row_ids
       else
         parent_row_ids in
-    Log.printf "List.length devices_row_id = %i\n" (List.length device_row_ids); flush_all ();
+    Log.printf "List.length devices_row_id = %i\n" (List.length device_row_ids);
     assert (List.length device_row_ids = 1);
     let device_row_id = List.hd device_row_ids in
     item_to_string (self#get_row_item device_row_id "Name")

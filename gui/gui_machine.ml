@@ -44,11 +44,19 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       let defects = Defects_interface.get_defects_interface () in
       let (name,eth) = (r#get "name"),(r#get "eth") in
       details#add_device name "machine" (int_of_string eth);
-      defects#add_device name "machine" (int_of_string eth);
+      defects#add_device
+        ~device_name:name
+        ~device_type:"machine"
+        ~port_no:(int_of_string eth)
+        ~port_prefix:"eth"
+        ~user_port_offset:0
+        ;
       let m =
-        (new Mariokit.Netmodel.machine ~network:st#network ~name
+        (new Mariokit.Netmodel.machine
+          ~network:st#network
+          ~name
           ~memory:   (int_of_string (r#get "memory"))
-          ~ethnum:   (int_of_string eth)
+          ~port_no:  (int_of_string eth)
           ~epithet:  (r#get "distrib")
           ?variant:  (Option.of_fallible_application r#get "variant_name")
           ~kernel:   (r#get "kernel")
@@ -91,7 +99,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       m#destroy; (* make sure the simulated object is in state 'no-device' *)
       st#network#change_node_name oldname name  ;
       m#set_memory      (int_of_string (r#get "memory"))  ;
-      m#set_eth_number  eth;
+      m#set_port_no  eth;
       (* Distribution and variant can not be changed; they are set once and for all at creation time: *)
       (* Instead the kernel can be changed later: *)
       m#set_kernel      (r#get "kernel")  ;
@@ -101,7 +109,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       details#rename_device oldname name;
       details#update_port_no name eth;
       defects#rename_device oldname name;
-      defects#update_port_no name eth;
+      defects#update_port_no ~device_name:name ~port_no:eth ~port_prefix:"eth" ~user_port_offset:0 ();
       st#update_cable_sensitivity ()
 
   end

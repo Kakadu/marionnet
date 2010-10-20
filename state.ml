@@ -152,18 +152,14 @@ class globalState = fun () ->
 
       (* Create the directory skeleton into the pwdir. *)
       let prefix = (self#get_pwdir^"/"^(self#get_prj_name)^"/") in
-      Unix.mkdir (prefix)             0o755 ;
-      ListExtra.foreach ["states";"netmodel";"scripts";"hostfs";"classtest";"tmp"] (fun x->(Unix.mkdir (prefix^x) 0o755)) ;
+      Unix.mkdir prefix 0o755 ;
+      List.iter
+        (fun x-> Unix.mkdir (prefix^x) 0o755)
+        ["states"; "netmodel"; "scripts"; "hostfs"; "classtest"; "tmp"];
 
       (* Treeview data should be saved within prefix: *)
-      Filesystem_history.set_states_directory (prefix ^ "states/");
-      Filesystem_history.clear ();
-      (Network_details_interface.get_network_details_interface ())#set_file_name (prefix ^ "states/ports");
-      (Network_details_interface.get_network_details_interface ())#reset;
-      (Defects_interface.get_defects_interface ())#set_file_name (prefix ^ "states/defects");
-      (Defects_interface.get_defects_interface ())#clear;
-      (Texts_interface.get_texts_interface ())#set_file_name (prefix ^ "states/texts");
-      (Texts_interface.get_texts_interface ())#clear;
+      self#reset_treeviews;
+      self#set_treeview_directories_with_prefix prefix;
 
       (* Reset dotoptions *)
       self#dotoptions#reset_defaults () ;
@@ -213,14 +209,7 @@ class globalState = fun () ->
         end (* there was an active project *)
        );
       (* Clear all treeviews, just in case. *)
-      Filesystem_history.clear ();
-      Filesystem_history.reset_states_directory ();
-      (Network_details_interface.get_network_details_interface ())#reset_file_name;
-      (Network_details_interface.get_network_details_interface ())#reset;
-      (Defects_interface.get_defects_interface ())#reset_file_name;
-      (Defects_interface.get_defects_interface ())#clear;
-      (Texts_interface.get_texts_interface ())#reset_file_name;
-      (Texts_interface.get_texts_interface ())#clear;
+      self#reset_treeviews;
       Log.printf "state#close_project_sync: done.\n";
     end (* thunk *)
     in
@@ -229,7 +218,10 @@ class globalState = fun () ->
               close_project_sync);
 
  (** Read the pseudo-XML file containing the network definition. *)
- method import_network  ?(emergency:(unit->unit)=(fun x->x)) ?(dotAction:(unit->unit)=fun x->x) (f:filename) =
+ method import_network
+   ?(emergency:(unit->unit)=(fun x->x))
+   ?(dotAction:(unit->unit)=fun x->x)
+   (f:filename) =
    begin
 
    (* Backup the network. *)
@@ -239,15 +231,21 @@ class globalState = fun () ->
    let emergency = fun e ->
          Log.printf "import_network: emergency (%s)!!!\n" (Printexc.to_string e);
 	 self#network#restore_from_buffers;
-         emergency () in
+         emergency ()
+   in
 
    (* Read the given file. *)
    (if (Shell.regfile_readable f)
    then try
-       Mariokit.Netmodel.Xml.load_network self#network f ;
+       let result = Mariokit.Netmodel.Xml.load_network self#network f in
        Log.printf ("import_network: network imported\n");
+       result
    with e -> (emergency e;  raise e)
-   else ( emergency (Failure "file not readable"); raise (Failure "state#import_network: cannot open the xml file") ));
+   else begin
+     emergency (Failure "file not readable");
+     raise (Failure "state#import_network: cannot open the xml file")
+     end
+     );
 
    (* Fix the app_state and update it if necessary *)
    app_state#set ActiveNotRunnableProject ;
@@ -261,7 +259,6 @@ class globalState = fun () ->
 
    (* Update the network sketch *)
    self#refresh_sketch ();
-   ()
    end
 
 
@@ -275,7 +272,13 @@ class globalState = fun () ->
     prj_filename#set (Some x) ;
 
     (* Set the project working directory to a random name in the wdir. *)
-    let working_directory = UnixExtra.temp_dir ~parent:wdir ~prefix:marionnet_working_directory_prefix ~suffix:".dir" () in
+    let working_directory =
+      UnixExtra.temp_dir
+        ~parent:wdir
+        ~prefix:marionnet_working_directory_prefix
+        ~suffix:".dir"
+        ()
+    in
     self#set_pwdir (Some working_directory);
 
     (* Extract the mar file into the pwdir *)
@@ -284,14 +287,15 @@ class globalState = fun () ->
     (* Look for the name of the root directory of the mar file. Some checks here. *)
     let rootname =
       try
-        match (SysExtra.readdir_as_list self#get_pwdir) with
-
-        | [x] -> let skel = (SysExtra.readdir_as_list (self#get_pwdir^x)) in
-                 if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"]
-                 then x
-                 else raise (Failure "state#open_project: no expected content in the project working directory root.")
-
-        |  _  -> raise (Failure "state#open_project: no rootname found in the project working directory.")
+        (match (SysExtra.readdir_as_list self#get_pwdir) with
+        | [x] ->
+          let skel = (SysExtra.readdir_as_list (self#get_pwdir^x)) in
+          if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"] then x
+          else
+            raise (Failure "state#open_project: no expected content in the project root directory.")
+        |  _  ->
+            raise (Failure "state#open_project: no rootname found in the project directory.")
+        )
       with e -> begin
         self#close_project ();
         raise e;
@@ -306,10 +310,7 @@ class globalState = fun () ->
 
     (* Set the treeview directories so that we can safely use treeviews, even before filling them
        with real data: *)
-    Filesystem_history.set_states_directory (prefix ^ "states/");
-    (Network_details_interface.get_network_details_interface ())#set_file_name (prefix ^ "states/ports");
-    (Defects_interface.get_defects_interface ())#set_file_name (prefix ^ "states/defects");
-    (Texts_interface.get_texts_interface ())#set_file_name (prefix ^ "states/texts");
+    self#set_treeview_directories_with_prefix prefix;
 
     (* Dotoptions.network will be undumped after the network, in order to support cable inversions. *)
 
@@ -324,18 +325,18 @@ class globalState = fun () ->
 
     Log.printf ("state#open_project: calling import_network\n");
 
-    (* Second, read the xml file containing the network definition. If something goes wrong, close the project. *)
+    (* Undump treeview's data. Doing this action now we allow components
+       to modify the treeviews according to the marionnet version: *)
+    self#load_treeviews;
+
+    (* Second, read the xml file containing the network definition.
+       If something goes wrong, close the project. *)
     (try
        self#import_network ~emergency:self#close_project ~dotAction self#networkFile ;
      with e ->
+       self#reset_treeviews;
        Log.printf "Failed with exception %s\n" (Printexc.to_string e);
      );
-
-    (* Now undump data and fill all the treeviews: *)
-    Filesystem_history.load_states ();
-    (Network_details_interface.get_network_details_interface ())#load;
-    (Defects_interface.get_defects_interface ())#load;
-    (Texts_interface.get_texts_interface ())#load;
 
     self#register_state_after_save_or_open;
     ()
@@ -346,6 +347,21 @@ class globalState = fun () ->
   val mutable refresh_sketch_counter_value_after_last_save = None
   method set_project_not_already_saved =
    refresh_sketch_counter_value_after_last_save <- None
+
+  method private treeview =
+   object
+     method details = Network_details_interface.get_network_details_interface ()
+     method history = Filesystem_history.get_states_interface ()
+     method defects = Defects_interface.get_defects_interface ()
+     method texts   = Texts_interface.get_texts_interface ()
+   end      
+
+  method private set_treeview_directories_with_prefix prefix =
+    let concat = Filename.concat in
+    self#treeview#history#set_states_directory (concat prefix "states/");
+    self#treeview#details#set_file_name        (concat prefix "states/ports");
+    self#treeview#defects#set_file_name        (concat prefix "states/defects");
+    self#treeview#texts#set_file_name          (concat prefix "states/texts");
 
   method private get_treeview_list : Treeview.treeview list =
    begin
@@ -360,8 +376,17 @@ class globalState = fun () ->
       ]
    end
 
+  method private load_treeviews =
+    List.iter (fun (treeview : Treeview.treeview) -> treeview#load) self#get_treeview_list
+
+  method private save_treeviews =
+    List.iter (fun (treeview : Treeview.treeview) -> treeview#save) self#get_treeview_list
+
+  method private reset_treeviews =
+    List.iter (fun (treeview : Treeview.treeview) -> treeview#reset) self#get_treeview_list
+
   method private get_treeview_complete_forest_list =
-    List.map
+    List.map 
       (fun (treeview : Treeview.treeview) -> treeview#get_complete_forest)
        self#get_treeview_list
 
@@ -438,10 +463,7 @@ class globalState = fun () ->
 
     (* Save treeviews (just to play it safe, because treeview files should be automatically)
        re-written at every update): *)
-    Filesystem_history.save_states ();
-    (Network_details_interface.get_network_details_interface ())#save;
-    (Defects_interface.get_defects_interface ())#save;
-    (Texts_interface.get_texts_interface ())#save;
+    self#save_treeviews;   
 
     (* (Re)write the .mar file *)
     let cmd = ("tar -cSvzf "^filename^" -C "^self#get_pwdir^" --exclude tmp "^(self#get_prj_name)) in
@@ -522,14 +544,8 @@ class globalState = fun () ->
 
       (* The states interface must also be informed of the new prefix so that it can find
          its data files, including cows: *)
-      Filesystem_history.reset_states_directory ();
-      Filesystem_history.set_states_directory (self#get_pwdir^"/"^x^"/states/");
-      (Network_details_interface.get_network_details_interface ())#set_file_name
-        (self#get_pwdir^"/"^x^"/states/ports");
-      (Defects_interface.get_defects_interface ())#set_file_name
-        (self#get_pwdir^"/"^x^ "/states/defects");
-      (Texts_interface.get_texts_interface ())#set_file_name
-        (self#get_pwdir^"/"^x^ "/states/texts");
+      let prefix = self#get_pwdir^"/"^x in
+      self#set_treeview_directories_with_prefix prefix;
     end;
 
 
@@ -539,15 +555,7 @@ class globalState = fun () ->
   (** Forbid cable additions if there are not enough free ports; explicitly enable
       them if free ports are enough: *)
   method update_cable_sensitivity () =
-    let node_names = self#network#get_node_names in
-    let free_ethernet_port_names = (* we're interested in their number, not names... *)
-      List.flatten
-        (List.map
-           (fun node_name ->
-             self#network#free_receptacles_names_of_node node_name Mariokit.Netmodel.Eth)
-           node_names) in
-    let free_ethernet_port_no = List.length free_ethernet_port_names in
-    let condition = (free_ethernet_port_no >= 2) in
+    let condition = self#network#are_there_almost_2_free_endpoints in
     (List.iter (fun x->x#misc#set_sensitive condition) sensitive_cables)
 
   val refresh_sketch_counter = Chip.wcounter ~name:"refresh_sketch_counter" ()

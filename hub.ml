@@ -69,8 +69,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      let d = (st#network#get_device_by_name name) in
      let title = (s_ "Modify hub")^" "^name in
      let label = d#get_label in
-     let port_no = d#get_eth_number in
-     let port_no_lower = st#network#port_no_lower_of d#get_name in
+     let port_no = d#get_port_no in
+     let port_no_lower = st#network#port_no_lower_of (d :> Mariokit.Netmodel.node) in
      Dialog_add_or_update.make ~title ~name ~label ~port_no ~port_no_lower ~ok_callback:Add.ok_callback ()
 
     let reaction { name = name; label = label; port_no = port_no; old_name = old_name; } =
@@ -252,6 +252,8 @@ module Eval_forest_child = struct
             Log.printf "Importing hub \"%s\" with %d ports...\n" name port_no;
 	    let x = new User_level.hub ~network ~name ~port_no () in
 	    x#from_forest ("device", attrs) childs; (* Just for the label... *)
+            Log.printf "This is an old project: we set the user port offset to 1...\n";
+	    network#defects#change_port_user_offset ~device_name:name ~user_port_offset:1;
 	    Log.printf "Hub \"%s\" successfully imported.\n" name;
 	    true
 	| _ -> false
@@ -284,6 +286,7 @@ class hub =
       ~network
       ~name ?label ~devkind:Mariokit.Netmodel.Hub
       ~port_no
+      ~user_port_offset:1 (* in order to have a perfect mapping with VDE *)
       ~port_prefix:"port"
       ()
     as self_as_device_with_ledgrid_and_defects 
@@ -298,25 +301,25 @@ class hub =
   (** Create the simulated device *)
   method private make_simulated_device =
     let name = self#get_name in
-    let hublet_no =
-      let receptacles = self#get_receptacles ~portkind:(Some Mariokit.Netmodel.Eth) () in
-      List.length receptacles
-    in
+    let hublet_no = self#get_port_no in
     let unexpected_death_callback = self#destroy_because_of_unexpected_death in
-    ((new Simulation_level.hub ~name ~hublet_no ~unexpected_death_callback ())
-        :> Simulated_network.device)
+    ((new Simulation_level.hub
+        ~parent:self
+        ~hublet_no
+        ~unexpected_death_callback
+        ()) :> Mariokit.Netmodel.node Simulated_network.device)
 
   method to_forest =
    Forest.leaf ("hub", [
                    ("name"     ,  self#get_name );
                    ("label"    ,  self#get_label);
-                   ("port_no"  ,  (string_of_int self#get_eth_number))  ;
+                   ("port_no"  ,  (string_of_int self#get_port_no))  ;
 	           ])
 
   method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x
   | ("label"    , x ) -> self#set_label x
-  | ("port_no"  , x ) -> self#set_eth_number  (int_of_string x)
+  | ("port_no"  , x ) -> self#set_port_no  (int_of_string x)
   | _ -> () (* Forward-comp. *)
 
 end (* class hub *)
@@ -330,15 +333,15 @@ end (* module User_level *)
 module Simulation_level = struct
 
 (** A hub: just a [hub_or_switch] with [hub = true] *)
-class hub =
-  fun ~name
+class ['parent] hub =
+  fun ~parent
       ~hublet_no
       ?(last_user_visible_port_index:int option)
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit Simulated_network.hub_or_switch
-      ~name
+  inherit ['parent] Simulated_network.hub_or_switch
+      ~parent
       ~hublet_no
       ?last_user_visible_port_index
       ~hub:true

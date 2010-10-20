@@ -309,10 +309,6 @@ type nodename   = string ;;
 (** Examples: eth0..eth4 *)
 type receptname = string ;;
 
-(** A socketname is a pair (nodename,receptname), for instance ("rome";"eth0")
-    or ("H1";"eth2"). *)
-type socketname = { mutable nodename:string ; mutable receptname:string ; } ;;
-
 type name   = string ;;
 type label  = string ;;
 let nolabel = "";;
@@ -347,7 +343,7 @@ let raise_forbidden_transition msg =
     conveniently hide the complexity of managing switches and cables; when the
     user tries to invoke any forbidden state transition an exception is
     raised. *)
-class virtual simulated_device () = object(self)
+class virtual ['parent] simulated_device () = object(self)
 
   initializer
     self#add_destroy_callback (lazy self#destroy_my_simulated_device);
@@ -390,24 +386,21 @@ class virtual simulated_device () = object(self)
   (** The device implementing the object in the simulated network, if any (this is
       ref None when the device has not been started yet, or some state modification
       happened) *)
-  val simulated_device : Simulated_network.device option ref =
+  val simulated_device : 'parent Simulated_network.device option ref =
     ref None
 
+  method get_hublet_process_of_port index =
+    match !simulated_device with
+    | Some (sd) -> sd#get_hublet_process_of_port index
+    | None      -> failwith "looking for a hublet when its device is non-existing"
+
   (** Create a new simulated device according to the current status *)
-  method virtual make_simulated_device : Simulated_network.device
+  method virtual make_simulated_device : 'parent Simulated_network.device
 
   (** Return the list of cables directly linked to a port of self as an endpoint.
       This is needed so that simulated cables can be automatically started/destroyed
       as soon as both their endpoints are created/destroyed *)
   method private get_involved_cables = []
-
-  (** Return a hublet process by name, so that we're able to easily find where to
-      connect/disconnect cables. This fails if the device is non-existing, as there
-      are no hublets in this case *)
-  method get_hublet_process_by_interface_name name =
-    match !simulated_device with
-      Some(sd) -> sd#get_ethernet_port_by_name name
-    | None -> failwith "looking for a hublet when its device is non-existing"
 
   (** Return true iff hublet processes are currently existing. This is only meaningful
       for devices which can actually have hublets *)
@@ -650,20 +643,6 @@ class virtual simulated_device () = object(self)
 
         | _ -> raise_forbidden_transition "poweroff_right_now")
 
-  method set_hublet_process_no n =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        Log.printf "Updating the number of hublets of the device %s...\n" self#get_name;
-        match !automaton_state, !simulated_device with
-        | DeviceOff, Some(d) ->
-            d#set_hublet_process_no n (* update hublets and don't change state *)
-
-        | NoDevice, None ->
-           (self#create_right_now;         (* Make hublets... *)
-            self#set_hublet_process_no n) (* ...and do the real work in state Off *)
-
-        | _ ->  raise_forbidden_transition "set_hublet_process_no")
-
   (** Return true iff the current state allows to 'startup' the device from the GUI. *)
   method can_startup =
     Recursive_mutex.with_mutex mutex
@@ -783,42 +762,75 @@ end;;
 
 
 (* *************************** *
-          class receptacle
+          class port
  * *************************** *)
 
-(** A receptacle is the abstract notion representing both ethernet and serial ports.
-    It's a component with a portkind [(Eth|TtyS)]. *)
-class receptacle = fun ~network (name:receptname) (index:int) label (kind:portkind) ->
-
-  (* Some checks over receptacle name *)
-
-   let wellFormedReceptName k x =
-    match k with
-    | Eth  -> (StrExtra.Bool.match_string "^eth[0-9]$"        x) or
-              (StrExtra.Bool.match_string "^eth[1-9][0-9]+$"  x) or
-              (StrExtra.Bool.match_string "^port[0-9]$"       x) or
-              (StrExtra.Bool.match_string "^port[1-9][0-9]+$" x) in
-
-  let check_receptname k x = if not (wellFormedReceptName k x) then
-    failwith ("Setting receptacle: name "^x^" not valid for this kind of receptacle")
-    else x in
-
-  object (self)
-
-  inherit id_name_label ~name:(check_receptname kind name) ~label ()
-
-  (** The kind of receptacle (Eth|TtyS) *)
-  method portkind = kind
-
-  (** A receptacle has an index in its container. This field is normally coherent with the label.
-      For instance, one expects that a receptacle with the label "eth2" will have the index=2. *)
-  method index =
-    let (||) = Sugar.(||) in
-    if (index>=0)
-    then index
-    else ((StrExtra.extract_groups (Str.regexp "[a-z]*\\([0-9]+\\)")) || List.hd || int_of_string) name 
+(** Essentially a triple (user_name, user_index, internal_index) *)
+class port
+  ~port_prefix      (* ex: "eth" or "port" *)
+  ~internal_index   (* 0-based numbering *)
+  ~user_port_offset
+  ()
+  =
+  let user_index = (internal_index + user_port_offset) in
+  let user_name = Printf.sprintf "%s%d" port_prefix user_index 
+  in
+  object
+    method user_name      = user_name       (* ex: port1 *)
+    method user_index     = user_index      (* ex: 1 *)
+    method internal_index = internal_index  (* ex: 0 *)
 end;;
 
+(** Just a container of ports: *)
+class ['parent] ports_card
+  ~network
+  ~(parent:'parent)
+  ~port_no
+  ~port_prefix
+  ?(user_port_offset=0)
+  () =
+ let () = assert (port_no >= 0) in
+ let port_array =
+   Array.init
+     port_no
+     (fun i -> new port ~port_prefix ~internal_index:i ~user_port_offset ())
+ in
+ let port_list = Array.to_list port_array
+ in
+ object
+  method port_no = port_no
+  method port_prefix = port_prefix
+  method user_port_offset = user_port_offset
+
+  method internal_index_of_user_port_name x =
+    (List.find (fun p->p#user_name = x) port_list)#internal_index
+
+  method user_port_index_of_user_port_name x =
+    (List.find (fun p->p#user_name = x) port_list)#user_index
+
+  method user_port_name_of_internal_index i =
+    (Array.get port_array i)#user_name
+
+  method user_port_index_of_internal_index i =
+    (Array.get port_array i)#user_index
+
+  method user_port_name_list = List.map (fun x->x#user_name) port_list
+
+  method get_port_defect_by_index
+   (port_index:int)
+   (port_direction:Defects_interface.port_direction)
+   (column_header:string) : float
+   =
+    network#defects#get_port_attribute_of
+      ~device_name:((parent#get_name):string)
+      ~port_prefix
+      ~port_index
+      ~user_port_offset
+      ~port_direction
+      ~column_header
+      ()
+
+end (** class ports_card *)
 
 (* *************************** *
           class node
@@ -828,44 +840,47 @@ end;;
     Currently, devices are sold with "intelligent" ports, i.e. MDI/MDI-X. *)
 type polarity = MDI | MDI_X | Intelligent ;;
 
-(** A node of the network is a container of receptacles.
+(** A node of the network is essentially a container of ports.
     Defects may be added after the creation, using the related method. *)
-class virtual node = fun
+class virtual node_with_ports_card = fun
    ~network
-   ?(name="nonodename")
-   ?(label="")
-   ?(nodekind = Machine)
-   ?(devkind  = NotADevice)
-   ?(rlist:receptacle list = [])
-   ~(port_prefix:string)
+   ~name
+   ?label
+   ~(nodekind:nodekind)
+   ~(devkind:devkind)
+   ~port_no
+   ~port_prefix
+   ?(user_port_offset=0)
    () ->
-
+   let make_ports_card ~parent ~port_no =
+     new ports_card ~network ~parent ~port_no ~port_prefix ~user_port_offset ()
+   in
    object (self)
-   inherit component ~network ~name ~label ()
-   inherit simulated_device ()
+   inherit component ~network ~name ?label ()
+   inherit (*the parent:*) [node_with_ports_card] simulated_device ()
 
-   (* TODO: deve diventare virtuale!!! temporaneamente definito durante il refactoring
-      ma deve essere implementato in tutte le classi concrete: *)
-   method virtual destroy : unit (*=
-     self#destroy_my_simulated_device*)
+   (* Building constant parameters: *)
+   method user_port_offset = user_port_offset
+   method port_prefix = port_prefix
+   
+   val mutable ports_card = None
+   initializer ports_card <- Some (make_ports_card ~parent:self ~port_no)
+   method ports_card = Option.extract ports_card
+   method get_port_no = self#ports_card#port_no
+   method set_port_no new_port_no =
+     ports_card <- Some (make_ports_card ~parent:self ~port_no:new_port_no)
+
+   method virtual destroy : unit
      
   (** 'Static' methods (in the sense of C++/Java). Polarity is used to decide the correct
       kind of Ethernet cable needed to connect a pair of devices: the cable should be
       crossover iff both endpoints have the same polarity: *)
-  method virtual polarity : polarity
+   method virtual polarity : polarity
 
-  method port_prefix = port_prefix
-  
-  (** Constant fields (methods) *)
+   val mutable devkind = devkind
+   method set_devkind x = devkind <- x
 
-  (** The mutable list of receptacle of this component. *)
-  val mutable nodekind = nodekind
-  val mutable devkind  = devkind
-
-  method set_nodekind x = nodekind <- x
-  method set_devkind  x = devkind  <- x
-
-  (** The kind of the node (Machine or Device). Alias for get_kind.*)
+  (** The kind of the node (Machine or Device). *)
   method nodekind = nodekind
 
   (** The kind of the device (if the node is a device). *)
@@ -874,113 +889,6 @@ class virtual node = fun
   (** The method which give access to the object describing defects of this component. *)
   (* method defect = defect *)
 
-  (** Variable fields *)
-
-  (** The mutable list of receptacle of this component. *)
-  val mutable receptacles : (receptacle list) = rlist
-
-  method set_receptacles x = receptacles <- x
-
-  (** Retrieving informations about receptacles *)
-
-  (** Basic accessor for the list of receptacles of this node. The portkind may be specified. *)
-  method get_receptacles ?(portkind:(portkind option)=None) () =
-    match portkind with
-    | None   -> receptacles
-    | Some k -> List.filter (fun r->r#portkind=k) receptacles
-
-  (** Get a receptacle of this node by the name of this receptacle (for instance ["eth0"]). *)
-  method get_receptacle_by_name rname = List.find (fun x->x#name=rname) receptacles
-
-  (** A receptacle of the given name exists in this node? *)
-  method receptacle_exists n = let f=(fun x->x#name=n) in (List.exists f receptacles)
-
-  (** The number of receptacles of this node. The portkind may be specified. *)
-  method number_of_receptacles ?(portkind:(portkind option)=None) ()
-      = List.length (self#get_receptacles ~portkind ())
-
-  (** The max index in the list of receptacles of this node. The portkind is here mandatory. *)
-  method max_receptacle_index (k:portkind)  =
-    let l = (List.map (fun x->x#index) (self#get_receptacles ~portkind:(Some k) ())) in
-    if l=[] then -1 else (ListExtra.max l)
-
-  (** The list of names of receptacles of this node. The portkind may be specified. *)
-  method receptacle_names ?(portkind:(portkind option)=None) () =
-    List.map (fun x->x#name) (self#get_receptacles ~portkind ())
-
-  (** The list of socketnames [\{nodename:string; receptname:string\}]
-      contained in this node. The [nodename] field will be constant to the name of this node in the returned list.
-      The portkind may be specified. *)
-(*  method socketnames ?(portkind:(portkind option)=None) () =
-    List.map (fun x->{nodename=self#name; receptname=x}) (self#receptacle_names ~portkind ()) *)
-  method socketnames =
-    List.map (fun x->{nodename=self#name; receptname=x}) (self#receptacle_names ())
-
-  (** Just a version of socketnames returning something easier to manage than a list *)
-  method socketnames_as_pair =
-    match self#socketnames with
-      [ a; b ] ->
-        a, b
-    | _ ->
-        assert false
-
-  (** Adding and removing receptacles *)
-
-  (** Append a receptacle at the end of the receptacles list of this node. This action is performed
-      checking the unicity of the receptacle name. *)
-  method append_receptacle r  =
-    let name_exists = List.exists (fun x->x=r#name) (self#receptacle_names ()) in
-    if  name_exists
-          then raise (Failure "add_receptacle : name already exists in this node")
-          else receptacles <- (receptacles@[r])
-
-  (** Append a receptacle at the end of the receptacles list of this node. This action is performed
-      using a fresh index and name for the created receptacle. The portkind is here mandatory. *)
-  method add_progressive_receptacle ?(prefix=None) (k:portkind) =
-    let num = (self#max_receptacle_index k) + 1 in
-    let pref = (match prefix with None -> (string_of_portkind k) | Some x -> x) in
-    let name = pref^(string_of_int num) in
-    let r = new receptacle network name num "" k in
-    self#append_receptacle r
-
-
-  (** Remove the last receptacle (with the maximal index) of the given portkind from this node. *)
-  method rm_last_receptacle (k:portkind) =
-    let i = self#max_receptacle_index k in
-    let concerned = (fun r->(r#portkind=k) && (r#index=i)) in
-    receptacles <- List.filter (fun r -> not (concerned r)) receptacles
-
-  (** Re-adjusting the number of receptacles *)
-
-  (** Set the number of receptacles of the given [portkind] to the given number [x].
-      If the current number of receptacles is greater than [x] then append else remove the necessary number
-      of receptacles.*)
-  method readjust_receptacle_number ?(prefix=None) (k:portkind) x =
-    let n = (self#number_of_receptacles ~portkind:(Some k) ()) in
-    match (n>x,n<x) with
-    | (true,  _ )  ->
-        (self#rm_last_receptacle k);
-        (self#readjust_receptacle_number ~prefix k x)
-    | ( _  ,true)  ->
-        (self#add_progressive_receptacle ~prefix k);
-        (self#readjust_receptacle_number ~prefix k x)
-    | _ -> ()
-
-
-  (** {b Convenient aliases} *)
-
-  (* TODO: remove them and use instead {get_,set_}port_no *)
-  method get_eth_number = self#number_of_receptacles ~portkind:(Some Eth) ()
-  method set_eth_number ?(port_prefix="eth") x =
-    self#readjust_receptacle_number ~prefix:(Some port_prefix) Eth x
-
-  method set_port_no new_port_no =
-    let prefix = self#port_prefix in
-    self#readjust_receptacle_number ~prefix:(Some prefix) Eth new_port_no
-
-  (* alias *)
-  method get_port_no = self#number_of_receptacles ~portkind:(Some Eth) ()
-  
   (** Node dot traduction *)
 
   (** Returns an image representig the node with the given iconsize. *)
@@ -1022,44 +930,55 @@ class virtual node = fun
 
   (** make_simulated_device is defined in subclasses, not here  *)
 
-  (* Return the list of cables of which a port of self is an endpoint: *)
+  (* TODO: move it in the network class
+     Return the list of cables of which a port of self is an endpoint: *)
   method private get_involved_cables =
-    List.filter (fun c->c#i_node_nvolved self#get_name) network#cables
+    List.filter (fun c->c#is_node_involved self#get_name) network#cables
 
 end;;
 
+(* Justa an alias: *)
+class type virtual node = node_with_ports_card
 
+(** Essentially a pair:  (node, internal_port_index) *)
+(** TODO: remove it and use the class port! *)
+class endpoint ~(node:node) ~(port_index:int) =
+ object
+  method node = node
+  method port_index = port_index
+
+  method user_port_name =
+    node#ports_card#user_port_name_of_internal_index port_index
+
+  method user_port_index =
+    node#ports_card#user_port_index_of_internal_index port_index
+
+  (* Just a type conversion, as a pair: *)
+  method involved_node_and_port_index = (node, port_index)
+
+ end;;
+ 
 (* *************************** *
         class cable
  * *************************** *)
 
-(** A cable defines an edge in the network graph. It is defined by two socketnames (mutables), i.e. two records
-   in the form [ { nodename:string; receptname:string } ] representing the connection provided by the cable.
-   Defects may be added after creation. *)
+(** A cable defines an edge in the network graph.
+    Defects may be added after creation. *)
 class cable =
    fun
    ~network
    ~motherboard
-   ?(name="nocablename")
-   ?(label="")
+   ~name
+   ?label
    ~cablekind
-   ~(left :socketname)
-   ~(right:socketname)
+   ~(left : endpoint)
+   ~(right: endpoint)
    () ->
   let dotoptions = new Dotoptions.cable ~motherboard ~name () in
-  let with_mutex mutex thunk =
-    try
-      let result = thunk () in
-      result
-    with e -> begin
-      Log.printf "I disabled synchronization here: RE-RAISING %s\n" (Printexc.to_string e);
-      raise e;
-    end
-  in
-object (self)
+  object (self)
   inherit OoExtra.destroy_methods ()
-  inherit component ~network ~name ~label ()
-  inherit simulated_device () as self_as_simulated_device
+  inherit component ~network ~name ?label ()
+  inherit [cable] simulated_device () as self_as_simulated_device
 
   (* Redefinition: *)
   method destroy =
@@ -1071,123 +990,44 @@ object (self)
 
   method dotoptions = dotoptions
 
-  (** A cable may be either connected or disconnected; it's connected by default: *)
-  val connected =
-    ref true
-
-  (** A cable has two connected socketnames. *)
-  val mutable left  : socketname = left
-  val mutable right : socketname = right
+  (** A cable has two connected endpoints: *)
+  val mutable left  : endpoint = left
+  val mutable right : endpoint = right
 
   (** Accessors *)
-  method get_left    =
-    with_mutex mutex
-      (fun () -> left)
-  method get_right   =
-    with_mutex mutex
-      (fun () -> right)
-  method set_left  x =
-    with_mutex mutex
-      (fun () -> left  <- x)
-  method set_right x =
-    with_mutex mutex
-      (fun () -> right <- x)
+  method get_left  = left
+  method get_right = right
+  method set_left x = left  <- x
+  method set_right x = right <- x
 
-  (** The list of concerned socketnames *)
-  method socketnames =
-    with_mutex mutex
-      (fun () ->
-        [self#get_left; self#get_right])
-
-  (** Just a version of socketnames returning something easier to manage than a list *)
-  method socketnames_as_pair =
-    with_mutex mutex
-      (fun () ->
-        match self#socketnames with
-          [ a; b ] ->
-            a, b
-        | _ ->
-            assert false)
 
   (** The li st of two names of nodes (machine/device) linked by the cable *)
-  method involved_node_names =
-    with_mutex mutex
-      (fun () ->
-        [self#get_left.nodename; self#get_right.nodename])
-
-  (** The pair of nodes (machine/device) linked by the cable *)
-  method involve_node_ =
-    with_mutex mutex
-      (fun () ->
-        (network#get_node_by_name self#get_left.nodename),
-        (network#get_node_by_name self#get_right.nodename))
-
-  (** Return the list of devices (i.e. hubs, switches or routers) directly linked to this cable: *)
-  method involved_devices_and_port_nos =
-    with_mutex mutex
-      (fun () ->
-        let left_port_name, right_port_name = self#receptacle_names in
-        let left_port_index = (self#left_endpoint#get_receptacle_by_name left_port_name)#index in
-        let right_port_index = (self#right_endpoint#get_receptacle_by_name right_port_name)#index in
-        let left_node =
-          network#get_node_by_name self#get_left.nodename in
-        let right_node =
-          network#get_node_by_name self#get_right.nodename in
-        let left_device =
-          match left_node#devkind with
-            NotADevice -> None
-          | _ -> Some (left_node, left_port_index) in
-        let right_device =
-          match right_node#devkind with
-            NotADevice -> None
-          | _ -> Some (right_node, right_port_index) in
-        match left_device, right_device with
-          None, None ->     []
-        | None, (Some d) -> [ d ]
-        | (Some d), None -> [ d ]
-        | (Some d1), (Some d2) -> [ d1; d2 ])
+  method involved_node_names = [left#node#name; right#node#name]
 
   (** Is a node connected to something with this cable? *)
-  method i_node_nvolved nodename =
-    with_mutex mutex
-      (fun () ->
-        List.mem nodename self#involved_node_names)
+  method is_node_involved node_name =
+    List.mem node_name self#involved_node_names
 
-  (** Change the left or right nodename if needed. *)
-  method change_node_name oldname newname =
-    with_mutex mutex
-      (fun () ->
-        if left.nodename  = oldname then left.nodename  <- newname ;
-        if right.nodename = oldname then right.nodename <- newname)
-
-  (** Look for socktname in the left or right side of the cable and return the other socketname if exists *)
-  method partnerOf (x:socketname) =
-    with_mutex mutex
-      (fun () ->
-        if (x=self#get_left) then self#get_right
-        else
-          (if (x=self#get_right) then self#get_left else raise (Failure "partnerOf")))
+  (** Return the list of devices (i.e. hubs, switches or routers) directly linked to this cable: *)
+  method involved_node_and_port_index_list =
+    [ (left#node, left#port_index); (right#node, right#port_index) ]
 
   (** Show its definition. Useful for debugging. *)
   method show prefix =
-    with_mutex mutex
-      (fun () ->
-        prefix^self#name^" ("^(string_of_cablekind self#cablekind)^")"^
-        " ["^self#get_left.nodename^","^self#get_left.receptname^"] -> "^
-        " ["^self#get_right.nodename^","^self#get_right.receptname^"]")
+    (prefix^self#name^" ("^(string_of_cablekind self#cablekind)^")"^
+    " ["^left#node#name^","^left#user_port_name^"] -> "^
+    " ["^right#node#name^","^right#user_port_name^"]")
 
   method to_forest =
-    with_mutex mutex
-      (fun () ->
-        Forest.leaf ("cable",
-                       [ ("name"            ,  self#get_name )  ;
-   		         ("label"           ,  self#get_label)  ;
-                         ("kind"            , (string_of_cablekind self#cablekind)) ;
-                         ("leftnodename"    ,  self#get_left.nodename)    ;
-                         ("leftreceptname"  ,  self#get_left.receptname)  ;
-                         ("rightnodename"   ,  self#get_right.nodename)   ;
-                         ("rightreceptname" ,  self#get_right.receptname) ;
-                       ]))
+    Forest.leaf ("cable",
+		    [ ("name"            ,  self#get_name )  ;
+		      ("label"           ,  self#get_label)  ;
+		      ("kind"            , (string_of_cablekind self#cablekind)) ;
+		      ("leftnodename"    ,  self#get_left#node#name)    ;
+		      ("leftreceptname"  ,  self#get_left#user_port_name)  ;
+		      ("rightnodename"   ,  self#get_right#node#name)   ;
+		      ("rightreceptname" ,  self#get_right#user_port_name) ;
+		    ])
 
   (** A cable has just attributes (no childs) in this version. The attribute "kind" cannot be set,
       must be considered as a constant field of the class. *)
@@ -1195,26 +1035,23 @@ object (self)
     function
       | ("name"            , x ) -> self#set_name  x
       | ("label"           , x ) -> self#set_label x
-      | ("leftnodename"    , x ) -> self#get_left.nodename    <- x ;
-      | ("leftreceptname"  , x ) -> self#get_left.receptname  <- x ;
-      | ("rightnodename"   , x ) -> self#get_right.nodename   <- x ;
-      | ("rightreceptname" , x ) -> self#get_right.receptname <- x ;
       | ("kind"            , x ) -> () (* Constant field: cannot be set. *)
       | _ -> assert false
 
+    (** A cable may be either connected or disconnected; it's connected by default: *)
+    val connected = ref true
+
     (** Access method *)
-    method is_connected =
-      with_mutex mutex
-        (fun () -> !connected);
+    method is_connected = !connected
 
     (** Make the cable connected, or do nothing if it's already connected: *)
     method private connect_right_now =
-      with_mutex mutex
+      Recursive_mutex.with_mutex mutex
         (fun () ->
           (if not self#is_connected then begin
             Log.printf "Connecting the cable %s...\n" self#get_name;
             (* Turn on the relevant LEDgrid lights: *)
-            let involved_devices_and_port_nos = self#involved_devices_and_port_nos in
+            let involved_node_and_port_index_list = self#involved_node_and_port_index_list in
             List.iter
               (fun (device, port) ->
                 network#ledgrid_manager#set_port_connection_state
@@ -1222,7 +1059,7 @@ object (self)
                   ~port
                   ~value:true
                   ())
-              involved_devices_and_port_nos;
+              involved_node_and_port_index_list;
             connected := true;
             self#increment_alive_endpoint_no;
             Log.printf "Ok: connected\n";
@@ -1231,12 +1068,12 @@ object (self)
 
     (** Make the cable disconnected, or do nothing if it's already disconnected: *)
     method private disconnect_right_now =
-      with_mutex mutex
+      Recursive_mutex.with_mutex mutex
         (fun () ->
           (if self#is_connected then begin
             Log.printf "Disconnecting the cable %s...\n" self#get_name;
             (* Turn off the relevant LEDgrid lights: *)
-            let involved_devices_and_port_nos = self#involved_devices_and_port_nos in
+            let involved_node_and_port_index_list = self#involved_node_and_port_index_list in
             List.iter
               (fun (device, port) ->
                 network#ledgrid_manager#set_port_connection_state
@@ -1244,7 +1081,7 @@ object (self)
                   ~port
                   ~value:false
                   ())
-              involved_devices_and_port_nos;
+              involved_node_and_port_index_list;
             connected := false;
             self#decrement_alive_endpoint_no;
             Log.printf "Ok: disconnected\n";
@@ -1268,7 +1105,7 @@ object (self)
    (** Check that the reference counter is in [0, 3]. To do: disable this for
    production. *)
    method private check_alive_endpoint_no =
-    with_mutex mutex
+    Recursive_mutex.with_mutex mutex
       (fun () ->
         assert((!alive_endpoint_no >= 0) && (!alive_endpoint_no <= 3));
         Log.printf "The reference count is now %d\n" !alive_endpoint_no;
@@ -1278,7 +1115,7 @@ object (self)
        this means that its relevant {e hublet} has been created), and
        startup the simulated cable if appropriate. *)
    method increment_alive_endpoint_no =
-     with_mutex mutex
+     Recursive_mutex.with_mutex mutex
        (fun () ->
          Log.printf "Increment_alive_endpoint_no\n";
          self#check_alive_endpoint_no;
@@ -1293,7 +1130,7 @@ object (self)
        this means that its relevant {e hublet} has been destroyed), and
        shutdown the simulated cable if appropriate. *)
    method decrement_alive_endpoint_no =
-     with_mutex mutex
+     Recursive_mutex.with_mutex mutex
        (fun () ->
          Log.printf "Decrement_alive_endpoint_no\n";
          self#check_alive_endpoint_no;
@@ -1309,31 +1146,26 @@ object (self)
 
    (** Make a new simulated device according to the current status *)
    method private make_simulated_device =
-     with_mutex mutex
+     Recursive_mutex.with_mutex mutex
        (fun () ->
-         let left, right = self#get_left, self#get_right in
-         let left_node = network#get_node_by_name left.nodename in
-         let right_node = network#get_node_by_name right.nodename in
-         let left_hublet_process =
-           left_node#get_hublet_process_by_interface_name left.receptname in
+         let left_hublet_process = 
+           left#node#get_hublet_process_of_port left#port_index
+         in
          let right_hublet_process =
-           right_node#get_hublet_process_by_interface_name right.receptname in
-         let left_port_index =
-           (left_node#get_receptacle_by_name left.receptname)#index in
-         let right_port_index =
-           (right_node#get_receptacle_by_name right.receptname)#index in
+           right#node#get_hublet_process_of_port right#port_index
+         in
          let left_blink_command =
-           match left_node#devkind with
+           match left#node#devkind with
              NotADevice -> None
-           | _ -> Some (Printf.sprintf "(id: %i; port: %i)" left_node#id left_port_index) in
+           | _ -> Some (Printf.sprintf "(id: %i; port: %i)" left#node#id left#port_index) in
          let right_blink_command =
-           match right_node#devkind with
+           match right#node#devkind with
              NotADevice -> None
-           | _ -> Some (Printf.sprintf "(id: %i; port: %i)" right_node#id right_port_index) in
+           | _ -> Some (Printf.sprintf "(id: %i; port: %i)" right#node#id right#port_index) in
          Log.printf "Left hublet process socket name is \"%s\"\n" left_hublet_process#get_socket_name;
          Log.printf "Right hublet process socket name is \"%s\"\n" right_hublet_process#get_socket_name;
          new Simulated_network.ethernet_cable
-           ~name:self#get_name
+           ~parent:self
            ~left_end:left_hublet_process
            ~right_end:right_hublet_process
            ~blinker_thread_socket_file_name:(Some network#ledgrid_manager#blinker_thread_socket_file_name)
@@ -1345,7 +1177,7 @@ object (self)
    (** This has to be overridden for cables, because we can't 'poweroff' as easily as the
        other devices: *)
    method private destroy_because_of_unexpected_death () =
-     with_mutex mutex
+     Recursive_mutex.with_mutex mutex
        (fun () ->
          (* Refresh the process in some (ugly) way: *)
          if self#is_connected then begin
@@ -1368,93 +1200,42 @@ object (self)
    method can_poweroff = true (* To do: try reverting this *)
    (** Only connected cables can be 'suspended' *)
    method can_suspend =
-     with_mutex mutex
+     Recursive_mutex.with_mutex mutex
        (fun () -> !connected)
    (** Only non-connected cables with refcount exactly equal to 2 can be 'resumed' *)
    method can_resume =
-     with_mutex mutex
+     Recursive_mutex.with_mutex mutex
        (fun () -> not !connected)
-
-   (** A cable is never directly connected to any other cable *)
-   method private get_involved_cables = []
-
-   method receptacle_names =
-    with_mutex mutex
-      (fun () ->
-        match self#socketnames with [ left_port; right_port ] ->
-          let left_receptacle_name = left_port.receptname in
-          let right_receptacle_name = right_port.receptname in
-          left_receptacle_name, right_receptacle_name
-        | _ -> assert false)
-
-   method left_receptacle_name =
-    with_mutex mutex
-      (fun () ->
-        let (left_receptacle_name, _) = self#receptacle_names in
-        left_receptacle_name)
-
-   method right_receptacle_name =
-    with_mutex mutex
-      (fun () ->
-        let (_, right_receptacle_name) = self#receptacle_names in
-        right_receptacle_name)
-
-   method endpoints : (node * node) =
-    with_mutex mutex
-      (fun () ->
-        let left_endpoint_name = self#get_left.nodename in
-        let left_endpoint = network#get_node_by_name left_endpoint_name in
-        let right_endpoint_name = self#get_right.nodename in
-        let right_endpoint = network#get_node_by_name right_endpoint_name in
-        left_endpoint, right_endpoint)
-
-   method left_endpoint =
-    with_mutex mutex
-      (fun () ->
-        let (left_endpoint, _) = self#endpoints in
-        left_endpoint)
-
-   method right_endpoint =
-    with_mutex mutex
-      (fun () ->
-        let (_, right_endpoint) = self#endpoints in
-        right_endpoint)
 
    (** Get the reference count right at the beginning: it starts at zero, but
        it's immediately incremented if endpoint hublet processes already
        exist: *)
    initializer
-     let left_endpoint, right_endpoint = self#endpoints in
      self#set_correctness
        (network#would_a_cable_be_correct_between
-          left_endpoint#name
-          right_endpoint#name
+          left#node#name
+          right#node#name
           cablekind);
-     (if left_endpoint#has_hublet_processes then
+     (if left#node#has_hublet_processes then
        self#increment_alive_endpoint_no);
-     (if right_endpoint#has_hublet_processes then
+     (if right#node#has_hublet_processes then
        self#increment_alive_endpoint_no);
      Log.printf "The reference count for the just-created cable %s is %d\n" self#get_name !alive_endpoint_no;
 end;;
-
-(** Function for make receptacles from 0 to k (so call it with desired number - 1) of desired portkind
-    and with the given portprefix for name (for instance "eth"). *)
-let rec mkrecepts network k portkind portprefix = match k with
-| -1 -> []
-| _ -> let r = new receptacle network (portprefix^(string_of_int k)) k nolabel portkind in
-  (mkrecepts network (k-1) portkind portprefix)@[r]
-;;
 
 
 (* *************************** *
         class device
  * *************************** *)
 
-class virtual device_with_defects ~network () = object (self)
+class virtual device_with_defects ~network () =
+ object (self)
 
   method virtual defects_device_type : string
   method virtual get_name : string
-  method virtual get_eth_number : int
+  method virtual get_port_no : int
+  method virtual port_prefix : string
+  method virtual user_port_offset : int
   
   method private add_my_defects =
    match
@@ -1466,11 +1247,26 @@ class virtual device_with_defects ~network () = object (self)
        Log.printf "The %s %s has already defects defined...\n"
          self#defects_device_type
          self#get_name
-   | false -> network#defects#add_device self#get_name self#defects_device_type self#get_eth_number;
+   | false ->
+       network#defects#add_device
+         ~device_name:self#get_name
+         ~device_type:self#defects_device_type
+         ~port_no:self#get_port_no
+         ~port_prefix:self#port_prefix
+         ~user_port_offset:self#user_port_offset
+         ()
 
   method private destroy_my_defects =
     Log.printf "component \"%s\": destroying my defects.\n" self#get_name;
     network#defects#remove_device self#get_name;
+
+  method private defects_update_port_no new_port_no = 
+    network#defects#update_port_no
+      ~device_name:self#get_name
+      ~port_no:new_port_no
+      ~port_prefix:self#port_prefix
+      ~user_port_offset:self#user_port_offset
+      ()
 
   initializer
     self#add_my_defects;
@@ -1486,21 +1282,24 @@ class virtual device_with_ledgrid_and_defects
   ?(label="")
   ~devkind
   ~port_no
+  ?user_port_offset
   ~(port_prefix:string) (* "port" or "eth" *)
   ()
   =
-  let intial_receptacles = (mkrecepts network (port_no-1) Eth port_prefix) in
   let network_alias = network in
   object (self)
 
-  inherit node
+  inherit node_with_ports_card
     ~network
-    ~name ~label
+    ~name
+    ~label
     ~nodekind:Device
     ~devkind
-    ~rlist:intial_receptacles
-    ~port_prefix ()
-  as self_as_node
+    ~port_no
+    ~port_prefix
+    ?user_port_offset
+    ()
+  as self_as_node_with_ports_card
 
   initializer
     (* TODO: the following line must be moved the a node initializer: *)
@@ -1520,8 +1319,8 @@ class virtual device_with_ledgrid_and_defects
   (** Returns the label to use for cable representation.
       For devices, the port X is represented by the string "[X]". *)
   method dotLabelForEdges (receptname:string) =
-    let index = (self#get_receptacle_by_name receptname)#index in
-    ("["^string_of_int index^"]")
+    let user_index = self#ports_card#user_port_index_of_user_port_name receptname in
+    ("["^string_of_int user_index^"]")
 
   (** Return the string representing the port in cable representation. *
       Ignore the receptname and returns the empty string. *)
@@ -1532,7 +1331,7 @@ class virtual device_with_ledgrid_and_defects
   		  ("name" , self#get_name) ;
                   ("label", self#get_label);
                   ("kind" , (string_of_devkind self#devkind)) ;
-                  ("eth"  , (string_of_int (self#get_eth_number)));
+                  ("eth"  , (string_of_int (self#get_port_no)));
                   ])
 
   (** A cable has just attributes (no childs) in this version. *)
@@ -1540,20 +1339,20 @@ class virtual device_with_ledgrid_and_defects
   | ("name"  , x ) -> self#set_name  x
   | ("label" , x ) -> self#set_label x
   | ("kind"  , x ) -> self#set_devkind (devkind_of_string x)
-  | ("eth"   , x ) -> self#set_eth_number (int_of_string x)
+  | ("eth"   , x ) -> self#set_port_no (int_of_string x)
   | _ -> assert false
 
   (** Here we also have to manage LED grids: *)
   method private startup_right_now =
     (* Do as usual... *)
-    self_as_node#startup_right_now;
+    self_as_node_with_ports_card#startup_right_now;
     (* ...and also show the LED grid: *)
     network#ledgrid_manager#show_device_ledgrid ~id:(self#id) ()
 
 
   method private gracefully_shutdown_right_now =
     (* Do as usual... *)
-    self_as_node#gracefully_shutdown_right_now;
+    self_as_node_with_ports_card#gracefully_shutdown_right_now;
     (* ...and also hide the LED grid... *)
     network#ledgrid_manager#hide_device_ledgrid ~id:(self#id) ();
 
@@ -1561,7 +1360,7 @@ class virtual device_with_ledgrid_and_defects
   (** Here we also have to manage LED grids: *)
   method private poweroff_right_now =
     (* Do as usual... *)
-    self_as_node#poweroff_right_now;
+    self_as_node_with_ports_card#poweroff_right_now;
     (* ...and also hide the LED grid... *)
     network#ledgrid_manager#hide_device_ledgrid ~id:(self#id) ();
 
@@ -1579,15 +1378,13 @@ class virtual device_with_ledgrid_and_defects
        ~id:(self#id)
        ~title:(self#get_name)
        ~label:(self#ledgrid_label)
-       ~port_no:(self#number_of_receptacles ~portkind:(Some Eth) ())
+       ~port_no:(self#get_port_no)
+       ?port_labelling_offset:user_port_offset
        ~image_directory:self#ledgrid_image_directory 
        ();
      (* Set port connection state: *)
-     let busy_ports = 
-       network#busy_receptacles_of_node self#get_name Eth
-     in
-     let busy_ports_as_indices =
-       List.map (fun receptacle -> receptacle#index) busy_ports
+     let busy_ports_indexes =
+       network#busy_port_indexes_of_node (self :> node_with_ports_card)
      in
      ignore (List.map
                (fun port_index ->
@@ -1596,7 +1393,7 @@ class virtual device_with_ledgrid_and_defects
                      ~port:port_index
                      ~value:true
                      ()))
-               busy_ports_as_indices)
+               busy_ports_indexes)
 
   method destroy_my_ledgrid : unit =
     Log.printf "component \"%s\": destroying my ledgrid.\n" self#get_name;
@@ -1609,22 +1406,21 @@ class virtual device_with_ledgrid_and_defects
     let old_name = self#get_name in
     if old_name <> new_name then begin
       network#defects#rename_device old_name new_name;
-      network#change_cable_references ~old_name ~new_name; (* TODO: remove it using ids or objects!!*)
-      self_as_node#set_name new_name;
+      self_as_node_with_ports_card#set_name new_name;
     end;
  
   (* REDEFINED: *)
   method set_port_no new_port_no =
-    let old_port_no = self#get_eth_number in
+    let old_port_no = self#get_port_no in
     if new_port_no <> old_port_no then begin
-      network#defects#update_port_no self#get_name new_port_no;
-      self_as_node#set_port_no new_port_no;      
+      self_as_device_with_defects#defects_update_port_no new_port_no;
+      self_as_node_with_ports_card#set_port_no new_port_no;
     end;
 
-  method private update_really_needed ~(name:string) ~(label:string) ~(port_no:int) : bool =
+(*  method private update_really_needed ~(name:string) ~(label:string) ~(port_no:int) : bool =
    ((name    <> self#get_name)  ||
     (label   <> self#get_label) ||
-    (port_no <> self#get_port_no))
+    (port_no <> self#get_port_no))*)
     
   method update_with ~name ~label ~port_no =
   (* No: force because the simulated device may be rebuilded with new values of other parameters *)  
@@ -1780,7 +1576,7 @@ class virtual virtual_machine_with_history_and_details
         ?port_row_completions
         self#get_name
         details_device_type
-        self#get_eth_number
+        self#get_port_no
       end
 
   method destroy_my_details =
@@ -1797,6 +1593,12 @@ class virtual virtual_machine_with_history_and_details
     Filesystem_history.rename_device self#get_name name;
     self#set_kernel kernel;
 
+  method create_cow_file_name =
+    let history = (network#history:Filesystem_history.states_interface) in
+    Printf.sprintf "%s%s"
+      history#get_states_directory
+      (Filesystem_history.add_state_for_device self#get_name)
+
 end;; (* class virtual_machine_with_history_and_details *)
 
 
@@ -1804,7 +1606,7 @@ end;; (* class virtual_machine_with_history_and_details *)
         class machine
  * *************************** *)
 
-(** A machine is a node (a container of receptacles) s.t.
+(** A machine is a node s.t.
     nodekind=Machine. Some receptacles are immediatly added
     at creation time. *)
 class machine
@@ -1812,7 +1614,7 @@ class machine
    ?(name="nomachinename")
    ?(label="")
    ?(memory:int=48)
-   ?(ethnum:int=1)
+   ?(port_no:int=1)
    ?epithet   (* Ex: "debian-lenny-42178" *)
    ?variant
    ?kernel    (* Also en epithet, ex: "2.6.18-ghost" *)
@@ -1821,24 +1623,27 @@ class machine
    =
   let vm_installations = Disk.get_machine_installations ()
   in
-  let check_eth_number ?(name=name) x = 
+  let check_port_no ?(name=name) x =
     if x<1 or x>8 (* TODO: fix the limit with a MARIONNET variable *)
       then failwith "value not in the eth's number range [1,8]"
       else x
-  in
-  let intial_receptacles = (mkrecepts network ((check_eth_number ethnum)-1) Eth "eth")
   in
   let network_alias = network in
   object (self)
 
   inherit OoExtra.destroy_methods ()
-  
-  inherit node
+
+  inherit node_with_ports_card
     ~network
-    ~name ~label ~nodekind:Machine ~rlist:intial_receptacles
+    ~name
+    ~label
+    ~nodekind:Machine
+    ~devkind:NotADevice 
+    ~port_no:(check_port_no port_no)
     ~port_prefix:"eth"
+    ~user_port_offset:0
     ()
-    as self_as_node
+  as self_as_node_with_ports_card
 
   inherit virtual_machine_with_history_and_details
     ~network:network_alias
@@ -1856,16 +1661,16 @@ class machine
   method hostfs_directory_pathname =
     match !simulated_device with
       Some d ->
-        (d :> Simulated_network.machine)#hostfs_directory_pathname
+        (d :> node Simulated_network.machine)#hostfs_directory_pathname
     | None ->
         failwith (self#name ^ " is not being simulated right now")
 
   (** REDEFINED for checking *)
-  method set_eth_number ?port_prefix x =
-    let x = (self#check_eth_number x) in
-    self_as_node#set_eth_number ?port_prefix x
+  method set_port_no x =
+    let x = (self#check_port_no x) in
+    self_as_node_with_ports_card#set_port_no x
 
-  method private check_eth_number x = check_eth_number ~name:self#name x
+  method private check_port_no x = check_port_no ~name:self#name x
 
   (** A machine will be started with a certain amount of memory *)
   (* TODO: read a marionnet variable to fix limits: *)
@@ -1895,7 +1700,7 @@ class machine
                    ("variant"  ,  self#get_variant_as_string);
                    ("kernel"   ,  self#get_kernel   );
                    ("terminal" ,  self#get_terminal );
-                   ("eth"      ,  (string_of_int self#get_eth_number))  ;
+                   ("eth"      ,  (string_of_int self#get_port_no))  ;
 	           ])
 
  (** A machine has just attributes (no childs) in this version. *)
@@ -1908,18 +1713,14 @@ class machine
   | ("variant"  , x ) -> self#set_variant (Some x)
   | ("kernel"   , x ) -> self#set_kernel x
   | ("terminal" , x ) -> self#set_terminal x
-  | ("eth"      , x ) -> self#set_eth_number  (int_of_string x)
+  | ("eth"      , x ) -> self#set_port_no  (int_of_string x)
   | _ -> () (* Forward-comp. *)
 
 
   (** Create the simulated device *)
   method private make_simulated_device =
     let id = self#id in
-    let ethernet_receptacles = self#get_receptacles ~portkind:(Some Eth) () in
-    let cow_file_name =
-      (Filesystem_history.get_states_directory ()) ^
-      (Filesystem_history.add_state_for_device self#name)
-    in
+    let cow_file_name = self#create_cow_file_name in
     let () =
      Log.printf
        "About to start the machine %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n  xnest: %b\n"
@@ -1930,11 +1731,11 @@ class machine
        self#is_xnest_enabled
     in
     new Simulated_network.machine
-      ~name:self#get_name
+      ~parent:self
       ~kernel_file_name:self#get_kernel_file_name
       ~filesystem_file_name:self#get_filesystem_file_name
       ~cow_file_name
-      ~ethernet_interface_no:(List.length ethernet_receptacles)
+      ~ethernet_interface_no:self#get_port_no
       ~memory:self#get_memory
       ~umid:self#get_name
       ~id
@@ -1948,7 +1749,7 @@ class machine
     let hostfs_directory_pathname = self#hostfs_directory_pathname in
     Log.printf "Ok, we're still alive\n"; flush_all ();
     (* Do as usual... *)
-    self_as_node#gracefully_shutdown_right_now;
+    self_as_node_with_ports_card#gracefully_shutdown_right_now;
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Command_line.are_we_in_exam_mode then begin
       let texts_interface = Texts_interface.get_texts_interface () in
@@ -1972,7 +1773,7 @@ class machine
   (** Here we also have to manage cow files... *)
   method private poweroff_right_now =
     (* Do as usual... *)
-    self_as_node#poweroff_right_now;
+    self_as_node_with_ports_card#poweroff_right_now;
     (* ...And destroy, so that the next time we have to re-create the process command line
        can use a new cow file (see the make_simulated_device method) *)
     self#destroy_right_now
@@ -1993,15 +1794,18 @@ class cloud =
 
   let port_prefix = "port" in
   let port_no = 2 in
-  let intial_receptacles = (mkrecepts network (port_no-1) Eth port_prefix) in
-
   object (self) inherit OoExtra.destroy_methods ()
 
-  inherit node
+  inherit node_with_ports_card
     ~network
-    ~name ~label ~nodekind:Cloud ~rlist:intial_receptacles
+    ~name
+    ~label
+    ~nodekind:Cloud
+    ~devkind:NotADevice
+    ~port_no
     ~port_prefix
     ()
+  as self_as_node_with_ports_card
 
   (* TODO: this is temporary and not correct: *)
   method destroy = self#destroy_my_simulated_device
@@ -2010,8 +1814,6 @@ class cloud =
   method polarity = Intelligent (* Because it is didactically meaningless *)
 
   method show = self#name
-
-  method eth_number = 2 (* TODO *)
 
   (** Dot adjustments *)
 
@@ -2022,8 +1824,8 @@ class cloud =
 
   (** Cloud endpoints are represented in the same way of devices ones, with "[X]". *)
   method dotLabelForEdges (receptname:string) =
-    let index = (self#get_receptacle_by_name receptname)#index in
-    ("["^string_of_int index^"]")
+    let user_index = self#ports_card#user_port_index_of_user_port_name receptname in
+    ("["^string_of_int user_index^"]")
 
   method dotPortForEdges (receptname:string) = ""
 
@@ -2040,7 +1842,7 @@ class cloud =
   (** Create the simulated device *)
   method private make_simulated_device =
     new Simulated_network.cloud
-      ~name:self#get_name
+      ~parent:self
       ~unexpected_death_callback:self#destroy_because_of_unexpected_death
 (*       ~id *)
       ()
@@ -2059,17 +1861,18 @@ class world_bridge =
       ?(label="")
       () ->
 
-  let port_prefix = "eth" in
-  let intial_receptacles = (mkrecepts network 0 Eth port_prefix) in
-
   object (self) inherit OoExtra.destroy_methods ()
 
-
-  inherit node
+  inherit node_with_ports_card
     ~network
-    ~name ~label ~nodekind:World_bridge ~rlist:intial_receptacles
-    ~port_prefix
+    ~name
+    ~label
+    ~nodekind:World_bridge
+    ~devkind:NotADevice 
+    ~port_no:1
+    ~port_prefix:"eth"
     ()
+  as self_as_node_with_ports_card
 
   (* TODO: this is temporary and not correct: *)
   method destroy = self#destroy_my_simulated_device
@@ -2106,7 +1909,7 @@ class world_bridge =
   (** Create the simulated device *)
   method private make_simulated_device =
     new Simulated_network.world_bridge
-      ~name:self#get_name
+      ~parent:self
       ~bridge_name:Global_options.ethernet_socket_bridge_name
       ~unexpected_death_callback:self#destroy_because_of_unexpected_death
       ()
@@ -2242,15 +2045,16 @@ open Edge;;
    (match f with
    | Forest.NonEmpty (("cable", attrs) , childs , Forest.Empty) ->
 	(* Cables represent a special case: they must be builded knowing their endpoints. *)
+	let name = List.assoc "name"    attrs in
 	let ln = List.assoc "leftnodename"    attrs in
 	let lr = List.assoc "leftreceptname"  attrs in
 	let rn = List.assoc "rightnodename"   attrs in
 	let rr = List.assoc "rightreceptname" attrs in
 	let ck = List.assoc "kind"            attrs in
-	let left  = { nodename=ln; receptname=lr }  in
-	let right = { nodename=rn; receptname=rr }  in
+	let left  = network#make_endpoint_of ~node_name:ln ~user_port_name:lr in
+	let right = network#make_endpoint_of ~node_name:rn ~user_port_name:rr in
 	let cablekind = cablekind_of_string ck      in
-	let x = new cable ~motherboard:network#motherboard ~cablekind ~network ~left ~right () in
+	let x = new cable ~motherboard:network#motherboard ~name ~cablekind ~network ~left ~right () in
 	x#from_forest ("cable", attrs) childs ;
 	network#add_cable x;
         true
@@ -2449,79 +2253,80 @@ class network () =
 
 
  (** Get machine, device or cable in the network by its name *)
- method get_machine_by_name n = try List.find (fun x->x#name=n) machines   with _ -> failwith ("get_machine_by_name "^n)
- method get_device_by_name  n = try List.find (fun x->x#name=n) devices    with _ -> failwith ("get_device_by_name "^n)
- method get_cable_by_name   n = try List.find (fun x->x#name=n) cables     with _ -> failwith ("get_cable_by_name "^n)
- method get_cloud_by_name   n = try List.find (fun x->x#name=n) clouds     with _ -> failwith ("get_cloud_by_name "^n)
+ method get_machine_by_name n =
+   try List.find (fun x->x#name=n) machines with _ -> failwith ("get_machine_by_name "^n)
+
+ method get_device_by_name n =
+   try List.find (fun x->x#name=n) devices with _ -> failwith ("get_device_by_name "^n)
+
+ method get_cable_by_name n =
+   try List.find (fun x->x#name=n) cables with _ -> failwith ("get_cable_by_name "^n)
+
+ method get_cloud_by_name n =
+   try List.find (fun x->x#name=n) clouds with _ -> failwith ("get_cloud_by_name "^n)
+
  method get_world_bridge_by_name n =
    try List.find (fun x->x#name=n) world_bridges with _ -> failwith ("get_world_bridge_by_name "^n)
-method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _ -> failwith ("get_node_by_name \""^n^"\"")
 
- (** Managing socketnames *)
+ method get_node_by_name n =
+   try List.find (fun x->x#name=n) self#nodes with _ -> failwith ("get_node_by_name \""^n^"\"")
 
- (** List of socketnames involved in the network (in its nodes) *)
- method socketnames = List.flatten (List.map (fun node->node#socketnames) (self#nodes))
+ (** Managing endpoints: *)
 
- (** List of socketnames busy by a cable in the network *)
- method busySocketnames =
-   List.flatten (List.map (fun c->c#socketnames) cables)
-  
- (** List of available socketnames in the network *)
- method freeSocketnames = ListExtra.substract self#socketnames self#busySocketnames
+ method make_endpoint_of ~node_name ~user_port_name =
+  let node = List.find (fun n->n#name = node_name) self#nodes in
+  let port_index = node#ports_card#internal_index_of_user_port_name user_port_name in
+  (new endpoint ~node ~port_index)
 
- (** Is a socketname available for connection? *)
- method isSocketnameFree x = List.mem x self#freeSocketnames
+ method involved_node_and_port_index_list =
+   List.flatten (List.map (fun c->c#involved_node_and_port_index_list) cables)
 
- (** Managing receptacle of a given node *)
+ method busy_port_indexes_of_node (node:node) =
+   let node_name = node#get_name in
+   let related_busy_pairs =
+     List.filter
+       (fun (node, port_index) -> node#get_name = node_name)
+        self#involved_node_and_port_index_list
+   in
+   List.map snd related_busy_pairs
 
- (** List of receptacles of a node and of a given kind. *)
- method receptacles_of_node name (k:portkind) =
-     (self#get_node_by_name name)#get_receptacles ~portkind:(Some k) ()
+ method free_port_indexes_of_node (node:node) =
+   let node_port_indexes = ListExtra.range 0 (node#get_port_no-1) in
+   ListExtra.substract node_port_indexes (self#busy_port_indexes_of_node node)
 
- (** List of receptacles names of a node and of a given kind. *)
- method receptacles_names_of_node name (k:portkind) =
-     (self#get_node_by_name name)#receptacle_names ~portkind:(Some k) ()
+ method free_user_port_names_of_node node =
+   List.map (node#ports_card#user_port_name_of_internal_index) (self#free_port_indexes_of_node node)
 
- (** List of free receptacles of a nodename and of a given portkind. *)
- method free_receptacles_of_node nodename portkind =
-   let recepts = (self#receptacles_of_node nodename portkind) in
-   let freeSocketnames  = self#freeSocketnames in
-   List.filter (fun r ->(List.mem {nodename=nodename;receptname=r#name} freeSocketnames)) recepts
+ method are_endpoints_free endpoints =
+   List.for_all (self#is_endpoint_free) endpoints
 
- (** List of free receptacles names of a nodename and of a given portkind. *)
- method free_receptacles_names_of_node nodename portkind =
-   let recept_names   = (self#receptacles_names_of_node nodename portkind) in
-   let freeSocketnames  = self#freeSocketnames in
-   List.filter (fun r ->(List.mem {nodename=nodename;receptname=r} freeSocketnames)) recept_names
+ method is_endpoint_free endpoint =
+   let busy_pairs = self#involved_node_and_port_index_list in
+   List.iter (function (n,p) -> Log.printf "Involved: (%s,%d)\n" n#get_name p) busy_pairs; 
+   not (List.mem (endpoint#involved_node_and_port_index) busy_pairs)
 
- (** List of busy receptacles of a nodename and of a given portkind. *)
- method busy_receptacles_of_node nodename portkind =
-   let recepts = (self#receptacles_of_node nodename portkind) in
-   let freeSocketnames  = self#freeSocketnames in
-   List.filter (fun r ->(not (List.mem {nodename=nodename;receptname=r#name} freeSocketnames))) recepts
-
- (** List of busy receptacles names of a nodename and of a given portkind. *)
- method busy_receptacles_names_of_node nodename portkind =
-   let recept_names   = (self#receptacles_names_of_node nodename portkind) in
-   let freeSocketnames  = self#freeSocketnames in
-   List.filter (fun r ->not (List.mem {nodename=nodename;receptname=r} freeSocketnames)) recept_names
+ (* The total number of endpoints in the network: *)
+ method private endpoint_no =
+   let sum xs = List.fold_left (+) 0 xs in
+   sum (List.map (fun node -> node#get_port_no) self#nodes)
+   
+ method are_there_almost_2_free_endpoints : bool =
+    let busy_no = List.length (self#involved_node_and_port_index_list) in
+    ((self#endpoint_no - busy_no) >= 2)
 
  (** The max index among busy receptacles of a given kind of a given node.
      The user cannot change the number of receptacle of the given node to a number less than this index+1.
      For instance, if the (max_busy_receptacle_index "rome" Eth) = 2 then the user can change
      the number of receptacle of rome but only with a number >= 3.  *)
- method max_busy_receptacle_index nodename portkind : int =
-   let bl = (self#busy_receptacles_of_node nodename portkind) in
-   let il = (List.map (fun x->x#index) bl) in
-   if il=[] then -1 else ListExtra.max il
+ method max_busy_port_index_of_node node =
+   let indexes = self#busy_port_indexes_of_node node in
+   if indexes=[] then -1 else ListExtra.max indexes
 
- (** Useful updating a device: *)
- method port_no_lower_of name =
-  let min_eth = (self#max_busy_receptacle_index name Eth)+1 in
+  (** Useful updating a device: *)
+ method port_no_lower_of node =
+  let min_eth = (self#max_busy_port_index_of_node node + 1) in
   let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
   int_of_float (max min_multiple_of_4 4.0)
-
- (** Component exists? *)
 
  method machine_exists n = let f=(fun x->x#name=n) in (List.exists f machines)
  method device_exists  n = let f=(fun x->x#name=n) in (List.exists f devices )
@@ -2547,7 +2352,7 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
  method del_device_new dname =
      let d  = self#get_device_by_name dname in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#i_node_nvolved dname) cables in
+     let cables_to_remove = List.filter (fun c->c#is_node_involved dname) cables in
      List.iter 
        (fun cable -> (* TODO: this must became simply cable#destroy or (better) cable#update *)
          self#defects#remove_cable cable#name;
@@ -2565,35 +2370,31 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
      machines  <- (machines@[m]);
    end
 
- (** Cable must connect free socketnames  *)
+ (** Cable must connect free ports: *)
  method add_cable (c:cable) =
     if (self#name_exists c#name)
     then raise (Failure "add_cable: name already used in the network")
     else
-      if (self#isSocketnameFree c#get_left) && (self#isSocketnameFree c#get_right)
+      let (left, right) = (c#get_left, c#get_right) in
+      if (self#are_endpoints_free [left; right])
       then begin
         cables  <- (cables@[c]);
         (* If at least one endpoint is a device then set the port state to connected in
            the appropriate LED grid: *)
-        let left_endpoint, right_endpoint = c#endpoints in
-        let left_port_name, right_port_name = c#receptacle_names in
-        let left_port_index = (left_endpoint#get_receptacle_by_name left_port_name)#index in
-        let right_port_index = (right_endpoint#get_receptacle_by_name right_port_name)#index
-        in
-        if left_endpoint#devkind != NotADevice then
+        if left#node#devkind != NotADevice then
           self#ledgrid_manager#set_port_connection_state
-            ~id:(left_endpoint#id)
-            ~port:left_port_index
+            ~id:(left#node#id)
+            ~port:left#port_index
             ~value:true
             ();
-        if right_endpoint#devkind != NotADevice then
+        if right#node#devkind != NotADevice then
           self#ledgrid_manager#set_port_connection_state
-            ~id:(right_endpoint#id)
-            ~port:right_port_index
+            ~id:(right#node#id)
+            ~port:right#port_index
             ~value:true
             ();
       end else
-        raise (Failure ("add_cable: left and/or right socketname busy or nonexistent for "^(c#show "")))
+        raise (Failure ("add_cable: left and/or right endpoints busy or nonexistent for "^(c#show "")))
 
  method add_cloud (c:cloud) =
     if (self#name_exists c#name)
@@ -2614,7 +2415,7 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
      let m  = self#get_machine_by_name mname in
      (* Destroy cables first, from the network and from the defects treeview (cables are not
         in the network details treeview): they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#i_node_nvolved mname) cables in
+     let cables_to_remove = List.filter (fun c->c#is_node_involved mname) cables in
      let defects = Defects_interface.get_defects_interface () in
      List.iter
        (fun cable ->
@@ -2629,7 +2430,7 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
  method del_device dname =
      let d  = self#get_device_by_name dname in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#i_node_nvolved dname) cables in
+     let cables_to_remove = List.filter (fun c->c#is_node_involved dname) cables in
      let defects = Defects_interface.get_defects_interface () in
      List.iter
        (fun cable ->
@@ -2645,24 +2446,19 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
  (** Remove a cable from network *)
  method del_cable cname =
      let c = self#get_cable_by_name cname in
-(*      cables  <- (cables@[c]); *) (* No, this was a cut/paste error, I think. *)
      (* If at least one endpoint is a device then set the port state to disconnected in
         the appropriate LED grid: *)
-     let left_endpoint, right_endpoint = c#endpoints in
-     let left_port_name, right_port_name = c#receptacle_names in
-     let left_port_index = (left_endpoint#get_receptacle_by_name left_port_name)#index in
-     let right_port_index = (right_endpoint#get_receptacle_by_name right_port_name)#index in
-(*         Log.print_string ("\nLeft side: " ^ left_port_name ^ "\n Right side: "^right_port_name^"\n"); *)
-     (if left_endpoint#devkind != NotADevice then
+     let (left, right) = (c#get_left, c#get_right) in
+     (if left#node#devkind != NotADevice then
        self#ledgrid_manager#set_port_connection_state
-         ~id:(left_endpoint#id)
-         ~port:left_port_index
+         ~id:(left#node#id)
+         ~port:left#port_index
          ~value:false
          ());
-     (if right_endpoint#devkind != NotADevice then
+     (if right#node#devkind != NotADevice then
        self#ledgrid_manager#set_port_connection_state
-         ~id:(right_endpoint#id)
-         ~port:right_port_index
+         ~id:(right#node#id)
+         ~port:right#port_index
          ~value:false
          ());
      cables <- (List.filter (fun x->not (x=c)) cables);
@@ -2672,7 +2468,7 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
  method del_cloud clname =
      let cl  = self#get_cloud_by_name clname in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#i_node_nvolved clname) cables in
+     let cables_to_remove = List.filter (fun c->c#is_node_involved clname) cables in
      let defects = Defects_interface.get_defects_interface () in
      List.iter
        (fun cable ->
@@ -2687,7 +2483,7 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
  method del_world_bridge gname =
      let g  = self#get_world_bridge_by_name gname in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#i_node_nvolved gname) cables in
+     let cables_to_remove = List.filter (fun c->c#is_node_involved gname) cables in
      let defects = Defects_interface.get_defects_interface () in
      List.iter
        (fun cable ->
@@ -2698,19 +2494,11 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
      world_bridges  <- List.filter (fun x->not (x=g)) world_bridges
 
 
- (** Change the name of a node => change all cable socketnames refering this node *)
- (* TODO: remove it and use change_cable_references *)
  method change_node_name oldname newname =
    if oldname = newname then () else
    let node = self#get_node_by_name oldname in
    node#set_name newname ;
-   List.iter (fun c->c#change_node_name oldname newname) cables
 
- method change_cable_references ~old_name ~new_name =
-   if old_name = new_name
-   then ()
-   else List.iter (fun c->c#change_node_name old_name new_name) cables
- 
  (** Facilities *)
 
   (** Would a hypothetical cable of a given crossoverness be 'correct' if it connected the two
@@ -2825,11 +2613,11 @@ method get_node_by_name    n = try List.find (fun x->x#name=n) self#nodes with _
      An edge is a 3-uple (node1,receptname1), cable , (node2,receptname2) *)
  method edgesSuchThat (lpred: node->bool) (cpred:cable->bool) (rpred: node->bool) : edge list =
    let cable_info c =
-       begin
-       let (l,r) = (c#get_left,c#get_right) in
-       let a = ((self#get_node_by_name l.nodename), l.receptname) in
-       let b = ((self#get_node_by_name r.nodename), r.receptname) in (a,c,b)
-       end in
+     let (left, right) = (c#get_left, c#get_right) in
+     let a = (left#node,  left#user_port_name) in
+     let b = (right#node, right#user_port_name) in
+     (a,c,b)
+   in
    let l1 = List.map cable_info cables in
    let filter = fun ((n1,_),c,(n2,_)) -> (lpred n1) && (cpred c) && (rpred n2) in
    let l2 = (List.filter filter l1) in l2

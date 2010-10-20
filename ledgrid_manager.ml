@@ -95,7 +95,7 @@ object (self)
       window#misc#show ());
 
   (** This is {e unlocked}! *)
-  method private make_widget ~id ~port_no ~title ~label ~image_directory () =
+  method private make_widget ~id ~port_no ?port_labelling_offset ~title ~label ~image_directory () =
     let window =
       GWindow.window
         ~icon:Icon.icon_pixbuf
@@ -125,6 +125,7 @@ object (self)
         ~angle:(if port_no > 8 then 90.0 else 0.0)
         ~off_xpm_file_name:(image_directory^"/off.xpm")
         ~on_xpm_file_name:(image_directory^"/on.xpm")
+        ?port_labelling_offset
         ~nothing_xpm_file_name:(image_directory^"/nothing.xpm")
         ()
     in
@@ -132,12 +133,12 @@ object (self)
          to show it only when the device is started up. *)
       window, device
 
-  method make_device_ledgrid ~id ~title ~label ~port_no ~image_directory
+  method make_device_ledgrid ~id ~title ~label ~port_no ?port_labelling_offset ~image_directory
       ?connected_ports:(connected_ports=[])() =
     self#lock;
     Log.printf "Making a ledgrid with title %s (id=%d) with %d ports.\n" title id port_no;
     let ledgrid_widget, window_widget =
-      self#make_widget ~id ~port_no ~title ~label ~image_directory () in
+      self#make_widget ~id ~port_no ?port_labelling_offset ~title ~label ~image_directory () in
     Hashmap.add id_to_data id (ledgrid_widget, window_widget, title, connected_ports);
     ignore (List.map
               (fun port -> self#set_port_connection_state ~id ~port ~value:true ())

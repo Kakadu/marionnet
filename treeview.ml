@@ -781,6 +781,11 @@ object(self)
   method reset_file_name =
     file_name := None
 
+  (* Reset means: clear + reset_file_name *)
+  method reset =
+    self#reset_file_name;
+    self#clear;
+
   method set_file_name (new_file_name : string) =
     file_name := Some new_file_name
 
@@ -793,6 +798,7 @@ object(self)
                                    ?shown_header
                                    ?constraint_predicate () in
     ((self#add_column (column :> column)) :> string_column)
+
   method add_editable_string_column ~header ?shown_header
                                     ?italic:(italic=false) ?bold:(bold=false)
                                     ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
@@ -801,12 +807,14 @@ object(self)
                                             ~hidden ~reserved ?default ~treeview:self
                                             ~header ?shown_header ?constraint_predicate () in
     ((Obj.magic (self#add_column (column :> column))) :> editable_string_column)
+
   method add_checkbox_column ~header ?shown_header
                              ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
                              ?constraint_predicate () =
     let column = new checkbox_column ~treeview:(Obj.magic self) ~header ?shown_header ~hidden
                                      ~reserved ?default ?constraint_predicate() in
     ((Obj.magic (self#add_column (column :> column))) :> checkbox_column)
+
   method add_icon_column ~header ?shown_header
                          ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
                          ~strings_and_pixbufs () =

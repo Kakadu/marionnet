@@ -45,7 +45,13 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
       let (name,label) = (r#get "name"),(r#get "label") in
-      defects#add_device name "world_bridge" 1;
+      defects#add_device
+        ~device_name:name
+        ~device_type:"world_bridge"
+        ~port_no:1
+        ~port_prefix:"eth"
+        ~user_port_offset:0
+        ();
       let g = (new Mariokit.Netmodel.world_bridge ~network:st#network ~name ~label ()) in
       st#network_change st#network#add_world_bridge g;
 

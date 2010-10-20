@@ -102,9 +102,9 @@ module Make_menus (State : sig val st:State.globalState end) = struct
        ((Ipv4.ipv4_of_string g#get_network_address), fixed_cidr)
      in
      let dhcp_enabled = g#get_dhcp_enabled in
-     let port_no = g#get_eth_number in
+     let port_no = g#get_port_no in
      (* The user cannot remove receptacles used by a cable. *)
-     let port_no_lower = st#network#port_no_lower_of g#get_name in
+     let port_no_lower = st#network#port_no_lower_of (g :> Mariokit.Netmodel.node) in
      Dialog_add_or_update.make
        ~title ~name ~label ~network_config ~dhcp_enabled ~port_no ~port_no_lower
        ~ok_callback:Add.ok_callback ()
@@ -356,6 +356,7 @@ class world_gateway =
     ~devkind:Mariokit.Netmodel.World_gateway
     ~port_no
     ~port_prefix:"port" (* because these ports are of the integrated switch *)
+    ~user_port_offset:1 (* because is a switch *)
     ()
     as self_as_device_with_ledgrid_and_defects
 
@@ -401,7 +402,7 @@ class world_gateway =
                   ("label", self#get_label);
                   ("network_address", self#get_network_address);
                   ("dhcp_enabled", (string_of_bool self#get_dhcp_enabled));
-                  ("port_no", (string_of_int self#get_eth_number));
+                  ("port_no", (string_of_int self#get_port_no));
                   ])
 
   (** A world_bridge has just attributes (no childs) in this version. *)
@@ -410,18 +411,18 @@ class world_gateway =
   | ("label" , x ) -> self#set_label x
   | ("network_address", x ) -> self#set_network_address x
   | ("dhcp_enabled", x) -> self#set_dhcp_enabled (bool_of_string x)
-  | ("port_no", x) -> self#set_eth_number (int_of_string x)
+  | ("port_no", x) -> self#set_port_no (int_of_string x)
   | _ -> assert false
 
   (** Create the simulated device *)
   method private make_simulated_device =
     ((new Simulation_level.world_gateway
-	~name:self#get_name
-	~port_no:self#get_eth_number
+        ~parent:self
+	~port_no:self#get_port_no
 	~network_address
 	~dhcp_enabled
 	~unexpected_death_callback:self#destroy_because_of_unexpected_death
-	()) :> Simulated_network.device)
+	()) :> Mariokit.Netmodel.node Simulated_network.device)
 
   method update_world_gateway_with ~name ~label ~port_no ~network_config ~dhcp_enabled =
     (* The following call ensure that the simulated device will be destroyed: *)
@@ -439,8 +440,8 @@ end (* module User_level *)
 
 module Simulation_level = struct
 
-class world_gateway =
-  fun ~name
+class ['parent] world_gateway =
+  fun ~(parent:'parent)
       ~port_no
       ~network_address (* default 10.0.2.0 *)
       ~dhcp_enabled
@@ -450,15 +451,19 @@ class world_gateway =
  let hublet_no = port_no + 1 in
  let last_user_visible_port_index = port_no - 1 in
  object(self)
-  inherit Switch.Simulation_level.switch
-    ~name ~hublet_no ~last_user_visible_port_index ~unexpected_death_callback () as super
+  inherit ['parent] Switch.Simulation_level.switch
+    ~parent
+    ~hublet_no
+    ~last_user_visible_port_index
+    ~unexpected_death_callback
+    () as super
 
   method device_type = "world_gateway"
 
   initializer
 
     let last_reserved_port = port_no in
-    let slirpvde_socket = (self#get_hublet_process last_reserved_port)#get_socket_name in
+    let slirpvde_socket = (self#get_hublet_process_of_port last_reserved_port)#get_socket_name in
 
     self#add_accessory_process
       (new Simulated_network.slirpvde_process

@@ -107,10 +107,10 @@ module Make (State:sig val st:State.globalState end) = struct
        begin
 	dialog#name#set_text    m#get_name;
 	dialog#memory#set_value (float_of_int m#get_memory);
-	dialog#eth#set_value    (float_of_int m#get_eth_number);
+	dialog#eth#set_value    (float_of_int m#get_port_no);
 
 	(* The user cannot remove receptacles used by a cable. *)
-	let min_eth = (st#network#max_busy_receptacle_index m#get_name Mariokit.Netmodel.Eth)+1 in
+	let min_eth = (st#network#max_busy_port_index_of_node (m :> Mariokit.Netmodel.node))+1 in
 	dialog#eth#adjustment#set_bounds ~lower:(float_of_int (max min_eth 1)) ()  ;
 
 	distrib#set_active_value m#get_epithet;

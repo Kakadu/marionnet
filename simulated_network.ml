@@ -14,15 +14,16 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+#load "include_type_definitions_p4.cmo"
+;;
+INCLUDE DEFINITIONS "simulated_network.mli" ;;
+
 open Defects_interface;;
 open Daemon_language;;
 open X;; (* Not really needed: this works around a problem with OCamlBuild 3.10.0 *)
 open Gettext;;
 
 module Recursive_mutex = MutexExtra.Recursive ;;
-
-type process_name = Death_monitor.process_name
-type pid = Death_monitor.Map.key
 
 (** Fork a process which just sleeps forever without doing any output. Its stdout is
     perfect to be used as stdin for processes created with create_process which wait
@@ -1061,13 +1062,6 @@ end;;
 
 (** {2 Generic simulation infrastructure} *)
 
-(** A device state can be represented as a DFA state *)
-type device_state =
-    Off
-  | On
-  | Sleeping
-  | Destroyed;;
-
 (** Make a device state printable *)
 let device_state_to_string s =
   match s with
@@ -1082,42 +1076,55 @@ exception CantGoFromStateToState of device_state * device_state;;
     Note how here a device may also be a cable or a machine. This is different from the
     convention in [mariokit.ml].
     Note that hublets are created {e once and for all} at construction time, and
-    destroyed {e only} when the method destroy is invoked. *)
-class virtual device =
-  fun ~name
-      ~hublet_no
-      ~(unexpected_death_callback: unit -> unit)
-      () ->
-object(self)
+    destroyed {e only} when the method destroy is invoked.
+    We always have to avoid destroying hublets connected to running cable processes. *)
+class virtual ['parent] device
+ ~(parent:'parent)
+ ~hublet_no (* TODO: remove it, use instead parent#get_port_no *)
+ ~(unexpected_death_callback: unit -> unit)
+ ()
+ =
+ let make_hublet_process_array ~unexpected_death_callback ~size =
+   Array.init size (fun index -> new hublet_process ~index ~unexpected_death_callback ())
+ in 
+ object(self)
   (** The internal state, as a DFA state *)
-  val state = ref Off
-
-  (** Hublet processes are mutable: *)
-  val current_hublet_processes =
-    ref []
+  val mutable state = Off
+  method get_state = state
 
   method virtual device_type : string
 
-  method private make_hublet_processes ~unexpected_death_callback n =
-    let hublet_processes =
-      List.map
-        (fun index -> new hublet_process ~index ~unexpected_death_callback ())
-        (ListExtra.range 1 n) in
-(*     Thread.delay 2.0; *)
-    hublet_processes
+  (** Port associated hublets: *)
+  val mutable hublet_process_array = [||]
+(*  method get_hublet_process_array = hublet_process_array*)
+  method get_hublet_no = Array.length hublet_process_array
+  method get_hublet_process_list = Array.to_list hublet_process_array
+  method get_hublet_process_of_port port_index (* 0-based *) =
+    Array.get hublet_process_array port_index
 
+  
+  method private make_and_spawn_the_hublet_process_array =
+    hublet_process_array <-
+      make_hublet_process_array
+        ~unexpected_death_callback:self#execute_the_unexpected_death_callback
+        ~size:hublet_no (*parent#get_port_no*) ;
+    Array.iter (fun sp -> sp#spawn) hublet_process_array; (* TODO: this doesn't seem necessary *)
+        
   (* We have to use the inizializer instead of binding 'hublet_processes' before
      'object', just because we need to use 'self' for unexpected_death_callback: *)
   initializer
-    let hublet_processes =
-      self#make_hublet_processes
-        ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-        hublet_no in
-    List.iter (fun sp -> sp#spawn) hublet_processes;
-    current_hublet_processes := hublet_processes
+    self#make_and_spawn_the_hublet_process_array;
 
-  (** Return the current state *)
-  method get_state = !state
+  method private terminate_hublets =
+    let name = parent#get_name in
+    Array.iter
+      (fun sp ->
+         let pid = try sp#get_pid with _ -> -1 in
+         Log.printf "Terminating a device hublet process (pid %i) of %s...\n" pid name;
+         (try sp#continue with _ -> ());
+         (try sp#terminate with _ -> ());
+         Log.printf  "...ok, a hublet process (pid %i) of %s was terminated\n" pid name)
+      hublet_process_array;
 
   (** This is just to allow some implicit type conversions... *)
   method hostfs_directory_pathname : string =
@@ -1128,65 +1135,45 @@ object(self)
       transition). The actual interaction with device-simulating processes
       is performed in subclasses. *)
   method startup =
-    match !state with
-      Off ->
-        state := On;
-        self#spawn_processes
-    | _ ->
-        failwith "can't startup a non-off device"
+    match state with
+    | Off -> state <- On; self#spawn_processes
+    | _   -> failwith "can't startup a non-off device"
+    
   method shutdown =
-    match !state with
-      On ->
-        state := Off;
-        (try self#terminate_processes with _ -> ())
-    | _ ->
-        failwith "can't shutdown a non-on device"
+    match state with
+    | On -> state <- Off; (try self#terminate_processes with _ -> ())
+    | _  -> failwith "can't shutdown a non-on device"
+
   method gracefully_shutdown =
-    match !state with
-      On ->
-        state := Off;
-        self#gracefully_terminate_processes
-    | _ ->
-        failwith "can't gracefully_shutdown a non-on device"
+    match state with
+    | On -> state <- Off; self#gracefully_terminate_processes
+    | _  -> failwith "can't gracefully_shutdown a non-on device"
+
   method suspend =
-    match !state with
-      On ->
-        state := Sleeping;
-        self#stop_processes
-    | _ ->
-        failwith "can't suspend a non-on device"
+    match state with
+    | On -> state <- Sleeping; self#stop_processes
+    | _  -> failwith "can't suspend a non-on device"
+
   method resume =
-    match !state with
-      Sleeping ->
-        state := On;
-        self#continue_processes
-    | _ ->
-       failwith "can't resume a non-sleeping device"
+    match state with
+    | Sleeping -> state <- On; self#continue_processes
+    | _        -> failwith "can't resume a non-sleeping device"
 
   (** Terminate all processes including hublets, and set the device state in an
       unescapable 'destroyed' state. This is useful when the device is modified in
       a way that alter connections with other devices, and a simple restart is not
       enough to boot the device again in a usable state *)
   method destroy =
+    let name = parent#get_name in
     Log.printf "The method destroy has been called on the device %s: begin\n" name;
     Log.printf "Resuming %s before destruction (it might be needed)...\n" name;
     (try self#resume with _ -> ());
     Log.printf  "Shutting down %s before destruction...\n" name;
     (try self#shutdown with _ -> ());
     Log.printf  "Now terminate %s's hublets...\n" name;
-    List.iter
-      (fun sp ->
-        let pid = try sp#get_pid with _ -> -1 in
-        Log.printf
-          "Terminating a device hublet process (pid %i) of %s to destroy its device...\n"
-          pid
-          name;
-        (try sp#continue with _ -> ());
-        (try sp#terminate with _ -> ());
-        Log.printf  "...ok, a hublet process (pid %i) of %s was terminated\n" pid name)
-      self#get_hublet_processes;
+    self#terminate_hublets;
     Log.printf "Ok, the hublets of %s were destroyed...\n" name;
-    state := Destroyed;
+    state <- Destroyed;
     Log.printf "The method destroy has been called on the device %s: end\n" name
 
   method (* protected *) execute_the_unexpected_death_callback pid process_name =
@@ -1198,77 +1185,14 @@ object(self)
         process_name
         pid
         self#device_type
-        name
+        parent#get_name
         (if self#device_type = "Ethernet cable" then (s_ "to restart") else (s_ "to stop"))
-        name
+        parent#get_name
     in
     (* Run the actual callback, and warn the user: *)
     unexpected_death_callback ();
     Simple_dialogs.warning title message ();
 
-  (** A hublet process represents an ethernet port, so this serves as an accessor for
-      a connection endpoint *)
-  method get_hublet_process n =
-    List.nth (self#get_hublet_processes) n
-
-  (** Just an alias for get_hublet_process *)
-  method get_ethernet_port n = self#get_hublet_process n
-
-  (** Return a hublet process given a port string. To do: this is very ugly and based on
-      the weak assumption that ports are always named eth* and port*, and that * is an integer
-      starting at 0 for the first port and respecting the ports order *)
-  method get_ethernet_port_by_name name =
-    let n =
-      try
-        Scanf.sscanf name "eth%i" (fun q -> q)
-      with _ ->
-        Scanf.sscanf name "port%i" (fun q -> q)
-    in
-    self#get_hublet_process n
-
-  (** Return the current number of hublets *)
-  method get_hublet_no =
-    List.length (self#get_hublet_processes)
-
-  (** Return all the device hublet processes *)
-  method get_hublet_processes =
-    ! current_hublet_processes
-
-  (** Update the hublets number. This can only be done in the 'off' state *)
-  method set_hublet_process_no new_hublet_no =
-    match !state with
-      Off ->
-        let old_hublet_no = self#get_hublet_no in
-        (Log.printf 
-          "Simulated_network.device: changing the hublets no from %d to %d \n" 
-          old_hublet_no
-          new_hublet_no);
-        if new_hublet_no = old_hublet_no then (* the hublets no isn't changing *)
-          () (* do nothing *)
-        else if new_hublet_no > old_hublet_no then begin (* hublets are being created *)
-          (* Append the new hublets: *)
-          current_hublet_processes :=
-            (!current_hublet_processes) @
-            (self#make_hublet_processes
-               ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-               (new_hublet_no - old_hublet_no))
-        end
-        else begin (* hublets are being destroyed *)
-          (* Remove the last (old_hublet_no - new_hublet_no) hublets: *)
-          let hublet_processes_to_remove =
-            ListExtra.tail ~i:new_hublet_no !current_hublet_processes in
-          ignore (List.map
-                    (fun hp -> try hp#terminate with _ -> ())
-                    hublet_processes_to_remove);
-          current_hublet_processes :=
-            ListExtra.head ~n:new_hublet_no !current_hublet_processes
-        end;
-        (Log.printf 
-           "Simulated_network.device: changed the hublets no from %d to %d: success.\n"
-           old_hublet_no
-           new_hublet_no);
-    | _ ->
-        failwith "can't update the hublets number for a non-off device"
 
   (** Work with the 'main' processes implementing the device. This may be
       complex for some devices, and sometimes more than a single process
@@ -1296,8 +1220,8 @@ end;;
     It's meant to always link two switch/hub processes, and as an interesting particular
     case two hublets.
     The 'straight' and 'cross-over' cases are not distinguished. *)
-class ethernet_cable =
-  fun ~name
+class ['parent] ethernet_cable =
+  fun ~(parent:'parent)
       ~(left_end)
       ~(right_end)
       ?blinker_thread_socket_file_name:(blinker_thread_socket_file_name=None)
@@ -1306,8 +1230,8 @@ class ethernet_cable =
       ~(unexpected_death_callback : unit -> unit)
       () ->
 object(self)
-  inherit device
-      ~name
+  inherit ['parent] device
+      ~parent
       ~hublet_no:0
       ~unexpected_death_callback
       ()
@@ -1319,6 +1243,7 @@ object(self)
     | None -> failwith "ethernet_cable: get_ethernet_cable_process was called when there is no such process"
   initializer
     let defects = get_defects_interface () in
+    let name = parent#get_name in
     ethernet_cable_process :=
       Some(new ethernet_cable_process
              ~left_end
@@ -1348,15 +1273,16 @@ object(self)
 end;;
 
 (** The common schema for user-level hubs, switches and gateways: *)
-class virtual main_process_with_n_hublets_and_cables =
-  fun ~name
-      ~hublet_no
-      ?(last_user_visible_port_index=(hublet_no-1))
-      ~unexpected_death_callback
-      () ->
+class virtual ['parent] main_process_with_n_hublets_and_cables
+  ~(parent:'parent)
+  ~hublet_no
+  ?(last_user_visible_port_index=(hublet_no-1))
+  ~unexpected_death_callback
+  ()
+  =
 object(self)
-  inherit device
-      ~name
+  inherit ['parent] device
+      ~parent
       ~hublet_no
       ~unexpected_death_callback
       ()
@@ -1377,8 +1303,9 @@ object(self)
     self#get_main_process#spawn;
     (* Create internal cable processes from main switch to hublets, and spawn them: *)
     (internal_cable_processes :=
-      let hublets = self#get_hublet_processes in
-      let defects = get_defects_interface () in
+      let hublets = self#get_hublet_process_list in
+      let name = parent#get_name in
+      let get_defect = parent#ports_card#get_port_defect_by_index in
       Log.printf "spawn_processes: hublet_no=%d last_user_visible_port_index=%d\n" hublet_no last_user_visible_port_index;
       List.map
         (fun (i, hublet_process) ->
@@ -1386,16 +1313,16 @@ object(self)
             new ethernet_cable_process
 	      ~left_end:self#get_main_process
 	      ~right_end:hublet_process
-	      ~rightward_loss:(defects#get_port_attribute_by_index name i InToOut "Loss %")
-	      ~rightward_duplication:(defects#get_port_attribute_by_index name i InToOut "Duplication %")
-	      ~rightward_flip:(defects#get_port_attribute_by_index name i InToOut "Flipped bits %")
-	      ~rightward_min_delay:(defects#get_port_attribute_by_index name i InToOut "Minimum delay (ms)")
-	      ~rightward_max_delay:(defects#get_port_attribute_by_index name i InToOut "Maximum delay (ms)")
-	      ~leftward_loss:(defects#get_port_attribute_by_index name i OutToIn "Loss %")
-	      ~leftward_duplication:(defects#get_port_attribute_by_index name i OutToIn "Duplication %")
-	      ~leftward_flip:(defects#get_port_attribute_by_index name i OutToIn "Flipped bits %")
-	      ~leftward_min_delay:(defects#get_port_attribute_by_index name i OutToIn "Minimum delay (ms)")
-	      ~leftward_max_delay:(defects#get_port_attribute_by_index name i OutToIn "Maximum delay (ms)")
+	      ~rightward_loss:(get_defect i InToOut "Loss %")
+	      ~rightward_duplication:(get_defect i InToOut "Duplication %")
+	      ~rightward_flip:(get_defect i InToOut "Flipped bits %")
+	      ~rightward_min_delay:(get_defect i InToOut "Minimum delay (ms)")
+	      ~rightward_max_delay:(get_defect i InToOut "Maximum delay (ms)")
+	      ~leftward_loss:(get_defect i OutToIn "Loss %")
+	      ~leftward_duplication:(get_defect i OutToIn "Duplication %")
+	      ~leftward_flip:(get_defect i OutToIn "Flipped bits %")
+	      ~leftward_min_delay:(get_defect i OutToIn "Minimum delay (ms)")
+	      ~leftward_max_delay:(get_defect i OutToIn "Maximum delay (ms)")
 	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ()
             else (* Hidden ports have no defects: *)
@@ -1439,16 +1366,16 @@ end;; (* class main_process_with_n_hublets_and_cables *)
 
 
 (** Add some accessory processes running together with the main process. *)
-class virtual main_process_with_n_hublets_and_cables_and_accessory_processes =
-  fun ~name
+class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_processes =
+  fun ~(parent:'parent)
       ~hublet_no
       ?(last_user_visible_port_index:int option)
       ~unexpected_death_callback
       () ->
  object(self)
 
-  inherit main_process_with_n_hublets_and_cables
-      ~name
+  inherit ['parent] main_process_with_n_hublets_and_cables
+      ~parent
       ~hublet_no
       ?last_user_visible_port_index
       ~unexpected_death_callback
@@ -1502,8 +1429,8 @@ end;;
 
 (** This class implements {e either} a hub or a switch; their implementation
     is nearly identical, so this is convenient. *)
-class virtual hub_or_switch =
-  fun ~name
+class virtual ['parent] hub_or_switch =
+  fun ~(parent:'parent)
       ~hublet_no
       ?(last_user_visible_port_index:int option)
       ~(hub:bool)
@@ -1512,8 +1439,8 @@ class virtual hub_or_switch =
       () ->
  object(self)
 
-  inherit main_process_with_n_hublets_and_cables_and_accessory_processes
-      ~name
+  inherit ['parent] main_process_with_n_hublets_and_cables_and_accessory_processes
+      ~parent
       ~hublet_no
       ?last_user_visible_port_index
       ~unexpected_death_callback
@@ -1531,7 +1458,7 @@ class virtual hub_or_switch =
 
   method get_management_socket_name =
     (Option.extract main_process)#get_management_socket_name
-    
+
 end;;
 
 
@@ -1556,9 +1483,9 @@ let rec from_to first_index last_index list =
 
 (** This class implements {e either} an machine or a router; their implementation
     is nearly identical, so this is convenient. *)
-class virtual machine_or_router =
-  fun ~name
-      ~router:bool
+class virtual ['parent] machine_or_router =
+  fun ~(parent:'parent)
+      ~(router:bool)
       ~(kernel_file_name)
       ~(filesystem_file_name)
       ~(cow_file_name)
@@ -1577,8 +1504,8 @@ object(self)
      super#destroy to get rid of *all* hublets; so we declare *all* hublets as part of the
      external interface, even if only the first half will be used in this way. Hence it's
      important the the outer layer comes *first*: *)
-  inherit device
-      ~name
+  inherit ['parent] device
+      ~parent
       ~hublet_no:(half_hublet_no * 2)
       ~unexpected_death_callback
       ()
@@ -1612,7 +1539,7 @@ object(self)
         uml_process#hostfs_directory_pathname
 
   initializer
-    let all_hublets = self#get_hublet_processes in
+    let all_hublets = self#get_hublet_process_list in
     outer_hublet_processes :=
       from_to 0 (half_hublet_no - 1) all_hublets;
     inner_hublet_processes :=
@@ -1658,6 +1585,7 @@ object(self)
 (*     Log.printf "OK-Q 1\n"; flush_all (); *)
     (internal_cable_processes :=
       let defects = get_defects_interface () in
+      let name = parent#get_name in
       List.map
         (fun (i, inner_hublet_process, outer_hublet_process) ->
           new ethernet_cable_process
@@ -1690,7 +1618,7 @@ object(self)
 (*     Log.printf "OK-Q 4\n"; flush_all (); *)
 
   method private terminate_processes_private ~gracefully  () =
-    Log.printf "** Terminating the internal cable processes of %s...\n" name; flush_all ();
+    Log.printf "** Terminating the internal cable processes of %s...\n" parent#get_name;
     (* Terminate internal cables and unreference them: *)
     Task_runner.do_in_parallel
       ((fun () ->
@@ -1711,8 +1639,8 @@ object(self)
 end;;
 
 (** A machine: just a [machine_or_router] with [router = false] *)
-class machine =
-  fun ~name
+class ['parent] machine =
+  fun ~(parent:'parent)
       ~(filesystem_file_name)
       ~(kernel_file_name)
       ~(cow_file_name)
@@ -1724,8 +1652,8 @@ class machine =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit machine_or_router
-      ~name
+  inherit ['parent] machine_or_router
+      ~parent
       ~router:false
       ~filesystem_file_name
       ~cow_file_name
@@ -1743,15 +1671,15 @@ object(self)
 end;;
 
 
-class world_bridge =
+class ['parent] world_bridge =
   fun (* ~id *)
-      ~name
+      ~(parent:'parent)
       ~bridge_name
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit device
-      ~name
+  inherit ['parent] device
+      ~parent
       ~hublet_no:1
       ~unexpected_death_callback
       ()
@@ -1759,7 +1687,7 @@ object(self)
   method device_type = "world_bridge"
 
   val the_hublet_process = ref None
-  method private get_the_hublet_process = (* the method get_hublet_process exists and is different... *)
+  method private get_the_hublet_process =
     match !the_hublet_process with
       Some the_hublet_process -> the_hublet_process
     | None -> failwith "world_bridge: get_the_hublet_process was called when there is no such process"
@@ -1809,9 +1737,9 @@ object(self)
   val internal_cable_process = ref None
 
   initializer
-    assert ((List.length self#get_hublet_processes) = 1);
+    assert ((List.length self#get_hublet_process_list) = 1);
     the_hublet_process :=
-      Some (self#get_hublet_process 0);
+      Some (self#get_hublet_process_of_port 0);
     world_bridge_hub_process :=
       Some self#make_world_bridge_hub_process
 
@@ -1833,6 +1761,7 @@ object(self)
        and spawn it: *)
     let the_internal_cable_process =
       let defects = get_defects_interface () in
+      let name = parent#get_name in
       new ethernet_cable_process
         ~rightward_loss:(defects#get_port_attribute_by_index name 0 InToOut "Loss %")
         ~rightward_duplication:(defects#get_port_attribute_by_index name 0 InToOut "Duplication %")
@@ -1872,14 +1801,14 @@ object(self)
   method continue_processes = self#spawn_processes
 end;;
 
-class cloud =
+class ['parent] cloud =
   fun (* ~id *)
-      ~name
+      ~(parent:'parent)
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit device
-      ~name
+  inherit ['parent] device
+      ~parent
       ~hublet_no:2
       ~unexpected_death_callback
       ()
@@ -1898,6 +1827,7 @@ object(self)
   method spawn_processes =
     (* Create the internal cable process and spawn it: *)
     let defects = get_defects_interface () in
+    let name = parent#get_name in
     let the_internal_cable_process =
       new ethernet_cable_process
         ~rightward_loss:(defects#get_port_attribute_by_index name 0 InToOut "Loss %")
@@ -1910,8 +1840,8 @@ object(self)
         ~leftward_flip:(defects#get_port_attribute_by_index name 0 OutToIn "Flipped bits %")
         ~leftward_min_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Minimum delay (ms)")
         ~leftward_max_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Maximum delay (ms)")
-        ~left_end:(self#get_hublet_process 0)
-        ~right_end:(self#get_hublet_process 1)
+        ~left_end:(self#get_hublet_process_of_port 0)
+        ~right_end:(self#get_hublet_process_of_port 1)
         ~unexpected_death_callback:self#execute_the_unexpected_death_callback
         () in
     internal_cable_process := Some the_internal_cable_process;

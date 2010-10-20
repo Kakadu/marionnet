@@ -318,38 +318,51 @@ type device_state = Off | On | Sleeping | Destroyed
 val device_state_to_string : device_state -> string
 exception CantGoFromStateToState of device_state * device_state
 
-class virtual device :
-  name:string ->
+(* Provokes a Fatal error: exception Assert_failure("typing/ctype.ml", 261, 23)
+   at compilation time: *)
+(* type 'a user_level_parent_type = < get_name : string; .. > as 'a *)
+(* using the constraint *)
+(*    constraint 'parent = _ user_level_parent *)
+(* almost 2 times *)
+
+type user_level_parent = <
+ get_name : string;
+ ports_card : <
+    get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+    >
+ >   
+                                                              
+class virtual ['parent] device :
+  parent:'parent ->
   hublet_no:int ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
-    method virtual continue_processes : unit
-    method destroy : unit
+    constraint 'parent = < get_name : string; .. > as 'b
     method virtual device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
+    method virtual spawn_processes : unit
+    method virtual stop_processes : unit
+    method virtual continue_processes : unit
+    method virtual terminate_processes : unit
+
+    method get_hublet_process_of_port : int -> hublet_process
+    method get_hublet_process_list  : hublet_process list
     method get_hublet_no : int
+
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
-    method resume : unit
-    method set_hublet_process_no : int -> unit
-    method shutdown : unit
-    method virtual spawn_processes : unit
     method startup : unit
-    method virtual stop_processes : unit
     method suspend : unit
-    method virtual terminate_processes : unit
+    method resume : unit
+    method shutdown : unit
+    method destroy : unit
     method execute_the_unexpected_death_callback : int -> string -> unit
-
   end
 
-class ethernet_cable :
-  name:string ->
+class ['parent] ethernet_cable :
+  parent:'parent ->
   left_end:< get_socket_name : string; .. > ->
   right_end:< get_socket_name : string; .. > ->
   ?blinker_thread_socket_file_name:process_name option ->
@@ -358,20 +371,18 @@ class ethernet_cable :
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
+    constraint 'parent = < get_name : string; .. > as 'b
     method continue_processes : unit
     method destroy : unit
     method device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
+    method get_hublet_process_of_port : int -> hublet_process
+    method get_hublet_process_list : hublet_process list
     method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -381,27 +392,31 @@ class ethernet_cable :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-class virtual main_process_with_n_hublets_and_cables_and_accessory_processes :
-  name:string ->
+class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_processes :
+  parent:'parent ->
   hublet_no:int ->
   ?last_user_visible_port_index:int ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
+(*     constraint 'parent = < get_name : string; .. > as 'b *)
+    constraint 'parent = <
+      get_name : string;
+      ports_card : <
+        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+        .. >;
+      .. >
     method continue_processes : unit
     method destroy : unit
     method virtual device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
+    method get_hublet_process_of_port : int -> hublet_process
+    method get_hublet_process_list : hublet_process list
     method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -412,8 +427,8 @@ class virtual main_process_with_n_hublets_and_cables_and_accessory_processes :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-class virtual hub_or_switch :
-  name:string ->
+class virtual ['parent] hub_or_switch :
+  parent:'parent ->
   hublet_no:int ->
   ?last_user_visible_port_index:int ->
   hub:bool ->
@@ -421,20 +436,23 @@ class virtual hub_or_switch :
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
+    constraint 'parent = <
+      get_name : string;
+      ports_card : <
+        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+        .. >;
+      .. >
     method continue_processes : unit
     method destroy : unit
     method virtual device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
+    method get_hublet_process_of_port : int -> hublet_process
+    method get_hublet_process_list : hublet_process list
     method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -446,103 +464,10 @@ class virtual hub_or_switch :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-(*class hub :
-  name:string ->
-  hublet_no:int ->
-  ?last_user_visible_port_index:int ->
-  unexpected_death_callback:(unit -> unit) ->
-  unit ->
-  object
-    method continue_processes : unit
-    method destroy : unit
-    method device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
-    method get_hublet_no : int
-    method get_state : device_state
-    method gracefully_shutdown : unit
-    method gracefully_terminate_processes : unit
-    method hostfs_directory_pathname : string
-    method resume : unit
-    method set_hublet_process_no : int -> unit
-    method shutdown : unit
-    method spawn_processes : unit
-    method startup : unit
-    method stop_processes : unit
-    method suspend : unit
-    method terminate_processes : unit
-    method add_accessory_process : process -> unit
-    method execute_the_unexpected_death_callback : int -> string -> unit
-  end*)
 
-(*class switch :
-  name:string ->
-  hublet_no:int ->
-  ?last_user_visible_port_index:int ->
-  unexpected_death_callback:(unit -> unit) ->
-  unit ->
-  object
-    method continue_processes : unit
-    method destroy : unit
-    method device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
-    method get_hublet_no : int
-    method get_state : device_state
-    method gracefully_shutdown : unit
-    method gracefully_terminate_processes : unit
-    method hostfs_directory_pathname : string
-    method resume : unit
-    method set_hublet_process_no : int -> unit
-    method shutdown : unit
-    method spawn_processes : unit
-    method startup : unit
-    method stop_processes : unit
-    method suspend : unit
-    method terminate_processes : unit
-    method add_accessory_process : process -> unit
-    method execute_the_unexpected_death_callback : int -> string -> unit
-  end*)
-
-(*class world_gateway :
-  name:string ->
-  user_port_no:int ->
-  network_address:process_name ->
-  dhcp_enabled:bool ->
-  unexpected_death_callback:(unit -> unit) ->
-  unit ->
-  object
-    method continue_processes : unit
-    method destroy : unit
-    method device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
-    method get_hublet_no : int
-    method get_state : device_state
-    method gracefully_shutdown : unit
-    method gracefully_terminate_processes : unit
-    method hostfs_directory_pathname : string
-    method resume : unit
-    method set_hublet_process_no : int -> unit
-    method shutdown : unit
-    method spawn_processes : unit
-    method startup : unit
-    method stop_processes : unit
-    method suspend : unit
-    method terminate_processes : unit
-    method add_accessory_process : process -> unit
-    method execute_the_unexpected_death_callback : int -> string -> unit
-  end*)
-
-class virtual machine_or_router :
-  name:string ->
-  router:'a ->
+class virtual ['parent] machine_or_router :
+  parent:'parent -> 
+  router:bool ->
   kernel_file_name:process_name ->
   filesystem_file_name:string ->
   cow_file_name:string ->
@@ -556,20 +481,23 @@ class virtual machine_or_router :
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
+    constraint 'parent = <
+      get_name : string;
+(*      ports_card : <
+        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+        .. >;*)
+      .. >
     method continue_processes : unit
     method destroy : unit
     method virtual device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
+    method get_hublet_process_of_port : int -> hublet_process
+    method get_hublet_process_list : hublet_process list
     method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -579,8 +507,8 @@ class virtual machine_or_router :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-class machine :
-  name:string ->
+class ['parent] machine :
+  parent:'parent ->
   filesystem_file_name:string ->
   kernel_file_name:process_name ->
   cow_file_name:string ->
@@ -592,20 +520,23 @@ class machine :
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
+    constraint 'parent = <
+      get_name : string;
+(*      ports_card : <
+        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+        .. >;*)
+      .. >
     method continue_processes : unit
     method destroy : unit
     method device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
+    method get_hublet_process_of_port : int -> hublet_process
+    method get_hublet_process_list : hublet_process list
     method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -615,61 +546,29 @@ class machine :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-(*class router :
-  name:string ->
-  cow_file_name:string ->
-  kernel_file_name:process_name ->
-  filesystem_file_name:string ->
-  ethernet_interface_no:int ->
-  ?umid:string ->
-  id:int ->
-  show_unix_terminal:bool ->
-  unexpected_death_callback:(unit -> unit) ->
-  unit ->
-  object
-    method continue_processes : unit
-    method destroy : unit
-    method device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
-    method get_hublet_no : int
-    method get_state : device_state
-    method gracefully_shutdown : unit
-    method gracefully_terminate_processes : unit
-    method hostfs_directory_pathname : string
-    method resume : unit
-    method set_hublet_process_no : int -> unit
-    method shutdown : unit
-    method spawn_processes : unit
-    method startup : unit
-    method stop_processes : unit
-    method suspend : unit
-    method terminate_processes : unit
-    method execute_the_unexpected_death_callback : int -> string -> unit
-  end*)
-
-class world_bridge :
-  name:string ->
+class ['parent] world_bridge :
+  parent:'parent ->
   bridge_name:Daemon_language.bridge_name ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
+    constraint 'parent = <
+      get_name : string;
+(*      ports_card : <
+        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+        .. >;*)
+      .. >
     method continue_processes : unit
     method destroy : unit
     method device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
+    method get_hublet_process_of_port : int -> hublet_process
+    method get_hublet_process_list : hublet_process list
     method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit
@@ -679,25 +578,28 @@ class world_bridge :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-class cloud :
-  name:string ->
+class ['parent] cloud :
+  parent:'parent ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
+    constraint 'parent = <
+      get_name : string;
+(*      ports_card : <
+        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+        .. >;*)
+      .. >
     method continue_processes : unit
     method destroy : unit
     method device_type : string
-    method get_ethernet_port : int -> hublet_process
-    method get_ethernet_port_by_name : string -> hublet_process
-    method get_hublet_process : int -> hublet_process
-    method get_hublet_processes : hublet_process list
+    method get_hublet_process_of_port : int -> hublet_process
+    method get_hublet_process_list : hublet_process list
     method get_hublet_no : int
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
     method hostfs_directory_pathname : string
     method resume : unit
-    method set_hublet_process_no : int -> unit
     method shutdown : unit
     method spawn_processes : unit
     method startup : unit

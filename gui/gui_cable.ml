@@ -47,13 +47,15 @@ module Make_menus
 
   (* Common tool for Add.reaction and Properties.reaction. *)
   let define_endpoints r =
-    let sock1 = { Netmodel.nodename = (r#get "left_node")  ; Netmodel.receptname = (r#get "left_recept")  } in
-    let sock2 = { Netmodel.nodename = (r#get "right_node") ; Netmodel.receptname = (r#get "right_recept") } in
-    let left_device, left_port   = sock1.Netmodel.nodename, sock1.Netmodel.receptname in
-    let right_device, right_port = sock2.Netmodel.nodename, sock2.Netmodel.receptname in
-    let left_endpoint_name  = Printf.sprintf "to %s (%s)" left_device  left_port  in
-    let right_endpoint_name = Printf.sprintf "to %s (%s)" right_device right_port in
-    (sock1, sock2, left_endpoint_name, right_endpoint_name)
+      let left_node_name  = (r#get "left_node")    in
+      let left_user_port  = (r#get "left_recept")  in
+      let right_node_name = (r#get "right_node")   in
+      let right_user_port = (r#get "right_recept") in
+      let left_endpoint_name  = Printf.sprintf "to %s (%s)" left_node_name  left_user_port in
+      let right_endpoint_name = Printf.sprintf "to %s (%s)" right_node_name right_user_port in
+      let left  = st#network#make_endpoint_of ~node_name:left_node_name  ~user_port_name:left_user_port in
+      let right = st#network#make_endpoint_of ~node_name:right_node_name ~user_port_name:right_user_port in
+      (left, right, left_endpoint_name, right_endpoint_name)
 
   (* Common tool for dynlists *)
   let get_cable_names () = match cablekind with
@@ -79,10 +81,19 @@ module Make_menus
 
     let reaction r =
       let defects = Defects_interface.get_defects_interface () in
-      let (left, right, left_endpoint_name, right_endpoint_name) = define_endpoints r in
       let (name,label) = (r#get "name"),(r#get "label") in
+      let (left, right, left_endpoint_name, right_endpoint_name) = define_endpoints r in
       defects#add_cable name (Netmodel.string_of_cablekind cablekind) left_endpoint_name right_endpoint_name;
-      let c = (new Netmodel.cable ~motherboard:st#motherboard ~network:st#network ~name ~label ~cablekind ~left ~right ()) in
+      let c = new Netmodel.cable
+        ~motherboard:st#motherboard
+        ~network:st#network
+        ~name
+        ~label
+        ~cablekind
+        ~left
+        ~right
+        ()
+      in
 (*      st#motherboard#reverted_rj45cables_cable#add_wire c#dotoptions#inverted_wire;*)
       st#network#add_cable c;
       st#refresh_sketch () ;

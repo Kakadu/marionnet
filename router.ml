@@ -104,7 +104,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      let variant = r#get_variant in
      let kernel = r#get_kernel in
      let show_unix_terminal = r#get_show_unix_terminal in
-     let port_no = r#get_eth_number in
+     let port_no = r#get_port_no in
      let ipv4 = Ipv4.ipv4_of_string
         (details#get_port_attribute_by_index name 0 "IPv4 address")
      in
@@ -113,7 +113,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      in
      let port_0_ip_config = (ipv4,cidr) in
      (* The user cannot remove receptacles used by a cable. *)
-     let port_no_lower = st#network#port_no_lower_of r#get_name
+     let port_no_lower = st#network#port_no_lower_of (r :> Mariokit.Netmodel.node)
      in
      Dialog_add_or_update.make
        ~title ~name ~label ~distribution ?variant ~show_unix_terminal ~port_no
@@ -473,7 +473,7 @@ class router
       filesystem: *)
   method hostfs_directory_pathname =
     match !simulated_device with
-    | Some d -> (d :> Simulation_level.router)#hostfs_directory_pathname
+    | Some d -> (d :> Mariokit.Netmodel.node Simulation_level.router)#hostfs_directory_pathname
     | None   -> failwith (self#name ^ " is not being simulated right now")
 
   val mutable show_unix_terminal : bool = show_unix_terminal
@@ -483,10 +483,7 @@ class router
   (** Create the simulated device *)
   method private make_simulated_device =
     let id = self#id in
-    let ethernet_receptacles = self#get_receptacles ~portkind:(Some Mariokit.Netmodel.Eth) () in
-    let cow_file_name =
-      (Filesystem_history.get_states_directory ()) ^
-      (Filesystem_history.add_state_for_device self#name) in
+    let cow_file_name = self#create_cow_file_name in
     let () =
      Log.printf
        "About to start the router %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n"
@@ -496,11 +493,11 @@ class router
        self#get_kernel_file_name
     in
     new Simulation_level.router
-      ~name:self#get_name
+      ~parent:self
       ~kernel_file_name:self#get_kernel_file_name
       ~filesystem_file_name:self#get_filesystem_file_name
       ~cow_file_name
-      ~ethernet_interface_no:(List.length ethernet_receptacles)
+      ~ethernet_interface_no:self#get_port_no
       ~umid:self#get_name
       ~id
       ~show_unix_terminal:self#get_show_unix_terminal
@@ -547,7 +544,7 @@ class router
                    ("kernel"   ,  self#get_kernel   );
                    ("show_unix_terminal" , string_of_bool (self#get_show_unix_terminal));
                    ("terminal" ,  self#get_terminal );
-                   ("port_no"  ,  (string_of_int self#get_eth_number))  ;
+                   ("port_no"  ,  (string_of_int self#get_port_no))  ;
 	           ])
 
  (** A machine has just attributes (no childs) in this version. *)
@@ -560,13 +557,13 @@ class router
   | ("kernel"   , x ) -> self#set_kernel x
   | ("show_unix_terminal", x ) -> self#set_show_unix_terminal (bool_of_string x)
   | ("terminal" , x ) -> self#set_terminal x
-  | ("port_no"  , x ) -> self#set_eth_number  (int_of_string x)
+  | ("port_no"  , x ) -> self#set_port_no  (int_of_string x)
   | _ -> () (* Forward-comp. *)
 
  method private get_assoc_list_from_details ~key =
    List.map
      (fun i -> (i,network#details#get_port_attribute_by_index self#get_name i key))
-     (ListExtra.range 0 (self#get_eth_number - 1))
+     (ListExtra.range 0 (self#get_port_no - 1))
 
  method get_mac_addresses  = self#get_assoc_list_from_details ~key:"MAC address"
  method get_ipv4_addresses = self#get_assoc_list_from_details ~key:"IPv4 address"
@@ -606,8 +603,8 @@ end (* module User_level *)
 
 module Simulation_level = struct
 (** A router: just a [machine_or_router] with [router = true] *)
-class router =
-  fun ~name
+class ['parent] router =
+  fun ~(parent:'parent)
       ~(cow_file_name)
       ~(kernel_file_name)
       ~(filesystem_file_name)
@@ -618,8 +615,8 @@ class router =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit Simulated_network.machine_or_router
-      ~name
+  inherit ['parent] Simulated_network.machine_or_router
+      ~parent
       ~router:true
       ~filesystem_file_name(* :"/usr/marionnet/filesystems/router.debian.lenny.sid.fs" *)
       ~kernel_file_name

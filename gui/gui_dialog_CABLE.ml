@@ -83,22 +83,22 @@ module Make
      (fun x->
        List.sort
          compare
-         (st#network#free_receptacles_names_of_node x Netmodel.Eth)) in
+         (st#network#free_user_port_names_of_node (st#network#get_node_by_name x))) in
 
    (* The free receptacles of the given node at the LEFT side of the cable. If we are updating
       we have to consider the old receptacle of the old nodename as available. *)
    let get_left_recept_of = match update with
    | None   -> freeRecepts_of_node
-   | Some c -> (fun x->if   (x = c#get_left.Netmodel.nodename)
-                       then c#get_left.Netmodel.receptname::(freeRecepts_of_node x)
+   | Some c -> (fun x->if   (x = c#get_left#node#name)
+                       then c#get_left#user_port_name::(freeRecepts_of_node x)
                        else (freeRecepts_of_node x)) in
 
    (* The free receptacles of the given node at the RIGHT side of the cable. If we are updating
       we have to consider the old receptacle of the old nodename as available. *)
    let get_right_recept_of = match update with
    | None   -> freeRecepts_of_node
-   | Some c -> (fun x->if   (x = c#get_right.Netmodel.nodename)
-                       then c#get_right.Netmodel.receptname::(freeRecepts_of_node x)
+   | Some c -> (fun x->if   (x = c#get_right#node#name)
+                       then c#get_right#user_port_name::(freeRecepts_of_node x)
                        else (freeRecepts_of_node x)) in
 
     let left = Widget.ComboTextTree.fromListWithSlaveWithSlaveWithSlave
@@ -128,12 +128,12 @@ module Make
                dialog#cable_name#set_text (st#network#suggestedName prefix);
                dialog#cable_name#misc#grab_focus ()
    | Some c -> begin
-                dialog#cable_name#set_text        c#get_name                      ;
-                dialog#cable_label#set_text       c#get_label                     ;
-                left#set_active_value             c#get_left.Netmodel.nodename    ;
-                left#slave#set_active_value       c#get_left.Netmodel.receptname  ;
-                right#set_active_value            c#get_right.Netmodel.nodename   ;
-                right#slave#set_active_value      c#get_right.Netmodel.receptname ;
+                dialog#cable_name#set_text        c#get_name                 ;
+                dialog#cable_label#set_text       c#get_label                ;
+                left#set_active_value             c#get_left#node#name       ;
+                left#slave#set_active_value       c#get_left#user_port_name  ;
+                right#set_active_value            c#get_right#node#name      ;
+                right#slave#set_active_value      c#get_right#user_port_name ;
                end
    end;
 

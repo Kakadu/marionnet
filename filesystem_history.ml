@@ -40,14 +40,6 @@ let make_temporary_file_name () =
 let make_fresh_state_file_name () =
   make_temporary_file_name ();;
 
-let the_states_directory : string option ref =
-  ref None;;
-let get_states_directory () =
-  match ! the_states_directory with
-    None ->
-      failwith "the states directory was not initialized yet"
-  | (Some the_states_directory) ->
-      the_states_directory;;
 
 class states_interface =
 fun ~packing
@@ -58,7 +50,20 @@ object(self)
     treeview
       ~packing
       ~hide_reserved_fields:true
-      ()
+      () as self_as_treeview
+
+  (** Note that the states directory {e must} be an absolute pathname
+      and {e must} include a trailing slash *)
+  val mutable states_directory : string option = None
+  method get_states_directory = Option.extract states_directory
+  method set_states_directory x =
+      states_directory <- Some x;
+      self#set_file_name (x^"/states-forest");
+
+  (* REDEFINED: *)
+  method clear =
+    self_as_treeview#clear;
+    states_directory <- None;
 
   method startup_in_state row_id =
     let correct_date = item_to_string (self#get_row_item row_id "Timestamp") in
@@ -83,7 +88,7 @@ object(self)
     (* Remove the full row: *)
     self#remove_row row_id;
     (* Remove the cow file: *)
-    (try Unix.unlink ((get_states_directory ()) ^ file_name) with _ -> ());
+    (try Unix.unlink ((self#get_states_directory) ^ file_name) with _ -> ());
     let most_recent_row_for_name = self#get_the_most_recent_state_with_name name in
     let id_of_the_most_recent_row_for_name =
       lookup_alist "_id" most_recent_row_for_name in
@@ -182,7 +187,7 @@ object(self)
 
   method private actually_export_as_variant ~variant_dir ~cow_name ~variant_name () =
     (* Perform the actual copy: *)
-    let cow_path = get_states_directory () in
+    let cow_path = self#get_states_directory in
     let new_variant_pathname = Filename.concat variant_dir variant_name in
     let command_line =
       Printf.sprintf
@@ -321,12 +326,14 @@ end;;
     enabling me to set it at runtime: *)
 let the_states_interface =
   ref None;;
+
 let get_states_interface () =
   match !the_states_interface with
     None ->
       failwith "the_state_interface has not been defined yet"
   | Some the_states_interface ->
       the_states_interface;;
+
 let make_states_interface ~packing ~after_user_edit_callback () =
   match !the_states_interface with
     None ->
@@ -335,32 +342,12 @@ let make_states_interface ~packing ~after_user_edit_callback () =
   | Some the_states_interface ->
       failwith "the_state_interface has already been defined"
 
-(** Note that the states directory {e must} be an absolute pathname and {e must} include
-    a trailing slash *)
-let set_states_directory states_directory =
-  match ! the_states_directory with
-    None -> begin
-      (Log.printf "Setting the states directory to %s\n" states_directory);
-      the_states_directory := Some states_directory;
-      (get_states_interface ())#set_file_name (states_directory^"/states-forest");
-    end
-  | _ ->
-      failwith "the states directory was initialized twice!";;
-let reset_states_directory () =
-  match ! the_states_directory with
-    None ->
-      () (* do nothing *)
-  | _ -> begin
-      the_states_directory := None;
-      (get_states_interface ())#reset_file_name;
-    end
-
 exception Cp_failed;;
+
 (** Make a sparse copy of the given file, and return the name of the copy. Note that this
     also succeeds when the source file does not exist, as it's the case with 'fresh' states *)
-let duplicate_file ?(is_path_full=false) path_name =
+let duplicate_file ?(is_path_full=false) ~states_directory path_name  =
   let name_of_the_copy = make_temporary_file_name () in
-  let states_directory = get_states_directory () in
   let command_line =
     if is_path_full then
       (Printf.sprintf "if [ -e %s ]; then cp --sparse=always %s %s%s; else true; fi"
@@ -397,22 +384,6 @@ let duplicate_file ?(is_path_full=false) path_name =
       name_of_the_copy;
   end;;
 
-(* ------------------------------------------------------------------------------- *)
-let clear () =
-  let states_interface = get_states_interface () in
-  states_interface#clear
-
-let load_states () =
-  let states_interface = get_states_interface () in
-  states_interface#load
-
-let save_states () =
-  let states_interface = get_states_interface () in
-  states_interface#save
-
-let get_forest () =
-  let states_interface = get_states_interface () in
-  states_interface#get_forest
 
 let add_row
     ~name
@@ -441,13 +412,13 @@ let add_row
   result
 
 let number_of_states_such_that
-    ?forest:(forest=get_forest ())
+    ?(forest=(get_states_interface ())#get_forest)
     f =
   let linearized_forest = Forest.linearize forest in
   List.length (List.filter f linearized_forest);;
 
 let number_of_states_with_name
-    ?forest:(forest=get_forest ())
+    ?(forest=(get_states_interface ())#get_forest)
     name =
   number_of_states_such_that
    ~forest
@@ -470,6 +441,7 @@ let add_device
          let file_name =
            duplicate_file
              ~is_path_full:true
+             ~states_directory:states_interface#get_states_directory
              variant_realpath
          in (file_name, variant_name, (Printf.sprintf " : variant \"%s\"" variant_name))
      | Some _, None -> assert false
@@ -497,7 +469,7 @@ let rename_device old_name new_name =
                     bind_or_replace_in_alist "Name" (String new_name) row
                   else
                     row)
-      (get_forest ()) in
+      (states_interface#get_forest) in
   states_interface#set_forest altered_forest;;
 
 let remove_device_tree name =
@@ -508,16 +480,16 @@ let remove_device_tree name =
     Forest.nodes_such_that
       (fun complete_row ->
         (lookup_alist "Name" complete_row) = String name)
-      (get_forest ()) in
+      (states_interface#get_forest) in
   List.iter
     (fun row ->
       let cow_file_name = item_to_string (lookup_alist "File name" row) in
-      (try Unix.unlink ((get_states_directory ()) ^ "/" ^ cow_file_name) with _ -> ()))
+      (try Unix.unlink ((states_interface#get_states_directory) ^ "/" ^ cow_file_name) with _ -> ()))
     rows_to_remove;
   let filtered_forest =
     Forest.filter
       (fun row -> not ((lookup_alist "Name" row) = String name))
-      (get_forest ()) in
+      (states_interface#get_forest) in
   states_interface#set_forest filtered_forest;;
 
 let get_the_most_recent_state_with_name name =
@@ -527,7 +499,7 @@ let get_the_most_recent_state_with_name name =
 let add_substate_of parent_file_name =
   let states_interface = get_states_interface () in
   let copied_file_name =
-    duplicate_file parent_file_name in
+    duplicate_file ~states_directory:states_interface#get_states_directory parent_file_name in
   let complete_forest = states_interface#get_complete_forest in
   let row_to_copy_in_a_singleton_list =
     Forest.linearize

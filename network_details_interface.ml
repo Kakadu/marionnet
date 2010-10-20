@@ -306,8 +306,8 @@ object(self)
     self#set_port_attribute_by_index device_name port_index column_header (String value)
 
   (** Clear the interface and set the full internal state back to its initial value: *)
-  method reset =
-    self#clear;
+  method clear =
+    super#clear;
     next_ipv4_address_as_int := 1;
     next_ipv6_address_as_int := Int64.one
 

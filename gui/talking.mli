@@ -7,7 +7,6 @@ module Msg :
     val help_cable_insert_update   : Mariokit.Netmodel.cablekind -> unit -> unit
     val help_cable_direct_insert_update    : unit -> unit
     val help_cable_crossover_insert_update : unit -> unit
-    val help_cloud_insert_update  : unit -> unit
     val error_saving_while_something_up : unit -> unit
     val help_nom_pour_le_projet : unit -> unit
   end

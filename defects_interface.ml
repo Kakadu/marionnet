@@ -35,6 +35,7 @@ type column_header = string
     of each defect, for each port: *)
 type cable_direction =
   LeftToRight | RightToLeft;;
+
 let string_of_cable_direction d =
   match d with
     LeftToRight -> "rightward"

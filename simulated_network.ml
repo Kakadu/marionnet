@@ -277,10 +277,10 @@ class reserved_socket_name ~prefix ~program () =
  in
  object (self)
   method name = socket_name
- 
+
   method exists =
     let redirection = Global_options.Debug_level.redirection () in
-    let command_line = 
+    let command_line =
       Printf.sprintf "grep \"%s\" /proc/net/unix %s" socket_name redirection
     in
     (Unix.system command_line = (Unix.WEXITED 0))
@@ -318,7 +318,7 @@ class virtual process_which_creates_a_socket_at_spawning_time =
     match management_socket with
     | None   -> true
     | Some s -> s#exists
-  
+
   (** Return the automatically-generated Unix socket name. The name is generated
       once and for all at initialization time, so this method can be safely used
       also before spawning the process. *)
@@ -327,7 +327,7 @@ class virtual process_which_creates_a_socket_at_spawning_time =
 
   method private sockets_have_been_created =
     listening_socket#exists && self#management_socket_unused_or_exists
-    
+
   (** hub_or_switch_processes need to be up before we connect cables or UMLs to
       them, so they have to be spawned in a *synchronous* way: *)
   method spawn =
@@ -394,7 +394,7 @@ class hub_or_switch_process =
       ()
   initializer
     let optional_mgmt =
-      List.flatten 
+      List.flatten
         (Option.to_list
            (Option.map (fun name -> ["--mgmt"; name]) self#get_management_socket_name))
     in
@@ -499,7 +499,7 @@ class unixterm_process =
       ~unexpected_death_callback
       () ->
   let xterm_title = match xterm_title with
-   | None    -> [] 
+   | None    -> []
    | Some t  -> ["-T"; t]
   in
   let unixterm = (Initialization.Path.vde_prefix ^ "unixterm") in
@@ -722,7 +722,7 @@ let make_ethernet_cable_process
   ?blinker_thread_socket_file_name
   ?left_blink_command
   ?right_blink_command
-  ~get_defect
+  ~get_port_defect
   ~index
   ~unexpected_death_callback
   () =
@@ -733,16 +733,16 @@ let make_ethernet_cable_process
     ?blinker_thread_socket_file_name
     ?left_blink_command
     ?right_blink_command
-    ~rightward_loss:(get_defect i InToOut "Loss %")
-    ~rightward_duplication:(get_defect i InToOut "Duplication %")
-    ~rightward_flip:(get_defect i InToOut "Flipped bits %")
-    ~rightward_min_delay:(get_defect i InToOut "Minimum delay (ms)")
-    ~rightward_max_delay:(get_defect i InToOut "Maximum delay (ms)")
-    ~leftward_loss:(get_defect i OutToIn "Loss %")
-    ~leftward_duplication:(get_defect i OutToIn "Duplication %")
-    ~leftward_flip:(get_defect i OutToIn "Flipped bits %")
-    ~leftward_min_delay:(get_defect i OutToIn "Minimum delay (ms)")
-    ~leftward_max_delay:(get_defect i OutToIn "Maximum delay (ms)")
+    ~rightward_loss:(get_port_defect i InToOut "Loss %")
+    ~rightward_duplication:(get_port_defect i InToOut "Duplication %")
+    ~rightward_flip:(get_port_defect i InToOut "Flipped bits %")
+    ~rightward_min_delay:(get_port_defect i InToOut "Minimum delay (ms)")
+    ~rightward_max_delay:(get_port_defect i InToOut "Maximum delay (ms)")
+    ~leftward_loss:(get_port_defect i OutToIn "Loss %")
+    ~leftward_duplication:(get_port_defect i OutToIn "Duplication %")
+    ~leftward_flip:(get_port_defect i OutToIn "Flipped bits %")
+    ~leftward_min_delay:(get_port_defect i OutToIn "Minimum delay (ms)")
+    ~leftward_max_delay:(get_port_defect i OutToIn "Maximum delay (ms)")
     ~unexpected_death_callback
     ()
 ;;
@@ -1104,7 +1104,7 @@ class virtual ['parent] device
  =
  let make_hublet_process_array ~unexpected_death_callback ~size =
    Array.init size (fun index -> new hublet_process ~index ~unexpected_death_callback ())
- in 
+ in
  object(self)
   (** The internal state, as a DFA state *)
   val mutable state = Off
@@ -1120,14 +1120,14 @@ class virtual ['parent] device
   method get_hublet_process_of_port port_index (* 0-based *) =
     Array.get hublet_process_array port_index
 
-  
+
   method private make_and_spawn_the_hublet_process_array =
     hublet_process_array <-
       make_hublet_process_array
         ~unexpected_death_callback:self#execute_the_unexpected_death_callback
         ~size:hublet_no (*parent#get_port_no*) ;
     Array.iter (fun sp -> sp#spawn) hublet_process_array; (* TODO: this doesn't seem necessary *)
-        
+
   (* We have to use the inizializer instead of binding 'hublet_processes' before
      'object', just because we need to use 'self' for unexpected_death_callback: *)
   initializer
@@ -1156,7 +1156,7 @@ class virtual ['parent] device
     match state with
     | Off -> state <- On; self#spawn_processes
     | _   -> failwith "can't startup a non-off device"
-    
+
   method shutdown =
     match state with
     | On -> state <- Off; (try self#terminate_processes with _ -> ())
@@ -1323,15 +1323,15 @@ object(self)
     (internal_cable_processes :=
       let hublets = self#get_hublet_process_list in
       let name = parent#get_name in
-      let get_defect = parent#ports_card#get_port_defect_by_index in
+      let get_port_defect = parent#ports_card#get_port_defect_by_index in
       Log.printf "spawn_processes: hublet_no=%d last_user_visible_port_index=%d\n" hublet_no last_user_visible_port_index;
       List.map
         (fun (i, hublet_process) ->
            if i <= last_user_visible_port_index then
-            make_ethernet_cable_process 
+            make_ethernet_cable_process
 	      ~left_end:self#get_main_process
 	      ~right_end:hublet_process
-	      ~get_defect
+	      ~get_port_defect
 	      ~index:i
 	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ()
@@ -1421,12 +1421,12 @@ class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_pro
   method spawn_processes =
     super#spawn_processes;
     self#spawn_accessory_processes;
-    
+
   method terminate_processes =
     self#terminate_accessory_processes;
     super#terminate_processes;
-  
-  method stop_processes = 
+
+  method stop_processes =
     self#stop_accessory_processes;
     super#stop_processes;
 
@@ -1678,63 +1678,4 @@ object(self)
       ()
       as super
   method device_type = "computer"
-end;;
-
-
-class ['parent] cloud =
-  fun (* ~id *)
-      ~(parent:'parent)
-      ~unexpected_death_callback
-      () ->
-object(self)
-  inherit ['parent] device
-      ~parent
-      ~hublet_no:2
-      ~unexpected_death_callback
-      ()
-      as super
-  method device_type = "cloud"
-
-  val internal_cable_process = ref None
-  method private get_internal_cable_process =
-    match !internal_cable_process with
-      Some internal_cable_process -> internal_cable_process
-    | None -> failwith "cloud: get_the_internal_cable_process was called when there is no such process"
-
-  initializer
-    ()
-
-  method spawn_processes =
-    (* Create the internal cable process and spawn it: *)
-    let defects = get_defects_interface () in
-    let name = parent#get_name in
-    let the_internal_cable_process =
-      new ethernet_cable_process
-        ~rightward_loss:(defects#get_port_attribute_by_index name 0 InToOut "Loss %")
-        ~rightward_duplication:(defects#get_port_attribute_by_index name 0 InToOut "Duplication %")
-        ~rightward_flip:(defects#get_port_attribute_by_index name 0 InToOut "Flipped bits %")
-        ~rightward_min_delay:(defects#get_port_attribute_by_index name 0 InToOut "Minimum delay (ms)")
-        ~rightward_max_delay:(defects#get_port_attribute_by_index name 0 InToOut "Maximum delay (ms)")
-        ~leftward_loss:(defects#get_port_attribute_by_index name 0 OutToIn "Loss %")
-        ~leftward_duplication:(defects#get_port_attribute_by_index name 0 OutToIn "Duplication %")
-        ~leftward_flip:(defects#get_port_attribute_by_index name 0 OutToIn "Flipped bits %")
-        ~leftward_min_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Minimum delay (ms)")
-        ~leftward_max_delay:(defects#get_port_attribute_by_index name 0 OutToIn "Maximum delay (ms)")
-        ~left_end:(self#get_hublet_process_of_port 0)
-        ~right_end:(self#get_hublet_process_of_port 1)
-        ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-        () in
-    internal_cable_process := Some the_internal_cable_process;
-    the_internal_cable_process#spawn
-
-  method terminate_processes =
-    (* Terminate the internal cable process: *)
-    (try self#get_internal_cable_process#terminate with _ -> ());
-    (* Unreference it: *)
-    internal_cable_process := None;
-
-  (** As clouds are stateless from the point of view of the user, stop/continue
-      aren't distinguishable from terminate/spawn: *)
-  method stop_processes = self#terminate_processes
-  method continue_processes = self#spawn_processes
 end;;

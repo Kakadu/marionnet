@@ -109,16 +109,6 @@ connections may be of some pedagogical interest.")
   | Mariokit.Netmodel.Crossover -> help_cable_crossover_insert_update
  ;;
 
- let help_cloud_insert_update =
-   let title = (s_ "ADD OR MODIFY A CLOUD" )in
-   let msg   = (s_ "In this dialog window you can define the name of a cloud. \
-This component is an Ethernet network with an unknown internal \
-structure introducing delays and other anomalies when packets \
-pass through.\n\
-Once the cloud is defined, use the tab 'Anomalies' to control delays, \
-frame loss and the other anomalies.")
-   in Simple_dialogs.help title msg ;;
-
  let error_saving_while_something_up =
   Simple_dialogs.error
     (s_ "Warning")

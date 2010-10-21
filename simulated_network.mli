@@ -192,7 +192,7 @@ class slirpvde_process :
   end
 
 class unixterm_process :
-  ?xterm_title:string -> 
+  ?xterm_title:string ->
   management_socket_name:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
@@ -252,13 +252,13 @@ class ethernet_cable_process :
     method terminate : unit
   end
 
-val make_ethernet_cable_process : 
+val make_ethernet_cable_process :
   left_end:< get_socket_name : string; .. > ->
   right_end:< get_socket_name : string; .. > ->
   ?blinker_thread_socket_file_name:process_name option ->
   ?left_blink_command:string option ->
   ?right_blink_command:string option ->
-  get_defect:(
+  get_port_defect:(
      int ->
      Defects_interface.port_direction ->
      Defects_interface.column_header  -> float
@@ -326,8 +326,8 @@ type user_level_parent = <
  ports_card : <
     get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
     >
- >   
-                                                              
+ >
+
 class virtual ['parent] device :
   parent:'parent ->
   hublet_no:int ->
@@ -462,7 +462,7 @@ class virtual ['parent] hub_or_switch :
 
 
 class virtual ['parent] machine_or_router :
-  parent:'parent -> 
+  parent:'parent ->
   router:bool ->
   kernel_file_name:process_name ->
   filesystem_file_name:string ->
@@ -542,33 +542,3 @@ class ['parent] machine :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-class ['parent] cloud :
-  parent:'parent ->
-  unexpected_death_callback:(unit -> unit) ->
-  unit ->
-  object
-    constraint 'parent = <
-      get_name : string;
-(*      ports_card : <
-        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
-        .. >;*)
-      .. >
-    method continue_processes : unit
-    method destroy : unit
-    method device_type : string
-    method get_hublet_process_of_port : int -> hublet_process
-    method get_hublet_process_list : hublet_process list
-    method get_hublet_no : int
-    method get_state : device_state
-    method gracefully_shutdown : unit
-    method gracefully_terminate_processes : unit
-    method hostfs_directory_pathname : string
-    method resume : unit
-    method shutdown : unit
-    method spawn_processes : unit
-    method startup : unit
-    method stop_processes : unit
-    method suspend : unit
-    method terminate_processes : unit
-    method execute_the_unexpected_death_callback : int -> string -> unit
-  end

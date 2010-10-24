@@ -15,12 +15,14 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 val make_form_with_labels :
+  ?section_no:int ->
   ?row_spacings:int ->
   ?col_spacings:int ->
   ?packing:(GObj.widget -> unit) ->
   string list ->
   < add : GObj.widget -> unit;
     add_with_tooltip : ?just_for_label:unit -> string -> GObj.widget -> unit;
+    add_section: ?fg:string -> ?size:string -> ?no_line:unit -> string -> unit;
     coerce : GObj.widget;
     table : GPack.table >
 
@@ -43,9 +45,9 @@ val spin_byte :
   ?tooltip:string ->
   ?label:string ->
   ?labelpos:[< `EAST | `NORTH | `SOUTH | `WEST > `NORTH ] ->
-  ?lower:int -> 
-  ?upper:int -> 
-  ?step_incr:int -> 
+  ?lower:int ->
+  ?upper:int ->
+  ?step_incr:int ->
   ?packing:(GObj.widget -> unit) ->
   int -> GEdit.spin_button
 
@@ -143,12 +145,12 @@ module Dialog_add_or_update : sig
 
  val make_window_image_name_and_label :
    title:string ->
-   image_file:string -> 
+   image_file:string ->
    image_tooltip : string ->
    name:string ->
    name_tooltip : string ->
    ?label:string ->
-   ?label_tooltip : string -> 
+   ?label_tooltip : string ->
    unit ->
      [ `CANCEL | `DELETE_EVENT | `HELP | `OK ] GWindow.dialog *
      GMisc.image *

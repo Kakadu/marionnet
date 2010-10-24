@@ -254,13 +254,18 @@ let make
     let form =
       Gui_bricks.make_form_with_labels
         ~packing:vbox#add
-        [(s_ "Port 0 address");
-         (s_ "Ports number");
+        [(s_ "Ports number");
+         (s_ "Port 0 address");
          (s_ "Distribution");
          (s_ "Variant");
          (s_ "Kernel");
          (s_ "Show unix terminal");
          ]
+    in
+    form#add_section ~no_line:() "Hardware";
+    let port_no =
+      Gui_bricks.spin_byte ~lower:port_no_lower ~upper:16 (* TODO? *) ~step_incr:4
+      ~packing:(form#add_with_tooltip (s_ "Number of router ports" )) port_no
     in
     let port_0_ip_config =
       Gui_bricks.spin_ipv4_address_with_cidr_netmask
@@ -269,10 +274,7 @@ let make
                     (s_ "IPv4 configuration of the first router port (0)"))
         b1 b2 b3 b4 b5
     in
-    let port_no =
-      Gui_bricks.spin_byte ~lower:port_no_lower ~upper:16 (* TODO? *) ~step_incr:4
-      ~packing:(form#add_with_tooltip (s_ "Number of router ports" )) port_no
-    in
+    form#add_section "Software";
     let (distribution, kernel) =
       let packing_distribution =
         form#add_with_tooltip
@@ -286,12 +288,13 @@ let make
         form#add_with_tooltip
           (s_ "Linux kernel version used for this router." )
       in
-      let packing = (packing_distribution, packing_variant, packing_kernel) in 
+      let packing = (packing_distribution, packing_variant, packing_kernel) in
       Gui_bricks.make_combo_boxes_of_vm_installations
         ?distribution ?variant ?kernel ?updating
         ~packing
         vm_installations
     in
+    form#add_section "Access";
     let show_unix_terminal =
       GButton.check_button
         ~active:show_unix_terminal
@@ -330,7 +333,7 @@ let make
         Data.show_unix_terminal = show_unix_terminal;
         Data.old_name = old_name;
         }
-        
+
   in
   (* The result of make is the result of the dialog loop (of type 'result option): *)
   Gui_bricks.Dialog_run.ok_or_cancel w ~ok_callback ~help_callback ~get_widget_data ()
@@ -372,7 +375,7 @@ end
   WHERE
 (*-----*)
 
-module Eval_forest_child = struct  
+module Eval_forest_child = struct
  let try_to_add_router (network:Mariokit.Netmodel.network) (f:Xforest.tree) =
   try
    (match f with
@@ -569,7 +572,7 @@ class router
  method get_ipv4_addresses = self#get_assoc_list_from_details ~key:"IPv4 address"
 (* other: "MTU", "IPv4 netmask", "IPv4 broadcast", "IPv6 address" *)
 
- method set_port_0_ipv4_address (ipv4:Ipv4.ipv4) = 
+ method set_port_0_ipv4_address (ipv4:Ipv4.ipv4) =
    network#details#set_port_string_attribute_by_index
      self#get_name 0 "IPv4 address"
      (Ipv4.string_of_ipv4 ipv4);

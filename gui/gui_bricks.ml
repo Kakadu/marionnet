@@ -42,14 +42,13 @@ let ipv4address  = GEdit.entry ~text:"10.0.2.1" ~packing:form#add () in
 let dhcp_enabled = GButton.check_button ~packing:form#add () in
 ...}]
 *)
-let make_form_with_labels ?(row_spacings=10) ?(col_spacings=10) ?packing string_list =
- let rows = List.length string_list in
+let make_form_with_labels ?(section_no=0) ?(row_spacings=10) ?(col_spacings=10) ?packing string_list =
+ let rows = (List.length string_list) + (section_no * 2) in
  let table = GPack.table ~row_spacings ~col_spacings ~rows ~columns:2 ~homogeneous:false ?packing () in
  let labels =
    Array.mapi
      (fun i label_text ->
         let label = GMisc.label ~xalign:0. ~text:label_text () in
-        table#attach ~left:0 ~top:i label#coerce;
         label)
      (Array.of_list string_list)
  in
@@ -57,25 +56,45 @@ let make_form_with_labels ?(row_spacings=10) ?(col_spacings=10) ?packing string_
  object (self)
    method table = table
    method coerce = table#coerce
-   val mutable index = 0
+   val mutable field_index = 0
+   val mutable row_index = 0
    method private aligned_widget widget =
      let box = GBin.alignment ~xalign:0. ~yalign:0.5 ~xscale:0.0 ~yscale:0.0 () in
      box#add widget#coerce;
      box
-     
+
    method add =
-     let top = index in (* top is in the closure *)
-     index <- index+1;
+     let top = row_index in (* top is in the closure *)
+     let field = field_index in
+     table#attach ~left:0 ~top (Array.get labels field)#coerce;
+     row_index <- row_index+1;
+     field_index <- field_index+1;
      (function widget ->
-       table#attach ~left:1 ~top (self#aligned_widget widget)#coerce)
+       table#attach ~left:1 ~top (self#aligned_widget widget)#coerce;
+       )
+
+   method add_section ?(fg="lightgray") ?(size="large") ?no_line markup =
+     let markup = 
+       Printf.sprintf "<span foreground='%s' size='%s'><b>%s</b></span>" fg size markup;
+     in
+     let label = GMisc.label ~xalign:0. ~markup () in
+     let top = row_index+1 in
+     row_index <- row_index+2; (* additional line for vertical spacing *)
+     table#attach ~left:0 ~top label#coerce;
+     (match no_line with
+     | None -> table#attach ~left:1 ~top (GMisc.separator `HORIZONTAL ())#coerce
+     | _    -> ());
 
    method add_with_tooltip ?just_for_label text =
-     let top = index in (* top is in the closure *)
-     index <- index+1;
+     let top = row_index in (* top is in the closure *)
+     let field = field_index in
+     table#attach ~left:0 ~top (Array.get labels field)#coerce;
+     row_index <- row_index+1;
+     field_index <- field_index+1;
      (function widget ->
        table#attach ~left:1 ~top (self#aligned_widget widget)#coerce;
        (if just_for_label = None then tooltip widget text);
-       tooltip ((Array.get labels top)#coerce) text;
+       tooltip ((Array.get labels field)#coerce) text;
        )
 
  end
@@ -126,7 +145,7 @@ let spin_byte ?tooltip ?label ?labelpos ?(lower=0) ?(upper=255) ?(step_incr=1) ?
   let upper = float_of_int upper in
   let step_incr = float_of_int step_incr in
   let maker ?tooltip ?packing () =
-    let sb = GEdit.spin_button ?packing ~width:60 ~digits:0 ~numeric:true () in
+    let sb = GEdit.spin_button ?packing (*~width:50*) (* 60 *) ~digits:0 ~numeric:true () in
     sb#adjustment#set_bounds ~lower ~upper ~step_incr ();
     sb#set_value (float_of_int value);
     Option.iter ((make_tooltips_for_container sb) sb#coerce) tooltip;
@@ -135,7 +154,7 @@ let spin_byte ?tooltip ?label ?labelpos ?(lower=0) ?(upper=255) ?(step_incr=1) ?
   add_tooltip_label_and_labelpos_parameters ?tooltip ?label ?labelpos ?packing maker
 ;;
 
-let byte_tooltips_default_array = 
+let byte_tooltips_default_array =
   Array.of_list [
     (s_ "First byte of the IPv4 address" );
     (s_ "Second byte of the IPv4 address" );
@@ -151,7 +170,7 @@ let spin_ipv4_address ?tooltip ?byte_tooltips ?label ?labelpos ?packing v1 v2 v3
   | Some a -> a
   in
   let (tooltip_s1, tooltip_s2, tooltip_s3, tooltip_s4) =
-   let a = byte_tooltips in 
+   let a = byte_tooltips in
    (a.(0), a.(1), a.(2), a.(3))
   in
   let maker ?packing () =
@@ -247,8 +266,8 @@ module Dialog_run = struct
     If the [?help_callback] is not provided, the help button is not built.  *)
 let ok_or_cancel
     (w:[ `CANCEL | `DELETE_EVENT | `HELP | `OK ] GWindow.dialog)
-    ~(get_widget_data:unit -> 'a) 
-    ~(ok_callback:'a -> 'b option) 
+    ~(get_widget_data:unit -> 'a)
+    ~(ok_callback:'a -> 'b option)
     ?help_callback () =
   begin
   let help_callback = add_help_button_if_necessary w help_callback in
@@ -374,7 +393,7 @@ let make_a_window_for_a_question
  let _image = GMisc.image ~file:image_filename ~xalign:0.5 ~packing:hbox#add () in
  let _label = GMisc.label ?markup ?text ~justify:`CENTER ~xalign:0.5 ~xpad:10 ~ypad:10 ~packing:hbox#add () in
  w
- 
+
 
 let yes_or_cancel_question ?title ?help_callback ?image_filename ?markup ?text
  ~(context:'a)
@@ -416,7 +435,7 @@ let make_combo_boxes_of_vm_installations
    | None   -> "none"
    | Some x -> x
   in
-  let (packing_distribution, packing_variant, packing_kernel) = packing in  
+  let (packing_distribution, packing_variant, packing_kernel) = packing in
   let distribution_widget =
      Widget.ComboTextTree.fromListWithSlave
       ~masterCallback:None

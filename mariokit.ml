@@ -254,28 +254,21 @@ module Netmodel = struct
 (** {2 Basic functions and types } *)
 
 (** A device may be a Hub, a Switch or a Router. *)
-type devkind   = Hub | Switch | Router | World_gateway | World_bridge | Cloud | NotADevice ;;
+type devkind   = Machine | Hub | Switch | Router | World_gateway | World_bridge | Cloud ;;
 
 (** A cable may be Direct or Crossover. *)
 type cablekind = Direct | Crossover ;;
 
-(** A port (of machine or device) may Eth (ethernet). *)
-type portkind  = Eth ;;
-
-(** A node is a Machine or a Device.
-    Cable are edge in the network, which is a graph of these nodes. *)
-type nodekind  = Machine | Device   ;;
-
 (** String conversion for a devkind. *)
 (* TODO: remove it! *)
 let string_of_devkind = function
+  | Machine    -> "machine"
   | Hub        -> "hub"
   | Switch     -> "switch"
   | Router     -> "router"
   | World_gateway -> "world_gateway"
   | World_bridge  -> "world_bridge"
   | Cloud      -> "cloud"
-| NotADevice -> raise (Failure "string_of_devkind: NotADevice")
 ;;
 
 (** String conversion for a cablekind. *)
@@ -284,14 +277,9 @@ let string_of_cablekind = function
   | Crossover  -> "crossover"
 ;;
 
-(** String conversion for a portkind. *)
-let string_of_portkind = function
-  | Eth   -> "eth"
-;;
-
-(** The portkind interpretation of the given string. *)
 (* TODO: remove it! *)
 let devkind_of_string x = match x with
+  | "machine" -> Machine
   | "hub"     -> Hub
   | "switch"  -> Switch
   | "router"  -> Router
@@ -852,10 +840,11 @@ class virtual node_with_ports_card = fun
    ~network
    ~name
    ?label
-   ~(nodekind:nodekind)
    ~(devkind:devkind)
    ~port_no
    ~port_prefix
+   ~port_no_min
+   ~port_no_max
    ?(user_port_offset=0)
    ?(has_ledgrid=false)
    () ->
@@ -875,8 +864,14 @@ class virtual node_with_ports_card = fun
    method ports_card = Option.extract ports_card
    method get_port_no = self#ports_card#port_no
    method set_port_no new_port_no =
-     ports_card <- Some (make_ports_card ~parent:self ~port_no:new_port_no)
-
+     if (new_port_no >= port_no_min) && (new_port_no <= port_no_max)
+     then
+       ports_card <- Some (make_ports_card ~parent:self ~port_no:new_port_no)
+     else invalid_arg "node_with_ports_card#set_port_no"
+     
+   method port_no_min = port_no_min
+   method port_no_max = port_no_max
+   
    method has_ledgrid = has_ledgrid
 
    method virtual destroy : unit
@@ -888,9 +883,6 @@ class virtual node_with_ports_card = fun
 
    val mutable devkind = devkind
    method set_devkind x = devkind <- x
-
-  (** The kind of the node (Machine or Device). *)
-  method nodekind = nodekind
 
   (** The kind of the device (if the node is a device). *)
   method devkind = devkind
@@ -923,7 +915,7 @@ class virtual node_with_ports_card = fun
        then ""
        else "<TR><TD><FONT COLOR=\"#3a3936\">"^label^"</FONT></TD></TR>"
     in
-    let fontsize   = if self#nodekind=Machine then "" else "fontsize=8," in
+    let fontsize   = if self#devkind=Machine then "" else "fontsize=8," in
     let nodeoptions = if nodeoptions = "" then "" else (nodeoptions^",") in
     begin
     self#name^" ["^fontsize^nodeoptions^"shape=plaintext,label=<
@@ -1291,8 +1283,10 @@ class virtual node_with_defects
   ?(label="")
   ~devkind
   ~port_no
+  ~port_no_min
+  ~port_no_max
   ?user_port_offset
-  ~(port_prefix:string) (* "port" or "eth" *)
+  ~port_prefix
   ()
   =
   let network_alias = network in
@@ -1302,9 +1296,10 @@ class virtual node_with_defects
     ~network
     ~name
     ~label
-    ~nodekind:Device
     ~devkind
     ~port_no
+    ~port_no_min
+    ~port_no_max
     ~port_prefix
     ?user_port_offset
     ()
@@ -1368,6 +1363,8 @@ class virtual node_with_ledgrid_and_defects
   ?(label="")
   ~devkind
   ~port_no
+  ~port_no_min
+  ~port_no_max
   ?user_port_offset
   ~(port_prefix:string) (* "port" or "eth" *)
   ()
@@ -1379,9 +1376,10 @@ class virtual node_with_ledgrid_and_defects
     ~network
     ~name
     ~label
-    ~nodekind:Device
     ~devkind
     ~port_no
+    ~port_no_min
+    ~port_no_max
     ~port_prefix
     ~has_ledgrid:true
     ?user_port_offset
@@ -1689,185 +1687,6 @@ class virtual virtual_machine_with_history_and_details
 end;; (* class virtual_machine_with_history_and_details *)
 
 
-(* *************************** *
-        class machine
- * *************************** *)
-
-(** A machine is a node s.t.
-    nodekind=Machine. Some receptacles are immediatly added
-    at creation time. *)
-class machine
-   ~network
-   ?(name="nomachinename")
-   ?(label="")
-   ?(memory:int=48)
-   ?(port_no:int=1)
-   ?epithet   (* Ex: "debian-lenny-42178" *)
-   ?variant
-   ?kernel    (* Also en epithet, ex: "2.6.18-ghost" *)
-   ?terminal
-   ()
-   =
-  let vm_installations = Disk.get_machine_installations ()
-  in
-  let check_port_no ?(name=name) x =
-    if x<1 or x>8 (* TODO: fix the limit with a MARIONNET variable *)
-      then failwith "value not in the eth's number range [1,8]"
-      else x
-  in
-  let network_alias = network in
-  object (self)
-
-  inherit OoExtra.destroy_methods ()
-
-  inherit node_with_ports_card
-    ~network
-    ~name
-    ~label
-    ~nodekind:Machine
-    ~devkind:NotADevice
-    ~port_no:(check_port_no port_no)
-    ~port_prefix:"eth"
-    ~user_port_offset:0
-    ()
-  as self_as_node_with_ports_card
-
-  inherit virtual_machine_with_history_and_details
-    ~network:network_alias
-    ?epithet ?variant ?kernel ?terminal
-    ~history_icon:"machine"
-    ~details_device_type:"machine"
-    ~vm_installations ()
-    as self_as_virtual_machine_with_history_and_details
-
-  (** See the comment in the 'node' class for the meaning of this method: *)
-  method polarity = MDI
-
-  (** Get the full host pathname to the directory containing the guest hostfs
-      filesystem: *)
-  method hostfs_directory_pathname =
-    match !simulated_device with
-      Some d ->
-        (d :> node Simulated_network.machine)#hostfs_directory_pathname
-    | None ->
-        failwith (self#name ^ " is not being simulated right now")
-
-  (** REDEFINED for checking *)
-  method set_port_no x =
-    let x = (self#check_port_no x) in
-    self_as_node_with_ports_card#set_port_no x
-
-  method private check_port_no x = check_port_no ~name:self#name x
-
-  (** A machine will be started with a certain amount of memory *)
-  (* TODO: read a marionnet variable to fix limits: *)
-  val mutable memory : int = memory
-  initializer ignore (self#check_memory memory)
-  method get_memory = memory
-  method set_memory x = memory <- self#check_memory x
-  method private check_memory x =
-    match (x>=8) && (x<=1024) with
-    | true  -> x
-    | false -> self#failwith "value %d not in the memory range [8,1024]" x
-
-  (** Show for debugging *)
-  method show = name
-
-  (** Return an image representing the machine with the given iconsize. *)
-  method dotImg (z:iconsize) =
-    let imgDir = Initialization.Path.images in
-    (imgDir^"ico.machine."^(self#string_of_simulated_device_state)^"."^z^".png") (* distinguer redhat,debian, etc ? *)
-
-  (** Machine to forest encoding. *)
-  method to_forest =
-   Forest.leaf ("machine", [
-                   ("name"     ,  self#get_name );
-                   ("memory"   ,  (string_of_int self#get_memory));
-                   ("distrib"  ,  self#get_epithet  );
-                   ("variant"  ,  self#get_variant_as_string);
-                   ("kernel"   ,  self#get_kernel   );
-                   ("terminal" ,  self#get_terminal );
-                   ("eth"      ,  (string_of_int self#get_port_no))  ;
-	           ])
-
- (** A machine has just attributes (no childs) in this version. *)
- method eval_forest_attribute = function
-  | ("name"     , x ) -> self#set_name x
-  | ("memory"   , x ) -> self#set_memory (int_of_string x)
-  | ("distrib"  , x ) -> self#set_epithet x
-  | ("variant"  , "aucune" ) -> self#set_variant None (* backward-compatibility *)
-  | ("variant"  , "" )-> self#set_variant None
-  | ("variant"  , x ) -> self#set_variant (Some x)
-  | ("kernel"   , x ) -> self#set_kernel x
-  | ("terminal" , x ) -> self#set_terminal x
-  | ("eth"      , x ) -> self#set_port_no  (int_of_string x)
-  | _ -> () (* Forward-comp. *)
-
-
-  (** Create the simulated device *)
-  method private make_simulated_device =
-    let id = self#id in
-    let cow_file_name = self#create_cow_file_name in
-    let () =
-     Log.printf
-       "About to start the machine %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n  xnest: %b\n"
-       self#name
-       self#get_filesystem_file_name
-       cow_file_name
-       self#get_kernel_file_name
-       self#is_xnest_enabled
-    in
-    new Simulated_network.machine
-      ~parent:self
-      ~kernel_file_name:self#get_kernel_file_name
-      ~filesystem_file_name:self#get_filesystem_file_name
-      ~cow_file_name
-      ~ethernet_interface_no:self#get_port_no
-      ~memory:self#get_memory
-      ~umid:self#get_name
-      ~id
-      ~xnest:self#is_xnest_enabled
-      ~unexpected_death_callback:self#destroy_because_of_unexpected_death
-      ()
-
-  (** Here we also have to manage cow files... *)
-  method private gracefully_shutdown_right_now =
-    Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
-    let hostfs_directory_pathname = self#hostfs_directory_pathname in
-    Log.printf "Ok, we're still alive\n"; flush_all ();
-    (* Do as usual... *)
-    self_as_node_with_ports_card#gracefully_shutdown_right_now;
-    (* If we're in exam mode then make the report available in the texts treeview: *)
-    (if Command_line.are_we_in_exam_mode then begin
-      let texts_interface = Texts_interface.get_texts_interface () in
-      Log.printf "Adding the report on %s to the texts interface\n" self#name;
-      texts_interface#import_report
-        ~machine_or_router_name:self#name
-        ~pathname:(hostfs_directory_pathname ^ "/report.html")
-        ();
-      Log.printf "Added the report on %s to the texts interface\n" self#name; flush_all ();
-      Log.printf "Adding the history on %s to the texts interface\n" self#name; flush_all ();
-      texts_interface#import_history
-        ~machine_or_router_name:self#name
-        ~pathname:(hostfs_directory_pathname ^ "/bash_history.text")
-        ();
-      Log.printf "Added the history on %s to the texts interface\n" self#name; flush_all ();
-    end);
-    (* ...And destroy, so that the next time we have to re-create the process command line
-       can use a new cow file (see the make_simulated_device method) *)
-    self#destroy_right_now
-
-  (** Here we also have to manage cow files... *)
-  method private poweroff_right_now =
-    (* Do as usual... *)
-    self_as_node_with_ports_card#poweroff_right_now;
-    (* ...And destroy, so that the next time we have to re-create the process command line
-       can use a new cow file (see the make_simulated_device method) *)
-    self#destroy_right_now
-
-end;;
-
-
 (*********************
     Submodule Edge
  *********************)
@@ -1916,17 +1735,14 @@ let dotEdgeTrad ?(edgeoptions="") (labeldistance_base) (((n1,r1),c,(n2,r2)):edge
 
 
    let (tail, head, taillabel, headlabel) =
-
-    (* Invert left and right sides of the cable if required *)
-    let (n1,r1,n2,r2) = if c#dotoptions#reverted#get then (n2,r2,n1,r1) else (n1,r1,n2,r2) in
-
-     match (n1#nodekind, c#cablekind, n2#nodekind, n1#get_label, n2#get_label) with
-
-     |   _   ,    _   ,    _  , "", "" -> (n1#name^":img"), (n2#name^":img"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-     |   _   ,    _   ,    _  , "", l2 -> (n1#name^":img"), (n2#name)       , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-     |   _   ,    _   ,    _  , l1, "" -> (n1#name)       , (n2#name^":img"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-     |   _   ,    _   ,    _  , l1, l2 -> (n1#name)       , (n2#name)       , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-
+     (* Invert left and right sides of the cable if required *)
+     let (n1,r1,n2,r2) = if c#dotoptions#reverted#get then (n2,r2,n1,r1) else (n1,r1,n2,r2)
+     in
+     match (n1#get_label, n2#get_label) with
+     | "", "" -> (n1#name^":img"), (n2#name^":img"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+     | "", l2 -> (n1#name^":img"), (n2#name)       , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+     | l1, "" -> (n1#name)       , (n2#name^":img"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+     | l1, l2 -> (n1#name)       , (n2#name)       , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
    in
 
    let edgeoptions = if edgeoptions = "" then "" else (edgeoptions^",") in
@@ -1950,18 +1766,6 @@ open Edge;;
 
 
  module Eval_forest_child = struct
-
- let try_to_add_machine network (f:Xforest.tree) =
-  try
-   (match f with
-   | Forest.NonEmpty (("machine", attrs) , childs , Forest.Empty) ->
-        let x = new machine ~network () in
-        x#from_forest ("machine", attrs) childs ;
-        network#add_machine x;
-        true
-   | _ -> false
-   )
-  with _ -> false
 
  let try_to_add_cable network (f:Xforest.tree) =
   try
@@ -2007,20 +1811,14 @@ class network () =
  method motherboard = match motherboard with Some x -> x | None -> assert false
  method set_motherboard m = motherboard <- Some m
 
- val mutable machines : (machine list) = []
-(*  val mutable devices  : (node_with_ledgrid_and_defects  list) = [] *)
  val mutable devices  : (node list) = []
  val mutable cables   : (cable   list) = []
 
  (** Buffers to backup/restore data. *)
- val mutable machines_buffer : (machine list) = []
-(*  val mutable devices_buffer  : (node_with_ledgrid_and_defects  list) = [] *)
  val mutable devices_buffer  : (node list) = []
  val mutable cables_buffer   : (cable   list) = []
 
  (** Accessors *)
-
- method machines        = machines
  method devices         = devices
  method cables          = cables
  method ledgrid_manager = ledgrid_manager
@@ -2032,8 +1830,7 @@ class network () =
  method  set_dotoptions x = dotoptions <- Some x
 
  method components : (component list) =
-   ((machines :> component list) @
-    (devices  :> component list) @
+   ((devices  :> component list) @
     (cables   :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
     )
 
@@ -2049,11 +1846,7 @@ class network () =
    (List.iter
       (fun cable -> try cable#destroy with _ -> ())
       cables);
-   Log.printf "\tDestroying all machines...\n";
-   (List.iter
-      (fun machine -> try machine#destroy with _ -> ())
-      machines);
-   Log.printf "\tDestroying all devices (switchs, hubs, routers, etc)...\n";
+   Log.printf "\tDestroying all devices (machines, switchs, hubs, routers, etc)...\n";
    (List.iter
       (fun device -> try device#destroy with _ -> ())
       devices);
@@ -2061,7 +1854,6 @@ class network () =
    (if not scheduled then Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks);
 
    Log.printf "\tMaking the network graph empty...\n";
-   machines <- [] ;
    devices  <- [] ;
    cables   <- [] ;
 
@@ -2076,22 +1868,19 @@ class network () =
   begin
    Log.printf "destroy_process_before_quitting: BEGIN\n";
    (List.iter (fun cable -> try cable#destroy_right_now with _ -> ()) cables);
-   (List.iter (fun machine -> try machine#destroy_right_now with _ -> ()) machines);
    (List.iter (fun device -> try device#destroy_right_now with _ -> ()) devices);
-Log.printf "destroy_process_before_quitting: END (success)\n";
+   Log.printf "destroy_process_before_quitting: END (success)\n";
   end
 
  method restore_from_buffers =
   begin
    self#reset ();
-   machines <- machines_buffer ;
    devices  <- devices_buffer  ;
    cables   <- cables_buffer
  end
 
  method save_to_buffers =
   begin
-   machines_buffer <- machines ;
    devices_buffer  <- devices  ;
    cables_buffer   <- cables
   end
@@ -2105,7 +1894,7 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
    try_to_add_procedure_list := p::(!try_to_add_procedure_list)
 
  initializer
-   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_machine;
+(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_machine; *)
 (*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_router; *)
 (*   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cloud;*)
 (*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_hub; *)
@@ -2134,12 +1923,8 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
     )
 
 
- method nodes : (node list) =
-  List.concat [
-    (machines :> node list);
-    (devices  :> node list);
-    ]
-
+ (* Just an alias for devices: *)
+ method nodes : (node list) = devices
  method names = (List.map (fun x->x#name) self#components)
 
  method suggestedName prefix =
@@ -2149,19 +1934,14 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
      if self#name_exists prop then tip prefix (k+1) else prop
      end in tip prefix 1
 
-
- (** Get machine, device or cable in the network by its name *)
- method get_machine_by_name n =
-   try List.find (fun x->x#name=n) machines with _ -> failwith ("get_machine_by_name "^n)
-
  method get_device_by_name n =
    try List.find (fun x->x#name=n) devices with _ -> failwith ("get_device_by_name "^n)
 
+ (* Alias: *)
+ method get_node_by_name = self#get_device_by_name
+
  method get_cable_by_name n =
    try List.find (fun x->x#name=n) cables with _ -> failwith ("get_cable_by_name "^n)
-
- method get_node_by_name n =
-   try List.find (fun x->x#name=n) self#nodes with _ -> failwith ("get_node_by_name \""^n^"\"")
 
  (** Managing endpoints: *)
 
@@ -2216,17 +1996,16 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
 
   (** Useful updating a device: *)
  method port_no_lower_of node =
-  let min_eth = (self#max_busy_port_index_of_node node + 1) in
-  let min_multiple_of_4 = (ceil ((float_of_int min_eth) /. 4.0)) *. 4.0 in
-  int_of_float (max min_multiple_of_4 4.0)
+  let port_no_lower = node#port_no_min in
+  let min_port_no = (self#max_busy_port_index_of_node node + 1) in
+  let k = float_of_int port_no_lower in
+  (* minimum multiple of k containing min_port_no: *) 
+  let min_multiple = (ceil ((float_of_int min_port_no) /. k)) *. k in
+  int_of_float (max min_multiple k)
 
- method machine_exists n = let f=(fun x->x#name=n) in (List.exists f machines)
  method device_exists  n = let f=(fun x->x#name=n) in (List.exists f devices )
  method cable_exists   n = let f=(fun x->x#name=n) in (List.exists f cables  )
  method name_exists    n = List.mem n self#names
-
- (** What kind of node is it ? *)
- method nodeKind n = (self#get_node_by_name n)#nodekind
 
  (** Adding components *)
 
@@ -2249,16 +2028,6 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
          self#del_cable cable#name)
        cables_to_remove;
      devices  <- List.filter (fun x->not (x=d)) devices
-
- (** Machines must have a unique name in the network *)
- method add_machine (m:machine) =
-   if (self#name_exists m#name) then
-     raise (Failure ("add_machine: name "^m#name^" already used in the network"))
-   else begin
-     (* Ok, we have fixed the variant name. Now just prepend the machine to the
-        appropriate list: *)
-     machines  <- (machines@[m]);
-   end
 
  (** Cable must connect free ports: *)
  method add_cable (c:cable) =
@@ -2286,25 +2055,6 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
       end else
         raise (Failure ("add_cable: left and/or right endpoints busy or nonexistent for "^(c#show "")))
 
- (** Removing components *)
-
- (** Remove a machine from the network.
-     Remove it from the [machines] list and remove all related cables *)
- method del_machine mname =
-     let m  = self#get_machine_by_name mname in
-     (* Destroy cables first, from the network and from the defects treeview (cables are not
-        in the network details treeview): they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#is_node_involved mname) cables in
-     let defects = Defects_interface.get_defects_interface () in
-     List.iter
-       (fun cable ->
-         defects#remove_cable cable#name;
-         self#del_cable cable#name)
-       cables_to_remove;
-     Filesystem_history.remove_device_tree mname;
-     m#destroy;
-     machines  <- List.filter (fun x->not (x=m)) machines
-
  (** Remove a device from the network. Remove it from the [devices] list and remove all related cables *)
  method del_device dname =
      let d  = self#get_device_by_name dname in
@@ -2316,8 +2066,6 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
          defects#remove_cable cable#name;
          self#del_cable cable#name)
        cables_to_remove;
-     (if d#devkind = Router then
-       Filesystem_history.remove_device_tree dname);
      self#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
      d#destroy;
      devices  <- List.filter (fun x->not (x=d)) devices
@@ -2361,20 +2109,9 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
      | MDI_X       , MDI    | MDI         , MDI_X       -> crossoverness = Direct
      | MDI_X       , MDI_X  | MDI         , MDI         -> crossoverness = Crossover
 
- (** List of machines names in the network *)
- method get_machine_names     =
-   List.map (fun x->x#name) machines
-
  (** List of node names in the network *)
  method get_node_names  =
    List.map (fun x->x#name) (self#nodes)
-
- method get_device_names ?devkind () =
-  let xs= match devkind with
-  | None   -> devices
-  | Some k -> List.filter (fun x -> x#devkind = k) devices
-  in
-  List.map (fun x->x#name) xs
 
  method get_devices_that_can_startup ~devkind () =
   ListExtra.filter_map
@@ -2426,11 +2163,6 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
         (List.map (fun d->d#name^" ("^(string_of_devkind d#devkind)^")") devices))
         with _ -> ""
    in Log.printf "Devices \r\t\t: %s\n" msg;
-   (* show machines *)
-   let msg=try
-        (StringExtra.Fold.commacat (List.map (fun m->m#show) machines))
-        with _ -> ""
-   in Log.printf "Machines \r\t\t: %s\n" msg;
   (* show links *)
    let msg=try
         (StringExtra.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables))
@@ -2442,7 +2174,10 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
 
  (** Gives the list of edges which left and right side verify the given conditions.
      An edge is a 3-uple (node1,receptname1), cable , (node2,receptname2) *)
- method edgesSuchThat (lpred: node->bool) (cpred:cable->bool) (rpred: node->bool) : edge list =
+ method edgesSuchThat
+   ?(left_pred= function (node:node)->true)
+   ?(right_pred=function (node:node)->true)
+   (cable_pred:cable->bool) : edge list =
    let cable_info c =
      let (left, right) = (c#get_left, c#get_right) in
      let a = (left#node,  left#user_port_name) in
@@ -2450,20 +2185,12 @@ Log.printf "destroy_process_before_quitting: END (success)\n";
      (a,c,b)
    in
    let l1 = List.map cable_info cables in
-   let filter = fun ((n1,_),c,(n2,_)) -> (lpred n1) && (cpred c) && (rpred n2) in
+   let filter = fun ((n1,_),c,(n2,_)) -> (left_pred n1) && (cable_pred c) && (right_pred n2) in
    let l2 = (List.filter filter l1) in l2
 
  (** Gives the list of edges of a given kind. *)
- method edges_of_kind (lnkind: nodekind option) (ckind: cablekind option) (rnkind: nodekind option) =
-   let npred nkind = fun n -> match nkind with None -> true | Some nk -> (n#nodekind  = nk) in
-   let cpred kind  = fun c -> match kind  with None -> true | Some ck -> (c#cablekind = ck) in
-   self#edgesSuchThat (npred lnkind) (cpred ckind) (npred rnkind)
-
-
- (** Gives the list of all edges in the network. *)
- method edges : edge list = self#edgesSuchThat (fun ln->true) (fun c->true) (fun rn->true)
-
-(* ex colore dei cavi incrociati "#52504c" *)
+ method edges_of_kind (cablekind: cablekind) =
+   self#edgesSuchThat (fun c -> c#cablekind = cablekind)
 
  (** Network translation into the dot language *)
  method dotTrad () =
@@ -2497,7 +2224,7 @@ opt#labeldistance_for_dot^",tailclip=true];
 
 "^
 (StringExtra.Text.to_string
-   (List.map (dotEdgeTrad labeldistance) (self#edges_of_kind None (Some Direct) None)))
+   (List.map (dotEdgeTrad labeldistance) (self#edges_of_kind Direct)))
 
 ^"
 /* *********************************
@@ -2509,7 +2236,7 @@ edge [headclip=true,minlen=1.6,color=\""^Color.crossover_cable^"\",weight=1];
 
 "^
 (StringExtra.Text.to_string
-   (List.map (dotEdgeTrad labeldistance) (self#edges_of_kind None (Some Crossover) None)))
+   (List.map (dotEdgeTrad labeldistance) (self#edges_of_kind Crossover)))
 
 ^"} //END of digraph\n"
 

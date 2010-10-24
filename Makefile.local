@@ -22,7 +22,7 @@ LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
 C_OBJECTS_TO_LINK +=
 
 OCAMLBRICKS=$(LIBRARYPREFIX)/ocamlbricks
-PP_OPTION = camlp4of -I $(OCAMLBRICKS) gettext_extract_pot_p4.cmo -I chip
+PP_OPTION = camlp4of -I $(OCAMLBRICKS) gettext_extract_pot_p4.cmo option_extract_p4.cmo -I chip
 
 OBJECTS_TO_LINK = gtkThread
 BYTE_PROGRAMS = marionnet.byte chip_example.byte

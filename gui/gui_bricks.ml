@@ -48,7 +48,7 @@ let make_form_with_labels ?(section_no=0) ?(row_spacings=10) ?(col_spacings=10) 
  let labels =
    Array.mapi
      (fun i label_text ->
-        let label = GMisc.label ~xalign:0. ~text:label_text () in
+        let label = GMisc.label ~xalign:0. ~markup:label_text () in
         label)
      (Array.of_list string_list)
  in

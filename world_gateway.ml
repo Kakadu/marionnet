@@ -14,9 +14,21 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Gettext;;
 
 (** "world gateway" component implementation. *)
+
+open Gettext;;
+
+(* Switch related constants: *)
+(* TODO: make it configurable! *)
+module Const = struct
+ let port_no_default = 4
+ let port_no_min = 4
+ let port_no_max = 16
+
+ let network_config_default = ((10,0,2,1),24)
+ let network_address_default = "10.0.2.0"
+end
 
 #load "where_p4.cmo"
 ;;
@@ -104,9 +116,9 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      let dhcp_enabled = g#get_dhcp_enabled in
      let port_no = g#get_port_no in
      (* The user cannot remove receptacles used by a cable. *)
-     let port_no_lower = st#network#port_no_lower_of (g :> Mariokit.Netmodel.node) in
+     let port_no_min = st#network#port_no_lower_of (g :> Mariokit.Netmodel.node) in
      Dialog_add_or_update.make
-       ~title ~name ~label ~network_config ~dhcp_enabled ~port_no ~port_no_lower
+       ~title ~name ~label ~network_config ~dhcp_enabled ~port_no ~port_no_min
        ~ok_callback:Add.ok_callback ()
 
 
@@ -203,24 +215,22 @@ let make
  ?(title="Add a world gateway")
  ?(name="")
  ?label
- ?(network_config:Ipv4.config option)
+ ?(network_config=Const.network_config_default)
  ?(dhcp_enabled=true)
- ?(port_no=4)
- ?(port_no_lower=2)
+ ?(port_no=Const.port_no_default)
+ ?(port_no_min=Const.port_no_min)
+ ?(port_no_max=Const.port_no_max)
  ?(help_callback=help_callback) (* defined backward with "WHERE" *)
  ?(ok_callback=(fun data -> Some data))
  ?(dialog_image_file=Initialization.Path.images^"ico.world_gateway.dialog.png")
  () :'result option =
   let old_name = name in
-  let ((b1,b2,b3,b4),b5) = match network_config with
-   | Some x -> x
-   | None   -> ((10,0,2,1),24)
-  in
+  let ((b1,b2,b3,b4),b5) = network_config in
   let (w,_,name,label) =
      Gui_bricks.Dialog_add_or_update.make_window_image_name_and_label
       ~title
       ~image_file:dialog_image_file
-      ~image_tooltip:(s_ "Wolrd gateway")
+      ~image_tooltip:(s_ "World gateway")
       ~name
       ~name_tooltip:(s_ "World gateway name. This name must be unique in the virtual network. Suggested: G1, G2, ...")
       ?label
@@ -246,7 +256,7 @@ let make
     let port_no =
       Gui_bricks.spin_byte
         ~packing:(form#add_with_tooltip (s_ "The number of ports of the integrated switch" ))
-        ~lower:port_no_lower ~upper:16 ~step_incr:2
+        ~lower:port_no_min ~upper:port_no_max ~step_incr:2
         port_no
     in
     (network_config, dhcp_enabled, port_no)
@@ -316,7 +326,9 @@ module Eval_forest_child = struct
    (match f with
     | Forest.NonEmpty (("world_gateway", attrs) , childs , Forest.Empty) ->
     	let name  = List.assoc "name" attrs in
-    	let port_no  = try int_of_string (List.assoc "port_no" attrs) with _ -> 4 in
+    	let port_no  =
+	  try int_of_string (List.assoc "port_no" attrs) with _ -> Const.port_no_default
+	in
         Log.printf "Importing world gateway \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level.world_gateway ~network ~name ~port_no () in
 	x#from_forest ("world_gateway", attrs) childs;
@@ -344,7 +356,7 @@ class world_gateway =
       ~name
       ?label
       ?(port_no=4)
-      ?(network_address="10.0.2.0")
+      ?(network_address=Const.network_address_default)
       ?(dhcp_enabled=true)
       () ->
   object (self) inherit OoExtra.destroy_methods ()
@@ -355,6 +367,8 @@ class world_gateway =
     ?label
     ~devkind:Mariokit.Netmodel.World_gateway
     ~port_no
+    ~port_no_min:Const.port_no_min
+    ~port_no_max:Const.port_no_max
     ~port_prefix:"port" (* because these ports are of the integrated switch *)
     ~user_port_offset:1 (* because is a switch *)
     ()
@@ -377,8 +391,7 @@ class world_gateway =
 
   val mutable dhcp_enabled : bool = dhcp_enabled
   method get_dhcp_enabled = dhcp_enabled
-  method set_dhcp_enabled x = dhcp_enabled <- self#check_dhcp_enabled x
-  method private check_dhcp_enabled x = x (* TODO *)
+  method set_dhcp_enabled x = dhcp_enabled <- x
 
   (** Redefined:*)
   method gw_ipv4_address =

@@ -49,32 +49,6 @@ If the program is run from the Marionnet live DVD, you are advised to \
 use a persistent directory (in /mnt/hd*), in order to not waste \
 your system physical memory.") in Simple_dialogs.help title msg ;;
 
-let help_machine_insert_update =
-   let title = (s_ "ADD OR MODIFY A VIRTUAL MACHINE") in
-   let msg   = (s_ "\
-In this dialog window you can define the name of the virtual \
-machine and set several hardware and software parameters.\n\n\
-SECTION 'Hardware'\n\
-- Memory: amount of memory (RAM) that will be reserved on \
-the host for this virtual machine (default 48 Mb)\n\n\
-- Ethernet Card: number of Ethernet cards (defalut 1)\n\n\
-SECTION 'Software':\n\n\
-- Distribution: the GNU/Linux distribution (Debian, Mandriva, Gentoo,..), \
-chosen among those available in the filesystem directory\n\n\
-- Variant: a variant (or patch) of the given distribution; a variant is a \
-COW (Copy On Write) file that represents a small update of the used distribution.\
-Available variants are in the variants/ subdirectory of the filesystem directory. \
-You can make your own variants by exporting any virtual machine state in the 'Disks' \
-tab.\n\n\
-- Kernel: the Linux kernel version, chosen among the ones available in the kernels/ \
-subdirectory\n\n\
-SECTION 'UML':\n\n\
-- Terminal: the possible choices are 'X HOST' and 'X NEST'; the first one \
-allows to run graphic applications from a text terminal where the user \
-can operate the virtual machine (with user 'root' and password 'root'); \
-the second allows to have a real graphic server reserved for the virtual \
-machine, with independent windows manager and desktops environments.")
-   in Simple_dialogs.help title msg ;;
 
  let help_cable_direct_insert_update =
    let title = (s_ "ADD OR MODIFY A STRAIGHT CABLE") in

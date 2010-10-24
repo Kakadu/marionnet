@@ -23,6 +23,18 @@ open Gettext;;
 #load "where_p4.cmo"
 ;;
 
+(* Router related constants: *)
+(* TODO: make it configurable! *)
+module Const = struct
+ let port_no_default = 4
+ let port_no_min = 4
+ let port_no_max = 16
+
+ let port_0_ip_config_default = Initialization.router_port0_default_ipv4_config
+ let memory_default = 48
+end
+
+
 (* The type of data returned by the dialog: *)
 module Data = struct
 type t = {
@@ -95,7 +107,6 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let dynlist () = st#network#get_devices_that_can_startup ~devkind:Mariokit.Netmodel.Router ()
 
     let dialog name () =
-     let details = Network_details_interface.get_network_details_interface () in
      let r = (st#network#get_device_by_name name) in
      let r = ((Obj.magic r):> User_level.router) in
      let title = (s_ "Modify router")^" "^name in
@@ -105,24 +116,17 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      let kernel = r#get_kernel in
      let show_unix_terminal = r#get_show_unix_terminal in
      let port_no = r#get_port_no in
-     let ipv4 = Ipv4.ipv4_of_string
-        (details#get_port_attribute_by_index name 0 "IPv4 address")
-     in
-     let (_, cidr ) = Ipv4.netmask_with_cidr_of_string
-        (details#get_port_attribute_by_index name 0 "IPv4 netmask")
-     in
-     let port_0_ip_config = (ipv4,cidr) in
+     let port_0_ip_config = r#get_port_0_ip_config in
      (* The user cannot remove receptacles used by a cable. *)
-     let port_no_lower = st#network#port_no_lower_of (r :> Mariokit.Netmodel.node)
+     let port_no_min = st#network#port_no_lower_of (r :> Mariokit.Netmodel.node)
      in
      Dialog_add_or_update.make
-       ~title ~name ~label ~distribution ?variant ~show_unix_terminal ~port_no
+       ~title ~name ~label ~distribution ?variant ~show_unix_terminal
+       ~port_no ~port_no_min
        ~port_0_ip_config
-       ~port_no_lower
        ~kernel
        ~updating:() (* the user cannot change the distrib & variant *)
        ~ok_callback:Add.ok_callback  ()
-
 
     let reaction {
          name = name;
@@ -194,6 +198,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Resume = struct
     type t = string (* just the name *)
+
     let to_string = (Printf.sprintf "name = %s\n")
     let dynlist () = st#network#get_devices_that_can_resume ~devkind:Mariokit.Netmodel.Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
@@ -221,9 +226,10 @@ let make
  ?(title="Add a router")
  ?(name="")
  ?label
- ?(port_0_ip_config:Ipv4.config option)
- ?(port_no=4)
- ?(port_no_lower=4)
+ ?(port_0_ip_config=Const.port_0_ip_config_default)
+ ?(port_no=Const.port_no_default)
+ ?(port_no_min=Const.port_no_min)
+ ?(port_no_max=Const.port_no_max)
  ?distribution
  ?variant
  ?kernel
@@ -234,10 +240,7 @@ let make
  ?(dialog_image_file=Initialization.Path.images^"ico.router.dialog.png")
  () :'result option =
   let old_name = name in
-  let ((b1,b2,b3,b4),b5) = match port_0_ip_config  with
-   | Some x -> x
-   | None   -> ((192,168,1,254), 24)
-  in
+  let ((b1,b2,b3,b4),b5) = port_0_ip_config  in
   let vm_installations =  Disk.get_router_installations () in
   let (w,_,name,label) =
     Gui_bricks.Dialog_add_or_update.make_window_image_name_and_label
@@ -264,7 +267,7 @@ let make
     in
     form#add_section ~no_line:() "Hardware";
     let port_no =
-      Gui_bricks.spin_byte ~lower:port_no_lower ~upper:16 (* TODO? *) ~step_incr:4
+      Gui_bricks.spin_byte ~lower:port_no_min ~upper:port_no_max ~step_incr:2
       ~packing:(form#add_with_tooltip (s_ "Number of router ports" )) port_no
     in
     let port_0_ip_config =
@@ -419,7 +422,7 @@ module User_level = struct
 class router
   ~(network:Mariokit.Netmodel.network)
   ~name
-  ?(port_0_ip_config=Initialization.router_port0_default_ipv4_config)
+  ?(port_0_ip_config=Const.port_0_ip_config_default)
   ?label
   ?epithet
   ?variant
@@ -448,6 +451,8 @@ class router
     ~network
     ~name ?label ~devkind:Mariokit.Netmodel.Router
     ~port_no
+    ~port_no_min:Const.port_no_min
+    ~port_no_max:Const.port_no_max
     ~port_prefix:"port"
     ()
     as self_as_node_with_ledgrid_and_defects
@@ -462,7 +467,6 @@ class router
     ()
     as self_as_virtual_machine_with_history_and_details
 
-  (** See the comment in the 'node' class for the meaning of this method: *)
   method polarity = Mariokit.Netmodel.MDI
 
   method ledgrid_label = "Router"
@@ -475,9 +479,8 @@ class router
   (** Get the full host pathname to the directory containing the guest hostfs
       filesystem: *)
   method hostfs_directory_pathname =
-    match !simulated_device with
-    | Some d -> (d :> Mariokit.Netmodel.node Simulation_level.router)#hostfs_directory_pathname
-    | None   -> failwith (self#name ^ " is not being simulated right now")
+    let d = ((Option.extract !simulated_device) :> Mariokit.Netmodel.node Simulation_level.router) in
+    d#hostfs_directory_pathname
 
   val mutable show_unix_terminal : bool = show_unix_terminal
   method get_show_unix_terminal = show_unix_terminal
@@ -572,6 +575,21 @@ class router
  method get_ipv4_addresses = self#get_assoc_list_from_details ~key:"IPv4 address"
 (* other: "MTU", "IPv4 netmask", "IPv4 broadcast", "IPv6 address" *)
 
+ method get_port_0_ip_config =
+  let name = self#get_name in
+  let ipv4 =
+    Ipv4.ipv4_of_string
+      (network#details#get_port_attribute_by_index
+         name 0 "IPv4 address")
+  in
+  let (_,cidr) =
+    Ipv4.netmask_with_cidr_of_string
+      (network#details#get_port_attribute_by_index
+         name 0 "IPv4 netmask")
+  in
+  (ipv4,cidr)
+
+
  method set_port_0_ipv4_address (ipv4:Ipv4.ipv4) =
    network#details#set_port_string_attribute_by_index
      self#get_name 0 "IPv4 address"
@@ -625,7 +643,7 @@ object(self)
       ~kernel_file_name
       ~cow_file_name
       ~ethernet_interface_no
-      ~memory:40(*32*)
+      ~memory:Const.memory_default 
       ?umid
       (* Change this when debugging the router device *)
       ~console:"none" (* To do: this should be "none" for releases and "xterm" for debugging *)

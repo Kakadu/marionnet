@@ -308,12 +308,10 @@ class globalState = fun () ->
     let prefix = (self#get_pwdir^"/"^rootname^"/") in
     Unix.mkdir (prefix^"tmp") 0o755 ;
 
-    (* Set the treeview directories so that we can safely use treeviews, even before filling them
-       with real data: *)
+    (* Set the treeview directories: *)
     self#set_treeview_directories_with_prefix prefix;
 
     (* Dotoptions.network will be undumped after the network, in order to support cable inversions. *)
-
     let dotAction () = begin
       (try
      	self#dotoptions#load_from_file self#dotoptionsFile;
@@ -329,6 +327,10 @@ class globalState = fun () ->
        to modify the treeviews according to the marionnet version: *)
     self#load_treeviews;
 
+    (* Now set again the treeview directories (the previous load has erased...): *)
+    (* TODO: ugly! *)
+    self#set_treeview_directories_with_prefix prefix;
+
     (* Second, read the xml file containing the network definition.
        If something goes wrong, close the project. *)
     (try
@@ -339,6 +341,7 @@ class globalState = fun () ->
      );
 
     self#register_state_after_save_or_open;
+    self#set_treeview_directories_with_prefix prefix;
     ()
     end
 

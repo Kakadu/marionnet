@@ -1324,7 +1324,7 @@ object(self)
       let hublets = self#get_hublet_process_list in
       let name = parent#get_name in
       let get_port_defect = parent#ports_card#get_port_defect_by_index in
-      Log.printf "spawn_processes: hublet_no=%d last_user_visible_port_index=%d\n" hublet_no last_user_visible_port_index;
+      Log.printf "spawn_processes: device=%s hublet_no=%d last_user_visible_port_index=%d\n" name hublet_no last_user_visible_port_index;
       List.map
         (fun (i, hublet_process) ->
            if i <= last_user_visible_port_index then
@@ -1646,36 +1646,4 @@ object(self)
     internal_cable_processes := [];
 
   (** There's no need to override super#destroy. See the comment above. *)
-end;;
-
-(** A machine: just a [machine_or_router] with [router = false] *)
-class ['parent] machine =
-  fun ~(parent:'parent)
-      ~(filesystem_file_name)
-      ~(kernel_file_name)
-      ~(cow_file_name)
-      ~(ethernet_interface_no)
-      ?memory:(memory=40) (* in megabytes *)
-      ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
-      ?(xnest=false)
-      ~id
-      ~unexpected_death_callback
-      () ->
-object(self)
-  inherit ['parent] machine_or_router
-      ~parent
-      ~router:false
-      ~filesystem_file_name
-      ~cow_file_name
-      ~kernel_file_name
-      ~ethernet_interface_no
-      ~memory
-      ~umid
-      ~console:"xterm"
-      ~id
-      ~xnest
-      ~unexpected_death_callback
-      ()
-      as super
-  method device_type = "computer"
 end;;

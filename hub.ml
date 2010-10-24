@@ -22,6 +22,13 @@
 
 open Gettext
 
+(* Hub related constants: *)
+(* TODO: make it configurable! *)
+module Const = struct
+ let port_no_default = 4
+ let port_no_min = 4
+ let port_no_max = 16
+end
 
 (* The type of data exchanged with the dialog: *)
 module Data = struct
@@ -70,8 +77,8 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      let title = (s_ "Modify hub")^" "^name in
      let label = d#get_label in
      let port_no = d#get_port_no in
-     let port_no_lower = st#network#port_no_lower_of (d :> Mariokit.Netmodel.node) in
-     Dialog_add_or_update.make ~title ~name ~label ~port_no ~port_no_lower ~ok_callback:Add.ok_callback ()
+     let port_no_min = st#network#port_no_lower_of (d :> Mariokit.Netmodel.node) in
+     Dialog_add_or_update.make ~title ~name ~label ~port_no ~port_no_min ~ok_callback:Add.ok_callback ()
 
     let reaction { name = name; label = label; port_no = port_no; old_name = old_name; } =
       let d = (st#network#get_device_by_name old_name) in
@@ -158,8 +165,9 @@ let make
  ?(title="Add hub")
  ?(name="")
  ?label
- ?(port_no=4)
- ?(port_no_lower=4)
+ ?(port_no=Const.port_no_default)
+ ?(port_no_min=Const.port_no_min)
+ ?(port_no_max=Const.port_no_max)
  ?(help_callback=help_callback) (* defined backward with "WHERE" *)
  ?(ok_callback=(fun data -> Some data))
  ?(dialog_image_file=Initialization.Path.images^"ico.hub.dialog.png")
@@ -185,7 +193,7 @@ let make
     let port_no =
       Gui_bricks.spin_byte
         ~packing:(form#add_with_tooltip (s_ "Hub ports number"))
-        ~lower:port_no_lower ~upper:16 ~step_incr:2
+        ~lower:port_no_min ~upper:port_no_max ~step_incr:2
         port_no
     in
     port_no
@@ -245,7 +253,7 @@ module Eval_forest_child = struct
     (* backward compatibility *)
     | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
 	let name  = List.assoc "name" attrs in
-	let port_no = try int_of_string (List.assoc "eth" attrs) with _ -> 4 in
+	let port_no = try int_of_string (List.assoc "eth" attrs) with _ -> Const.port_no_default in
 	let devkind = Mariokit.Netmodel.devkind_of_string (List.assoc "kind" attrs) in
 	(match devkind with
 	| Mariokit.Netmodel.Hub ->
@@ -286,6 +294,8 @@ class hub =
       ~network
       ~name ?label ~devkind:Mariokit.Netmodel.Hub
       ~port_no
+      ~port_no_min:Const.port_no_min
+      ~port_no_max:Const.port_no_max
       ~user_port_offset:1 (* in order to have a perfect mapping with VDE *)
       ~port_prefix:"port"
       ()

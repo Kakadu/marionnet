@@ -14,18 +14,15 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-(* A simple ocamlbricks' functor application: *)
-(*include Log_builder.Make_simple (struct
-  (* Initialized later, by Global_options, in order to break the ciclic dependency: *)
-  let is_log_enabled () = false
- end)*)
+%str_item escape_raise_filter
+;;
 
 (* Initialized later, by Global_options, in order to break the ciclic dependency: *)
 include Log_builder.Make (struct
-  let debug_level () = 0                  (* the debug_level must be greater or equal to the verbosity, otherwise do nothing *)
-  let verbosity = 1                       (* the default value of verbosity for printing functions *)
-  let log_channel = `stderr               (* put messages here *)
-  let synchronized = true                 (* using threads *)
+  let debug_level () = 0           (* the debug_level must be greater or equal to the verbosity, otherwise do nothing *)
+  let verbosity = 1                (* the default value of verbosity for printing functions *)
+  let log_channel = `stderr        (* put messages here *)
+  let synchronized = true          (* using threads *)
  end);;
 
 (* Wrappers providing a logged version of functions defined elsewhere. *)

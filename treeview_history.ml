@@ -17,11 +17,10 @@
 
 (* To do: rename 'state' into 'row' *)
 
-open Treeview;;
-open Sugar;;
+(*open Treeview;;*)
 open Row_item;;
-open StrExtra;;
 open Gettext;;
+module Assoc = ListExtra.Assoc;;
 
 (** A function to be called for starting up a given device in a given state. This very ugly
     kludge is needed to avoid a cyclic depencency between mariokit and states_interface *)
@@ -40,14 +39,57 @@ let make_temporary_file_name () =
 let make_fresh_state_file_name () =
   make_temporary_file_name ();;
 
+exception Cp_failed;;
 
-class states_interface =
+(** Make a sparse copy of the given file, and return the name of the copy. Note that this
+    also succeeds when the source file does not exist, as it's the case with 'fresh' states *)
+let duplicate_file ?(is_path_full=false) ~states_directory path_name  =
+  let name_of_the_copy = make_temporary_file_name () in
+  let command_line =
+    if is_path_full then
+      (Printf.sprintf "if [ -e %s ]; then cp --sparse=always %s %s%s; else true; fi"
+         path_name
+         path_name
+         states_directory
+         name_of_the_copy)
+    else
+      (Printf.sprintf "if [ -e %s%s ]; then cp --sparse=always %s%s %s%s; else true; fi"
+         states_directory
+         path_name
+         states_directory
+         path_name
+         states_directory
+         name_of_the_copy)  in
+  (Log.printf "Making a copy of a cow file: the command line is: %s\n" command_line);
+  try
+    (match Unix.system command_line with
+      (Unix.WEXITED 0) ->
+        name_of_the_copy
+    | _ -> begin
+        raise Cp_failed;
+    end)
+  with Cp_failed -> begin
+    Simple_dialogs.error
+      "This is a serious problem"
+      "The disc is probably full. A disaster is about to happen..."
+      ();
+    Log.printf "To do: react in some reasonable way\n";
+    failwith "cp failed";
+  end
+  | _ -> begin
+      Log.printf "To do: this look harmless.\n";
+      name_of_the_copy;
+  end;;
+
+
+(** Principal exported treeview type: *)
+class t =
 fun ~packing
     ~after_user_edit_callback
     () ->
 object(self)
   inherit
-    treeview
+    Treeview.treeview_with_a_Name_column
       ~packing
       ~hide_reserved_fields:true
       () as self_as_treeview
@@ -65,15 +107,115 @@ object(self)
     self_as_treeview#clear;
     states_directory <- None;
 
+  method add_row_with
+    ~name
+    ?parent (* this is an id, not an iter! *)
+    ~comment
+    ~icon
+    ~date
+    ~scenario
+    ~prefixed_filesystem
+    ~file_name
+    () =
+    let row =
+      [ "Name", String name;
+	"Comment", String comment;
+	"Type", Icon icon;
+	"Activation scenario", String scenario;
+	"Timestamp", String date;
+	"Prefixed filesystem", String prefixed_filesystem;
+	"File name", String file_name ]
+    in
+    self#add_row ?parent_row_id:parent row
+
+  method add_device ~name ~prefixed_filesystem ?variant ?variant_realpath ~icon () =
+  (* If we're using a non-clean variant then copy it so that it becomes
+     the first cow file: *)
+  let (file_name, variant_name, comment_suffix) =
+    (match variant, variant_realpath with
+     | None, _ -> (make_fresh_state_file_name (), "", "")
+     | Some variant_name, Some variant_realpath ->
+         let file_name =
+           duplicate_file
+             ~is_path_full:true
+             ~states_directory:self#get_states_directory
+             variant_realpath
+         in (file_name, variant_name, (Printf.sprintf " : variant \"%s\"" variant_name))
+     | Some _, None -> assert false
+     )
+  in
+  Log.printf "Filesystem history.add_device: adding the device %s with variant name=\"%s\"\n" name variant_name;
+  let row_id =
+    self#add_row_with ~name ~icon
+      ~comment:(prefixed_filesystem ^ comment_suffix)
+      ~file_name
+      ~prefixed_filesystem
+      ~date:"-"
+      ~scenario:"[no scenario]"
+      () in
+  self#highlight_row row_id
+
+  method remove_device_tree device_name =
+  (* The element we are searching for is the topmost leftmost: *)
+  let root_id = self#row_id_of_name device_name in
+  let rows_to_remove = self#rows_of_name device_name in
+  (* Remove cow files: *)
+  (List.iter
+    (fun row ->
+      let cow_file_name = item_to_string (Assoc.find "File name" row) in
+      (try Unix.unlink ((self#get_states_directory) ^ "/" ^ cow_file_name) with _ -> ()))
+    rows_to_remove
+   );
+   self#remove_subtree root_id;
+
+  method add_substate_of parent_file_name =
+  let copied_file_name = duplicate_file ~states_directory:self#get_states_directory parent_file_name in
+  let complete_row_to_copy =
+    self#complete_row_such_that (fun row -> (Assoc.find "File name" row) = String parent_file_name)
+  in
+  let parent_id   = self#id_of_complete_row complete_row_to_copy in
+  let parent_name = self#name_of_row complete_row_to_copy in
+  let sibling_no  = self#children_no parent_id in
+  let row_to_copy = self#remove_reserved_fields complete_row_to_copy
+  in
+  Forest.iter
+    (fun row _ ->
+       let a_row_id = self#id_of_complete_row row in
+       let a_row_name = self#name_of_row row in
+       (if parent_name = a_row_name then self#unhighlight_row a_row_id);
+       if a_row_id = parent_id then
+         let new_row_id =
+           self#add_row_with
+             ~name:parent_name
+             ~icon:(item_to_string (Assoc.find "Type" row_to_copy))
+             ~comment:"[no comment]"
+             ~file_name:copied_file_name
+             ~parent:parent_id
+             ~date:(Timestamp.current_timestamp_as_string ())
+             ~scenario:"[no scenario]"
+             ~prefixed_filesystem:(item_to_string (Assoc.find "Prefixed filesystem" row_to_copy))
+             ()
+          in
+          self#highlight_row new_row_id)
+    (self#get_complete_forest);
+  (* Collapse the new row's parent iff the new row is its first child. This behavior
+     gives the impression that trees 'are born' collapsed (collapsing a leaf has no
+     effect on the children it doesn't yet have), and on the other hand it does not
+     bother the user undoing his/her expansions: *)
+  (if sibling_no = 0 then self#collapse_row parent_id);
+  copied_file_name
+
+  method add_state_for_device device_name =
+    let most_recent_file_name =
+      item_to_string
+        (Assoc.find "File name" (self#get_the_most_recent_state_with_name device_name))
+    in
+    self#add_substate_of most_recent_file_name
+
   method startup_in_state row_id =
     let correct_date = item_to_string (self#get_row_item row_id "Timestamp") in
     let _cow_file_name = item_to_string (self#get_row_item row_id "File name") in
     let name = item_to_string (self#get_row_item row_id "Name") in
-    (* Ugly kludge: temporarily change the date of the state we want to duplicate,
-       so that it becomes the most recent. Then startup the machine, and eventually
-       reset the date fields to its correct value: *)
-(*     Log.print_string ("\n\n+++ Starting up "^name^" with "^_cow_file_name^"\n\n"); flush_all (); *)
-(*     self#set_row_item row_id "Timestamp" (String "9999-99-99 99:99"); *)
     self#set_row_item row_id "Timestamp" (String (Timestamp.current_timestamp_as_string ()));
     let _, startup_function = Startup_functions.get () in
     let () = startup_function name in
@@ -91,11 +233,11 @@ object(self)
     (try Unix.unlink ((self#get_states_directory) ^ file_name) with _ -> ());
     let most_recent_row_for_name = self#get_the_most_recent_state_with_name name in
     let id_of_the_most_recent_row_for_name =
-      lookup_alist "_id" most_recent_row_for_name in
+      Assoc.find "_id" most_recent_row_for_name in
     Forest.iter
       (fun a_row _ ->
-        let an_id = lookup_alist "_id" a_row in
-        let a_name = lookup_alist "Name" a_row in
+        let an_id = Assoc.find "_id" a_row in
+        let a_name = Assoc.find "Name" a_row in
         if a_name = String name then
           (if an_id = id_of_the_most_recent_row_for_name then
             self#highlight_row (item_to_string an_id)
@@ -108,7 +250,7 @@ object(self)
     let forest = self#get_complete_forest in
     let relevant_forest =
       Forest.filter
-        (fun row -> ((lookup_alist "Name" row) = String name))
+        (fun row -> ((Assoc.find "Name" row) = String name))
       forest in
     let relevant_states =
       Forest.linearize relevant_forest in (* the forest should be a tree *)
@@ -118,18 +260,15 @@ object(self)
     List.fold_left
       (fun maximum row ->
         let timestamp_maximum =
-          item_to_string (lookup_alist "Timestamp" maximum) in
+          item_to_string (Assoc.find "Timestamp" maximum) in
         let timestamp_row =
-          item_to_string (lookup_alist "Timestamp" row) in
+          item_to_string (Assoc.find "Timestamp" row) in
         if timestamp_maximum > timestamp_row then
           maximum
         else
           row)
       (List.hd relevant_states)
       ((*List.tl*) relevant_states) in
-(*    Log.printf "The most recent state has timestamp \'%s\'\n"
-      (item_to_string (lookup_alist "Timestamp" result)); *)
-    flush_all ();
     result
 
   method number_of_states_such_that predicate =
@@ -139,7 +278,7 @@ object(self)
   method number_of_states_with_name name =
     self#number_of_states_such_that
       (fun complete_row ->
-        (lookup_alist "Name" complete_row) = String name)
+        (Assoc.find "Name" complete_row) = String name)
 
   method export_as_machine_variant row_id =
     self#export_as_variant ~router:false row_id
@@ -218,11 +357,6 @@ the machine itself (you should expand the tree).") new_variant_pathname)
   initializer
     (* Make columns: *)
     let _ =
-      self#add_string_column
-        ~header:"Name"
-        ~shown_header:(s_ "Name")
-        () in
-    let _ =
       self#add_icon_column
         ~header:"Type"
         ~shown_header:(s_ "Type")
@@ -243,12 +377,6 @@ the machine itself (you should expand the tree).") new_variant_pathname)
         ~shown_header:(s_ "Timestamp")
         ~default:(fun () -> String (Timestamp.current_timestamp_as_string ()))
         () in
-    (*
-    let _ =
-      self#add_checkbox_column
-        ~header:"Checked"
-        ~default:(fun () -> CheckBox false)
-        () in *)
     let _ =
       self#add_editable_string_column
         ~header:"Comment"
@@ -271,50 +399,49 @@ the machine itself (you should expand the tree).") new_variant_pathname)
     self#create_store_and_view;
 
     (* Make the contextual menu: *)
-    let get = raise_when_none in (* just a convenient alias *)
     self#set_contextual_menu_title "Filesystem history operations";
     self#add_menu_item
      (s_  "Export as machine variant")
       (fun selected_rowid_if_any ->
-        (is_some selected_rowid_if_any) &&
-        (let row_id = get selected_rowid_if_any in
+        (Option.to_bool selected_rowid_if_any) &&
+        (let row_id = Option.extract selected_rowid_if_any in
         let type_ = item_to_string (self#get_row_item row_id "Type") in
         type_ = "machine"))
       (fun selected_rowid_if_any ->
-        let row_id = get selected_rowid_if_any in
+        let row_id = Option.extract selected_rowid_if_any in
         self#export_as_machine_variant row_id);
     self#add_menu_item
       (s_ "Export as router variant")
       (fun selected_rowid_if_any ->
-        (is_some selected_rowid_if_any) &&
-        (let row_id = get selected_rowid_if_any in
+        (Option.to_bool selected_rowid_if_any) &&
+        (let row_id = Option.extract selected_rowid_if_any in
         let type_ = item_to_string (self#get_row_item row_id "Type") in
         type_ = "router"))
       (fun selected_rowid_if_any ->
-        let row_id = get selected_rowid_if_any in
+        let row_id = Option.extract selected_rowid_if_any in
         self#export_as_router_variant row_id);
 (*     self#add_separator_menu_item; *)
     self#add_menu_item
       (s_ "Start in this state")
       (fun selected_rowid_if_any ->
-        (is_some selected_rowid_if_any) &&
-        (let row_id = get selected_rowid_if_any in
+        (Option.to_bool selected_rowid_if_any) &&
+        (let row_id = Option.extract selected_rowid_if_any in
         let name = item_to_string (self#get_row_item row_id "Name") in
         let can_startup, _ = Startup_functions.get () in
         can_startup name))
       (fun selected_rowid_if_any ->
-        let row_id = get selected_rowid_if_any in
+        let row_id = Option.extract selected_rowid_if_any in
         self#startup_in_state row_id);
 (*     self#add_separator_menu_item; *)
     self#add_menu_item
       (s_ "Delete this state")
       (fun selected_rowid_if_any ->
-        (is_some selected_rowid_if_any) &&
-        (let row_id = get selected_rowid_if_any in
+        (Option.to_bool selected_rowid_if_any) &&
+        (let row_id = Option.extract selected_rowid_if_any in
         let name = item_to_string (self#get_row_item row_id "Name") in
         (self#number_of_states_with_name name) > 1))
       (fun selected_rowid_if_any ->
-        let row_id = get selected_rowid_if_any in
+        let row_id = Option.extract selected_rowid_if_any in
         self#delete_state row_id);
 
      (* J.V. *)
@@ -322,238 +449,12 @@ the machine itself (you should expand the tree).") new_variant_pathname)
 
 end;;
 
-(** The one and only states interface object, with my usual OCaml kludge
-    enabling me to set it at runtime: *)
-let the_states_interface =
-  ref None;;
+class treeview = t
+module The_unique_treeview = Stateful_modules.Variable (struct type t = treeview end)
+let get = The_unique_treeview.get
 
-let get_states_interface () =
-  match !the_states_interface with
-    None ->
-      failwith "the_state_interface has not been defined yet"
-  | Some the_states_interface ->
-      the_states_interface;;
-
-let make_states_interface ~packing ~after_user_edit_callback () =
-  match !the_states_interface with
-    None ->
-      the_states_interface :=
-        Some(new states_interface ~packing ~after_user_edit_callback ())
-  | Some the_states_interface ->
-      failwith "the_state_interface has already been defined"
-
-exception Cp_failed;;
-
-(** Make a sparse copy of the given file, and return the name of the copy. Note that this
-    also succeeds when the source file does not exist, as it's the case with 'fresh' states *)
-let duplicate_file ?(is_path_full=false) ~states_directory path_name  =
-  let name_of_the_copy = make_temporary_file_name () in
-  let command_line =
-    if is_path_full then
-      (Printf.sprintf "if [ -e %s ]; then cp --sparse=always %s %s%s; else true; fi"
-         path_name
-         path_name
-         states_directory
-         name_of_the_copy)
-    else
-      (Printf.sprintf "if [ -e %s%s ]; then cp --sparse=always %s%s %s%s; else true; fi"
-         states_directory
-         path_name
-         states_directory
-         path_name
-         states_directory
-         name_of_the_copy)  in
-  (Log.printf "Making a copy of a cow file: the command line is: %s\n" command_line);
-  try
-    (match Unix.system command_line with
-      (Unix.WEXITED 0) ->
-        name_of_the_copy
-    | _ -> begin
-        raise Cp_failed;
-    end)
-  with Cp_failed -> begin
-    Simple_dialogs.error
-      "This is a serious problem"
-      "The disc is probably full. A disaster is about to happen..."
-      ();
-    Log.printf "To do: react in some reasonable way\n";
-    failwith "cp failed";
-  end
-  | _ -> begin
-      Log.printf "To do: this look harmless.\n";
-      name_of_the_copy;
-  end;;
-
-
-let add_row
-    ~name
-    ?parent (* this is an id, not an iter! *)
-    ~comment
-    ~icon
-    ~toggle
-    ~date
-    ~scenario
-    ~prefixed_filesystem
-    ~file_name
-    () =
-  Log.printf "Adding a row to the filesystem history model... begin\n";
-  let states_interface = get_states_interface () in
-  let row =
-    [ "Name", String name;
-      "Comment", String comment;
-      "Type", Icon icon;
-      "Activation scenario", String scenario;
-      "Timestamp", String date;
-      "Prefixed filesystem", String prefixed_filesystem;
-      "File name", String file_name ] in
-  let result =
-    states_interface#add_row ?parent_row_id:parent row
-  in
+let make ~packing ~after_user_edit_callback () =
+  let result = new t ~packing ~after_user_edit_callback () in
+  The_unique_treeview.set result;
   result
 
-let number_of_states_such_that
-    ?(forest=(get_states_interface ())#get_forest)
-    f =
-  let linearized_forest = Forest.linearize forest in
-  List.length (List.filter f linearized_forest);;
-
-let number_of_states_with_name
-    ?(forest=(get_states_interface ())#get_forest)
-    name =
-  number_of_states_such_that
-   ~forest
-   (fun row -> (lookup_alist "Name" row) = String name);;
-
-let add_device
-  ~name
-  ~prefixed_filesystem
-  ?variant
-  ?variant_realpath
-  ~icon ()
-  =
-  let states_interface = get_states_interface () in
-  (* If we're using a non-clean variant then copy it so that it becomes
-     the first cow file: *)
-  let (file_name, variant_name, comment_suffix) =
-    (match variant, variant_realpath with
-     | None, _ -> (make_fresh_state_file_name (), "", "")
-     | Some variant_name, Some variant_realpath ->
-         let file_name =
-           duplicate_file
-             ~is_path_full:true
-             ~states_directory:states_interface#get_states_directory
-             variant_realpath
-         in (file_name, variant_name, (Printf.sprintf " : variant \"%s\"" variant_name))
-     | Some _, None -> assert false
-     )
-   in
-   Log.printf "Filesystem history.add_device: adding the device %s with variant name=\"%s\"\n" name variant_name;
-   let row_id =
-     add_row
-      ~name
-      ~icon
-      ~comment:(prefixed_filesystem ^ comment_suffix)
-      ~file_name
-      ~prefixed_filesystem
-      ~date:"-"
-      ~scenario:"[no scenario]"
-      ~toggle:false
-      () in
-  states_interface#highlight_row row_id;;
-
-let rename_device old_name new_name =
-  let states_interface = get_states_interface () in
-  let altered_forest =
-    Forest.map
-      (fun row -> if (lookup_alist "Name" row) = String old_name then
-                    bind_or_replace_in_alist "Name" (String new_name) row
-                  else
-                    row)
-      (states_interface#get_forest) in
-  states_interface#set_forest altered_forest;;
-
-let remove_device_tree name =
-  let states_interface = get_states_interface () in
-  Log.printf "Removing the device tree for %s\n" name;
-  (* Remove cow's: *)
-  let rows_to_remove =
-    Forest.nodes_such_that
-      (fun complete_row ->
-        (lookup_alist "Name" complete_row) = String name)
-      (states_interface#get_forest) in
-  List.iter
-    (fun row ->
-      let cow_file_name = item_to_string (lookup_alist "File name" row) in
-      (try Unix.unlink ((states_interface#get_states_directory) ^ "/" ^ cow_file_name) with _ -> ()))
-    rows_to_remove;
-  let filtered_forest =
-    Forest.filter
-      (fun row -> not ((lookup_alist "Name" row) = String name))
-      (states_interface#get_forest) in
-  states_interface#set_forest filtered_forest;;
-
-let get_the_most_recent_state_with_name name =
-  let states_interface = get_states_interface () in
-  states_interface#get_the_most_recent_state_with_name name;;
-
-let add_substate_of parent_file_name =
-  let states_interface = get_states_interface () in
-  let copied_file_name =
-    duplicate_file ~states_directory:states_interface#get_states_directory parent_file_name in
-  let complete_forest = states_interface#get_complete_forest in
-  let row_to_copy_in_a_singleton_list =
-    Forest.linearize
-      (Forest.filter
-         (fun row -> (lookup_alist "File name" row) = String parent_file_name)
-         complete_forest) in
-  assert((List.length row_to_copy_in_a_singleton_list) = 1);
-  let complete_row_to_copy =
-    List.hd row_to_copy_in_a_singleton_list in
-  let parent_row_id_as_item =
-    lookup_alist "_id" complete_row_to_copy in
-  let parent_row_id =
-    match parent_row_id_as_item with String id -> id | _ -> assert false in
-  let sibling_no =
-    List.length (states_interface#children_of parent_row_id) in
-  let parent_row_name =
-    item_to_string (lookup_alist "Name" complete_row_to_copy) in
-  let row_to_copy =
-    states_interface#remove_reserved_fields complete_row_to_copy in
-  Forest.iter
-    (fun row _ ->
-      let a_row_id = lookup_alist "_id" row in
-      let a_row_name = item_to_string (lookup_alist "Name" row) in
-      (if parent_row_name = a_row_name then
-        states_interface#unhighlight_row (item_to_string a_row_id));
-      if a_row_id = parent_row_id_as_item then
-        let new_row_id =
-          add_row
-            ~name:(item_to_string (lookup_alist "Name" row_to_copy))
-            ~icon:(item_to_string (lookup_alist "Type" row_to_copy))
-            ~comment:"[no comment]"
-            ~file_name:copied_file_name
-            ~toggle:false
-            ~parent:parent_row_id
-            ~date:(Timestamp.current_timestamp_as_string ())
-            ~scenario:"[no scenario]"
-            ~prefixed_filesystem:(item_to_string (lookup_alist "Prefixed filesystem" row_to_copy))
-            () in
-        states_interface#highlight_row new_row_id)
-    complete_forest;
-  (* Collapse the new row's parent iff the new row is its first child. This behavior
-     gives the impression that trees 'are born' collapsed (collapsing a leaf has no
-     effect on the children it doesn't yet have), and on the other hand it does not
-     bother the user undoing his/her expansions: *)
-  (if sibling_no = 0 then
-    states_interface#collapse_row parent_row_id);
-  copied_file_name;;
-
-let get_the_most_recent_file_name_with_name name =
-  match lookup_alist "File name" (get_the_most_recent_state_with_name name) with
-    String file_name -> file_name
-  | _ -> assert false;;
-
-let add_state_for_device device_name =
-  let most_recent_file_name =
-    get_the_most_recent_file_name_with_name device_name in
-  add_substate_of most_recent_file_name;;

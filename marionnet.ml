@@ -49,7 +49,7 @@ module Motherboard = Created_window_MARIONNET.Motherboard
  * ***************************************** *)
 (** Make the states interface: *)
 let filesystem_history_interface =
-  Filesystem_history.make_states_interface
+  Treeview_history.make
     ~packing:(st#mainwin#filesystem_history_viewport#add)
     ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
     ()
@@ -66,7 +66,7 @@ let () =
       let node = st#network#get_node_by_name name in
       node#startup)
  in
- Filesystem_history.Startup_functions.set (can_startup, startup)
+ Treeview_history.Startup_functions.set (can_startup, startup)
 
 let shutdown_or_restart_relevant_device device_name =
   Log.printf "Shutdown or restart \"%s\".\n" device_name;
@@ -91,24 +91,24 @@ let after_user_edit_callback x =
     shutdown_or_restart_relevant_device x
   end
  
-(** Make the network details interface: *)
-let network_details_interface =
-  Network_details_interface.make_network_details_interface
-    ~packing:(st#mainwin#network_details_viewport#add)
+(** Make the ifconfig treeview: *)
+let treeview_ifconfig =
+  Treeview_ifconfig.make
+    ~packing:(st#mainwin#ifconfig_viewport#add)
     ~after_user_edit_callback
     ()
 
 (** Make the defects interface: *)
 let defects_interface =
-  Defects_interface.make_defects_interface
+  Treeview_defects.make
     ~packing:(st#mainwin#defects_viewport#add)
     ~after_user_edit_callback
     ()
 
 (** Make the texts interface: *)
 let texts_interface =
-  Texts_interface.make_texts_interface
-    ~packing:(st#mainwin#texts_viewport#add)
+  Treeview_documents.make
+    ~packing:(st#mainwin#documents_viewport#add)
     ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
     ()
 

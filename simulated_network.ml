@@ -18,7 +18,7 @@
 ;;
 INCLUDE DEFINITIONS "simulated_network.mli" ;;
 
-open Defects_interface;;
+open Treeview_defects;;
 open Daemon_language;;
 open X;; (* Not really needed: this works around a problem with OCamlBuild 3.10.0 *)
 open Gettext;;
@@ -750,32 +750,32 @@ let make_ethernet_cable_process
 let ethernet_interface_to_boot_parameters_bindings umid port_index hublet =
 (*   let name = Printf.sprintf "eth_%s_eth%i" umid index in *)
   let port_index_as_string = string_of_int port_index in
-  let details = Network_details_interface.get_network_details_interface () in
+  let ifconfig = Treeview_ifconfig.get () in
   [
    "mac_address_eth"^port_index_as_string,
-   details#get_port_attribute_by_index umid port_index "MAC address";
+   ifconfig#get_port_attribute_by_index umid port_index "MAC address";
    "mtu_eth"^port_index_as_string,
-   details#get_port_attribute_by_index umid port_index "MTU";
+   ifconfig#get_port_attribute_by_index umid port_index "MTU";
    "ipv4_address_eth"^port_index_as_string,
-   details#get_port_attribute_by_index umid port_index "IPv4 address";
+   ifconfig#get_port_attribute_by_index umid port_index "IPv4 address";
    "ipv4_broadcast_eth"^port_index_as_string,
-   details#get_port_attribute_by_index umid port_index "IPv4 broadcast";
+   ifconfig#get_port_attribute_by_index umid port_index "IPv4 broadcast";
    "ipv4_netmask_eth"^port_index_as_string,
-   details#get_port_attribute_by_index umid port_index "IPv4 netmask";
+   ifconfig#get_port_attribute_by_index umid port_index "IPv4 netmask";
    "ipv6_address_eth"^port_index_as_string,
-   details#get_port_attribute_by_index umid port_index "IPv6 address";
+   ifconfig#get_port_attribute_by_index umid port_index "IPv6 address";
 (*   "ipv6_broadcast_eth"^port_index_as_string,
-     details#get_port_attribute_by_index umid port_index "IPv6 broadcast";
+     ifconfig#get_port_attribute_by_index umid port_index "IPv6 broadcast";
      "ipv6_netmask_eth"^port_index_as_string,
-     details#get_port_attribute_by_index umid port_index "IPv6 netmask"; *)
+     ifconfig#get_port_attribute_by_index umid port_index "IPv6 netmask"; *)
   ];;
 
 (** Convert the tuple we use to represent information about an ethernet interface
     into a command line argument for UML *)
 let ethernet_interface_to_uml_command_line_argument umid port_index hublet =
-  let details = Network_details_interface.get_network_details_interface () in
+  let ifconfig = Treeview_ifconfig.get () in
   "eth" ^ (string_of_int port_index) ^ "=daemon," ^
-  (details#get_port_attribute_by_index umid port_index "MAC address") ^
+  (ifconfig#get_port_attribute_by_index umid port_index "MAC address") ^
   ",unix," ^ (hublet#get_socket_name) ^ "/ctl";;
 
 let random_ghost_mac_address () =
@@ -1260,7 +1260,7 @@ object(self)
       Some ethernet_cable_process -> ethernet_cable_process
     | None -> failwith "ethernet_cable: get_ethernet_cable_process was called when there is no such process"
   initializer
-    let defects = get_defects_interface () in
+    let defects = Treeview_defects.get () in
     let name = parent#get_name in
     ethernet_cable_process :=
       Some(new ethernet_cable_process
@@ -1592,32 +1592,21 @@ object(self)
       Task_runner.the_task_runner#schedule
         (fun () -> self#get_xnest_process#spawn(* ; Thread.delay 0.5 *)));
     (* Create internal cable processes connecting the inner layer to the outer layer: *)
-(*     Log.printf "OK-Q 1\n"; flush_all (); *)
     (internal_cable_processes :=
-      let defects = get_defects_interface () in
-      let name = parent#get_name in
+      let get_port_defect = parent#ports_card#get_port_defect_by_index in
       List.map
         (fun (i, inner_hublet_process, outer_hublet_process) ->
-          new ethernet_cable_process
-            ~left_end:inner_hublet_process
-            ~right_end:outer_hublet_process
-            ~rightward_loss:(defects#get_port_attribute_by_index name i InToOut "Loss %")
-            ~rightward_duplication:(defects#get_port_attribute_by_index name i InToOut "Duplication %")
-            ~rightward_flip:(defects#get_port_attribute_by_index name i InToOut "Flipped bits %")
-            ~rightward_min_delay:(defects#get_port_attribute_by_index name i InToOut "Minimum delay (ms)")
-            ~rightward_max_delay:(defects#get_port_attribute_by_index name i InToOut "Maximum delay (ms)")
-            ~leftward_loss:(defects#get_port_attribute_by_index name i OutToIn "Loss %")
-            ~leftward_duplication:(defects#get_port_attribute_by_index name i OutToIn "Duplication %")
-            ~leftward_flip:(defects#get_port_attribute_by_index name i OutToIn "Flipped bits %")
-            ~leftward_min_delay:(defects#get_port_attribute_by_index name i OutToIn "Minimum delay (ms)")
-            ~leftward_max_delay:(defects#get_port_attribute_by_index name i OutToIn "Maximum delay (ms)")
-            ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-            ())
+          make_ethernet_cable_process
+	      ~left_end:inner_hublet_process
+	      ~right_end:outer_hublet_process
+	      ~get_port_defect
+	      ~index:i
+	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
+              ())
         (ListExtra.combine3
            (ListExtra.range 0 (half_hublet_no - 1))
            self#get_inner_hublet_processes
            self#get_outer_hublet_processes));
-(*     Log.printf "OK-Q 3\n"; flush_all (); *)
     (* Spawn internal cables processes and the UML process: *)
     Task_runner.do_in_parallel
       ((fun () -> self#get_uml_process#spawn)
@@ -1625,7 +1614,6 @@ object(self)
        (List.map (* here map returns a list of thunks *)
           (fun internal_cable_process () -> internal_cable_process#spawn)
           !internal_cable_processes));
-(*     Log.printf "OK-Q 4\n"; flush_all (); *)
 
   method private terminate_processes_private ~gracefully  () =
     Log.printf "** Terminating the internal cable processes of %s...\n" parent#get_name;

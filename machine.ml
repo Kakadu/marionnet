@@ -391,7 +391,7 @@ module Eval_forest_child = struct
     | Forest.NonEmpty (("machine", attrs) , childs , Forest.Empty) ->
     	let name  = List.assoc "name" attrs in
 	(* The key "eth" is also tried for backward-compatibility: *)
-	let port_no = int_of_string (ListExtra.find_assoc ["port_no"; "eth"] attrs) in
+	let port_no = int_of_string (ListExtra.Assoc.find_first ["port_no"; "eth"] attrs) in
         Log.printf "Importing machine \"%s\" with %d ethernet cards...\n" name port_no;
 	let x = new User_level.machine ~network ~name ~port_no () in
 	x#from_forest ("machine", attrs) childs;
@@ -440,14 +440,14 @@ class machine
     ()
     as self_as_node_with_defects
 
-  inherit Mariokit.Netmodel.virtual_machine_with_history_and_details
+  inherit Mariokit.Netmodel.virtual_machine_with_history_and_ifconfig
     ~network:network_alias
     ?epithet ?variant ?kernel ?terminal
     ~history_icon:"machine"
-    ~details_device_type:"machine"
+    ~ifconfig_device_type:"machine"
     ~vm_installations
     ()
-    as self_as_virtual_machine_with_history_and_details
+    as self_as_virtual_machine_with_history_and_ifconfig
 
   method polarity = Mariokit.Netmodel.MDI
 
@@ -537,7 +537,7 @@ class machine
     self_as_node_with_defects#gracefully_shutdown_right_now;
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Command_line.are_we_in_exam_mode then begin
-      let texts_interface = Texts_interface.get_texts_interface () in
+      let texts_interface = Treeview_documents.get () in
       Log.printf "Adding the report on %s to the texts interface\n" self#name;
       texts_interface#import_report
         ~machine_or_router_name:self#name
@@ -565,7 +565,7 @@ class machine
 
  method update_machine_with ~name ~label ~memory ~port_no ~kernel ~terminal =
    (* first action: *)
-   self_as_virtual_machine_with_history_and_details#update_virtual_machine_with ~name ~port_no kernel;
+   self_as_virtual_machine_with_history_and_ifconfig#update_virtual_machine_with ~name ~port_no kernel;
    (* then we can set the object property "name" (read by #get_name): *)
    self_as_node_with_defects#update_with ~name ~label ~port_no;
    self#set_memory memory;

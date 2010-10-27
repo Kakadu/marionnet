@@ -1,8 +1,8 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007  Luca Saiu
 
-   Aliases and most comments:
-   Copyright (C) 2007  Jean-Vincent Loddo
+   Some functions, aliases and comments:
+   Copyright (C) 2007-2010  Jean-Vincent Loddo
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -17,19 +17,16 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-(** A purely functional data structure for tree forests. *)
+(** A purely functional data structure for tree forests.
+    For all iterators, the order of visit is always depth-first, left-to-right. *)
 
-(* open PreludeExtra.Prelude;; (\* We want synchronous terminal output *\) *)
-
-
-(** This definition prevents equivalences (each forest as a 
+(** This definition prevents equivalences (each forest as a
     unique representation). *)
 type 'a forest =
   | Empty
   | NonEmpty of 'a           (** first tree root     *) 
              *  ('a forest)  (** first tree subtrees *)
              *  ('a forest)  (** other nodes         *)
-;;
 
 (** Returns the list of the 'a elements belong the forest. 
     The order is depth-first, left-to-right. *)
@@ -38,7 +35,7 @@ let rec linearize (forest:'a forest) : 'a list  =
     Empty ->
       []
   | NonEmpty(root, subtrees, rest) ->
-      root :: (List.append (linearize subtrees) (linearize rest));;
+      root :: (List.append (linearize subtrees) (linearize rest))
 
 (** Append the second forest at the end of the first one. *)
 let rec append forest1 forest2 =
@@ -46,18 +43,21 @@ let rec append forest1 forest2 =
     Empty ->
       forest2
   | NonEmpty(root1, subtrees1, rest1) ->
-      NonEmpty(root1, subtrees1, append rest1 forest2);;
+      NonEmpty(root1, subtrees1, append rest1 forest2)
 
 (** Alias for append *)
-let concat = append;;
+let concat = append
 
 (** Map the function over the 'a elements of the forest. *)
 let rec map f forest =
   match forest with
-    Empty ->
+    Empty -> 
       Empty
   | NonEmpty(root, subtrees, rest) ->
-      NonEmpty(f root, map f subtrees, map f rest)
+      let root = f root in
+      let subtrees = map f subtrees in
+      let rest = map f rest in
+      NonEmpty(root, subtrees, rest)
 
 (** Iterate calling f on all nodes. The order is depth-first, left-to-right.
     f has the node as its first parameter, and its "parent-tree-node-option" as
@@ -67,9 +67,11 @@ let rec iter ?parent (f : 'a -> 'a option -> unit) (forest : 'a forest) =
     Empty ->
       ()
   | NonEmpty(root, subtrees, rest) ->
-      f root parent;
-      iter ~parent:root f subtrees;
-      iter ?parent f rest;;
+      begin
+        f root parent;
+        iter ~parent:root f subtrees;
+        iter ?parent f rest
+      end
 
 (** Bad nodes (which not verify the property p) are cut and orphans lifted up. *)
 let rec filter p forest =
@@ -77,10 +79,12 @@ let rec filter p forest =
     Empty ->
       Empty
   | NonEmpty(root, subtrees, rest) ->
+      let subtrees = filter p subtrees in
+      let rest = filter p rest in
       if p root then
-        NonEmpty(root, filter p subtrees, filter p rest)
+        NonEmpty(root, subtrees, rest)
       else
-        append (filter p subtrees) (filter p rest);;
+        append subtrees rest
 
 (** Return a list of all the nodes in the given forest satisfying the given predicate.
     The order is as usual depth-first, left-to-right. *) 
@@ -89,13 +93,50 @@ let rec nodes_such_that predicate forest =
     Empty ->
       []
   | NonEmpty(root, subtrees, rest) ->
-      if predicate root then
-        root ::
-        ((nodes_such_that predicate subtrees) @
-         (nodes_such_that predicate rest))
-      else
-        (nodes_such_that predicate subtrees) @
-        (nodes_such_that predicate rest);;
+      let switch = predicate root in
+      let subtrees = nodes_such_that predicate subtrees in
+      let rest = nodes_such_that predicate rest in
+      let xs = List.append subtrees rest in
+      if switch then root::xs else xs
+
+(** Return the node in the given forest satisfying the given predicate.
+    The order is as usual depth-first, left-to-right. *)
+let rec search predicate forest =
+  match forest with
+  | Empty -> None
+  | NonEmpty(root, subtrees, rest) ->
+      if predicate root then (Some root) else
+      match (search predicate subtrees) with
+      | None -> search predicate rest
+      | x -> x
+;;
+
+(** Return the node in the given forest satisfying the given predicate.
+    The order is as usual depth-first, left-to-right. Raises [Not_found]
+    if the element is not found. *)
+let find predicate forest =
+  match search predicate forest with
+  | None   -> raise Not_found
+  | Some x -> x
+;;
+
+(** Return the parent of a node satisfying the given predicate.
+    The order is as usual depth-first, left-to-right. *)
+let parent_of_node_such_that predicate forest =
+ let rec loop ?parent forest =
+  match forest with
+  | Empty -> None
+  | NonEmpty (root, subtrees, rest) ->
+      if predicate root then parent else
+      match (loop ~parent:root subtrees) with
+      | None -> loop ?parent rest
+      | x -> x
+ in loop forest
+;;
+
+let parent_of node forest =
+  parent_of_node_such_that ((=) node) forest
+;;
 
 (** Return the first-level nodes (similar to 'find -maxdepth 1'). *)
 let rec forest_to_roots (forest : 'a forest) : 'a list =
@@ -127,7 +168,7 @@ let children_nodes node forest =
   in
   match nodes_such_that (fun a_node -> a_node = node) forest with
   |[] -> failwith "children_nodes: node not existing"
-  | _ -> children_nodes_of_existing_node node forest;;
+  | _ -> children_nodes_of_existing_node node forest
 
 (** Return the root of the single child of the given node. 
     Fail if the node has a number of children different from one. *)
@@ -136,7 +177,7 @@ let child_node node forest =
   if List.length singlet <> 1 then
     failwith "child_node: the node has zero or more than one children"
   else
-    List.hd singlet;;
+    List.hd singlet
 
 (** Return a list of all the descendant nodes of the given node in the given
     forest. The order is depth-first, left-to-right. *)
@@ -200,7 +241,7 @@ let rec add_tree_to_forest_for_each predicate tree_root tree_subtrees forest =
                  add_tree_to_forest_for_each
                    predicate tree_root tree_subtrees subtrees,
                  add_tree_to_forest_for_each
-                   predicate tree_root tree_subtrees rest);;
+                   predicate tree_root tree_subtrees rest)
 
 (** Add the given tree to the given forest, as a new child of the only
     node satisfying the given predicate, or at toplevel if no node satisfies
@@ -218,34 +259,34 @@ let add_tree_to_forest predicate tree_root tree_subtrees forest =
     failwith
       (Printf.sprintf
          "add_tree_to_forest predicate: more than one node (in fact %i) satisfies the predicate"
-         satisfying_nodes_length);;
+         satisfying_nodes_length)
 
 
-(* --- Jean --- facilities for dealing with forests *)
+(* --- Jean --- facilities using forests to encode trees: *)
 
 (** Make a tree with a root element and its childs. *)
-let tree (x:'a) (childs:'a forest) = NonEmpty (x,childs,Empty) ;;
+let tree (x:'a) (childs:'a forest) = NonEmpty (x,childs,Empty)
 
 (** Make a leaf containing the given element. *)
-let leaf (x:'a) = NonEmpty (x,Empty,Empty) ;;
+let leaf (x:'a) = NonEmpty (x,Empty,Empty)
 
 (** Has the forest the form of a tree (i.e. a forest of length 1)? *)
 let is_tree = function
 | NonEmpty (root,childs,Empty) -> true
 | _ -> false
-;;
+
 
 (** Has the forest the form of a leaf? *)
 let is_leaf = function
 | NonEmpty (root,Empty,Empty) -> true
 | _ -> false
-;;
+
 
 (** A forest may be viewed as a list of trees. *)
 let rec to_treelist (forest:'a forest) : ('a forest list) = match forest with
 | Empty -> []
 | NonEmpty (root,childs,rest) -> (NonEmpty (root,childs,Empty))::(to_treelist rest)
-;; 
+
 
 (** A list of forests may be viewed as a single big forest. 
     The forests in the list are simply catenated. *)
@@ -264,9 +305,7 @@ let rec of_treelist (l:'a forest list) = match l with
 | []                              -> Empty
 | (NonEmpty (x,childs,Empty))::l' -> NonEmpty (x,childs, (of_treelist l'))
 | _ -> failwith "of_nodelist" (* A run-time type checking *)
-;;
 
 (** Convert a list of unstructured elements into a forest of leafs. *)
 let of_list (l:'a list) = of_treelist (List.map leaf l)
-;;
 

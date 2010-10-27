@@ -435,8 +435,8 @@ class router
   =
   let vm_installations = Disk.get_router_installations () in
   let network_alias = network in
-  (* The details treeview wants a port 0 configuration at creation time:*)
-  let details_port_row_completions =
+  (* The ifconfig treeview wants a port 0 configuration at creation time:*)
+  let ifconfig_port_row_completions =
      let (ipv4,cidr) = port_0_ip_config in (* the class parameter *)
      let netmask_string = (Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr)) in
      [ ("port0",
@@ -457,15 +457,15 @@ class router
     ()
     as self_as_node_with_ledgrid_and_defects
 
-  inherit Mariokit.Netmodel.virtual_machine_with_history_and_details
+  inherit Mariokit.Netmodel.virtual_machine_with_history_and_ifconfig
     ~network:network_alias
     ?epithet ?variant ?kernel ?terminal
     ~history_icon:"router"
-    ~details_device_type:"router"
-    ~details_port_row_completions
+    ~ifconfig_device_type:"router"
+    ~ifconfig_port_row_completions
     ~vm_installations
     ()
-    as self_as_virtual_machine_with_history_and_details
+    as self_as_virtual_machine_with_history_and_ifconfig
 
   method polarity = Mariokit.Netmodel.MDI
 
@@ -521,7 +521,7 @@ class router
     Log.printf "Ok, we're still alive\n";
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Command_line.are_we_in_exam_mode then begin
-      let texts_interface = Texts_interface.get_texts_interface () in
+      let texts_interface = Treeview_documents.get () in
       Log.printf "Adding the report on %s to the texts interface\n" self#name;
       texts_interface#import_report
 	~machine_or_router_name:self#name
@@ -566,38 +566,38 @@ class router
   | ("port_no"  , x ) -> self#set_port_no  (int_of_string x)
   | _ -> () (* Forward-comp. *)
 
- method private get_assoc_list_from_details ~key =
+ method private get_assoc_list_from_ifconfig ~key =
    List.map
-     (fun i -> (i,network#details#get_port_attribute_by_index self#get_name i key))
+     (fun i -> (i,network#ifconfig#get_port_attribute_by_index self#get_name i key))
      (ListExtra.range 0 (self#get_port_no - 1))
 
- method get_mac_addresses  = self#get_assoc_list_from_details ~key:"MAC address"
- method get_ipv4_addresses = self#get_assoc_list_from_details ~key:"IPv4 address"
+ method get_mac_addresses  = self#get_assoc_list_from_ifconfig ~key:"MAC address"
+ method get_ipv4_addresses = self#get_assoc_list_from_ifconfig ~key:"IPv4 address"
 (* other: "MTU", "IPv4 netmask", "IPv4 broadcast", "IPv6 address" *)
 
  method get_port_0_ip_config =
   let name = self#get_name in
   let ipv4 =
     Ipv4.ipv4_of_string
-      (network#details#get_port_attribute_by_index
+      (network#ifconfig#get_port_attribute_by_index
          name 0 "IPv4 address")
   in
   let (_,cidr) =
     Ipv4.netmask_with_cidr_of_string
-      (network#details#get_port_attribute_by_index
+      (network#ifconfig#get_port_attribute_by_index
          name 0 "IPv4 netmask")
   in
   (ipv4,cidr)
 
 
  method set_port_0_ipv4_address (ipv4:Ipv4.ipv4) =
-   network#details#set_port_string_attribute_by_index
+   network#ifconfig#set_port_string_attribute_by_index
      self#get_name 0 "IPv4 address"
      (Ipv4.string_of_ipv4 ipv4);
 
  method set_port_0_ipv4_netmask_by_cidr cidr =
    let netmask_as_string = Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr) in
-   network#details#set_port_string_attribute_by_index
+   network#ifconfig#set_port_string_attribute_by_index
      self#get_name 0 "IPv4 netmask"
      netmask_as_string
 
@@ -608,7 +608,7 @@ class router
 
  method update_router_with ~name ~label ~port_0_ip_config ~port_no ~kernel ~show_unix_terminal =
    (* first action: *)
-   self_as_virtual_machine_with_history_and_details#update_virtual_machine_with ~name ~port_no kernel;
+   self_as_virtual_machine_with_history_and_ifconfig#update_virtual_machine_with ~name ~port_no kernel;
    (* then we can set the object property "name" (read by #get_name): *)
    self_as_node_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
    self#set_port_0_ip_config port_0_ip_config;

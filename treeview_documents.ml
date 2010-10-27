@@ -21,17 +21,16 @@
      calls, and some other minor changes
  *)
 
-open Treeview;;
 open Row_item;;
 open Gettext;;
 
-class texts_interface =
+class t =
 fun ~packing
     ~after_user_edit_callback
     () ->
 object(self)
   inherit
-    treeview
+    Treeview.t
       ~packing
       ~hide_reserved_fields:true
       ()
@@ -245,7 +244,6 @@ object(self)
 
     (* Setup the contextual menu: *)
     self#set_contextual_menu_title "Texts operations";
-    let get = Sugar.raise_when_none in (* just a convenient alias *)
     self#add_menu_item
       (s_ "Import a document")
       (fun _ -> true)
@@ -254,17 +252,17 @@ object(self)
 
     self#add_menu_item
       (s_ "Display this document")
-      Sugar.is_some
+      Option.to_bool
       (fun selected_rowid_if_any ->
-        let row_id = get selected_rowid_if_any in
+        let row_id = Option.extract selected_rowid_if_any in
         self#display row_id);
     self#set_double_click_on_row_callback (fun row_id -> self#display row_id);
 
     self#add_menu_item
       (s_ "Remove this document")
-      Sugar.is_some
+      Option.to_bool
       (fun selected_rowid_if_any ->
-        let row_id = get selected_rowid_if_any in
+        let row_id = Option.extract selected_rowid_if_any in
         let file_name = item_to_string (self#get_row_item row_id "FileName") in
         let pathname = Printf.sprintf "%s/%s" self#get_working_directory file_name in
         UnixExtra.apply_ignoring_Unix_error Unix.unlink pathname;
@@ -276,16 +274,12 @@ object(self)
 
 end;;
 
-(** Ugly kludge to make a single global instance visible from all modules
-    linked *after* this one. Not having mutually-recursive inter-compilation-unit
-    modules is a real pain. *)
-let the_texts_interface =
-  ref None;;
-let get_texts_interface () =
-  match !the_texts_interface with
-    None -> failwith "No texts interface exists"
-  | Some the_texts_interface -> the_texts_interface;;
-let make_texts_interface ~packing ~after_user_edit_callback () =
-  let result = new texts_interface ~packing ~after_user_edit_callback () in
-  the_texts_interface := Some result;
-  result;;
+class treeview = t
+module The_unique_treeview = Stateful_modules.Variable (struct type t = treeview end)
+let get = The_unique_treeview.get
+
+let make ~packing ~after_user_edit_callback () =
+  let result = new t ~packing ~after_user_edit_callback () in
+  The_unique_treeview.set result;
+  result
+;;

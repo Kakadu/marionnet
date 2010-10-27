@@ -30,7 +30,7 @@ To do:
 
 + The gateway tap name is now randomly chosen.
 
-+ Defects_interface, Network_details_interface: minor refactoring
++ Treeview_defects, Treeview_ifconfig: minor refactoring
 
 + Exam mode: reports importing is now supported also for routers.
 

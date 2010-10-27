@@ -21,6 +21,7 @@
 open Forest;;
 open Row_item;;
 open Gettext;;
+module Assoc = ListExtra.Assoc;;
 
 let highlight_foreground_color = "White";;
 
@@ -53,61 +54,6 @@ type column_type =
     avoiding potentially helpful type checks here, but here flexibility is more
     important *)
 type row = (string * row_item) list;;
-
-let lookup_alist name alist =
-  let filtered_alist = List.filter (fun (name_, value) -> name = name_) alist in
-  let filtered_alist_length = List.length filtered_alist in
-  if filtered_alist_length = 1 then
-    snd (List.hd filtered_alist)
-  else if filtered_alist_length = 0 then
-    failwith (Printf.sprintf "lookup_alist: no match for %s" name)
-  else
-    failwith ("lookup_alist: "^(string_of_int filtered_alist_length)^" matches");;
-
-let is_bound_in_alist name alist =
-  let filtered_alist = List.filter (fun (name_, value) -> name = name_) alist in
-  let filtered_alist_length = List.length filtered_alist in
-  if filtered_alist_length = 1 then
-    true
-  else if filtered_alist_length = 0 then
-    false
-  else
-    failwith ("is_bound_in_alist: "^(string_of_int filtered_alist_length)^" matches");;
-
-(** This succeeds also when name is not bound in alist *)
-(*let remove_from_alist name alist =
-  let alist_length = List.length alist in
-  let filtered_alist = List.filter (fun (name_, value) -> not (name = name_)) alist in
-  let filtered_alist_length = List.length filtered_alist in
-  let removed_element_no = alist_length - filtered_alist_length in
-  if removed_element_no <= 1 then
-    filtered_alist
-  else
-    failwith ("remove_from_alist: "^name^" was bound "^(string_of_int removed_element_no)^"times");;*)
-let rec remove_from_alist name alist =
-  match alist with
-  | [] ->
-      []
-  | (a_name, a_value) :: rest when a_name = name ->
-      rest
-  | pair :: rest ->
-      pair :: (remove_from_alist name rest);;
-
-(** This succeeds also when name is not bound in alist *)
-let bind_or_replace_in_alist name value alist =
-  let alist_length = List.length alist in
-  let filtered_alist = List.filter (fun (name_, value) -> not (name = name_)) alist in
-  let filtered_alist_length = List.length filtered_alist in
-  let removed_element_no = alist_length - filtered_alist_length in
-  if removed_element_no <= 1 then
-    (name, value) :: filtered_alist
-  else
-    failwith ("bind_or_replace_in_alist: "^name^" was bound "^(string_of_int removed_element_no)^"times");;
-
-(** {b To do: Jean, do you know of any general-purpose facility for deep-copying? (here
-    copying the cons structure is enough, but this may not always be the case)} *)
-let rec clone_alist alist =
-  List.rev (List.rev alist);;
 
 type row_id = int;;
 
@@ -219,7 +165,7 @@ fun ~treeview
        (if not initialize then begin
           let current_row =
             treeview#get_complete_row row_id in
-          let new_row = bind_or_replace_in_alist self#header item current_row in
+          let new_row = Assoc.add self#header item current_row in
             (if not ignore_constraints then
                treeview#check_constraints new_row);
             (* Ok, if we arrived here then no constraint is violated by the update. *)
@@ -353,7 +299,7 @@ fun ~treeview
   method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id (item : row_item) =
     (if not initialize then begin
        let current_row = treeview#get_complete_row row_id in
-       let new_row = bind_or_replace_in_alist self#header item current_row in
+       let new_row = Assoc.add self#header item current_row in
          (if not ignore_constraints then
             treeview#check_constraints new_row);
          (* Ok, if we arrived here then no constraint is violated by the update. *)
@@ -501,7 +447,7 @@ object(self)
   method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id (item : row_item) =
     (if not initialize then begin
        let current_row = treeview#get_complete_row row_id in
-       let new_row = bind_or_replace_in_alist self#header item current_row in
+       let new_row = Assoc.add self#header item current_row in
          (if not ignore_constraints then
             treeview#check_constraints new_row);
          (* Ok, if we arrived here then no constraint is violated by the update. *)
@@ -525,9 +471,9 @@ end;;
 exception RowConstraintViolated of (* constraint name*)string;;
 exception ColumnConstraintViolated of (* column header *)string;;
 
-class treeview = fun
+class t = fun
   ~packing
-  ?hide_reserved_fields:(hide_reserved_fields=true)
+  ?(hide_reserved_fields=true)
   () ->
 let gtree_column_list = new GTree.column_list in
 let vbox =
@@ -578,7 +524,7 @@ object(self)
     try
       ((Hashtbl.find get_column header) :> column)
     with e -> begin
-      Log.printf "treeview: get_column: failed in looking for column \"%s\" (%s)\n" header (Printexc.to_string e); flush_all ();
+      Log.printf "treeview: get_column: failed in looking for column \"%s\" (%s)\n" header (Printexc.to_string e);
       raise e; (* re-raise *)
     end
 
@@ -823,7 +769,7 @@ object(self)
     ((Obj.magic (self#add_column (column :> column))) :> icon_column)
 
   method private bind_or_replace_in_row column_name column_value row =
-    bind_or_replace_in_alist column_name column_value row
+    Assoc.add column_name column_value row
 
   (* Add non-specified columns with default values. If any constraint is violated raise
      an exception *)
@@ -831,7 +777,7 @@ object(self)
     let unspecified_columns =
       List.filter
         (fun column ->
-          not (is_bound_in_alist column#header row))
+          not (Assoc.mem column#header row))
         self#columns in
     let unspecified_alist =
       List.map
@@ -843,14 +789,17 @@ object(self)
       self#check_constraints complete_row);
     complete_row
 
+  method id_of_complete_row row =
+    match Assoc.find "_id" row with
+    | String row_id -> row_id
+    | _ -> assert false
+
   method private forest_to_id_forest (forest : row forest) =
     match forest with
     | Empty ->
         Empty
     | NonEmpty(row, subtrees, rest) ->
-        let id = (match lookup_alist "_id" row with
-                    String row_id -> row_id
-                   | _ -> assert false) in
+        let id = self#id_of_complete_row row in
         NonEmpty(id,
                  self#forest_to_id_forest subtrees,
                  self#forest_to_id_forest rest)
@@ -860,15 +809,14 @@ object(self)
     | Empty ->
         []
     | NonEmpty(row, subtrees, rest) ->
-        let id = (match lookup_alist "_id" row with
-                    String row_id -> row_id
-                   | _ -> assert false) in
+        let id = self#id_of_complete_row row in
         let row = if call_complete_row then
                     self#complete_row ~ignore_constraints:true row
                   else
-                    row in
+                    row
+        in
         (* Make the row *start* with the id: *)
-        let row = ("_id", (String id)) :: (remove_from_alist "_id" row) in
+        let row = ("_id", (String id)) :: (Assoc.remove "_id" row) in
         (id, row) ::
         (self#forest_to_row_list ~call_complete_row subtrees) @
         (self#forest_to_row_list ~call_complete_row rest)
@@ -883,11 +831,8 @@ object(self)
     (* Be sure that we set the _id as the *first* column, so that we can make searches by
        id even when setting all the other columns [To do: this may not be needed
        anymore. --L.]: *)
-    let row_id =
-      match lookup_alist "_id" row with
-        String row_id -> row_id
-      | _ -> assert false in
-    let row = ("_id", (String row_id)) :: (remove_from_alist "_id" row) in
+    let row_id = self#id_of_complete_row row in
+    let row = ("_id", (String row_id)) :: (Assoc.remove "_id" row) in
     let store = self#store in
     let parent_iter_option =
       match parent_row_id with
@@ -950,10 +895,7 @@ object(self)
     let row = self#complete_row row in
     self#add_complete_row_with_no_checking ?parent_row_id row;
     (* Get the row id: *)
-    let row_id =
-      match lookup_alist "_id" row with
-        String row_id -> row_id
-      | _ -> assert false in
+    let row_id = self#id_of_complete_row row in
     (* A just-added row should be collapsed by default *)
     self#collapse_row row_id;
     (* Return the row id. This is important for the caller: *)
@@ -1024,9 +966,10 @@ object(self)
               (if not (column_header = "_id") then
                  column#set row_id ~initialize:true ~row_iter:new_row_iter ~ignore_constraints:true datum);
             with e -> begin
-              Log.printf "  - WARNING: error (I guess the problem is an unknown column) %s (%s)\n"
-                         column_header
-                         (Printexc.to_string e); flush_all ();
+              Log.printf
+                "WARNING: error (I guess the problem is an unknown column) %s (%s)\n"
+                column_header
+                (Printexc.to_string e);
             end)
           row;)
       new_id_forest;
@@ -1090,11 +1033,11 @@ object(self)
     self#remove_reserved_fields (self#get_complete_row row_id)
 
   method get_row_item row_id column_header =
-    lookup_alist column_header (self#get_complete_row row_id)
+    Assoc.find column_header (self#get_complete_row row_id)
 
   method row_exists_with_binding ~(key:string) ~(value:string) =
    try
-    ignore (self#row_id_such_that (fun row -> (lookup_alist key row) = String value));
+    ignore (self#row_id_such_that (fun row -> (Assoc.find key row) = String value));
     true
    with _ -> false
 
@@ -1108,8 +1051,8 @@ object(self)
     let updated_complete_forest =
       Forest.map
         (fun complete_row ->
-          if (lookup_alist "_id" complete_row) = String row_id then
-            bind_or_replace_in_alist column_header new_item complete_row
+          if (self#id_of_complete_row complete_row) = row_id then
+            Assoc.add column_header new_item complete_row
           else
             complete_row)
         complete_forest in
@@ -1149,37 +1092,17 @@ object(self)
        (fun row parent_tree ->
          let parent_row_id =
            match parent_tree with
-             None ->
-               None
-           | Some node->
-               (match lookup_alist "_id" node with
-                  String id -> Some id
-                | _ -> assert false) in
+           | None -> None
+           | Some node-> Some (self#id_of_complete_row node)
+         in
          self#add_complete_row_with_no_checking ?parent_row_id row)
        updated_content_forest;
-     (* Parent rows were expanded at child-creation time, but we also
-        want to restore the 'expandedness' of every row, so we have to
-        first collapse everything and then re-expand exactly what we
-        need: *)
-(*      self#collapse_everything; *)
-(*      Log.printf "The current forest is:\n"; *)
-(*      print_forest !id_forest Log.print_string; *)
-(*      Log.printf "Ok, that was the current forest.\n"; *)
-(*      List.iter *)
-(*        (fun row_id -> Log.printf "About to expand row %s\n" row_id; *)
-(*                       self#expand_row row_id) *)
-(*        (List.rev updated_expanded_row_ids_as_list); *)
 
   method remove_subtree (row_id : string) =
     let row_iter = self#id_to_iter row_id in
     (* First find out which rows we have to remove: *)
     let ids_of_the_rows_to_be_removed =
       row_id :: (descendant_nodes row_id !id_forest) in
-(*     Log.printf "The rows to remove are:\n"; flush_all (); *)
-(*     List.iter *)
-(*       (fun row_id -> Log.printf "%s " row_id) *)
-(*       ids_of_the_rows_to_be_removed; *)
-(*     Log.printf "\nOk, those were the rows to remove.\n"; flush_all (); *)
     (* Ok, now update id_forest, id_to_row and expanded_row_ids: *)
     List.iter
       (fun row_id ->
@@ -1194,12 +1117,8 @@ object(self)
          Hashtbl.remove id_to_row row_id;
          Hashtbl.remove expanded_row_ids row_id)
       ids_of_the_rows_to_be_removed;
-    (* Finally remove the row, together with its subtrees, from the Gtk+
-       tree model: *)
+    (* Finally remove the row, together with its subtrees, from the Gtk+ tree model: *)
     ignore (self#store#remove row_iter);
-(*     Log.printf "The new forest is:\n"; *)
-(*     print_forest !id_forest Log.print_string; *)
-(*     Log.printf "Ok, that was the new forest.\n"; *)
 
   method clear =
 (*     Log.printf "Clearing a treeview\n"; flush_all (); *)
@@ -1280,24 +1199,24 @@ object(self)
   (* Return a list of row_ids such that the complete rows they identify enjoy the
      given property *)
   method row_ids_such_that predicate =
-    let filtered_rows =
+    let row_list =
       List.filter
         predicate
-        (Forest.linearize self#get_complete_forest) in
-    List.map
-      (fun complete_row ->
-        item_to_string (lookup_alist "_id" complete_row))
-      filtered_rows
+        (Forest.linearize self#get_complete_forest)
+    in
+    List.map self#id_of_complete_row row_list
 
   method rows_such_that predicate =
     List.map self#get_row (self#row_ids_such_that predicate)
 
   method row_such_that predicate =
-    Log.printf "treeview: row_such_that: begin\n";
-    let result =
-    self#get_row (self#row_id_such_that predicate) in
-    Log.printf "treeview: row_such_that: end (success)\n";
-    result
+    self#get_row (self#row_id_such_that predicate)
+
+  method complete_rows_such_that predicate =
+    List.map self#get_complete_row (self#row_ids_such_that predicate)
+
+  method complete_row_such_that predicate =
+    self#get_complete_row (self#row_id_such_that predicate)
 
   (** Return the row_id of the only row satisfying the given predicate. Fail if more
       than one such row exist: *)
@@ -1311,16 +1230,7 @@ object(self)
 
   (** Return an option containing the the row_id of the parent row, if any. *)
   method parent_of row_id =
-    let parent_of_row_id = ref None in
-    Forest.iter
-      (fun a_row_id its_parent_id_if_any ->
-        if a_row_id = row_id then
-          parent_of_row_id := its_parent_id_if_any)
-      !id_forest;
-    (match !parent_of_row_id with
-      Some parent_id -> Log.printf "The parent of row %s is %s\n" row_id parent_id; flush_all ()
-    | None -> Log.printf "Row %s has no parent\n" row_id; flush_all ());
-    !parent_of_row_id
+   Forest.parent_of row_id !id_forest
 
   method children_of row_id =
     Forest.children_nodes row_id !id_forest
@@ -1389,3 +1299,92 @@ object(self)
         self#collapse_everything);
     self#add_separator_menu_item;
 end;;
+
+class virtual treeview_with_a_Name_column = fun
+  ~packing
+  ?hide_reserved_fields
+  () ->
+ let row_name_is name =
+   (fun row -> (Assoc.find "Name" row) = String name)
+ in
+ object(self)
+  inherit t ~packing ?hide_reserved_fields () 
+
+  method rename old_name new_name =
+    let row_id = self#row_id_of_name old_name in
+    self#set_row_item row_id "Name" (String new_name)
+
+  method row_id_of_name name  = self#row_id_such_that  (row_name_is name)
+  method row_ids_of_name name = self#row_ids_such_that (row_name_is name)
+  method row_of_name name     = self#row_such_that     (row_name_is name)
+  method rows_of_name name    = self#rows_such_that    (row_name_is name)
+
+  method name_of_row_id row_id =
+    item_to_string (self#get_row_item row_id "Name")
+
+  method name_of_row row =
+    match Assoc.find "Name" row with
+    | String name -> name
+    | _ -> assert false
+
+  method parent_name_of row_id =
+    let parent_row_id = Option.extract (self#parent_of row_id) in
+    self#name_of_row_id parent_row_id
+
+  method grandparent_name_of row_id =
+    let parent_row_id = Option.extract (self#parent_of row_id) in
+    let grandparent_row_id = Option.extract (self#parent_of parent_row_id) in
+    self#name_of_row_id grandparent_row_id
+
+  method children_no row_id =
+    let row_ids = self#children_of row_id in
+    List.length row_ids
+
+  method children_no_of ~parent_name =
+    let row_id = self#row_id_of_name parent_name in
+    self#children_no row_id
+
+  (** Do nothing if there is no such name. *)
+  method remove_subtree_by_name name =
+    try
+      let row_id = self#row_id_of_name name in
+      self#remove_subtree row_id;
+    with _ -> ()
+
+  method update_children_no ~(add_child_of:string -> unit) ~parent_name new_children_no =
+    let row_id = self#row_id_of_name parent_name in
+    let row_ids = self#children_of row_id in
+    let old_children_no = List.length row_ids in
+    let delta = new_children_no - old_children_no in
+    if delta >= 0 then
+      for i = old_children_no + 1 to new_children_no do
+        add_child_of parent_name
+      done
+    else begin
+      let reversed_row_ids = List.rev row_ids in
+      List.iter self#remove_row (ListExtra.head ~n:(-(delta)) reversed_row_ids);
+    end;
+
+  method get_complete_row_of_child ~parent_name ~child_name =
+    let row_id = self#row_id_of_name parent_name in
+    let row_ids = self#children_of row_id in
+    let filtered_data =
+      List.filter
+        (fun row -> Assoc.find "Name" row = String child_name)
+        (List.map self#get_complete_row row_ids)
+    in
+    assert((List.length filtered_data) = 1);
+    List.hd filtered_data
+
+  method get_row_of_child ~parent_name ~child_name =
+    self#remove_reserved_fields (self#get_complete_row_of_child ~parent_name ~child_name)
+
+  initializer
+    let _ =
+      self#add_string_column
+        ~header:"Name"
+        ~shown_header:(s_ "Name")
+        ()
+     in ()
+
+ end

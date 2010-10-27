@@ -260,8 +260,8 @@ val make_ethernet_cable_process :
   ?right_blink_command:string option ->
   get_port_defect:(
      int ->
-     Defects_interface.port_direction ->
-     Defects_interface.column_header  -> float
+     Treeview_defects.port_direction ->
+     Treeview_defects.column_header  -> float
      ) ->
   index:int ->
   unexpected_death_callback:(int -> process_name -> unit) ->
@@ -324,7 +324,7 @@ exception CantGoFromStateToState of device_state * device_state
 type user_level_parent = <
  get_name : string;
  ports_card : <
-    get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+    get_port_defect_by_index : int -> Treeview_defects.port_direction -> string -> float;
     >
  >
 
@@ -399,7 +399,7 @@ class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_pro
     constraint 'parent = <
       get_name : string;
       ports_card : <
-        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+        get_port_defect_by_index : int -> Treeview_defects.port_direction -> string -> float;
         .. >;
       .. >
     method continue_processes : unit
@@ -435,7 +435,7 @@ class virtual ['parent] hub_or_switch :
     constraint 'parent = <
       get_name : string;
       ports_card : <
-        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
+        get_port_defect_by_index : int -> Treeview_defects.port_direction -> string -> float;
         .. >;
       .. >
     method continue_processes : unit
@@ -479,9 +479,9 @@ class virtual ['parent] machine_or_router :
   object
     constraint 'parent = <
       get_name : string;
-(*      ports_card : <
-        get_port_defect_by_index : int -> Defects_interface.port_direction -> string -> float;
-        .. >;*)
+      ports_card : <
+        get_port_defect_by_index : int -> Treeview_defects.port_direction -> string -> float;
+        .. >;
       .. >
     method continue_processes : unit
     method destroy : unit

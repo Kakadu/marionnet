@@ -23,8 +23,8 @@ Daemon_client
 Daemon_language
 Daemon_parameters
 Death_monitor
-Defects_interface
-Filesystem_history
+Treeview_defects
+Treeview_history
 Forest
 Global_options
 Graph
@@ -37,7 +37,7 @@ Marionnet
 Marionnet-daemon
 Message_passing
 Meta
-Network_details_interface
+Treeview_ifconfig
 Print_forest_frontend
 Print_treeview
 Progress_bar
@@ -50,7 +50,7 @@ State
 Strings
 Talking
 Task_runner
-Texts_interface
+Treeview_documents
 Timestamp
 Treeview
 X

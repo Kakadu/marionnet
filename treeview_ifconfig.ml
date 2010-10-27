@@ -1,5 +1,6 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007, 2008  Luca Saiu
+   Copyright (C) 2010  Jean-Vincent Loddo
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -14,35 +15,23 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Treeview;;
-open ListExtra;;
-open Sugar;;
 open Row_item;;
 open Gettext;;
+module Assoc = ListExtra.Assoc;;
 
 type port_row_completions = (string * (string * Row_item.row_item) list) list
 
-(* To do: move this into EXTRA/ *)
-let rec take n xs =
-  if n = 0 then
-    []
-  else
-    match xs with
-      [] -> failwith "take: n is greater than the list length"
-    | x :: rest -> x :: (take (n - 1) rest);;
-
-class network_details_interface =
+class t =
 fun ~packing
     ~after_user_edit_callback
     () ->
 object(self)
   inherit
-    treeview
+    Treeview.treeview_with_a_Name_column
       ~packing
       ~hide_reserved_fields:true
       ()
   as super
-
 
   method private currently_used_mac_addresses : string list =
     let xs = List.flatten (Forest.linearize self#get_forest) in
@@ -126,35 +115,16 @@ object(self)
           "IPv4 netmask", String "";
           "IPv4 broadcast", String "";
           "IPv6 address", String "";
-(*          "IPv6 netmask", String "";
-          "IPv6 broadcast", String ""; *) ] in
+         ]
+    in
     self#update_port_no ?port_row_completions device_name port_no;
     self#collapse_row row_id;
 
-  (** Do nothing if there is no such device. *)
-  method remove_device device_name =
-    try
-      let device_row_id =
-        self#device_row_id device_name in
-      self#remove_subtree device_row_id;
-    with _ ->
-      ()
-
-  method private device_row_id device_name =
-    let result =
-    self#row_id_such_that (fun row -> (lookup_alist "Name" row) = String device_name) in
-    result
-
-  method port_no_of device_name =
-    let device_row_id =
-      self#device_row_id device_name in
-    let port_row_ids =
-      Forest.children_nodes device_row_id !id_forest in
-    List.length port_row_ids
+  method port_no_of ~device_name =
+    self#children_no_of ~parent_name:device_name
 
   method private add_port ?port_row_completions device_name =
-    let device_row_id =
-      self#device_row_id device_name in
+    let device_row_id = self#row_id_of_name device_name in 
     let current_port_no =
       self#port_no_of device_name in
     let port_type =
@@ -183,26 +153,8 @@ object(self)
     ignore (self#add_row ~parent_row_id:device_row_id port_row)
 
   method update_port_no ?port_row_completions device_name new_port_no =
-    let device_row_id =
-      self#device_row_id device_name in
-    let port_row_ids =
-      Forest.children_nodes device_row_id !id_forest in
-    let old_port_no =
-      self#port_no_of device_name in
-    let ports_delta = new_port_no - old_port_no in
-    if ports_delta >= 0 then
-      for i = old_port_no + 1 to new_port_no do
-        self#add_port ?port_row_completions device_name
-      done
-    else begin
-      let reversed_port_row_ids = List.rev port_row_ids in
-      List.iter self#remove_row (take (- ports_delta) reversed_port_row_ids);
-    end;
-
-  method rename_device old_name new_name =
-    let device_row_id =
-      self#device_row_id old_name in
-    self#set_row_item device_row_id "Name" (String new_name);
+    let add_child_of = self#add_port ?port_row_completions in
+    self#update_children_no ~add_child_of ~parent_name:device_name new_port_no
 
   (* To do: these validation methods suck. *)
   method private is_a_valid_mac_address address =
@@ -215,7 +167,7 @@ object(self)
     with _ ->
       false
 
-  (* FIX IT: the validity depends on the ip and netmask (broadcast must belong the network addresses range). *)
+  (* TODO: FIX IT: the validity depends on the ip and netmask (broadcast must belong the network addresses range). *)
   method private is_a_valid_ipv4_broadcast x =
 (*    self#is_a_valid_ipv4_address x*)
    Ipv4.String.is_valid_ipv4 x
@@ -244,59 +196,47 @@ object(self)
     with _ ->
       false
 
-  (** Return all the non-reserved data of a given port, in our usual
-      <name, item> alist format: *)
   method get_port_data device_name port_name =
-(*     Log.printf "network_details: get_port_data\n"; flush_all (); *)
-    let device_row_id = self#device_row_id device_name in
-    let device_port_ids = self#children_of device_row_id in
-    let filtered_port_data =
-      List.filter
-        (fun row -> lookup_alist "Name" row = String port_name)
-        (List.map self#get_row device_port_ids) in
-(*     Log.printf "get_port_data: %s %s (length is %i)\n" device_name port_name (List.length filtered_port_data); flush_all (); *)
-    assert((List.length filtered_port_data) = 1);
-    List.hd filtered_port_data
+    self#get_row_of_child ~parent_name:device_name ~child_name:port_name
 
   (** Return all the non-reserved data of a given port *index* (for example
       2 stands for "eth2" or "port2", in our usual <name, item> alist
       format: *)
+  (* TODO: remove it *)    
   method get_port_data_by_index device_name port_index =
     (* First try with the "eth" prefix: *)
     let port_name = Printf.sprintf "eth%i" port_index in
     try
       self#get_port_data device_name port_name
     with _ ->
-      (* We failed. Ok, now try with the "port" prefix, before bailing
-         out: *)
+      (* We failed. Ok, now try with the "port" prefix, before bailing out: *)
       let port_name = Printf.sprintf "port%i" port_index in
       self#get_port_data device_name port_name
 
   (** Return a single port attribute as an item: *)
   method get_port_attribute device_name port_name column_header =
-(*     Log.printf "network_details: get_port_attribute\n"; flush_all (); *)
-    item_to_string (lookup_alist column_header (self#get_port_data device_name port_name))
+    item_to_string (Assoc.find column_header (self#get_port_data device_name port_name))
 
   (** Return a single port attribute as an item: *)
+  (* TODO: remove it and remove also get_port_data_by_index *)
   method get_port_attribute_by_index device_name port_index column_header =
-(*     Log.printf "network_details: get_port_attribute_by_index\n"; flush_all (); *)
-    item_to_string (lookup_alist column_header (self#get_port_data_by_index device_name port_index))
+    item_to_string (Assoc.find column_header (self#get_port_data_by_index device_name port_index))
 
   (** Update a single port attribute: *)
   method set_port_attribute_by_index device_name port_index column_header value =
-    let device_row_id = self#device_row_id device_name in
+    let device_row_id = self#row_id_of_name device_name in
     let device_port_ids = self#children_of device_row_id in
     let port_name = Printf.sprintf "port%i" port_index in
     let filtered_port_data =
       List.filter
-        (fun row -> lookup_alist "Name" row = String port_name)
+        (fun row -> Assoc.find "Name" row = String port_name)
         (List.map self#get_complete_row device_port_ids) in
     let current_row =
       match filtered_port_data with
         | [ complete_row ] -> complete_row
         | _ -> assert false (* either zero or more than one row matched *) in
     let row_id =
-      match lookup_alist "_id" current_row with
+      match Assoc.find "_id" current_row with
         String row_id -> row_id
       | _ -> assert false in
     self#set_row_item row_id column_header value
@@ -335,31 +275,12 @@ object(self)
     next_ipv4_address_as_int := the_next_ipv4_address_as_int;
     next_ipv6_address_as_int := the_next_ipv6_address_as_int
 
-  method private relevant_device_name_for_row_id row_id =
-    let id_forest = self#get_id_forest in
-    let devices_row_id =
-      Forest.nodes_such_that
-        (fun a_row_id ->
-          List.mem
-            row_id
-            (try Forest.children_nodes a_row_id id_forest with _ -> []))
-        id_forest in
-    assert (List.length devices_row_id = 1);
-    let device_row_id = List.hd devices_row_id in
-    item_to_string (self#get_row_item device_row_id "Name")
-
   initializer
     let _ =
       self#add_checkbox_column
         ~header:"_uneditable"
         ~hidden:true
         ~default:(fun () -> CheckBox false)
-        () in
-    let _ =
-      self#add_string_column
-        ~header:"Name"
-        ~shown_header:(s_ "Name")
-        ~italic:true
         () in
     let _ =
       self#add_icon_column
@@ -441,7 +362,7 @@ object(self)
   self#add_row_constraint
     ~name:(s_ "you should choose a port to define this parameter")
     (fun row ->
-      let uneditable = item_to_bool (lookup_alist "_uneditable" row) in
+      let uneditable = item_to_bool (Assoc.find "_uneditable" row) in
       (not uneditable) or
       (List.for_all (fun (name, value) ->
                        name = "Name" or
@@ -454,35 +375,36 @@ object(self)
   self#add_row_constraint
     ~name:(s_ "the router first port must always have a valid configuration address")
     (fun row ->
-      let port_name = item_to_string (lookup_alist "Name" row) in
-      let port_type = item_to_string (lookup_alist "Type" row) in
-      let address   = item_to_string (lookup_alist "IPv4 address" row) in
-      let netmask   = item_to_string (lookup_alist "IPv4 netmask" row) in
+      let port_name = item_to_string (Assoc.find "Name" row) in
+      let port_type = item_to_string (Assoc.find "Type" row) in
+      let address   = item_to_string (Assoc.find "IPv4 address" row) in
+      let netmask   = item_to_string (Assoc.find "IPv4 netmask" row) in
       (port_name <> "port0") or
       (port_type <> "router-port") or
       ((address <> "") && (netmask <> "")));
 
+    (* In this treeview the involved device is the parent: *)
     self#set_after_update_callback
       (fun row_id ->
-        after_user_edit_callback (self#relevant_device_name_for_row_id row_id));
+        after_user_edit_callback (self#parent_name_of row_id));
 
     (* Make internal data structures: no more columns can be added now: *)
     self#create_store_and_view;
 
     (* Setup the contextual menu: *)
-    self#set_contextual_menu_title "Network details operations";
+    self#set_contextual_menu_title "Network interface's configuration";
 end;;
 
 (** Ugly kludge to make a single global instance visible from all modules
     linked *after* this one. Not having mutually-recursive inter-compilation-unit
     modules is a real pain. *)
-let the_network_details_interface =
-  ref None;;
-let get_network_details_interface () =
-  match !the_network_details_interface with
-    None -> failwith "No network details interface exists"
-  | Some the_network_details_interface -> the_network_details_interface;;
-let make_network_details_interface ~packing ~after_user_edit_callback () =
-  let result = new network_details_interface ~packing ~after_user_edit_callback () in
-  the_network_details_interface := Some result;
-  result;;
+
+class treeview = t
+module The_unique_treeview = Stateful_modules.Variable (struct type t = treeview end)
+let get = The_unique_treeview.get
+
+let make ~packing ~after_user_edit_callback () =
+  let result = new t ~packing ~after_user_edit_callback () in
+  The_unique_treeview.set result;
+  result
+;;

@@ -353,44 +353,44 @@ class globalState = fun () ->
 
   method private treeview =
    object
-     method details = Network_details_interface.get_network_details_interface ()
-     method history = Filesystem_history.get_states_interface ()
-     method defects = Defects_interface.get_defects_interface ()
-     method texts   = Texts_interface.get_texts_interface ()
+     method ifconfig = Treeview_ifconfig.get ()
+     method history  = Treeview_history.get ()
+     method defects  = Treeview_defects.get ()
+     method texts    = Treeview_documents.get ()
    end      
 
   method private set_treeview_directories_with_prefix prefix =
     let concat = Filename.concat in
     self#treeview#history#set_states_directory (concat prefix "states/");
-    self#treeview#details#set_file_name        (concat prefix "states/ports");
+    self#treeview#ifconfig#set_file_name       (concat prefix "states/ports");
     self#treeview#defects#set_file_name        (concat prefix "states/defects");
     self#treeview#texts#set_file_name          (concat prefix "states/texts");
 
-  method private get_treeview_list : Treeview.treeview list =
+  method private get_treeview_list : Treeview.t list =
    begin
-    let t1 = Network_details_interface.get_network_details_interface () in
-    let t2 = Filesystem_history.get_states_interface () in
-    let t3 = Defects_interface.get_defects_interface () in
-    let t4 = Texts_interface.get_texts_interface () in
-    [ (t1 :> Treeview.treeview);
-      (t2 :> Treeview.treeview);
-      (t3 :> Treeview.treeview);
-      (t4 :> Treeview.treeview);
+    let t1 = Treeview_ifconfig.get () in
+    let t2 = Treeview_history.get () in
+    let t3 = Treeview_defects.get () in
+    let t4 = Treeview_documents.get () in
+    [ (t1 :> Treeview.t);
+      (t2 :> Treeview.t);
+      (t3 :> Treeview.t);
+      (t4 :> Treeview.t);
       ]
    end
 
   method private load_treeviews =
-    List.iter (fun (treeview : Treeview.treeview) -> treeview#load) self#get_treeview_list
+    List.iter (fun (treeview : Treeview.t) -> treeview#load) self#get_treeview_list
 
   method private save_treeviews =
-    List.iter (fun (treeview : Treeview.treeview) -> treeview#save) self#get_treeview_list
+    List.iter (fun (treeview : Treeview.t) -> treeview#save) self#get_treeview_list
 
   method private reset_treeviews =
-    List.iter (fun (treeview : Treeview.treeview) -> treeview#reset) self#get_treeview_list
+    List.iter (fun (treeview : Treeview.t) -> treeview#reset) self#get_treeview_list
 
   method private get_treeview_complete_forest_list =
     List.map 
-      (fun (treeview : Treeview.treeview) -> treeview#get_complete_forest)
+      (fun (treeview : Treeview.t) -> treeview#get_complete_forest)
        self#get_treeview_list
 
   val mutable treeview_forest_list_after_save = None

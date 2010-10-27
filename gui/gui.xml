@@ -556,7 +556,7 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkHBox" id="network_details_viewport">
+                          <widget class="GtkHBox" id="ifconfig_viewport">
                             <property name="visible">True</property>
                             <child>
                               <placeholder/>
@@ -667,7 +667,7 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkHBox" id="texts_viewport">
+                  <widget class="GtkHBox" id="documents_viewport">
                     <property name="visible">True</property>
                     <child>
                       <placeholder/>

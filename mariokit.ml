@@ -812,7 +812,7 @@ class ['parent] ports_card
 
   method get_port_defect_by_index
    (port_index:int)
-   (port_direction:Defects_interface.port_direction)
+   (port_direction:Treeview_defects.port_direction)
    (column_header:string) : float
    =
     network#defects#get_port_attribute_of
@@ -1242,7 +1242,7 @@ class virtual node_with_defects_zone ~network () =
 
   method private add_my_defects =
    match
-     (network#defects:Defects_interface.defects_interface)#row_exists_with_binding
+     (network#defects:Treeview_defects.t)#row_exists_with_binding
         "Name"
         self#get_name
    with
@@ -1261,7 +1261,7 @@ class virtual node_with_defects_zone ~network () =
 
   method private destroy_my_defects =
     Log.printf "component \"%s\": destroying my defects.\n" self#get_name;
-    network#defects#remove_device self#get_name;
+    network#defects#remove_subtree_by_name self#get_name;
 
   method private defects_update_port_no new_port_no =
     network#defects#update_port_no
@@ -1329,7 +1329,7 @@ class virtual node_with_defects
   method set_name new_name =
     let old_name = self#get_name in
     if old_name <> new_name then begin
-      network#defects#rename_device old_name new_name;
+      network#defects#rename old_name new_name;
       self_as_node_with_ports_card#set_name new_name;
     end;
 
@@ -1490,7 +1490,7 @@ class virtual node_with_ledgrid_and_defects
   method set_name new_name =
     let old_name = self#get_name in
     if old_name <> new_name then begin
-      network#defects#rename_device old_name new_name;
+      network#defects#rename old_name new_name;
       self_as_node_with_ports_card#set_name new_name;
     end;
 
@@ -1528,15 +1528,15 @@ end;;
    (common class for machine and router)
  * ************************************* *)
 
-class virtual virtual_machine_with_history_and_details
+class virtual virtual_machine_with_history_and_ifconfig
   ~network
   ?epithet   (* Ex: "debian-lenny-42178" *)
   ?variant
   ?kernel    (* Also en epithet, ex: "2.6.18-ghost" *)
   ?terminal
   ~(history_icon:string)
-  ~(details_device_type:string)
-  ?(details_port_row_completions:Network_details_interface.port_row_completions option)
+  ~(ifconfig_device_type:string)
+  ?(ifconfig_port_row_completions:Treeview_ifconfig.port_row_completions option)
   ~(vm_installations:Disk.virtual_machine_installations)
   ()
   =
@@ -1556,14 +1556,14 @@ class virtual virtual_machine_with_history_and_details
   object (self)
 
   initializer
-    self#add_my_details ?port_row_completions:details_port_row_completions self#get_port_no;
-    self#add_destroy_callback (lazy self#destroy_my_details);
+    self#add_my_ifconfig ?port_row_completions:ifconfig_port_row_completions self#get_port_no;
+    self#add_destroy_callback (lazy self#destroy_my_ifconfig);
     self#add_my_history;
     self#add_destroy_callback (lazy self#destroy_my_history);
 
   (* Paramters *)
   method history_icon = history_icon
-  method details_device_type = details_device_type
+  method ifconfig_device_type = ifconfig_device_type
 
   method private banner =
     (Printf.sprintf "Mariokit.virtual_machine: setting %s: " self#get_name)
@@ -1634,10 +1634,10 @@ class virtual virtual_machine_with_history_and_details
   method add_my_history =
    let icon = self#history_icon in
    let name = self#get_name in
-   match ((network#history:Filesystem_history.states_interface)#number_of_states_with_name name) > 0 with
+   match ((network#history:Treeview_history.t)#number_of_states_with_name name) > 0 with
    | true -> Log.printf "The virtual machine %s has already history defined...\n" name
    | false ->
-      Filesystem_history.add_device
+      network#history#add_device
           ~name
           ~prefixed_filesystem:self#prefixed_epithet
           ?variant:self#get_variant
@@ -1645,46 +1645,46 @@ class virtual virtual_machine_with_history_and_details
           ~icon
           ()
 
-  method add_my_details
-    ?(port_row_completions:Network_details_interface.port_row_completions option)
+  method add_my_ifconfig
+    ?(port_row_completions:Treeview_ifconfig.port_row_completions option)
     (port_no:int) : unit
    =
    match
-     (network#details:Network_details_interface.network_details_interface)#row_exists_with_binding
+     (network#ifconfig:Treeview_ifconfig.t)#row_exists_with_binding
         "Name"
         self#get_name
    with
-   | true  -> Log.printf "The %s %s has already details defined...\n" self#details_device_type self#get_name
+   | true  -> Log.printf "The %s %s has already ifconfig defined...\n" self#ifconfig_device_type self#get_name
    | false ->
       begin
-      network#details#add_device
+      network#ifconfig#add_device
         ?port_row_completions
         self#get_name
-        details_device_type
+        ifconfig_device_type
         self#get_port_no
       end
 
-  method destroy_my_details =
-    Log.printf "component \"%s\": destroying my details.\n" self#get_name;
-    network#details#remove_device self#get_name;
+  method destroy_my_ifconfig =
+    Log.printf "component \"%s\": destroying my ifconfig.\n" self#get_name;
+    network#ifconfig#remove_subtree_by_name self#get_name;
 
   method destroy_my_history =
     Log.printf "component \"%s\": destroying my history.\n" self#get_name;
-    Filesystem_history.remove_device_tree self#get_name;
+    network#history#remove_device_tree self#get_name;
 
   method update_virtual_machine_with ~name ~port_no kernel =
-    network#details#update_port_no self#get_name port_no;
-    network#details#rename_device self#get_name name;
-    Filesystem_history.rename_device self#get_name name;
+    network#ifconfig#update_port_no self#get_name port_no;
+    network#ifconfig#rename self#get_name name;
+    network#history#rename  self#get_name name;
     self#set_kernel kernel;
 
   method create_cow_file_name =
-    let history = (network#history:Filesystem_history.states_interface) in
+    let history = (network#history:Treeview_history.t) in
     Printf.sprintf "%s%s"
       history#get_states_directory
-      (Filesystem_history.add_state_for_device self#get_name)
+      (network#history#add_state_for_device self#get_name)
 
-end;; (* class virtual_machine_with_history_and_details *)
+end;; (* class virtual_machine_with_history_and_ifconfig *)
 
 
 (*********************
@@ -1802,9 +1802,9 @@ class network () =
  object (self)
  inherit Xforest.interpreter ()
 
- method defects = Defects_interface.get_defects_interface ()
- method details = Network_details_interface.get_network_details_interface ()
- method history = Filesystem_history.get_states_interface ()
+ method defects = Treeview_defects.get ()
+ method ifconfig = Treeview_ifconfig.get ()
+ method history = Treeview_history.get ()
 
  (** Motherboard is set in Gui_motherboard. *)
  val mutable motherboard : State_types.motherboard option = None
@@ -2024,7 +2024,7 @@ class network () =
      let cables_to_remove = List.filter (fun c->c#is_node_involved dname) cables in
      List.iter
        (fun cable -> (* TODO: this must became simply cable#destroy or (better) cable#update *)
-         self#defects#remove_cable cable#name;
+         self#defects#remove_subtree_by_name cable#name;
          self#del_cable cable#name)
        cables_to_remove;
      devices  <- List.filter (fun x->not (x=d)) devices
@@ -2060,10 +2060,10 @@ class network () =
      let d  = self#get_device_by_name dname in
      (* Destroy cables first: they refer what we're removing... *)
      let cables_to_remove = List.filter (fun c->c#is_node_involved dname) cables in
-     let defects = Defects_interface.get_defects_interface () in
+     let defects = Treeview_defects.get () in
      List.iter
        (fun cable ->
-         defects#remove_cable cable#name;
+         defects#remove_subtree_by_name cable#name;
          self#del_cable cable#name)
        cables_to_remove;
      self#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();

@@ -26,6 +26,7 @@ module Assoc = ListExtra.Assoc;;
     kludge is needed to avoid a cyclic depencency between mariokit and states_interface *)
 module Startup_functions = Stateful_modules.Variable (struct
   type t = (string -> bool) * (string -> unit)
+  let name = Some "startup_functions"
 end)
 
 (** Create a fresh filename, without making the file (empty cow files are not allowed) *)
@@ -94,19 +95,6 @@ object(self)
       ~hide_reserved_fields:true
       () as self_as_treeview
 
-  (** Note that the states directory {e must} be an absolute pathname
-      and {e must} include a trailing slash *)
-  val mutable states_directory : string option = None
-  method get_states_directory = Option.extract states_directory
-  method set_states_directory x =
-      states_directory <- Some x;
-      self#set_file_name (x^"/states-forest");
-
-  (* REDEFINED: *)
-  method clear =
-    self_as_treeview#clear;
-    states_directory <- None;
-
   method add_row_with
     ~name
     ?parent (* this is an id, not an iter! *)
@@ -138,7 +126,7 @@ object(self)
          let file_name =
            duplicate_file
              ~is_path_full:true
-             ~states_directory:self#get_states_directory
+             ~states_directory:(Option.extract directory#get)
              variant_realpath
          in (file_name, variant_name, (Printf.sprintf " : variant \"%s\"" variant_name))
      | Some _, None -> assert false
@@ -162,16 +150,22 @@ object(self)
   (* Remove cow files: *)
   (List.iter
     (fun row ->
-      let cow_file_name = item_to_string (Assoc.find "File name" row) in
-      (try Unix.unlink ((self#get_states_directory) ^ "/" ^ cow_file_name) with _ -> ()))
+      let cow_filename = item_to_string (Assoc.find "File name" row) in
+      let cow_pathname = Filename.concat (Option.extract directory#get) cow_filename in
+      (try Unix.unlink cow_pathname with _ -> ()))
     rows_to_remove
    );
    self#remove_subtree root_id;
 
   method add_substate_of parent_file_name =
-  let copied_file_name = duplicate_file ~states_directory:self#get_states_directory parent_file_name in
+  let copied_file_name =
+    duplicate_file
+      ~states_directory:(Option.extract directory#get)
+      parent_file_name
+  in
   let complete_row_to_copy =
-    self#complete_row_such_that (fun row -> (Assoc.find "File name" row) = String parent_file_name)
+    self#complete_row_such_that
+      (fun row -> (Assoc.find "File name" row) = String parent_file_name)
   in
   let parent_id   = self#id_of_complete_row complete_row_to_copy in
   let parent_name = self#name_of_row complete_row_to_copy in
@@ -217,7 +211,7 @@ object(self)
     let _cow_file_name = item_to_string (self#get_row_item row_id "File name") in
     let name = item_to_string (self#get_row_item row_id "Name") in
     self#set_row_item row_id "Timestamp" (String (Timestamp.current_timestamp_as_string ()));
-    let _, startup_function = Startup_functions.get () in
+    let _, startup_function = Startup_functions.extract () in
     let () = startup_function name in
     Task_runner.the_task_runner#schedule
       (fun () ->
@@ -230,10 +224,12 @@ object(self)
     (* Remove the full row: *)
     self#remove_row row_id;
     (* Remove the cow file: *)
-    (try Unix.unlink ((self#get_states_directory) ^ file_name) with _ -> ());
+    let path_name = Filename.concat (Option.extract directory#get) file_name in
+    (try Unix.unlink path_name with _ -> ());
     let most_recent_row_for_name = self#get_the_most_recent_state_with_name name in
     let id_of_the_most_recent_row_for_name =
-      Assoc.find "_id" most_recent_row_for_name in
+      Assoc.find "_id" most_recent_row_for_name
+    in
     Forest.iter
       (fun a_row _ ->
         let an_id = Assoc.find "_id" a_row in
@@ -288,7 +284,7 @@ object(self)
 
   method private export_as_variant ~router row_id =
     let device_name = item_to_string (self#get_row_item row_id "Name") in
-    let can_startup, _ = Startup_functions.get () in
+    let can_startup, _ = Startup_functions.extract () in
     (* We can only export the cow file if we are not running the device: *)
     if not (can_startup device_name) then
       Simple_dialogs.error
@@ -326,7 +322,7 @@ object(self)
 
   method private actually_export_as_variant ~variant_dir ~cow_name ~variant_name () =
     (* Perform the actual copy: *)
-    let cow_path = self#get_states_directory in
+    let cow_path = (Option.extract directory#get) in
     let new_variant_pathname = Filename.concat variant_dir variant_name in
     let command_line =
       Printf.sprintf
@@ -427,7 +423,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
         (Option.to_bool selected_rowid_if_any) &&
         (let row_id = Option.extract selected_rowid_if_any in
         let name = item_to_string (self#get_row_item row_id "Name") in
-        let can_startup, _ = Startup_functions.get () in
+        let can_startup, _ = Startup_functions.extract () in
         can_startup name))
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
@@ -450,8 +446,11 @@ the machine itself (you should expand the tree).") new_variant_pathname)
 end;;
 
 class treeview = t
-module The_unique_treeview = Stateful_modules.Variable (struct type t = treeview end)
-let get = The_unique_treeview.get
+module The_unique_treeview = Stateful_modules.Variable (struct
+  type t = treeview
+  let name = Some "treeview_history"
+  end)
+let extract = The_unique_treeview.extract
 
 let make ~packing ~after_user_edit_callback () =
   let result = new t ~packing ~after_user_edit_callback () in

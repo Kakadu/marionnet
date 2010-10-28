@@ -275,8 +275,6 @@ val ethernet_interface_to_uml_command_line_argument :
 
 val random_ghost_mac_address : unit -> string
 
-val create_swap_file_name : unit -> string
-
 class uml_process :
   kernel_file_name:process_name ->
   filesystem_file_name:string ->

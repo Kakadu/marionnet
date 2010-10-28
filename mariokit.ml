@@ -36,8 +36,11 @@ end;;
 
 (** A thunk allowing to invoke the sketch refresh method, accessible from many
     modules: *)
-module Refresh_sketch_thunk = Stateful_modules.Variable (struct type t = unit->unit end)
-let refresh_sketch () = Refresh_sketch_thunk.get () ()
+module Refresh_sketch_thunk = Stateful_modules.Variable (struct
+  type t = unit->unit
+  let name = Some "Refresh_sketch_thunk"
+  end)
+let refresh_sketch () = Refresh_sketch_thunk.extract () ()
 
 
 (* *************************** *
@@ -230,7 +233,7 @@ end;; (* class Dotoptions.network *)
 
 
 (** Dot options for a cable *)
-class cable ?(reverted=false) ~(motherboard:State_types.motherboard) ~name () =
+class cable ?(reverted=false) ~(motherboard:Motherboard.t) ~name () =
  object (self)
 (*   val reverted = motherboard#reverted_rj45cables_cable#create_wref ~name:(name^"_reverted") reverted*)
    val reverted = Chip.wref_in_cable ~name:(name^"_reverted") ~cable:motherboard#reverted_rj45cables_cable reverted
@@ -968,7 +971,7 @@ class endpoint ~(node:node) ~(port_index:int) =
 class cable =
    fun
    ~network
-   ~motherboard
+   ~motherboard (* TODO: already accessible from network *)
    ~name
    ?label
    ~cablekind
@@ -1681,7 +1684,7 @@ class virtual virtual_machine_with_history_and_ifconfig
   method create_cow_file_name =
     let history = (network#history:Treeview_history.t) in
     Printf.sprintf "%s%s"
-      history#get_states_directory
+      (Option.extract history#directory#get)
       (network#history#add_state_for_device self#get_name)
 
 end;; (* class virtual_machine_with_history_and_ifconfig *)
@@ -1802,14 +1805,11 @@ class network () =
  object (self)
  inherit Xforest.interpreter ()
 
- method defects = Treeview_defects.get ()
- method ifconfig = Treeview_ifconfig.get ()
- method history = Treeview_history.get ()
+ method defects  = Treeview_defects.extract ()
+ method ifconfig = Treeview_ifconfig.extract ()
+ method history  = Treeview_history.extract ()
 
- (** Motherboard is set in Gui_motherboard. *)
- val mutable motherboard : State_types.motherboard option = None
- method motherboard = match motherboard with Some x -> x | None -> assert false
- method set_motherboard m = motherboard <- Some m
+ method motherboard = Motherboard.extract ()
 
  val mutable devices  : (node list) = []
  val mutable cables   : (cable   list) = []
@@ -2060,7 +2060,7 @@ class network () =
      let d  = self#get_device_by_name dname in
      (* Destroy cables first: they refer what we're removing... *)
      let cables_to_remove = List.filter (fun c->c#is_node_involved dname) cables in
-     let defects = Treeview_defects.get () in
+     let defects = Treeview_defects.extract () in
      List.iter
        (fun cable ->
          defects#remove_subtree_by_name cable#name;

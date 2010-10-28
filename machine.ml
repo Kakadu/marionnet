@@ -537,15 +537,15 @@ class machine
     self_as_node_with_defects#gracefully_shutdown_right_now;
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Command_line.are_we_in_exam_mode then begin
-      let texts_interface = Treeview_documents.get () in
+      let treeview_documents = Treeview_documents.extract () in
       Log.printf "Adding the report on %s to the texts interface\n" self#name;
-      texts_interface#import_report
+      treeview_documents#import_report
         ~machine_or_router_name:self#name
         ~pathname:(hostfs_directory_pathname ^ "/report.html")
         ();
       Log.printf "Added the report on %s to the texts interface\n" self#name; 
       Log.printf "Adding the history on %s to the texts interface\n" self#name;
-      texts_interface#import_history
+      treeview_documents#import_history
         ~machine_or_router_name:self#name
         ~pathname:(hostfs_directory_pathname ^ "/bash_history.text")
         ();

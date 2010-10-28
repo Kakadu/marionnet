@@ -74,6 +74,11 @@ let system_or_ignore ?on_error ?hide_output ?hide_errors command_line =
     )
     end
 
+let print_backtrace () =
+  printf
+    "Backtrace:\n%s\n"
+    (StringExtra.tab ~tab:2 (Printexc.get_backtrace ()))
+
 (** Wrappers for system_or_ignore: the command is performed by Unix.system
     with logging features. In case of failure, the function doesn't produce
     any exception, but print the event on the log channel. *)

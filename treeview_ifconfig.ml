@@ -257,7 +257,7 @@ object(self)
     (* Save the forest, as usual: *)
     super#save;
     (* ...but also save the counters used for generating fresh addresses: *)
-    let counters_file_name = super#file_name ^ "-counters" in
+    let counters_file_name = (Option.extract filename#get)^"-counters" in
     (* For forward compatibility: *)
     let _OBSOLETE_mac_address_as_int = Random.int (256*256*256) in 
     counters_marshaler#to_file
@@ -268,7 +268,7 @@ object(self)
     (* Load the forest, as usual: *)
     super#load;
     (* ...but also load the counters used for generating fresh addresses: *)
-    let counters_file_name = super#file_name ^ "-counters" in
+    let counters_file_name = (Option.extract filename#get)^"-counters" in
     (* _OBSOLETE_mac_address_as_int read for backward compatibility: *)
     let _OBSOLETE_mac_address_as_int, the_next_ipv4_address_as_int, the_next_ipv6_address_as_int =
       counters_marshaler#from_file counters_file_name in
@@ -400,8 +400,11 @@ end;;
     modules is a real pain. *)
 
 class treeview = t
-module The_unique_treeview = Stateful_modules.Variable (struct type t = treeview end)
-let get = The_unique_treeview.get
+module The_unique_treeview = Stateful_modules.Variable (struct
+  type t = treeview
+  let name = Some "treeview_ifconfig"
+  end)
+let extract = The_unique_treeview.extract
 
 let make ~packing ~after_user_edit_callback () =
   let result = new t ~packing ~after_user_edit_callback () in

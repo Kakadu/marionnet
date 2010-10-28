@@ -29,9 +29,7 @@ let check_path_name_validity_and_add_extension_if_needed =
 open GdkKeysyms
 open GtkStock
 
-module Make
- (State:sig val st:State.globalState end)
- (Motherboard:sig val sensitiveness_manager:Gui_motherboard.sensitiveness_manager_interface end) = struct
+module Make (State:sig val st:State.globalState end) = struct
 
 open State
 
@@ -86,12 +84,12 @@ module Created_entry_project_new = Menu_factory.Make_entry
      let filename = check_path_name_validity_and_add_extension_if_needed (r#get "filename") in
      let actions () =
        begin
-       st#close_project () ;
+       st#close_project;
        st#new_project filename ;
        end in
      if (st#active_project) && ((r#get "save_current") = "yes")
       then
-       (st#save_project ();
+       (st#save_project;
         Task_runner.the_task_runner#schedule ~name:"new project" actions)
       else
        (actions ())
@@ -123,14 +121,14 @@ module Created_entry_project_open = Menu_factory.Make_entry
       st#shutdown_everything ();
       let filename = (r#get "filename") in
       let actions () = begin
-         st#close_project () ;
+         st#close_project;
          try
           st#open_project filename;
          with e -> ((Simple_dialogs.error (s_ "Open a project") ((s_ "Failed to open the file ")^filename) ()); raise e)
         end in
       if (st#active_project) && ((r#get "save_current")="yes")
       then
-       (st#save_project ();
+       (st#save_project;
         Task_runner.the_task_runner#schedule ~name:"open_project" actions)
       else
        (actions ())
@@ -146,7 +144,7 @@ let project_save =
     ~callback:(fun () ->
       if st#is_there_something_on_or_sleeping ()
 	then Msg.error_saving_while_something_up ()
-        else st#save_project ())
+        else st#save_project)
     ()
 
 module Created_entry_project_save_as = Menu_factory.Make_entry
@@ -215,9 +213,9 @@ module Created_entry_project_close = Menu_factory.Make_entry
    let reaction r = begin
     st#shutdown_everything ();
     let () = if (st#active_project) && ((r#get "answer") = "yes")
-              then st#save_project ()
+              then st#save_project
               else () in
-    st#close_project ();
+    st#close_project;
     end
 
   end) (F)
@@ -278,17 +276,17 @@ module Created_entry_project_quit = Menu_factory.Make_entry
     (match st#is_there_something_on_or_sleeping (), save with
      | true, true  ->
          st#shutdown_everything ();
-         st#save_project ();
+         st#save_project;
      | true, false ->
          st#poweroff_everything ();
      | false, true ->
-         st#save_project ();
+         st#save_project;
      | false, false -> ()
      );
     Log.printf "Killing the death monitor thread...\n";
     Death_monitor.stop_polling_loop ();
     st#network#destroy_process_before_quitting ();
-    st#close_project ();
+    st#close_project;
     st#quit_async ()
 
   end) (F)
@@ -312,7 +310,7 @@ module Created_entry_options_cwd = Menu_factory.Make_entry
     Talking.EDialog.ask_for_existing_writable_folder_pathname_supporting_sparse_files
        ~title:(s_ "Choose working directory")
        ~help:(Some Msg.help_repertoire_de_travail) ()
-   let reaction r = st#set_wdir (r#get "foldername")
+   let reaction r = st#temporary_directory#set (r#get "foldername")
   end) (F)
 let options_cwd = Created_entry_options_cwd.item
 
@@ -363,11 +361,11 @@ let help_apropos =
  * **************************************** *)
 
 let () = List.iter (* when Active *)
-          (fun w -> Motherboard.sensitiveness_manager#add_sensitive_when_Active w#coerce)
+          (fun w -> st#sensitive_when_Active#add w#coerce)
           [project_save; project_save_as; project_copy_to; project_close; project_export]
 
 let () = List.iter (* when NoActive *)
-          (fun w -> Motherboard.sensitiveness_manager#add_sensitive_when_NoActive w#coerce)
+          (fun w -> st#sensitive_when_NoActive#add w#coerce)
           [options_cwd]
 
 end

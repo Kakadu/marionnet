@@ -19,9 +19,6 @@
 
 open Gettext;;
 
-let marionnet_working_directory_prefix =
-  "marionnet-";;
-
 let commit_suicide signal =
   raise Exit;;
 
@@ -34,6 +31,39 @@ type application_state =
 ;;
 
 type filename = string;;
+
+(* Example of hierarchy:
+
+/tmp/marionnet-588078453.dir/
+/tmp/marionnet-588078453.dir/sparse-swap-410647109
+/tmp/marionnet-588078453.dir/sparse-swap-922455527
+/tmp/marionnet-588078453.dir/test_machine
+/tmp/marionnet-588078453.dir/test_machine/classtest
+/tmp/marionnet-588078453.dir/test_machine/tmp
+/tmp/marionnet-588078453.dir/test_machine/tmp/sketch.dot
+/tmp/marionnet-588078453.dir/test_machine/tmp/sketch.png
+/tmp/marionnet-588078453.dir/test_machine/states
+/tmp/marionnet-588078453.dir/test_machine/states/states-forest
+/tmp/marionnet-588078453.dir/test_machine/states/ports-counters
+/tmp/marionnet-588078453.dir/test_machine/states/ports
+/tmp/marionnet-588078453.dir/test_machine/states/defects
+/tmp/marionnet-588078453.dir/test_machine/states/texts
+/tmp/marionnet-588078453.dir/test_machine/scripts
+/tmp/marionnet-588078453.dir/test_machine/netmodel
+/tmp/marionnet-588078453.dir/test_machine/netmodel/dotoptions.marshal
+/tmp/marionnet-588078453.dir/test_machine/netmodel/network.xml
+/tmp/marionnet-588078453.dir/test_machine/hostfs
+/tmp/marionnet-588078453.dir/test_machine/hostfs/2
+/tmp/marionnet-588078453.dir/test_machine/hostfs/2/boot_parameters
+/tmp/marionnet-588078453.dir/test_machine/hostfs/1
+/tmp/marionnet-588078453.dir/test_machine/hostfs/1/boot_parameters
+
+Here:
+temporary_directory = "/tmp"
+project_working_directory = "/tmp/marionnet-588078453.dir"
+get_project_subdirs_prefix = "/tmp/marionnet-588078453.dir/test_machine/"
+complete_dir "foo" = "/tmp/marionnet-588078453.dir/test_machine/foo"
+*)
 
 (** The class modelling the global state of the application. *)
 class globalState = fun () ->
@@ -48,10 +78,8 @@ class globalState = fun () ->
   (** Virtual network. *)
   method network = net
 
-  (** Motherboard is set in Gui_motherboard. *)
-  val mutable motherboard : State_types.motherboard option = None
-  method motherboard = match motherboard with Some x -> x | None -> assert false
-  method set_motherboard m = motherboard <- Some m
+  (** Motherboard is set in Motherboard_builder. *)
+  method motherboard = Option.extract !Motherboard.content
 
   method system = system
 
@@ -66,120 +94,105 @@ class globalState = fun () ->
   (** The state of application.*)
   val app_state = Chip.wref ~name:"app_state" NoActiveProject
   method app_state = app_state
+  method app_state_as_string = match app_state#get with
+  | NoActiveProject            -> "NoActiveProject"
+  | ActiveNotRunnableProject   -> "ActiveNotRunnableProject"
+  | ActiveRunnableProject      -> "ActiveRunnableProject"
 
   (** Are we working with an active project. *)
+(*   method active_project = (app_state#get_alone <> NoActiveProject) *)
   method active_project = (app_state#get_alone <> NoActiveProject)
 
+  val sensitive_when_Active   = Chip.wlist ~name:"sensitive_when_Active" []
+  val sensitive_when_Runnable = Chip.wlist ~name:"sensitive_when_Runnable" []
+  val sensitive_when_NoActive = Chip.wlist ~name:"sensitive_when_NoActive" []
+  method sensitive_when_Active   : GObj.widget Chip.wlist = sensitive_when_Active
+  method sensitive_when_Runnable : GObj.widget Chip.wlist = sensitive_when_Runnable
+  method sensitive_when_NoActive : GObj.widget Chip.wlist = sensitive_when_NoActive
+
   (** The project filename. *)
-  val prj_filename = Chip.wref ~name:"prj_filename" None
-  method prj_filename = prj_filename
+  val project_filename = Chip.wref ~name:"project_filename" None
+  method project_filename = project_filename
 
   (** The project name. *)
-  val mutable prj_name : string option = None
-
-  (** Get the project filename. *)
-  method extract_prj_filename = match prj_filename#get with | Some x -> x | None -> ""
-
-  (** Get the project name. *)
-  method get_prj_name     = match prj_name with | Some x -> x | None -> ""
-
-  (** by default, the name of the project is the basename of filename without extension. *)
-  method default_prj_name ?(arg=None) () =
-    let arg = (match arg with None -> self#extract_prj_filename | Some x -> x) in
-    let base = (Filename.basename arg) in
+  val mutable project_name = Chip.wref ~name:"project_name" None
+  method project_name = project_name
+  
+  (** by default, the name of the project is the basename of filename without the extension. *)
+  method private default_project_name_of ~filename =
+    let base = (Filename.basename filename) in
     try
       (Filename.chop_extension base)
     with _ -> base
 
-  (** Working directory. *)
-  val mutable wdir = "/tmp"
+  (** The parent of the project working directory: *)
+  val temporary_directory = Chip.wref ~name:"temporary_directory" "/tmp"
+  method temporary_directory = temporary_directory
 
-  (** Setting working directory. *)
-  method set_wdir x =
-    wdir <- x
+  (** The project working directory: *)
+  val project_working_directory = Chip.wref ~name:"project_working_directory" None
+  method project_working_directory = project_working_directory
 
-  (** Get working directory. *)
-  method get_wdir = wdir
+  method private make_the_project_working_directory =
+    let pwd =
+      UnixExtra.temp_dir
+        ~parent:(temporary_directory#get)
+        ~prefix:"marionnet-"
+        ~suffix:".dir"
+        ()
+    in
+    project_working_directory#set (Some pwd);
+    pwd
 
-  (** Project working directory. *)
-  val mutable pwdir_field : string option
-      = Global_options.project_working_directory_default
+  (** Supposing all optional value defined: *)
+  method private complete_dir dir =
+    let pwd = Option.extract project_working_directory#get in
+    let prn = Option.extract project_name#get in
+    FilenameExtra.concat_list [pwd; prn; dir] 
 
-  (** Get project working directory. *)
-  method get_pwdir =
-    match pwdir_field with
-    | Some x ->
-        x
-    | None ->
-        failwith "get_pwdir"
-
-  (** Update the project working directory, also copying the setting to a global which is
-      easier to access from other modules: *)
-  method set_pwdir value =
-    pwdir_field <- value;
-    Global_options.set_project_working_directory value;
-
-  (** Handlers for relevant project directories and files. *)
-  method getDir dir = (self#get_pwdir^"/"^(self#get_prj_name)^"/"^dir^"/")
-
-  method tmpDir         = self#getDir "tmp"
-  method patchesDir     = self#getDir "states"
-  method netmodelDir    = self#getDir "netmodel"
-  method scriptsDir     = self#getDir "scripts"
-  method hostfsDir      = self#getDir "hostfs"
-  method classtestDir   = self#getDir "classtest"
-  method dotSketchFile  = self#tmpDir^"sketch.dot"
-  method pngSketchFile  = self#tmpDir^"sketch.png"
-  method networkFile    = self#netmodelDir^"network.xml"
-  method dotoptionsFile = self#netmodelDir^"dotoptions.marshal"
+  method private get_project_subdirs_prefix =  self#complete_dir ""
+  
+  method tmpDir         = self#complete_dir "tmp"
+  method patchesDir     = self#complete_dir "states"
+  method netmodelDir    = self#complete_dir "netmodel"
+  method scriptsDir     = self#complete_dir "scripts"
+  method hostfsDir      = self#complete_dir "hostfs"
+  method classtestDir   = self#complete_dir "classtest"
+  method dotSketchFile  = Filename.concat self#tmpDir "sketch.dot"
+  method pngSketchFile  = Filename.concat self#tmpDir "sketch.png"
+  method networkFile    = Filename.concat self#netmodelDir "network.xml"
+  method dotoptionsFile = Filename.concat self#netmodelDir "dotoptions.marshal"
 
   (** New project which will be saved into the given filename. *)
-  method new_project (x:filename)  =
+  method new_project ~filename  =
     begin
       (* First reset the old network, waiting for all devices to terminate: *)
       self#network#ledgrid_manager#reset;
       self#network#reset () ;
-
-      (* Set the project filename *)
-      prj_filename#set (Some x) ;
-
-      (* Set the project name using the basename of filename whitout extension. *)
-      prj_name     <-  Some (self#default_prj_name ()) ;
-
-      (* Set the project working directory to a random name in the wdir. *)
-      self#set_pwdir
-        (Some (UnixExtra.temp_dir ~parent:wdir ~prefix:marionnet_working_directory_prefix ~suffix:".dir" ()));
-
-      (* Create the directory skeleton into the pwdir. *)
-      let prefix = (self#get_pwdir^"/"^(self#get_prj_name)^"/") in
+      project_filename#set (Some filename) ;
+      project_name#set (Some (self#default_project_name_of ~filename));
+      ignore (self#make_the_project_working_directory);
+      (* Create the directory skeleton: *)
+      let prefix = self#get_project_subdirs_prefix in
       Unix.mkdir prefix 0o755 ;
       List.iter
-        (fun x-> Unix.mkdir (prefix^x) 0o755)
+        (fun x-> Unix.mkdir (Filename.concat prefix x) 0o755)
         ["states"; "netmodel"; "scripts"; "hostfs"; "classtest"; "tmp"];
-
       (* Treeview data should be saved within prefix: *)
-      self#reset_treeviews;
-      self#set_treeview_directories_with_prefix prefix;
-
+      self#clear_treeviews;
       (* Reset dotoptions *)
       self#dotoptions#reset_defaults () ;
-
       (* Set the app_state. *)
       app_state#set ActiveNotRunnableProject ;
-
       (* Force GUI coherence. *)
       self#gui_coherence () ;
-
      (* Refresh the network sketch *)
       self#refresh_sketch () ;
-
-     ()
     end
 
 
   (** Close the current project. The project is lost if the user hasn't saved it. *)
-  method close_project ()  =
-
+  method close_project =
    let close_project_sync () =
     begin
       Log.printf "state#close_project_sync: starting...\n";
@@ -191,25 +204,29 @@ class globalState = fun () ->
         begin
          self#network#reset ~scheduled:true ();
          (* Unset the project filename. *)
-         prj_filename#set None ;
+         project_filename#set None ;
          (* Unset the project name. *)
-         prj_name <- None ;
-         let cmd = "rm -rf "^self#get_pwdir in
+         project_name#set None ;
+         let cmd =
+           Printf.sprintf
+             "rm -rf %s"
+             (Option.extract project_working_directory#get)
+         in
          (* Update the network sketch (now empty) *)
          self#mainwin#sketch#set_file "" ;
          (* Unset the project working directory. *)
-         self#set_pwdir None;
+         project_working_directory#set None;
          (* Set the app_state. *)
-         app_state#set NoActiveProject ;
+         app_state#set NoActiveProject;
          (* Force GUI coherence. *)
          self#gui_coherence ();
          Log.printf "Destroying the old working directory (%s)...\n" cmd;
-         ignore (Unix.system cmd);
+         Log.system_or_ignore cmd;
          Log.printf "Done.\n";
         end (* there was an active project *)
        );
       (* Clear all treeviews, just in case. *)
-      self#reset_treeviews;
+      self#clear_treeviews;
       Log.printf "state#close_project_sync: done.\n";
     end (* thunk *)
     in
@@ -263,55 +280,44 @@ class globalState = fun () ->
 
 
   (** Close the current project and extract the given filename in a fresh project working directory. *)
-  method open_project (x:filename) =
+  method open_project ~filename =
     begin
-    (* First close the current project, if necessary *)
-    self#close_project ();
-
+    (* First close the current project, if necessary: *)
+    self#close_project;
     (* Set the project filename *)
-    prj_filename#set (Some x) ;
-
-    (* Set the project working directory to a random name in the wdir. *)
-    let working_directory =
-      UnixExtra.temp_dir
-        ~parent:wdir
-        ~prefix:marionnet_working_directory_prefix
-        ~suffix:".dir"
-        ()
-    in
-    self#set_pwdir (Some working_directory);
+    project_filename#set (Some filename);
+    let pwd = self#make_the_project_working_directory in
 
     (* Extract the mar file into the pwdir *)
-    Shell.tgz_extract self#extract_prj_filename self#get_pwdir;
+    Shell.tgz_extract (Option.extract project_filename#get) pwd;
 
     (* Look for the name of the root directory of the mar file. Some checks here. *)
-    let rootname =
+    let mar_inner_dir =
       try
-        (match (SysExtra.readdir_as_list self#get_pwdir) with
+        (match (SysExtra.readdir_as_list pwd) with
         | [x] ->
-          let skel = (SysExtra.readdir_as_list (self#get_pwdir^x)) in
-          if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"] then x
-          else
-            raise (Failure "state#open_project: no expected content in the project root directory.")
+          let skel = (SysExtra.readdir_as_list (Filename.concat pwd x)) in
+          if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"]
+          then x 
+          else failwith "state#open_project: no expected content in the project root directory."
         |  _  ->
-            raise (Failure "state#open_project: no rootname found in the project directory.")
+          failwith "state#open_project: no rootname found in the project directory."
         )
       with e -> begin
-        self#close_project ();
+        self#close_project;
         raise e;
       end;
     in
 
     (* Set the project name *)
-    prj_name <- Some rootname;
+    project_name#set (Some mar_inner_dir);
+    let prefix = self#get_project_subdirs_prefix in
+
     (* Create the tmp subdirectory. *)
-    let prefix = (self#get_pwdir^"/"^rootname^"/") in
     Unix.mkdir (prefix^"tmp") 0o755 ;
 
-    (* Set the treeview directories: *)
-    self#set_treeview_directories_with_prefix prefix;
-
-    (* Dotoptions.network will be undumped after the network, in order to support cable inversions. *)
+    (* Dotoptions.network will be undumped after the network,
+       in order to support cable inversions. *)
     let dotAction () = begin
       (try
      	self#dotoptions#load_from_file self#dotoptionsFile;
@@ -327,21 +333,19 @@ class globalState = fun () ->
        to modify the treeviews according to the marionnet version: *)
     self#load_treeviews;
 
-    (* Now set again the treeview directories (the previous load has erased...): *)
-    (* TODO: ugly! *)
-    self#set_treeview_directories_with_prefix prefix;
-
     (* Second, read the xml file containing the network definition.
        If something goes wrong, close the project. *)
     (try
-       self#import_network ~emergency:self#close_project ~dotAction self#networkFile ;
+       self#import_network
+         ~emergency:(fun () -> self#close_project)
+         ~dotAction
+         self#networkFile
      with e ->
-       self#reset_treeviews;
+       self#clear_treeviews;
        Log.printf "Failed with exception %s\n" (Printexc.to_string e);
      );
 
     self#register_state_after_save_or_open;
-    self#set_treeview_directories_with_prefix prefix;
     ()
     end
 
@@ -351,27 +355,20 @@ class globalState = fun () ->
   method set_project_not_already_saved =
    refresh_sketch_counter_value_after_last_save <- None
 
-  method private treeview =
+  method treeview =
    object
-     method ifconfig = Treeview_ifconfig.get ()
-     method history  = Treeview_history.get ()
-     method defects  = Treeview_defects.get ()
-     method texts    = Treeview_documents.get ()
+     method ifconfig  = Treeview_ifconfig.extract ()
+     method history   = Treeview_history.extract ()
+     method defects   = Treeview_defects.extract ()
+     method documents = Treeview_documents.extract ()
    end      
-
-  method private set_treeview_directories_with_prefix prefix =
-    let concat = Filename.concat in
-    self#treeview#history#set_states_directory (concat prefix "states/");
-    self#treeview#ifconfig#set_file_name       (concat prefix "states/ports");
-    self#treeview#defects#set_file_name        (concat prefix "states/defects");
-    self#treeview#texts#set_file_name          (concat prefix "states/texts");
 
   method private get_treeview_list : Treeview.t list =
    begin
-    let t1 = Treeview_ifconfig.get () in
-    let t2 = Treeview_history.get () in
-    let t3 = Treeview_defects.get () in
-    let t4 = Treeview_documents.get () in
+    let t1 = Treeview_ifconfig.extract () in
+    let t2 = Treeview_history.extract () in
+    let t3 = Treeview_defects.extract () in
+    let t4 = Treeview_documents.extract () in
     [ (t1 :> Treeview.t);
       (t2 :> Treeview.t);
       (t3 :> Treeview.t);
@@ -385,8 +382,8 @@ class globalState = fun () ->
   method private save_treeviews =
     List.iter (fun (treeview : Treeview.t) -> treeview#save) self#get_treeview_list
 
-  method private reset_treeviews =
-    List.iter (fun (treeview : Treeview.t) -> treeview#reset) self#get_treeview_list
+  method private clear_treeviews =
+    List.iter (fun (treeview : Treeview.t) -> treeview#clear) self#get_treeview_list
 
   method private get_treeview_complete_forest_list =
     List.map 
@@ -423,13 +420,14 @@ class globalState = fun () ->
   (*** END: this part of code try to understand if the project must be really saved before exiting. *)
 
   (** Rewrite the compressed archive prj_filename with the content of the project working directory (pwdir). *)
-  method save_project () =
+  method save_project =
 
     if self#active_project then begin
     Log.printf "state#save_project starting...\n";
 
-    (* The motherboard is read by the father *)
-    let filename = self#extract_prj_filename in
+    let filename = Option.extract project_filename#get in
+    let project_working_directory = Option.extract project_working_directory#get in
+    let project_name = Option.extract project_name#get in
 
     (* Progress bar periodic callback. *)
     let fill =
@@ -441,7 +439,7 @@ class globalState = fun () ->
       (* disk usage (in kb) with the unix library *)
       let du_file_in_kb x = try Some (float_of_int ((Unix.stat x).Unix.st_size / 1024)) with _ -> None in
       let round x = float_of_string (Printf.sprintf "%.2f" (if x<1. then x else 1.)) (* workaround strange lablgtk behaviour *) in
-      match (du self#get_pwdir) with
+      match (du project_working_directory) with
       | Some kb_flatten ->
          fun () -> (match du_file_in_kb filename with
                     | Some kb_compressed -> round (0.05 +. (kb_compressed *. 8.) /. kb_flatten)
@@ -469,91 +467,84 @@ class globalState = fun () ->
     self#save_treeviews;   
 
     (* (Re)write the .mar file *)
-    let cmd = ("tar -cSvzf "^filename^" -C "^self#get_pwdir^" --exclude tmp "^(self#get_prj_name)) in
-    let _ = Task_runner.the_task_runner#schedule ~name:"tar" (fun () -> ignore (Unix.system cmd)) in
-    let _ = Task_runner.the_task_runner#schedule ~name:"destroy saving progress bar" (fun () -> Progress_bar.destroy_progress_bar_dialog window) in
-
+    let cmd =
+      Printf.sprintf "tar -cSvzf %s -C %s --exclude tmp %s"
+        filename
+        project_working_directory
+        project_name
+    in
+    let _ =
+      Task_runner.the_task_runner#schedule
+        ~name:"tar"
+        (fun () -> Log.system_or_ignore cmd)
+    in
+    let _ =
+      Task_runner.the_task_runner#schedule
+        ~name:"destroy saving progress bar"
+        (fun () -> Progress_bar.destroy_progress_bar_dialog window)
+    in
     self#register_state_after_save_or_open;
-    
     Log.printf "state#save_project (main thread) finished.\n";
   end
 
 
   (** Update the project filename to the given string, and save: *)
-  method save_project_as (x:filename) =
+  method save_project_as ~filename =
     if self#active_project then
       try
-      begin
-        let new_prj_name = (self#default_prj_name ~arg:(Some x) ()) in
-
+        let new_project_name = (self#default_project_name_of ~filename)
+        in
         (* Set the project name *)
-        self#change_prj_name new_prj_name;
-
+        self#change_project_name new_project_name;
         (* Set the project filename *)
-        prj_filename#set (Some x) ;
-
+        project_filename#set (Some filename) ;
         (* Save the project *)
-        self#save_project ();
-
-        (* Debugging. *)
-        self#debugging () ;
-
-        ()
-      end
+        self#save_project;
       with e -> (raise e)
 
-  (** Save the project into the given file, but without altering its name in the copy we're
-      editing *)
-  method copy_project_into (x:filename) =
-    (* This is implemented by temporarily updating the name, saving and then switch back to
-       the old name *)
+  (** Save the project into the given file, but without changing its name in the
+      copy we're editing. Implemented by temporarily updating the name, saving
+      then switch back to the old name. *)
+  method copy_project_into ~filename =
     if self#active_project then
       try
-      begin
-        let original_prj_name = self#get_prj_name in
-        let original_filename = prj_filename#get in
-        let temporary_prj_name = (self#default_prj_name ~arg:(Some x) ()) in
-
+        let original_project_name = Option.extract project_name#get in
+        let original_filename = project_filename#get in
+        let temporary_project_name = self#default_project_name_of ~filename in
         (* Temporarily update names...: *)
-        self#change_prj_name temporary_prj_name;
-        prj_filename#set (Some x) ;
-
+        self#change_project_name temporary_project_name;
+        project_filename#set (Some filename) ;
         (* Save the project *)
-        self#save_project ();
-
+        self#save_project;
         (* Reset names ensuring synchronisation *)
         Task_runner.the_task_runner#schedule ~name:"copy_project_into" 
           (fun () ->
            (* Reset names to their old values: *)
-           self#change_prj_name original_prj_name;
-           prj_filename#set original_filename);
-
-        (* Debugging. *)
-        self#debugging () ;
-
-        ()
-      end
+           self#change_project_name original_project_name;
+           project_filename#set original_filename);
       with e -> (raise e)
 
-  (** Change the prj_name. This simply means to change the name of the root directory in the pwdir. *)
-  method change_prj_name x  =
-    let old_name = self#get_prj_name in
-    if (not (x=old_name)) then begin
+  (** Change the prj_name. This simply means to change the name
+      of the mar root directory in the project working directory. *)
+  method change_project_name new_name  =
+    let old_name = Option.extract project_name#get in
+    if new_name = old_name then () else
+    begin
       (* Set the project name. *)
-      prj_name <- (Some x) ;
+      project_name#set (Some new_name) ;
 
       (* Rename the root directory in the pwdir. *)
-      let _ = Unix.system ("mv "^self#get_pwdir^"/"^old_name^" "^self#get_pwdir^"/"^x) in () ;
+      let cmd =
+        let pwd = Option.extract project_working_directory#get in
+        let old_pathname = Filename.concat pwd old_name in
+        let new_pathname = Filename.concat pwd new_name in
+        Printf.sprintf "mv %s %s" old_pathname new_pathname
+      in
+      Log.system_or_ignore cmd; 
+    end
 
-      (* The states interface must also be informed of the new prefix so that it can find
-         its data files, including cows: *)
-      let prefix = self#get_pwdir^"/"^x in
-      self#set_treeview_directories_with_prefix prefix;
-    end;
-
-
- val mutable sensitive_cables : GObj.widget list = []
- method add_sensitive_cable x = sensitive_cables <- x::sensitive_cables
+  val mutable sensitive_cables : GObj.widget list = []
+  method add_sensitive_cable x = sensitive_cables <- x::sensitive_cables
 
   (** Forbid cable additions if there are not enough free ports; explicitly enable
       them if free ports are enough: *)
@@ -598,34 +589,30 @@ class globalState = fun () ->
  (** Force coherence between state and sensitive attributes of mainwin's widgets *)
  method gui_coherence () =
     self#update_state  () ;
-(*    self#set_sensitive () ;*)
     self#update_cable_sensitivity ();
-
- (** For debugging *)
- method debugging () =
-   Log.printf "st.wdir=%s" wdir;
-   Log.printf "st.pwdir=%s" (try self#get_pwdir with _ ->"");
-   Log.printf "st.prj_filename=%s" self#extract_prj_filename;
-   Log.printf "st.prj_name=%s" self#get_prj_name
 
  (* Begin of methods moved from talking.ml *)
  method make_names_and_thunks verb what_to_do_with_a_node =
   List.map
-    (fun node -> (verb ^ " " ^ node#get_name,
-                  fun () ->
-                    let progress_bar =
-                      Simple_dialogs.make_progress_bar_dialog
-                        ~title:(verb ^ " " ^ node#get_name)
-                        ~text_on_bar:(s_ "Wait please...") () in
-                    (try
-                      what_to_do_with_a_node node;
-                    with e ->
-                      Log.printf "Warning (q): \"%s %s\" raised an exception (%s)\n"
-                        verb
-                        node#name
-                        (Printexc.to_string e));
-                    flush_all ();
-                    Simple_dialogs.destroy_progress_bar_dialog progress_bar))
+    (fun node -> (
+      (verb ^ " " ^ node#get_name),
+      (fun () ->
+	let progress_bar =
+	  Simple_dialogs.make_progress_bar_dialog
+	    ~title:(verb ^ " " ^ node#get_name)
+	    ~text_on_bar:(s_ "Wait please...") ()
+	in
+	begin try
+	  what_to_do_with_a_node node;
+	  with e ->
+	  Log.printf "Warning (q): \"%s %s\" raised an exception (%s)\n"
+	    verb
+	    node#name
+	    (Printexc.to_string e);
+	  Log.print_backtrace ();
+	end;
+	Simple_dialogs.destroy_progress_bar_dialog progress_bar))
+    )
     self#network#nodes
 
  method do_something_with_every_node_in_sequence verb what_to_do_with_a_node =

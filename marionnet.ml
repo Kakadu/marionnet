@@ -20,6 +20,9 @@
     bindings between widgets of the main window and dialogs are created, and
     finally the GTK main loop is launched. *)
 
+(* Force OCAMLRUNPARAM=-b *)
+Printexc.record_backtrace true;
+
 open StdLabels
 open Gui
 open Gettext
@@ -42,7 +45,6 @@ module State     = struct let st = st end
 (* Complete the main menu *)
 module Created_window_MARIONNET   = Gui_window_MARIONNET.   Make (State)
 module Created_toolbar_COMPONENTS = Gui_toolbar_COMPONENTS. Make (State)
-module Motherboard = Created_window_MARIONNET.Motherboard
 
 (* ***************************************** *
             Make the treeview widgets
@@ -99,14 +101,14 @@ let treeview_ifconfig =
     ()
 
 (** Make the defects interface: *)
-let defects_interface =
+let treeview_defects =
   Treeview_defects.make
     ~packing:(st#mainwin#defects_viewport#add)
     ~after_user_edit_callback
     ()
 
 (** Make the texts interface: *)
-let texts_interface =
+let treeview_documents =
   Treeview_documents.make
     ~packing:(st#mainwin#documents_viewport#add)
     ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
@@ -146,11 +148,11 @@ end)
 (** Show the splash: *)
 let () = Splash.show_splash (* ~timeout:15000 *) ()
 
-(** Choose a reasonable working directory: *)
+(** Choose a reasonable temporary working directory: *)
 let () = (if Shell.dir_comfortable "/tmp" then
-  st#set_wdir "/tmp"
+  st#temporary_directory#set "/tmp"
 else if Shell.dir_comfortable "~/tmp" then
-  st#set_wdir "~/tmp"
+  st#temporary_directory#set "~/tmp"
 else
   failwith "Please create either /tmp or your home directory on some reasonable modern filesystem supporting sparse files")
 
@@ -224,17 +226,29 @@ let () =
     "which dot"
     (s_ "You don't have Graphviz")
 
+
+module Motherboard = Created_window_MARIONNET.Motherboard
+
 let () = begin
 
 (** Set the main window icon (which may be the exam icon...), and the window title: *)
 st#mainwin#toplevel#set_icon (Some Icon.icon_pixbuf);
 st#mainwin#window_MARIONNET#set_title Command_line.window_title;
 
-Motherboard.sensitiveness_manager#add_sensitive_when_Active   st#mainwin#notebook_CENTRAL#coerce;
-Motherboard.sensitiveness_manager#add_sensitive_when_Runnable st#mainwin#hbuttonbox_BASE#coerce ;
-ignore Motherboard.sensitiveness_manager#stabilize;
-(*ignore Motherboard.system#stabilize;*)
+(* This action must be done when all treeviews are set: *)
+Motherboard.set_treeview_filenames_invariant ();
 
+st#sensitive_when_Active#add   st#mainwin#notebook_CENTRAL#coerce;
+st#sensitive_when_Runnable#add st#mainwin#hbuttonbox_BASE#coerce ;
+
+(* st#mainwin#notebook_CENTRAL#coerce#misc#set_sensitive false; *)
 (** Enter the GTK+ main loop: *)
-GtkThread.main ()
+try
+  GtkThread.main ()
+with e ->
+  begin
+   Log.print_backtrace ();
+   raise e
+  end
+
 end

@@ -70,22 +70,3 @@ let keyboard_layout =
   with Not_found ->
     default_layout;;
 
-(** Project working directory: *)
-let project_working_directory_default : string option = None;;
-let project_working_directory = ref project_working_directory_default;;
-
-let set_project_working_directory value =
-  with_mutex
-    (fun () -> project_working_directory := value);;
-
-let get_project_working_directory () =
-  with_mutex
-    (fun () ->
-      match !project_working_directory with
-      | None -> failwith "the current working directory is currently not set"
-      | Some value -> value);;
-
-let get_project_working_directory_as_option_value () =
-  with_mutex
-    (fun () -> !project_working_directory ) ;;
-

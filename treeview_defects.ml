@@ -444,8 +444,11 @@ object(self)
 end;;
 
 class treeview = t
-module The_unique_treeview = Stateful_modules.Variable (struct type t = treeview end)
-let get = The_unique_treeview.get
+module The_unique_treeview = Stateful_modules.Variable (struct
+  type t = treeview
+  let name = Some "treeview_defects"
+  end)
+let extract = The_unique_treeview.extract
 
 let make ~packing ~after_user_edit_callback () =
   let result = new t ~packing ~after_user_edit_callback () in

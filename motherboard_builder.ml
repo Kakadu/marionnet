@@ -16,15 +16,14 @@
 
 
 (** Gui reactive system. *)
+open Gettext;;
 
 #load "include_type_definitions_p4.cmo"
 ;;
-INCLUDE DEFINITIONS "gui/gui_motherboard.mli"
+INCLUDE DEFINITIONS "motherboard_builder.mli"
 ;;
 #load "chip_parser_p4.cmo"
 ;;
-
-open Gettext;;
 
 module Make (S : sig val st:State.globalState end) = struct
 
@@ -34,8 +33,8 @@ module Make (S : sig val st:State.globalState end) = struct
 
  (* Main window title manager *)
 
-  chip main_window_title_manager : (prj_filename) -> () =
-    let title = match prj_filename with
+  chip main_window_title_manager : (project_filename) -> () =
+    let title = match project_filename with
     | None          ->  Command_line.window_title
     | Some filename -> (Command_line.window_title ^ " - " ^ filename)
     in
@@ -44,45 +43,47 @@ module Make (S : sig val st:State.globalState end) = struct
   let main_window_title_manager =
     new main_window_title_manager
       ~name:"main_window_title_manager"
-      ~prj_filename:st#prj_filename ()
+      ~project_filename:st#project_filename ();;
 
   (* Sensitiveness manager *)
 
-  chip sensitiveness_manager : (app_state) -> () =
-    let l1 = self#sensitive_when_Active   in
-    let l2 = self#sensitive_when_Runnable in
-    let l3 = self#sensitive_when_NoActive in
+  chip sensitiveness_manager : (
+    app_state,
+    wa:(GObj.widget list),
+    wr:(GObj.widget list),
+    wn:(GObj.widget list))
+    -> () =
+    let print_log () =
+      Log.printf
+           "sensitiveness_manager: the project is in the state: %s #wa=%d #wr=%d #wn=%d\n"
+            st#app_state_as_string
+            (List.length wa) (List.length wr) (List.length wn)
+    in
     (match app_state with
     | State.NoActiveProject
-     ->  List.iter (fun x->x#misc#set_sensitive false) (l1@l2) ;
-         List.iter (fun x->x#misc#set_sensitive true)  l3
+     ->  print_log ();
+         List.iter (fun x->x#misc#set_sensitive false) (wa@wr) ;
+         List.iter (fun x->x#misc#set_sensitive true)  wn;
 
     | State.ActiveNotRunnableProject
-     ->  List.iter (fun x->x#misc#set_sensitive true)  l1 ;
-         List.iter (fun x->x#misc#set_sensitive false) (l2@l3)
+     ->  print_log ();
+         List.iter (fun x->x#misc#set_sensitive true)  wa ;
+         List.iter (fun x->x#misc#set_sensitive false) (wr@wn);
 
     | State.ActiveRunnableProject
-     ->  List.iter (fun x->x#misc#set_sensitive true)  (l1@l2) ;
-         List.iter (fun x->x#misc#set_sensitive false) l3
+     ->  print_log ();
+         List.iter (fun x->x#misc#set_sensitive true)  (wa@wr) ;
+         List.iter (fun x->x#misc#set_sensitive false) wn;
     )
-    complement
-    val mutable sensitive_when_Active   : GObj.widget list = []
-    val mutable sensitive_when_Runnable : GObj.widget list = []
-    val mutable sensitive_when_NoActive : GObj.widget list = []
-
-    method sensitive_when_Active   = sensitive_when_Active
-    method sensitive_when_Runnable = sensitive_when_Runnable
-    method sensitive_when_NoActive = sensitive_when_NoActive
-
-    method add_sensitive_when_Active   x = sensitive_when_Active   <- x::sensitive_when_Active
-    method add_sensitive_when_Runnable x = sensitive_when_Runnable <- x::sensitive_when_Runnable
-    method add_sensitive_when_NoActive x = sensitive_when_NoActive <- x::sensitive_when_NoActive
-    end
 
   let sensitiveness_manager =
-    ((new sensitiveness_manager
-         ~name:"sensitiveness_manager"
-         ~app_state:st#app_state ()) :> sensitiveness_manager_interface)
+    new sensitiveness_manager
+      ~name:"sensitiveness_manager"
+      ~app_state:st#app_state
+      ~wa:st#sensitive_when_Active#coerce
+      ~wr:st#sensitive_when_Runnable#coerce
+      ~wn:st#sensitive_when_NoActive#coerce
+      () ;;
 
   (* Dot tuning manager. Is a toggling chip of arity 6. *)
   chip dot_tuning_manager :
@@ -97,14 +98,7 @@ module Make (S : sig val st:State.globalState end) = struct
      = () ;;
 
   let refresh_sketch_counter = st#refresh_sketch_counter
-  let reverted_rj45cables_cable = Chip.cable    ~name:"reverted_rj45cables_cable" ()
-
-  let () =
-   let m = (object method reverted_rj45cables_cable = reverted_rj45cables_cable end) in
-   begin
-    st#set_motherboard m;
-    st#network#set_motherboard m;
-   end
+  let reverted_rj45cables_cable = Chip.cable ~name:"reverted_rj45cables_cable" ()
 
   let dot_tuning_manager =
    let d = st#network#dotoptions in
@@ -195,6 +189,49 @@ module Make (S : sig val st:State.globalState end) = struct
          );
          false))
     else ()
+
+  chip treeview_filenames : (pwd:string option, prn:string option) -> (h,i,d,t,d1,d2,d3,d4) =
+    match pwd, prn with
+    | (Some pwd), (Some prn) -> 
+	let prefix = FilenameExtra.concat_list [pwd; prn] in
+	let concat = Filename.concat in
+	let dir = Some (concat prefix "states/") in
+	let h   = Some (concat prefix "states/states-forest") in
+	let i   = Some (concat prefix "states/ports") in
+	let d   = Some (concat prefix "states/defects") in
+	let t   = Some (concat prefix "states/texts") in
+	(h,i,d,t,dir,dir,dir,dir)
+    | _,_ -> (None, None, None, None, None, None, None, None)
+    ;;
+
+   let () =
+     let m =
+       object
+         method reverted_rj45cables_cable = reverted_rj45cables_cable
+         method project_working_directory =
+           Option.extract st#project_working_directory#get
+       end
+     in
+     Motherboard.set m
+  ;;
+
+  (* Must be called only when treeview are made: *)
+  let set_treeview_filenames_invariant () =
+    let _ =
+      new treeview_filenames
+	~pwd:st#project_working_directory
+	~prn:st#project_name
+	~h:st#treeview#history#filename
+	~i:st#treeview#ifconfig#filename
+	~d:st#treeview#defects#filename
+	~t:st#treeview#documents#filename
+	~d1:st#treeview#history#directory
+	~d2:st#treeview#ifconfig#directory
+	~d3:st#treeview#defects#directory
+	~d4:st#treeview#documents#directory
+	()
+   in ()
+   ;;
 
 (*  let pippo = WGButton.button ~name:"button_pippo" system ~label:"PIPPO" ~packing:(st#mainwin#hbuttonbox_BASE#pack) ()
 

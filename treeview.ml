@@ -535,9 +535,6 @@ object(self)
   val id_to_row =
     Hashtbl.create 1000
 
-  val file_name =
-    ref None
-
   val columns : column list ref =
     ref []
 
@@ -714,58 +711,69 @@ object(self)
     | (Some the_tree_store) ->
         the_tree_store
 
-  method file_name =
-    match !file_name with
-      None -> failwith "No file name is currently set"
-    | (Some file_name) -> file_name
+  val filename : string option Chip.wref = Chip.wref ~name:"treeview#filename" None
+  method filename = filename
 
-  method is_file_name_defined =
-    match !file_name with
-      None -> false
-    | Some _ -> true
+  (** Note that the states directory {e must} be an absolute pathname
+      and {e must} include a trailing slash *)
+  val directory : string option Chip.wref = Chip.wref ~name:"treeview#directory" None
+  method directory = directory
 
-  method reset_file_name =
-    file_name := None
-
-  (* Reset means: clear + reset_file_name *)
-  method reset =
-    self#reset_file_name;
-    self#clear;
-
-  method set_file_name (new_file_name : string) =
-    file_name := Some new_file_name
-
-  method add_string_column ~header ?shown_header
-                           ?italic:(italic=false) ?bold:(bold=false)
-                           ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
-                           ?constraint_predicate () =
-    let column = new string_column ~italic ~bold
-                                   ~treeview:self ~hidden ~reserved ?default ~header
-                                   ?shown_header
-                                   ?constraint_predicate () in
+  method add_string_column
+    ~header ?shown_header
+    ?(italic=false) ?(bold=false)
+    ?(hidden=false) ?(reserved=false) ?default
+    ?constraint_predicate
+    () =
+    let column =
+      new string_column
+        ~italic ~bold
+        ~treeview:self ~hidden ~reserved ?default ~header
+        ?shown_header
+        ?constraint_predicate
+        ()
+    in
     ((self#add_column (column :> column)) :> string_column)
 
-  method add_editable_string_column ~header ?shown_header
-                                    ?italic:(italic=false) ?bold:(bold=false)
-                                    ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
-                                    ?constraint_predicate () =
-    let column = new editable_string_column ~italic ~bold
-                                            ~hidden ~reserved ?default ~treeview:self
-                                            ~header ?shown_header ?constraint_predicate () in
+  method add_editable_string_column
+    ~header ?shown_header
+    ?(italic=false) ?(bold=false)
+    ?(hidden=false) ?(reserved=false) ?default
+    ?constraint_predicate
+    () =
+    let column =
+      new editable_string_column
+        ~italic ~bold
+        ~hidden ~reserved ?default ~treeview:self
+        ~header ?shown_header ?constraint_predicate
+        ()
+    in
     ((Obj.magic (self#add_column (column :> column))) :> editable_string_column)
 
-  method add_checkbox_column ~header ?shown_header
-                             ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
-                             ?constraint_predicate () =
-    let column = new checkbox_column ~treeview:(Obj.magic self) ~header ?shown_header ~hidden
-                                     ~reserved ?default ?constraint_predicate() in
+  method add_checkbox_column
+    ~header ?shown_header
+    ?(hidden=false) ?(reserved=false) ?default
+    ?constraint_predicate
+    () =
+    let column =
+      new checkbox_column
+        ~treeview:(Obj.magic self) ~header ?shown_header ~hidden
+        ~reserved ?default ?constraint_predicate
+       ()
+    in
     ((Obj.magic (self#add_column (column :> column))) :> checkbox_column)
 
-  method add_icon_column ~header ?shown_header
-                         ?hidden:(hidden=false) ?reserved:(reserved=false) ?default
-                         ~strings_and_pixbufs () =
-    let column = new icon_column ~treeview:(Obj.magic self) ~header ?shown_header ~hidden
-                                 ~reserved ?default ~strings_and_pixbufs () in
+  method add_icon_column
+    ~header ?shown_header
+    ?(hidden=false) ?(reserved=false) ?default
+    ~strings_and_pixbufs
+    () =
+    let column =
+      new icon_column
+        ~treeview:(Obj.magic self) ~header ?shown_header ~hidden
+        ~reserved ?default ~strings_and_pixbufs
+      ()
+    in
     ((Obj.magic (self#add_column (column :> column))) :> icon_column)
 
   method private bind_or_replace_in_row column_name column_value row =
@@ -996,7 +1004,7 @@ object(self)
     new Oomarshal.marshaller;
 
   method save =
-    let file_name = self#file_name in (* this failwiths if no filename was set *)
+    let file_name = Option.extract filename#get in
     Log.printf "treeview#save: saving into %s\n" file_name;
     next_identifier_and_content_forest_marshaler#to_file
       (self#get_next_identifier, self#get_complete_forest)
@@ -1006,7 +1014,7 @@ object(self)
     self#detach_view_in
       (fun () ->
         self#clear;
-        let file_name = self#file_name in (* this failwiths if no filename was set *)
+        let file_name = Option.extract filename#get in
         try
           let next_identifier, complete_forest =
             (next_identifier_and_content_forest_marshaler#from_file file_name) in

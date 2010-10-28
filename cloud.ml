@@ -62,7 +62,12 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Dialog_add_or_update.make ~title:(s_ "Add cloud") ~name ~ok_callback ()
 
     let reaction { name = name; label = label } =
-      let action () = ignore (new User_level.cloud ~network:st#network ~name ~label ()) in
+      let action () = ignore (
+        new User_level.cloud
+          ~network:st#network
+          ~name
+          ~label
+          ()) in
       st#network_change action ();
 
   end

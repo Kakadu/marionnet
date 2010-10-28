@@ -521,9 +521,9 @@ class router
     Log.printf "Ok, we're still alive\n";
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Command_line.are_we_in_exam_mode then begin
-      let texts_interface = Treeview_documents.get () in
+      let treeview_documents = Treeview_documents.extract () in
       Log.printf "Adding the report on %s to the texts interface\n" self#name;
-      texts_interface#import_report
+      treeview_documents#import_report
 	~machine_or_router_name:self#name
 	~pathname:(hostfs_directory_pathname ^ "/report.html")
 	();

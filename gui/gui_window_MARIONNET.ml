@@ -34,14 +34,14 @@ end
              Gui motherboard
  * ***************************************** *)
 
-module Motherboard = Gui_motherboard. Make (State)
+module Motherboard = Motherboard_builder. Make (State)
 
 
 (* ***************************************** *
          MENUS Project, Options, ...
  * ***************************************** *)
 
-module Created_menubar_MARIONNET = Gui_menubar_MARIONNET. Make (State) (Motherboard)
+module Created_menubar_MARIONNET = Gui_menubar_MARIONNET.Make (State)
 
 
 (* ***************************************** *

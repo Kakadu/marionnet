@@ -104,6 +104,7 @@ INCLUDES="$INCLUDES -I $PWD/_build $BUILD_DIRS"
 
 # This is probably what we want:
 export MARIONNET_DEBUG=true
+export OCAMLRUNPARAM=-b
 
 # Launch the toplevel:
 if   which rlwrap &>/dev/null; then rlwrap $TOP $INCLUDES $INIT "$@"

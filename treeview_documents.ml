@@ -36,17 +36,13 @@ object(self)
       ()
   as super
 
-  (** Return the full pathname of the current working directory. Fail if it isn't set: *)
-  method private get_working_directory =
-    Filename.dirname self#file_name
-
   (** Display the document at the given row, in an asynchronous process: *)
   method private display row_id =
     let format = item_to_string (self#get_row_item row_id "Format") in
     let reader = self#format_to_reader format in
     let file_name = item_to_string (self#get_row_item row_id "FileName") in
     let command_line =
-      Printf.sprintf "%s '%s/%s'&" reader self#get_working_directory file_name in
+      Printf.sprintf "%s '%s/%s'&" reader (Option.extract directory#get) file_name in
     (* Here ~force:true would be useless, because of '&' (the shell well exit in any case). *)
     Log.system_or_ignore command_line
 
@@ -142,7 +138,7 @@ object(self)
   method private import_file ?(move=false) pathname =
     try
       let file_format    = self#file_to_format pathname in
-      let parent         = self#get_working_directory in
+      let parent         = Option.extract directory#get in
       let fresh_pathname = UnixExtra.temp_file ~parent ~prefix:"document-" () in
       let fresh_name     = Filename.basename fresh_pathname in
       let result         = (fresh_name, file_format) in
@@ -264,7 +260,7 @@ object(self)
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
         let file_name = item_to_string (self#get_row_item row_id "FileName") in
-        let pathname = Printf.sprintf "%s/%s" self#get_working_directory file_name in
+        let pathname = Printf.sprintf "%s/%s" (Option.extract directory#get) file_name in
         UnixExtra.apply_ignoring_Unix_error Unix.unlink pathname;
         self#remove_row row_id;
         );
@@ -275,8 +271,11 @@ object(self)
 end;;
 
 class treeview = t
-module The_unique_treeview = Stateful_modules.Variable (struct type t = treeview end)
-let get = The_unique_treeview.get
+module The_unique_treeview = Stateful_modules.Variable (struct
+  type t = treeview
+  let name = Some "treeview_documents"
+  end)
+let extract = The_unique_treeview.extract
 
 let make ~packing ~after_user_edit_callback () =
   let result = new t ~packing ~after_user_edit_callback () in

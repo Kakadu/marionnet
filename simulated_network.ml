@@ -14,6 +14,8 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext;;
+
 #load "include_type_definitions_p4.cmo"
 ;;
 INCLUDE DEFINITIONS "simulated_network.mli" ;;
@@ -21,7 +23,6 @@ INCLUDE DEFINITIONS "simulated_network.mli" ;;
 open Treeview_defects;;
 open Daemon_language;;
 open X;; (* Not really needed: this works around a problem with OCamlBuild 3.10.0 *)
-open Gettext;;
 
 module Recursive_mutex = MutexExtra.Recursive ;;
 
@@ -31,6 +32,7 @@ module Recursive_mutex = MutexExtra.Recursive ;;
 let make_input_for_spawned_processes () =
   let (an_input_descriptor_never_sending_anything, _) = Unix.pipe () in
   an_input_descriptor_never_sending_anything;;
+
 let an_input_descriptor_never_sending_anything =
   make_input_for_spawned_processes ();
 
@@ -269,9 +271,10 @@ object(self)
 end;;
 
 class reserved_socket_name ~prefix ~program () =
+ let motherboard = Motherboard.extract () in
  let socket_name =
   UnixExtra.temp_file
-    ~parent:(Global_options.get_project_working_directory ())
+    ~parent:motherboard#project_working_directory
     ~prefix
     ()
  in
@@ -309,10 +312,17 @@ class virtual process_which_creates_a_socket_at_spawning_time =
   inherit process program arguments ?stdin ?stdout ?stderr ~unexpected_death_callback ()
   as super
 
-  val listening_socket  = new reserved_socket_name ~prefix:socket_name_prefix ~program ()
+  val listening_socket  =
+    new reserved_socket_name
+      ~prefix:socket_name_prefix
+      ~program
+      ()
+
   val management_socket =
     let prefix = socket_name_prefix^"mgmt-" in
-    Option.map (new reserved_socket_name ~prefix ~program) management_socket
+    Option.map
+      (new reserved_socket_name ~prefix ~program)
+      management_socket
 
   method private management_socket_unused_or_exists =
     match management_socket with
@@ -750,7 +760,7 @@ let make_ethernet_cable_process
 let ethernet_interface_to_boot_parameters_bindings umid port_index hublet =
 (*   let name = Printf.sprintf "eth_%s_eth%i" umid index in *)
   let port_index_as_string = string_of_int port_index in
-  let ifconfig = Treeview_ifconfig.get () in
+  let ifconfig = Treeview_ifconfig.extract () in
   [
    "mac_address_eth"^port_index_as_string,
    ifconfig#get_port_attribute_by_index umid port_index "MAC address";
@@ -773,7 +783,7 @@ let ethernet_interface_to_boot_parameters_bindings umid port_index hublet =
 (** Convert the tuple we use to represent information about an ethernet interface
     into a command line argument for UML *)
 let ethernet_interface_to_uml_command_line_argument umid port_index hublet =
-  let ifconfig = Treeview_ifconfig.get () in
+  let ifconfig = Treeview_ifconfig.extract () in
   "eth" ^ (string_of_int port_index) ^ "=daemon," ^
   (ifconfig#get_port_attribute_by_index umid port_index "MAC address") ^
   ",unix," ^ (hublet#get_socket_name) ^ "/ctl";;
@@ -788,9 +798,9 @@ let random_ghost_mac_address () =
   Printf.sprintf "%s:%s:%s:%s:%s:%s" octet0 octet1 octet2 octet3 octet4 octet5;;
 
 (** Create a fresh sparse file name for swap and return it: *)
-let create_swap_file_name () =
+let create_swap_file_name ~parent =
   UnixExtra.temp_file
-    ~parent:(Global_options.get_project_working_directory ())
+    ~parent
     ~prefix:"sparse-swap-"
     ();;
 
@@ -799,7 +809,7 @@ class uml_process =
   fun ~(kernel_file_name)
       ~(filesystem_file_name)
       ~(cow_file_name)
-      ?(swap_file_name=create_swap_file_name ())
+      ?swap_file_name
       ~(ethernet_interface_no)
       ~(hublet_processes)
       ~(memory) (* in megabytes *)
@@ -810,6 +820,12 @@ class uml_process =
       ?xnest_display_number
       ~unexpected_death_callback
       () ->
+  let motherboard = Motherboard.extract () in
+  let swap_file_name =
+    match swap_file_name with
+    | None -> create_swap_file_name ~parent:motherboard#project_working_directory
+    | Some f -> f
+  in
   let debug_mode =
     Global_options.Debug_level.are_we_debugging () in
   let console =
@@ -1103,7 +1119,13 @@ class virtual ['parent] device
  ()
  =
  let make_hublet_process_array ~unexpected_death_callback ~size =
-   Array.init size (fun index -> new hublet_process ~index ~unexpected_death_callback ())
+   Array.init
+     size
+     (fun index ->
+        new hublet_process
+              ~index
+              ~unexpected_death_callback
+              ())
  in
  object(self)
   (** The internal state, as a DFA state *)
@@ -1260,7 +1282,7 @@ object(self)
       Some ethernet_cable_process -> ethernet_cable_process
     | None -> failwith "ethernet_cable: get_ethernet_cable_process was called when there is no such process"
   initializer
-    let defects = Treeview_defects.get () in
+    let defects = Treeview_defects.extract () in
     let name = parent#get_name in
     ethernet_cable_process :=
       Some(new ethernet_cable_process
@@ -1572,10 +1594,9 @@ object(self)
               ~console
               ~id
               ?show_unix_terminal
-              ?xnest_display_number:(if xnest then
-                                       Some self#get_xnest_process#display_number_as_server
-                                     else
-                                       None)
+              ?xnest_display_number:(
+                 if xnest then Some self#get_xnest_process#display_number_as_server
+                          else None)
               ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ());
 

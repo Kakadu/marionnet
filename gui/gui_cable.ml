@@ -80,7 +80,7 @@ module Make_menus
       in M.dialog ~title ~update:None
 
     let reaction r =
-      let defects = Treeview_defects.get () in
+      let defects = Treeview_defects.extract () in
       let (name,label) = (r#get "name"),(r#get "label") in
       let (left, right, left_endpoint_name, right_endpoint_name) = define_endpoints r in
       defects#add_cable name (Netmodel.string_of_cablekind cablekind) left_endpoint_name right_endpoint_name;
@@ -115,7 +115,7 @@ module Make_menus
       in M.dialog ~title:(title^" "^name) ~update:(Some c)
 
     let reaction r =
-      let defects = Treeview_defects.get () in
+      let defects = Treeview_defects.extract () in
       let (left, right, left_endpoint_name, right_endpoint_name) = define_endpoints r in
       let (name,oldname,label) = (r#get "name"),(r#get "oldname"),(r#get "label") in
       defects#rename oldname name;
@@ -149,7 +149,7 @@ module Make_menus
         ~question
 
     let reaction r =
-      let defects = Treeview_defects.get () in
+      let defects = Treeview_defects.extract () in
       let name,answer = r#get("name"), r#get("answer") in
       if (answer="yes") then begin
         (st#network#del_cable name);

@@ -19,8 +19,7 @@ open Ledgrid;;
 open Gtk.Tags;;
 
 let blinker_thread_socket_file_name =
-  let parent = (Global_options.get_project_working_directory_as_option_value ()) in
-  let result = UnixExtra.temp_file ?parent ~prefix:".marionnet-blinker-server-socket-" () in
+  let result = UnixExtra.temp_file ~prefix:".marionnet-blinker-server-socket-" () in
   Log.printf "The blinker server socket is %s\n" result;
   result;;
 
@@ -42,8 +41,6 @@ object (self)
     try
       Hashmap.lookup id_to_data id
     with _ -> begin
-(*    (* Annoying for the world gateway: *)
-      Log.printf "ledgrid_manager: Warning: id_to_device: No device has id %d.\n" id; *)
       failwith ("id_to_device: No device has id " ^ (string_of_int id))
     end
 

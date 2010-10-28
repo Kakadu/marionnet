@@ -501,6 +501,30 @@ class wcounter ?name ?parent (system:system) =
   method set_alone () = (content <- content + 1)
  end
 
+class ['a] wlist ?name ?parent (system:system) (value:'a list) =
+ let name = match name with None -> fresh_wire_name "wlist" | Some x -> x in
+ object (self)
+  inherit ['a list] wref ~name ?parent system value
+  method update_with (f:'a list -> 'a list) =
+    self#tracing#message "updating the list";
+    let action () =
+      content <- f content;
+      ignore (self#system#stabilize);
+      self#tracing#rparen "wlist updated.";
+    in
+    self#system#mutex_methods#with_mutex action
+  (* Equivalent to: update_with (List.append [x]) *)
+  method add x =
+    self#tracing#message "adding on top of the list";
+    let action () =
+      content <- x::content;
+      ignore (self#system#stabilize);
+      self#tracing#rparen "wlist updated.";
+    in
+    self#system#mutex_methods#with_mutex action
+  method coerce = (self :> ('a list,'a list) wire)
+ end
+
 class ['a,'b] wire_of_accessors ?name ?parent (system:system) get_alone set_alone =
  let name = match name with None -> fresh_wire_name "wire_of_accessors" | Some x -> x in
  object (self)
@@ -716,6 +740,12 @@ let wcounter
  ?parent
  ?(system=(get_or_initialize_current_system ())) () =
  new wcounter ?name ?parent system
+
+let wlist
+ ?name
+ ?parent
+ ?(system=(get_or_initialize_current_system ())) x =
+ new wlist ?name ?parent system x
 
 let wire_of_accessors
  ?name

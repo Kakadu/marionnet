@@ -317,6 +317,32 @@ class wcounter : ?name:string -> ?parent:common -> system ->
     method get_alone : int
   end
 
+class ['a] wlist : ?name:string -> ?parent:common -> system -> 'a list ->
+  object
+    method id : int
+    method name : string
+    method parent : common option
+    method set_parent : common option -> unit
+    method parent_list : common list
+    method as_common : common
+    method dot_reference : string
+    method system : system
+    method destroy : unit -> unit
+    method add_destroy_callback : (unit -> unit) -> unit
+    method tracing : tracing_methods
+    method to_dot : string
+
+    method set : 'a list -> unit
+    method get : 'a list
+    method set_alone : 'a list -> unit
+    method get_alone : 'a list
+
+    method add : 'a -> unit
+    method update_with : ('a list -> 'a list) -> unit
+
+    method coerce : ('a list, 'a list) wire
+  end
+
 class ['a, 'b] cable :
   ?name:string   ->
   ?tracing:(unit->bool)  ->
@@ -436,6 +462,7 @@ val get_current_system : unit -> system
 val get_or_initialize_current_system : unit -> system
 
 val wref     : ?name:string -> ?parent:common -> ?system:system -> 'a -> 'a wref
+val wlist    : ?name:string -> ?parent:common -> ?system:system -> 'a list -> 'a wlist
 val wcounter : ?name:string -> ?parent:common -> ?system:system -> unit -> wcounter
 val cable : ?name:string -> ?parent:common -> ?system:system -> unit -> ('a, 'a) cable
 val wref_in_cable : ?name:string -> cable:('a,'a) cable -> 'a -> 'a wref

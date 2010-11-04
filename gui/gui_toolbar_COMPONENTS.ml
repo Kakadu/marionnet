@@ -18,14 +18,14 @@
 (** Gui completion for the toolbar_COMPONENTS widget defined with glade. *)
 
 module Make (State : sig val st:State.globalState end) = struct
- module Direct    = struct let cablekind = Mariokit.Netmodel.Direct    end
- module Crossover = struct let cablekind = Mariokit.Netmodel.Crossover end
+ module Direct    = struct let crossover = false end
+ module Crossover = struct let crossover = true  end
  module Menus_for_machine = Machine.Make_menus (State)
  module Menus_for_hub     = Hub.Make_menus (State)
  module Menus_for_switch  = Switch. Make_menus (State)
  module Menus_for_router  = Router. Make_menus (State)
- module Menus_for_direct_cable    = Gui_cable. Make_menus (State) (Direct)
- module Menus_for_crossover_cable = Gui_cable. Make_menus (State) (Crossover)
+ module Menus_for_direct_cable    = Cable. Make_menus (State) (Direct)
+ module Menus_for_crossover_cable = Cable. Make_menus (State) (Crossover)
  module Menus_for_cloud   = Cloud. Make_menus (State)
  module Menus_for_world_gateway = World_gateway. Make_menus (State)
  module Menus_for_world_bridge  = World_bridge. Make_menus (State)

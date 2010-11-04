@@ -512,4 +512,153 @@ let make_window_image_name_and_label
 
 end (* module Dialog_add_or_update *)
 
+#load "chip_parser_p4.cmo"
+;;
+module Reactive_widget = struct
+
+  class combo_box_text
+    ?name ?parent
+    ?system
+    ~(strings:string list) ?active
+    ?width
+    ?height
+    ~packing
+    () =
+  let system = Option.extract system ~fallback:Chip.get_or_initialize_current_system in
+  let name = match name with None -> Chip.fresh_wire_name "combo_box_text" | Some x -> x in
+  let make_widget ?(active=0) strings =
+    let w = GEdit.combo_box_text ~strings ~use_markup:true ~active ~packing ?width ?height () in
+    ignore ((fst w)#connect#changed (fun _ -> ignore system#stabilize));
+    w
+  in
+  object (self)
+    inherit [string list * int option, string option] Chip.wire ~name ?parent system
+    val mutable content = make_widget ?active strings
+    val mutable strings_content = strings
+    method get_alone   = GEdit.text_combo_get_active content
+    method set_alone (strings, active) =
+      let active = match active with
+      | Some i -> Some i
+      | None ->
+          (* The old selected string, if exists, is recovered: *)
+          let active_string = GEdit.text_combo_get_active content in
+          Option.bind active_string (fun x -> ListExtra.indexOf x strings)
+      in
+      (match strings = strings_content with
+      | true -> Option.iter ((fst content)#set_active) active
+      | false -> 
+         (fst content)#destroy ();
+         content <- make_widget ?active strings;
+	 strings_content <- strings;
+      )
+    method destroy = (fst content)#destroy
+  end
+
+  let partition ?(loopback=true) xys n0 p0 n1 p1 =
+   let nodes_of xys = ListExtra.uniq (List.map fst xys) in
+   let substract (n0,p0) xys = match n0,p0 with
+   | (Some n0, Some p0) -> List.filter ((<>)(n0,p0)) xys
+   | (Some n0, None)    -> List.filter (fun (n,p)->n<>n0) xys
+   | _                  -> xys
+   in
+   let (>>=) = Option.bind in
+   let index_of n xs =
+     n >>= (fun n -> (Option.map fst (ListExtra.searchi ((=)n) xs)))
+   in
+   let ports_of n xys = match n with
+   | None -> []
+   | Some x -> ListExtra.filter_map (fun (n,p)-> if n=x then Some p else None) xys
+   in
+   let xs0 = nodes_of xys in
+   let xs0_active = index_of n0 xs0 in
+   let ys0 = ports_of n0 xys in
+   let ys0_active = index_of p0 ys0 in
+   let (xs1, ys1) =
+     let xys' = match loopback with
+     | true  -> substract (n0,p0)   xys
+     | false -> substract (n0,None) xys
+     in
+     (nodes_of xys', ports_of n1 xys')
+   in
+   let xs1_active = index_of n1 xs1 in
+   let ys1_active = index_of p1 ys1
+   in
+   let w1 = (xs0, xs0_active) in
+   let w2 = (ys0, ys0_active) in
+   let w3 = (xs1, xs1_active) in
+   let w4 = (ys1, ys1_active) in
+   (w1,w2,w3,w4)
+   ;;
+
+ let guess_humanly_speaking_enpoints xys n0 p0 n1 p1 =
+  let ((xs0,_),(ys0,_),(xs1,_),(ys1,_)) = partition ~loopback:false xys n0 p0 n1 p1 in
+  let x0 = Option.catch List.hd xs0 in
+  let y0 = Option.catch List.hd ys0 in
+  let x1 = Option.catch List.hd xs1 in
+  let y1 = Option.catch List.hd ys1 in
+  ((x0,y0),(x1,y1))
+ 
+ chip partition_chip (xys:(string * string) list) : (x0,y0,x1,y1) -> (w1,w2,w3,w4)
+    = (partition xys x0 y0 x1 y1) ;;
+
+ class cable_input_widget
+   ?n0 ?p0 ?n1 ?p1
+   ?width
+   ?height
+   ~packing_n0 ~packing_p0 ~packing_n1 ~packing_p1
+   ~free_node_port_list
+   ()
+   =
+   let (w1,w2,w3,w4) = partition free_node_port_list n0 p0 n1 p1 in
+   let (xs0, xs0_active) = w1 in
+   let (ys0, ys0_active) = w2 in
+   let (xs1, xs1_active) = w3 in
+   let (ys1, ys1_active) = w4 in
+   let system = new Chip.system () in
+   let n0_widget =
+     let packing = packing_n0 in
+     new combo_box_text ~name:"n0" ~system ~strings:xs0 ?active:xs0_active ?width ?height ~packing ()
+   in
+   let p0_widget =
+     let packing = packing_p0 in
+     new combo_box_text ~name:"p0" ~system ~strings:ys0 ?active:ys0_active ?width ?height ~packing ()
+   in
+   let n1_widget =
+     let packing = packing_n1 in
+     new combo_box_text ~name:"n1" ~system ~strings:xs1 ?active:xs1_active ?width ?height ~packing ()
+   in
+   let p1_widget =
+     let packing = packing_p1 in
+     new combo_box_text ~name:"p1" ~system ~strings:ys1 ?active:ys1_active ?width ?height ~packing ()
+   in
+   let _partition_chip =
+     new partition_chip free_node_port_list
+       ~system
+       ~x0:n0_widget
+       ~y0:p0_widget
+       ~x1:n1_widget
+       ~y1:p1_widget
+       ~w1:n0_widget
+       ~w2:p0_widget
+       ~w3:n1_widget
+       ~w4:p1_widget
+       ()
+   in
+   object (self)
+     method get_widget_data =
+       ((n0_widget#get, p0_widget#get), (n1_widget#get, p1_widget#get))
+       
+     method system = system
+     method destroy = 
+       List.iter
+         (fun w->w#destroy ())
+         [n0_widget; p0_widget; n1_widget; p1_widget]
+
+    initializer
+       ignore system#stabilize;
+
+   end
+   
+end (* Reactive_widget *)
+
 let test () = Dialog.yes_or_cancel_question ~markup:"prova <b>bold</b>" ~context:'a' ()

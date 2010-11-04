@@ -326,12 +326,11 @@ object(self)
   method spawn_processes =
     (* Create the internal cable process and spawn it: *)
     let the_internal_cable_process =
-      let get_port_defect = parent#ports_card#get_port_defect_by_index in
       Simulated_network.make_ethernet_cable_process
         ~left_end:(self#get_hublet_process_of_port 0)
         ~right_end:(self#get_hublet_process_of_port 1)
-        ~get_port_defect
-	~index:0
+        ~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index 0)
+        ~rightward_defects:(parent#ports_card#get_my_outward_defects_by_index 0)
         ~unexpected_death_callback:self#execute_the_unexpected_death_callback
         ()
     in

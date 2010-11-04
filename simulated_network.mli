@@ -252,18 +252,21 @@ class ethernet_cable_process :
     method terminate : unit
   end
 
+type defects_object =
+  < duplication : float;
+    flip        : float;
+    loss        : float;
+    max_delay   : float;
+    min_delay   : float >
+
 val make_ethernet_cable_process :
   left_end:< get_socket_name : string; .. > ->
   right_end:< get_socket_name : string; .. > ->
   ?blinker_thread_socket_file_name:process_name option ->
   ?left_blink_command:string option ->
   ?right_blink_command:string option ->
-  get_port_defect:(
-     int ->
-     Treeview_defects.port_direction ->
-     Treeview_defects.column_header  -> float
-     ) ->
-  index:int ->
+  leftward_defects: defects_object ->
+  rightward_defects: defects_object ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit -> ethernet_cable_process
 
@@ -322,7 +325,8 @@ exception CantGoFromStateToState of device_state * device_state
 type user_level_parent = <
  get_name : string;
  ports_card : <
-    get_port_defect_by_index : int -> Treeview_defects.port_direction -> string -> float;
+    get_my_inward_defects_by_index  : int -> defects_object;
+    get_my_outward_defects_by_index : int -> defects_object;
     >
  >
 
@@ -355,37 +359,6 @@ class virtual ['parent] device :
     method execute_the_unexpected_death_callback : int -> string -> unit
   end
 
-class ['parent] ethernet_cable :
-  parent:'parent ->
-  left_end:< get_socket_name : string; .. > ->
-  right_end:< get_socket_name : string; .. > ->
-  ?blinker_thread_socket_file_name:process_name option ->
-  ?left_blink_command:string option ->
-  ?right_blink_command:string option ->
-  unexpected_death_callback:(unit -> unit) ->
-  unit ->
-  object
-    constraint 'parent = < get_name : string; .. > as 'b
-    method continue_processes : unit
-    method destroy : unit
-    method device_type : string
-    method get_hublet_process_of_port : int -> hublet_process
-    method get_hublet_process_list : hublet_process list
-    method get_hublet_no : int
-    method get_state : device_state
-    method gracefully_shutdown : unit
-    method gracefully_terminate_processes : unit
-    method hostfs_directory_pathname : string
-    method resume : unit
-    method shutdown : unit
-    method spawn_processes : unit
-    method startup : unit
-    method stop_processes : unit
-    method suspend : unit
-    method terminate_processes : unit
-    method execute_the_unexpected_death_callback : int -> string -> unit
-  end
-
 class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_processes :
   parent:'parent ->
   hublet_no:int ->
@@ -393,11 +366,11 @@ class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_pro
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
-(*     constraint 'parent = < get_name : string; .. > as 'b *)
     constraint 'parent = <
       get_name : string;
       ports_card : <
-        get_port_defect_by_index : int -> Treeview_defects.port_direction -> string -> float;
+	get_my_inward_defects_by_index  : int -> defects_object;
+	get_my_outward_defects_by_index : int -> defects_object;
         .. >;
       .. >
     method continue_processes : unit
@@ -433,7 +406,8 @@ class virtual ['parent] hub_or_switch :
     constraint 'parent = <
       get_name : string;
       ports_card : <
-        get_port_defect_by_index : int -> Treeview_defects.port_direction -> string -> float;
+	get_my_inward_defects_by_index  : int -> defects_object;
+	get_my_outward_defects_by_index : int -> defects_object;
         .. >;
       .. >
     method continue_processes : unit
@@ -478,7 +452,8 @@ class virtual ['parent] machine_or_router :
     constraint 'parent = <
       get_name : string;
       ports_card : <
-        get_port_defect_by_index : int -> Treeview_defects.port_direction -> string -> float;
+	get_my_inward_defects_by_index  : int -> defects_object;
+	get_my_outward_defects_by_index : int -> defects_object;
         .. >;
       .. >
     method continue_processes : unit

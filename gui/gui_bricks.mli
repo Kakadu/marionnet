@@ -159,4 +159,35 @@ module Dialog_add_or_update : sig
 
 end
 
-val test: unit -> char option
+
+module Reactive_widget :
+  sig
+    class cable_input_widget :
+      ?n0:string ->
+      ?p0:string ->
+      ?n1:string ->
+      ?p1:string ->
+      ?width:int ->
+      ?height:int ->
+      packing_n0:(GObj.widget -> unit) ->
+      packing_p0:(GObj.widget -> unit) ->
+      packing_n1:(GObj.widget -> unit) ->
+      packing_p1:(GObj.widget -> unit) ->
+      free_node_port_list:(string * string) list ->
+      unit ->
+      object
+        method destroy : unit
+        method get_widget_data :
+          (string option * string option) * (string option * string option)
+        method system : Chip.system
+      end
+
+    val guess_humanly_speaking_enpoints :
+      (string * string) list ->
+      string option -> string option -> string option -> string option ->
+      (string option * string option) * (string option * string option)
+
+  end
+
+
+val test : unit -> char option

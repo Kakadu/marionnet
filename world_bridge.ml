@@ -427,12 +427,11 @@ object(self)
     (* Create the internal cable process from the single hublet to the hub,
        and spawn it: *)
     let the_internal_cable_process =
-      let get_port_defect = parent#ports_card#get_port_defect_by_index in
       Simulated_network.make_ethernet_cable_process
         ~left_end:self#get_world_bridge_hub_process
         ~right_end:self#get_the_hublet_process
-        ~get_port_defect
-	~index:0
+        ~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index 0)
+        ~rightward_defects:(parent#ports_card#get_my_outward_defects_by_index 0)
         ~unexpected_death_callback:self#execute_the_unexpected_death_callback
         () in
     internal_cable_process := Some the_internal_cable_process;

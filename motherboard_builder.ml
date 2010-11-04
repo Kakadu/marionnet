@@ -93,12 +93,12 @@ module Make (S : sig val st:State.globalState end) = struct
      nodesep       : float   ,
      labeldistance : float   ,
      extrasize     : float   ,
-     reverted_list : (int * bool) list
+     reversed_list : (int * bool) list
      ) -> (y)
      = () ;;
 
   let refresh_sketch_counter = st#refresh_sketch_counter
-  let reverted_rj45cables_cable = Chip.cable ~name:"reverted_rj45cables_cable" ()
+  let reversed_rj45cables_cable = Chip.cable ~name:"reversed_rj45cables_cable" ()
 
   let dot_tuning_manager =
    let d = st#network#dotoptions in
@@ -110,7 +110,7 @@ module Make (S : sig val st:State.globalState end) = struct
    	~nodesep:d#nodesep
    	~labeldistance:d#labeldistance
    	~extrasize:d#extrasize
-   	~reverted_list:(reverted_rj45cables_cable :> (int * bool, (int * bool) list) Chip.wire)
+   	~reversed_list:(reversed_rj45cables_cable :> (int * bool, (int * bool) list) Chip.wire)
    	~y:refresh_sketch_counter ()
 
   chip sketch_refresher : (app_state, x:int) -> () =
@@ -207,7 +207,7 @@ module Make (S : sig val st:State.globalState end) = struct
    let () =
      let m =
        object
-         method reverted_rj45cables_cable = reverted_rj45cables_cable
+         method reversed_rj45cables_cable = reversed_rj45cables_cable
          method project_working_directory =
            Option.extract st#project_working_directory#get
        end

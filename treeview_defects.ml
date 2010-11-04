@@ -90,7 +90,7 @@ object(self)
       (self#get_port_attribute device_name "eth0" InToOut "Loss %");
     flush_all ();
 *)
-  method add_cable cable_name cable_type left_endpoint_name right_endpoint_name =
+  method add_cable ~cable_name ~cable_type ~left_name ~right_name () =
     let cable_type =
       match cable_type with
       | "direct"     -> "straight-cable"
@@ -106,14 +106,14 @@ object(self)
       (self#add_row
          ~parent_row_id:cable_row_id
          (List.append
-            ["Name", String left_endpoint_name;
+            ["Name", String left_name;
              "Type", Icon "leftward"]
             non_defective_defaults));
     ignore
       (self#add_row
          ~parent_row_id:cable_row_id
          (List.append
-            ["Name", String right_endpoint_name;
+            ["Name", String right_name;
              "Type", Icon "rightward"]
             non_defective_defaults));
     self#collapse_row cable_row_id;

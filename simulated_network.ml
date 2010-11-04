@@ -723,36 +723,35 @@ object(self)
         self#stop_automatic_reboot_thread)
 end;;
 
-
-(* Simplified constructor. Defects are accessible using a function (get_defect)
-   and the related port index: *)
+(* Simplified constructor. Defects are accessible by objects: *)
 let make_ethernet_cable_process
   ~left_end
   ~right_end
   ?blinker_thread_socket_file_name
   ?left_blink_command
   ?right_blink_command
-  ~get_port_defect
-  ~index
+  ~(leftward_defects:defects_object)
+  ~(rightward_defects:defects_object)
   ~unexpected_death_callback
   () =
-  let i = index in
+  let leftward = leftward_defects in
+  let rightward = rightward_defects in
   new ethernet_cable_process
     ~left_end
     ~right_end
     ?blinker_thread_socket_file_name
     ?left_blink_command
     ?right_blink_command
-    ~rightward_loss:(get_port_defect i InToOut "Loss %")
-    ~rightward_duplication:(get_port_defect i InToOut "Duplication %")
-    ~rightward_flip:(get_port_defect i InToOut "Flipped bits %")
-    ~rightward_min_delay:(get_port_defect i InToOut "Minimum delay (ms)")
-    ~rightward_max_delay:(get_port_defect i InToOut "Maximum delay (ms)")
-    ~leftward_loss:(get_port_defect i OutToIn "Loss %")
-    ~leftward_duplication:(get_port_defect i OutToIn "Duplication %")
-    ~leftward_flip:(get_port_defect i OutToIn "Flipped bits %")
-    ~leftward_min_delay:(get_port_defect i OutToIn "Minimum delay (ms)")
-    ~leftward_max_delay:(get_port_defect i OutToIn "Maximum delay (ms)")
+    ~rightward_loss:rightward#loss
+    ~rightward_duplication:rightward#duplication
+    ~rightward_flip:rightward#flip
+    ~rightward_min_delay:rightward#min_delay
+    ~rightward_max_delay:rightward#max_delay
+    ~leftward_loss:leftward#loss
+    ~leftward_duplication:leftward#duplication
+    ~leftward_flip:leftward#flip
+    ~leftward_min_delay:leftward#min_delay
+    ~leftward_max_delay:leftward#max_delay
     ~unexpected_death_callback
     ()
 ;;
@@ -1251,66 +1250,6 @@ class virtual ['parent] device
     self#terminate_processes
 end;;
 
-(** {2 hub and switch implementation}
-    Note that these classes implement hubs and switches {e only as specified
-    in the user network}: this implies that Hublets are not implemented
-    this way. *)
-
-(** Implementation of a user-network cable or of a link to a switch/hub to a hublet.
-    It's meant to always link two switch/hub processes, and as an interesting particular
-    case two hublets.
-    The 'straight' and 'cross-over' cases are not distinguished. *)
-class ['parent] ethernet_cable =
-  fun ~(parent:'parent)
-      ~(left_end)
-      ~(right_end)
-      ?blinker_thread_socket_file_name:(blinker_thread_socket_file_name=None)
-      ?left_blink_command:(left_blink_command=None)
-      ?right_blink_command:(right_blink_command=None)
-      ~(unexpected_death_callback : unit -> unit)
-      () ->
-object(self)
-  inherit ['parent] device
-      ~parent
-      ~hublet_no:0
-      ~unexpected_death_callback
-      ()
-      as super
-  val ethernet_cable_process = ref None
-  method private get_ethernet_cable_process =
-    match !ethernet_cable_process with
-      Some ethernet_cable_process -> ethernet_cable_process
-    | None -> failwith "ethernet_cable: get_ethernet_cable_process was called when there is no such process"
-  initializer
-    let defects = Treeview_defects.extract () in
-    let name = parent#get_name in
-    ethernet_cable_process :=
-      Some(new ethernet_cable_process
-             ~left_end
-             ~right_end
-             ~blinker_thread_socket_file_name
-             ~left_blink_command
-             ~right_blink_command
-             ~rightward_loss:(defects#get_cable_attribute name LeftToRight "Loss %")
-             ~rightward_duplication:(defects#get_cable_attribute name LeftToRight "Duplication %")
-             ~rightward_flip:(defects#get_cable_attribute name LeftToRight "Flipped bits %")
-             ~rightward_min_delay:(defects#get_cable_attribute name LeftToRight "Minimum delay (ms)")
-             ~rightward_max_delay:(defects#get_cable_attribute name LeftToRight "Maximum delay (ms)")
-             ~leftward_loss:(defects#get_cable_attribute name RightToLeft "Loss %")
-             ~leftward_duplication:(defects#get_cable_attribute name RightToLeft "Duplication %")
-             ~leftward_flip:(defects#get_cable_attribute name RightToLeft "Flipped bits %")
-             ~leftward_min_delay:(defects#get_cable_attribute name RightToLeft "Minimum delay (ms)")
-             ~leftward_max_delay:(defects#get_cable_attribute name RightToLeft "Maximum delay (ms)")
-             ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-             ())
-  method device_type = "Ethernet cable"
-
-  method spawn_processes = self#get_ethernet_cable_process#spawn
-  method terminate_processes =
-    (try self#get_ethernet_cable_process#terminate with _ -> ())
-  method stop_processes = self#get_ethernet_cable_process#stop
-  method continue_processes = self#get_ethernet_cable_process#continue
-end;;
 
 (** The common schema for user-level hubs, switches and gateways: *)
 class virtual ['parent] main_process_with_n_hublets_and_cables
@@ -1345,7 +1284,6 @@ object(self)
     (internal_cable_processes :=
       let hublets = self#get_hublet_process_list in
       let name = parent#get_name in
-      let get_port_defect = parent#ports_card#get_port_defect_by_index in
       Log.printf "spawn_processes: device=%s hublet_no=%d last_user_visible_port_index=%d\n" name hublet_no last_user_visible_port_index;
       List.map
         (fun (i, hublet_process) ->
@@ -1353,8 +1291,8 @@ object(self)
             make_ethernet_cable_process
 	      ~left_end:self#get_main_process
 	      ~right_end:hublet_process
-	      ~get_port_defect
-	      ~index:i
+	      ~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index i)
+	      ~rightward_defects:(parent#ports_card#get_my_outward_defects_by_index i)
 	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ()
             else (* Hidden ports have no defects: *)
@@ -1614,14 +1552,13 @@ object(self)
         (fun () -> self#get_xnest_process#spawn(* ; Thread.delay 0.5 *)));
     (* Create internal cable processes connecting the inner layer to the outer layer: *)
     (internal_cable_processes :=
-      let get_port_defect = parent#ports_card#get_port_defect_by_index in
       List.map
         (fun (i, inner_hublet_process, outer_hublet_process) ->
           make_ethernet_cable_process
 	      ~left_end:inner_hublet_process
 	      ~right_end:outer_hublet_process
-	      ~get_port_defect
-	      ~index:i
+	      ~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index i)
+	      ~rightward_defects:(parent#ports_card#get_my_outward_defects_by_index i)
 	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ())
         (ListExtra.combine3

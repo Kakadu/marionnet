@@ -28,12 +28,6 @@ open Gettext;;
 
 module Recursive_mutex = MutexExtra.Recursive ;;
 
-(** Some constants for drawing with colors. *)
-module Color = struct
- let direct_cable    = "#949494" ;;
- let crossover_cable = "#6d8dc0" ;;
-end;;
-
 (** A thunk allowing to invoke the sketch refresh method, accessible from many
     modules: *)
 module Refresh_sketch_thunk = Stateful_modules.Variable (struct
@@ -79,15 +73,19 @@ end (* class type high_level_toolbar_driver *)
 (** Dot options for a network *)
 let network_marshaller = new Oomarshal.marshaller;;
 
+(* TODO: rename is in network_dot_tuning_zone *)
 class network =
 
   fun ?(iconsize="large") ?(shuffler=[]) ?(rankdir="TB") ?(nodesep=0.5) ?(labeldistance=1.6) ?(extrasize=0.)
 
       (* The handler for the real network *)
-      (network:( < reverted_cables:(string list); reverted_cable_set:(bool->string->unit); .. > ))  ->
+      (network:( < reversed_cables:(string list); reversed_cable_set:(bool->string->unit); .. > ))  ->
 
   object (self)
   inherit Xforest.interpreter ()
+
+  method direct_cable_color    = "#949494"
+  method crossover_cable_color = "#6d8dc0"
 
   val iconsize = Chip.wref ~name:"iconsize" iconsize
   method iconsize = iconsize
@@ -137,7 +135,7 @@ class network =
       rankdir#set "TB";
       nodesep#set 0.5;
       labeldistance#set 1.6 ;
-      ListExtra.foreach network#reverted_cables (network#reverted_cable_set false) ;
+      ListExtra.foreach network#reversed_cables (network#reversed_cable_set false) ;
       self#reset_extrasize () ;
       self#set_toolbar_widgets ()
     end
@@ -160,7 +158,7 @@ class network =
   (** Accessor the dot tuning toolbar. This part of the state will be filled
       loading Gui_toolbar_DOT_TUNING.
       Inverted cables corresponds to dynamic menus, so they not need to be reactualized
-      (the dynamic menus are recalculated each time from network#reverted_cables. *)
+      (the dynamic menus are recalculated each time from network#reversed_cables. *)
 
   val mutable toolbar_driver : dot_tuning_high_level_toolbar_driver option = None
   method set_toolbar_driver t = toolbar_driver <- Some t
@@ -190,8 +188,8 @@ class network =
 
   (** This method is used just for undumping dotoptions, so is not strict.
       For instance, exceptions provoked by bad cable names are simply ignored. *)
-  method set_reverted_cables names =
-    ListExtra.foreach names (fun n -> try (network#reverted_cable_set true n) with _ -> ())
+  method set_reversed_cables names =
+    ListExtra.foreach names (fun n -> try (network#reversed_cable_set true n) with _ -> ())
 
   (** Undump the state of [self] from the given file. *)
   method load_from_file (file_name : string) =
@@ -212,12 +210,12 @@ class network =
                    ("labeldistance" , (string_of_float labeldistance#get)) ;
                    ("extrasize"     , (string_of_float extrasize#get)    ) ;
                    ("gui_callbacks_disable", (string_of_bool gui_callbacks_disable)) ;
-                   ("invertedCables", (Xforest.encode network#reverted_cables)) ;
+                   ("invertedCables", (Xforest.encode network#reversed_cables)) ;
 	           ])
 
  (** A Dotoption.network has just attributes (no childs) in this version.
      The Dotoption.network must be undumped AFTER the Netmodel.network in
-     order to have significant cable names (reverted_cables). *)
+     order to have significant cable names (reversed_cables). *)
  method eval_forest_attribute = function
   | ("iconsize"             , x ) -> self#iconsize#set       x
   | ("shuffler"             , x ) -> self#shuffler#set      (Xforest.decode x)
@@ -226,22 +224,10 @@ class network =
   | ("labeldistance"        , x ) -> self#labeldistance#set (float_of_string x)
   | ("extrasize"            , x ) -> self#extrasize#set     (float_of_string x)
   | ("gui_callbacks_disable", x ) -> self#set_gui_callbacks_disable (bool_of_string x)
-  | ("invertedCables"       , x ) -> self#set_reverted_cables (Xforest.decode x)
+  | ("invertedCables"       , x ) -> self#set_reversed_cables (Xforest.decode x)
   | _ -> () (* Forward-comp. *)
 
 end;; (* class Dotoptions.network *)
-
-
-(** Dot options for a cable *)
-class cable ?(reverted=false) ~(motherboard:Motherboard.t) ~name () =
- object (self)
-(*   val reverted = motherboard#reverted_rj45cables_cable#create_wref ~name:(name^"_reverted") reverted*)
-   val reverted = Chip.wref_in_cable ~name:(name^"_reverted") ~cable:motherboard#reverted_rj45cables_cable reverted
-   method reverted = reverted
-   method destroy =
-    reverted#destroy
- end;; (* class Dotoptions.cable *)
-
 
 end;; (* module Dotoptions *)
 
@@ -259,9 +245,6 @@ module Netmodel = struct
 (** A device may be a Hub, a Switch or a Router. *)
 type devkind   = Machine | Hub | Switch | Router | World_gateway | World_bridge | Cloud ;;
 
-(** A cable may be Direct or Crossover. *)
-type cablekind = Direct | Crossover ;;
-
 (** String conversion for a devkind. *)
 (* TODO: remove it! *)
 let string_of_devkind = function
@@ -272,12 +255,6 @@ let string_of_devkind = function
   | World_gateway -> "world_gateway"
   | World_bridge  -> "world_bridge"
   | Cloud      -> "cloud"
-;;
-
-(** String conversion for a cablekind. *)
-let string_of_cablekind = function
-  | Direct     -> "direct"
-  | Crossover  -> "crossover"
 ;;
 
 (* TODO: remove it! *)
@@ -291,14 +268,6 @@ let devkind_of_string x = match x with
   | "cloud" -> Cloud
   | _         -> raise (Failure ("devkind_of_string"^x))
 ;;
-
-(** The cablekind interpretation of the given string. *)
-let cablekind_of_string x = match x with
-  | "direct"    -> Direct
-  | "crossover" -> Crossover
-  | _           -> failwith ("cablekind_of_string: "^x)
-;;
-
 
 (** Examples: pc1, pc2 if the node is a machines, A,B,C if the node is a device *)
 type nodename   = string ;;
@@ -673,16 +642,8 @@ class virtual ['parent] simulated_device () = object(self)
   (** 'Correctness' support: this is needed so that we can refuse to start incorrectly
       placed components such as Ethernet cables of the wrong crossoverness, which the user
       may have created by mistake: *)
-  val is_correct =
-    ref true (* devices are ``correct'' by default *)
-  method is_correct =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        !is_correct)
-  method set_correctness correctness =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        is_correct := correctness)
+  method is_correct = true (* redefined in cables *)
+
 end;;
 
 
@@ -794,7 +755,7 @@ class ['parent] ports_card
  in
  let port_list = Array.to_list port_array
  in
- object
+ object (self)
   method port_no = port_no
   method port_prefix = port_prefix
   method user_port_offset = user_port_offset
@@ -813,12 +774,11 @@ class ['parent] ports_card
 
   method user_port_name_list = List.map (fun x->x#user_name) port_list
 
-  method get_port_defect_by_index
+  method private get_my_defects_by_index
    (port_index:int)
    (port_direction:Treeview_defects.port_direction)
-   (column_header:string) : float
    =
-    network#defects#get_port_attribute_of
+    let get column_header = network#defects#get_port_attribute_of
       ~device_name:((parent#get_name):string)
       ~port_prefix
       ~port_index
@@ -826,6 +786,20 @@ class ['parent] ports_card
       ~port_direction
       ~column_header
       ()
+    in
+    object
+      method loss        : float = get "Loss %"
+      method duplication : float = get "Duplication %"
+      method flip        : float = get "Flipped bits %"
+      method min_delay   : float = get "Minimum delay (ms)"
+      method max_delay   : float = get "Maximum delay (ms)"
+    end
+    
+  method get_my_inward_defects_by_index (port_index:int) =
+    self#get_my_defects_by_index port_index Treeview_defects.OutToIn
+
+  method get_my_outward_defects_by_index (port_index:int) =
+    self#get_my_defects_by_index port_index Treeview_defects.InToOut
 
 end (** class ports_card *)
 
@@ -921,9 +895,9 @@ class virtual node_with_ports_card = fun
     let fontsize   = if self#devkind=Machine then "" else "fontsize=8," in
     let nodeoptions = if nodeoptions = "" then "" else (nodeoptions^",") in
     begin
-    self#name^" ["^fontsize^nodeoptions^"shape=plaintext,label=<
+    self#get_name^" ["^fontsize^nodeoptions^"shape=plaintext,label=<
 <TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">
-  <TR><TD>"^self#name^"</TD></TR>
+  <TR><TD>"^self#get_name^"</TD></TR>
   <TR><TD PORT=\"img\"><IMG SRC=\""^(self#dotImg z)^"\"></IMG></TD></TR>
 "^label_line^"
 </TABLE>>];"
@@ -944,291 +918,6 @@ end;;
 (* Justa an alias: *)
 class type virtual node = node_with_ports_card
 
-(** Essentially a pair:  (node, internal_port_index) *)
-(** TODO: remove it and use the class port! *)
-class endpoint ~(node:node) ~(port_index:int) =
- object
-  method node = node
-  method port_index = port_index
-
-  method user_port_name =
-    node#ports_card#user_port_name_of_internal_index port_index
-
-  method user_port_index =
-    node#ports_card#user_port_index_of_internal_index port_index
-
-  (* Just a type conversion, as a pair: *)
-  method involved_node_and_port_index = (node, port_index)
-
- end;;
-
-(* *************************** *
-        class cable
- * *************************** *)
-
-(** A cable defines an edge in the network graph.
-    Defects may be added after creation. *)
-class cable =
-   fun
-   ~network
-   ~motherboard (* TODO: already accessible from network *)
-   ~name
-   ?label
-   ~cablekind
-   ~(left : endpoint)
-   ~(right: endpoint)
-   () ->
-  let dotoptions = new Dotoptions.cable ~motherboard ~name () in
-  object (self)
-  inherit OoExtra.destroy_methods ()
-  inherit component ~network ~name ?label ()
-  inherit [cable] simulated_device () as self_as_simulated_device
-
-  (* Redefinition: *)
-  method destroy =
-    self#destroy_my_simulated_device;
-    self#dotoptions#destroy ()
-
-  val cablekind = cablekind
-  method cablekind = cablekind
-
-  method dotoptions = dotoptions
-
-  (** A cable has two connected endpoints: *)
-  val mutable left  : endpoint = left
-  val mutable right : endpoint = right
-
-  (** Accessors *)
-  method get_left  = left
-  method get_right = right
-  method set_left x = left  <- x
-  method set_right x = right <- x
-
-
-  (** The li st of two names of nodes (machine/device) linked by the cable *)
-  method involved_node_names = [left#node#name; right#node#name]
-
-  (** Is a node connected to something with this cable? *)
-  method is_node_involved node_name =
-    List.mem node_name self#involved_node_names
-
-  (** Return the list of devices (i.e. hubs, switches or routers) directly linked to this cable: *)
-  method involved_node_and_port_index_list =
-    [ (left#node, left#port_index); (right#node, right#port_index) ]
-
-  (** Show its definition. Useful for debugging. *)
-  method show prefix =
-    (prefix^self#name^" ("^(string_of_cablekind self#cablekind)^")"^
-    " ["^left#node#name^","^left#user_port_name^"] -> "^
-    " ["^right#node#name^","^right#user_port_name^"]")
-
-  method to_forest =
-    Forest.leaf ("cable",
-		    [ ("name"            ,  self#get_name )  ;
-		      ("label"           ,  self#get_label)  ;
-		      ("kind"            , (string_of_cablekind self#cablekind)) ;
-		      ("leftnodename"    ,  self#get_left#node#name)    ;
-		      ("leftreceptname"  ,  self#get_left#user_port_name)  ;
-		      ("rightnodename"   ,  self#get_right#node#name)   ;
-		      ("rightreceptname" ,  self#get_right#user_port_name) ;
-		    ])
-
-  (** A cable has just attributes (no childs) in this version. The attribute "kind" cannot be set,
-      must be considered as a constant field of the class. *)
-  method eval_forest_attribute =
-    function
-      | ("name"            , x ) -> self#set_name  x
-      | ("label"           , x ) -> self#set_label x
-      | ("kind"            , x ) -> () (* Constant field: cannot be set. *)
-      | _ -> assert false
-
-    (** A cable may be either connected or disconnected; it's connected by default: *)
-    val connected = ref true
-
-    (** Access method *)
-    method is_connected = !connected
-
-    (** Make the cable connected, or do nothing if it's already connected: *)
-    method private connect_right_now =
-      Recursive_mutex.with_mutex mutex
-        (fun () ->
-          (if not self#is_connected then begin
-            Log.printf "Connecting the cable %s...\n" self#get_name;
-            (* Turn on the relevant LEDgrid lights: *)
-            let involved_node_and_port_index_list = self#involved_node_and_port_index_list in
-            List.iter
-              (fun (device, port) ->
-                network#ledgrid_manager#set_port_connection_state
-                  ~id:(device#id)
-                  ~port
-                  ~value:true
-                  ())
-              involved_node_and_port_index_list;
-            connected := true;
-            self#increment_alive_endpoint_no;
-            Log.printf "Ok: connected\n";
-          end);
-          refresh_sketch ());
-
-    (** Make the cable disconnected, or do nothing if it's already disconnected: *)
-    method private disconnect_right_now =
-      Recursive_mutex.with_mutex mutex
-        (fun () ->
-          (if self#is_connected then begin
-            Log.printf "Disconnecting the cable %s...\n" self#get_name;
-            (* Turn off the relevant LEDgrid lights: *)
-            let involved_node_and_port_index_list = self#involved_node_and_port_index_list in
-            List.iter
-              (fun (device, port) ->
-                network#ledgrid_manager#set_port_connection_state
-                  ~id:(device#id)
-                  ~port
-                  ~value:false
-                  ())
-              involved_node_and_port_index_list;
-            connected := false;
-            self#decrement_alive_endpoint_no;
-            Log.printf "Ok: disconnected\n";
-          end);
-          refresh_sketch ());
-
-   (** 'Suspending means disconnecting for cables *)
-   method suspend_right_now =
-     self#disconnect_right_now
-
-   (** 'Resuming' means connecting for cables *)
-   method resume_right_now =
-     self#connect_right_now
-
-   (** An always up-to-date 'reference counter' storing the number of alive
-       endpoints plus the cable connection state (either 0 for 'disconnected' or
-       1 for 'connected'). A cable can be started in the simulation when this is
-       exactly 3, and must be terminated when it becomes less than 3. *)
-   val alive_endpoint_no = ref 1 (* cables are 'connected' by default *)
-
-   (** Check that the reference counter is in [0, 3]. To do: disable this for
-   production. *)
-   method private check_alive_endpoint_no =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        assert((!alive_endpoint_no >= 0) && (!alive_endpoint_no <= 3));
-        Log.printf "The reference count is now %d\n" !alive_endpoint_no;
-       )
-
-   (** Record the fact that an endpoint has been created (at a lower level
-       this means that its relevant {e hublet} has been created), and
-       startup the simulated cable if appropriate. *)
-   method increment_alive_endpoint_no =
-     Recursive_mutex.with_mutex mutex
-       (fun () ->
-         Log.printf "Increment_alive_endpoint_no\n";
-         self#check_alive_endpoint_no;
-         alive_endpoint_no := !alive_endpoint_no + 1;
-         self#check_alive_endpoint_no;
-         if !alive_endpoint_no = 3 then begin
-           Log.printf "The reference count raised to three: starting up a cable\n";
-           self#startup_right_now
-         end)
-
-   (** Record the fact that an endpoint is no longer running (at a lower level
-       this means that its relevant {e hublet} has been destroyed), and
-       shutdown the simulated cable if appropriate. *)
-   method decrement_alive_endpoint_no =
-     Recursive_mutex.with_mutex mutex
-       (fun () ->
-         Log.printf "Decrement_alive_endpoint_no\n";
-         self#check_alive_endpoint_no;
-         alive_endpoint_no := !alive_endpoint_no - 1;
-         self#check_alive_endpoint_no;
-         if !alive_endpoint_no < 3 then begin
-           (* Note that we destroy rather than terminating. This enables to re-create the
-              simulated device later, at startup time, referring the correct hublets
-              that will exist then, rather than the ones existing now *)
-           Log.printf "The reference count dropped below three: destroying a cable\n";
-           self#destroy_right_now;
-         end)
-
-   (** Make a new simulated device according to the current status *)
-   method private make_simulated_device =
-     Recursive_mutex.with_mutex mutex
-       (fun () ->
-         let left_hublet_process =
-           left#node#get_hublet_process_of_port left#port_index
-         in
-         let right_hublet_process =
-           right#node#get_hublet_process_of_port right#port_index
-         in
-         let left_blink_command =
-           match left#node#has_ledgrid with
-           | false -> None
-           | true  -> Some (Printf.sprintf "(id: %i; port: %i)" left#node#id left#port_index)
-         in
-         let right_blink_command =
-           match right#node#has_ledgrid with
-           | false -> None
-           | true  -> Some (Printf.sprintf "(id: %i; port: %i)" right#node#id right#port_index)
-         in
-         Log.printf "Left hublet process socket name is \"%s\"\n" left_hublet_process#get_socket_name;
-         Log.printf "Right hublet process socket name is \"%s\"\n" right_hublet_process#get_socket_name;
-         new Simulated_network.ethernet_cable
-           ~parent:self
-           ~left_end:left_hublet_process
-           ~right_end:right_hublet_process
-           ~blinker_thread_socket_file_name:(Some network#ledgrid_manager#blinker_thread_socket_file_name)
-           ~left_blink_command
-           ~right_blink_command
-           ~unexpected_death_callback:self#destroy_because_of_unexpected_death
-           ())
-
-   (** This has to be overridden for cables, because we can't 'poweroff' as easily as the
-       other devices: *)
-   method private destroy_because_of_unexpected_death () =
-     Recursive_mutex.with_mutex mutex
-       (fun () ->
-         (* Refresh the process in some (ugly) way: *)
-         if self#is_connected then begin
-           (try self#disconnect_right_now with _ -> ());
-           (try self#connect_right_now with _ -> ());
-           connected := true;
-         end else begin
-           let current_alive_endpoint_no = !alive_endpoint_no in
-           self_as_simulated_device#destroy_because_of_unexpected_death ();
-           connected := true;
-           alive_endpoint_no := 0;
-           for i = 1 to current_alive_endpoint_no do
-             self#increment_alive_endpoint_no;
-           done
-         end)
-
-   (** To do: remove this ugly kludge, and make cables stoppable *)
-   method can_startup = true (* To do: try reverting this *)
-   method can_gracefully_shutdown = true (* To do: try reverting this *)
-   method can_poweroff = true (* To do: try reverting this *)
-   (** Only connected cables can be 'suspended' *)
-   method can_suspend =
-     Recursive_mutex.with_mutex mutex
-       (fun () -> !connected)
-   (** Only non-connected cables with refcount exactly equal to 2 can be 'resumed' *)
-   method can_resume =
-     Recursive_mutex.with_mutex mutex
-       (fun () -> not !connected)
-
-   (** Get the reference count right at the beginning: it starts at zero, but
-       it's immediately incremented if endpoint hublet processes already
-       exist: *)
-   initializer
-     self#set_correctness
-       (network#would_a_cable_be_correct_between
-          left#node#name
-          right#node#name
-          cablekind);
-     (if left#node#has_hublet_processes then
-       self#increment_alive_endpoint_no);
-     (if right#node#has_hublet_processes then
-       self#increment_alive_endpoint_no);
-     Log.printf "The reference count for the just-created cable %s is %d\n" self#get_name !alive_endpoint_no;
-end;;
-
 
 (* *************************** *
         class device
@@ -1242,6 +931,7 @@ class virtual node_with_defects_zone ~network () =
   method virtual get_port_no : int
   method virtual port_prefix : string
   method virtual user_port_offset : int
+  method virtual add_destroy_callback : unit Lazy.t -> unit
 
   method private add_my_defects =
    match
@@ -1690,121 +1380,45 @@ class virtual virtual_machine_with_history_and_ifconfig
 end;; (* class virtual_machine_with_history_and_ifconfig *)
 
 
-(*********************
-    Submodule Edge
- *********************)
-
-module Edge = struct
-
-(** Type of an edge. An edge is a triple (node1,receptname1), cable , (node2,receptname2) *)
-type edge = (node*string) * cable * (node*string)
-;;
-
-(** The Dot translation of an edge of the graph. *)
-let dotEdgeTrad ?(edgeoptions="") (labeldistance_base) (((n1,r1),c,(n2,r2)):edge) =
-    begin
-
-    let vertexlab node iden recept =
-
-      let port      = node#dotPortForEdges  recept in
-      let portlabel = node#dotLabelForEdges recept in
-
-      match port,portlabel with
-      | "",""  -> ("")
-      | _ , "" -> (","^iden^"=\""^port^"\"")
-      | _ , _  ->
-          begin
-          let port_line      = (StringExtra.assemble "<TR><TD>" port "</TD></TR>") in
-          let portlabel_line = (StringExtra.assemble "<TR><TD><FONT COLOR=\"#3a3936\">" portlabel "</FONT></TD></TR>") in
-(","^iden^"=<
-<TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">
-"^port_line^"
-"^portlabel_line^"
-</TABLE>
->")       end in
-
-
-   let labeldistance =
-      begin
-      let p1  = n1#dotPortForEdges  r1 in
-      let pl1 = n1#dotLabelForEdges r1 in
-      let p2  = n2#dotPortForEdges  r2 in
-      let pl2 = n2#dotLabelForEdges r2 in
-
-      (* if there is a vertex with both port and portlabel not empty => set labeldistance +0.5 *)
-      if ((p1<>"" && pl1<>"") or (p2<>"" && pl2<>""))
-      then ("labeldistance="^(string_of_float (labeldistance_base +. 0.5))^",") else ""
-      end in
-
-
-   let (tail, head, taillabel, headlabel) =
-     (* Invert left and right sides of the cable if required *)
-     let (n1,r1,n2,r2) = if c#dotoptions#reverted#get then (n2,r2,n1,r1) else (n1,r1,n2,r2)
-     in
-     match (n1#get_label, n2#get_label) with
-     | "", "" -> (n1#name^":img"), (n2#name^":img"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-     | "", l2 -> (n1#name^":img"), (n2#name)       , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-     | l1, "" -> (n1#name)       , (n2#name^":img"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-     | l1, l2 -> (n1#name)       , (n2#name)       , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-   in
-
-   let edgeoptions = if edgeoptions = "" then "" else (edgeoptions^",") in
-   let cable_label = c#get_name ^ (if c#get_label = "" then "" else ("  "^c#get_label)) in
-
-   let edgeoptions = edgeoptions ^ "arrowhead=obox, arrowtail=obox, arrowsize=0.4," ^
-    (if c#is_connected then ""
-   		       else "style=dashed,") in
-
-   let label_color = if c#cablekind = Direct then Color.direct_cable else Color.crossover_cable in
-
-    (tail^" -> "^head^" ["^edgeoptions^labeldistance^"label=<<FONT COLOR=\""^label_color^"\">"^cable_label^"</FONT>>"^taillabel^headlabel^"];")
-
- end;; (* function dotEdgeTrad *)
-
-
-end;; (* Module Edge *)
-
-
-open Edge;;
-
-
- module Eval_forest_child = struct
-
- let try_to_add_cable network (f:Xforest.tree) =
-  try
-   (match f with
-   | Forest.NonEmpty (("cable", attrs) , childs , Forest.Empty) ->
-	(* Cables represent a special case: they must be builded knowing their endpoints. *)
-	let name = List.assoc "name"    attrs in
-	let ln = List.assoc "leftnodename"    attrs in
-	let lr = List.assoc "leftreceptname"  attrs in
-	let rn = List.assoc "rightnodename"   attrs in
-	let rr = List.assoc "rightreceptname" attrs in
-	let ck = List.assoc "kind"            attrs in
-	let left  = network#make_endpoint_of ~node_name:ln ~user_port_name:lr in
-	let right = network#make_endpoint_of ~node_name:rn ~user_port_name:rr in
-	let cablekind = cablekind_of_string ck      in
-	let x = new cable ~motherboard:network#motherboard ~name ~cablekind ~network ~left ~right () in
-	x#from_forest ("cable", attrs) childs ;
-	network#add_cable x;
-        true
-   | _ ->
-        false
-   )
-  with _ -> false
-
- end (* module Eval_forest_child *)
-
 (* *************************** *
         class network
- * *************************** *)
+* *************************** *)
 
-(** Class modelling the virtual network *)
+class type endpoint = object
+  method node : node
+  method port_index : int
+  method user_port_name : string
+  method user_port_index : int
+  method involved_node_and_port_index : node * int
+end
+
+class type virtual cable = object
+(*  inherit OoExtra.destroy_methods *)
+ inherit component
+ inherit [component] simulated_device
+ method destroy : unit
+ method get_left  : endpoint
+ method get_right : endpoint
+ method involved_node_and_port_index_list : (node * int) list
+ method is_node_involved : string -> bool
+ method crossover : bool
+ method is_reversed : bool
+ method set_reversed : bool -> unit
+ method show : string -> string
+ method dot_traduction : labeldistance:float -> string
+ method decrement_alive_endpoint_no : unit
+ method increment_alive_endpoint_no : unit
+ method is_connected : bool
+end
+
+(** Class modelling the user-level network *)
 class network () =
  let ledgrid_manager = Ledgrid_manager.the_one_and_only_ledgrid_manager in
  object (self)
  inherit Xforest.interpreter ()
 
+ (* TODO: remove these pointers, we have access to these informations
+    by ports_card and endpoint: *)
  method defects  = Treeview_defects.extract ()
  method ifconfig = Treeview_ifconfig.extract ()
  method history  = Treeview_history.extract ()
@@ -1812,11 +1426,11 @@ class network () =
  method motherboard = Motherboard.extract ()
 
  val mutable devices  : (node list) = []
- val mutable cables   : (cable   list) = []
+ val mutable cables   : (cable list) = []
 
  (** Buffers to backup/restore data. *)
  val mutable devices_buffer  : (node list) = []
- val mutable cables_buffer   : (cable   list) = []
+ val mutable cables_buffer   : (cable list) = []
 
  (** Accessors *)
  method devices         = devices
@@ -1893,16 +1507,6 @@ class network () =
  method subscribe_a_try_to_add_procedure p =
    try_to_add_procedure_list := p::(!try_to_add_procedure_list)
 
- initializer
-(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_machine; *)
-(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_router; *)
-(*   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cloud;*)
-(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_hub; *)
-(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_switch; *)
-(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_bridge; *)
-(*    self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_world_gateway; *)
-   self#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cable;
-
  (** We redefine just the interpretation of a childs.
      We ignore (in this version) network attributes. *)
  method eval_forest_child (f:Xforest.tree) : unit =
@@ -1925,7 +1529,7 @@ class network () =
 
  (* Just an alias for devices: *)
  method nodes : (node list) = devices
- method names = (List.map (fun x->x#name) self#components)
+ method names = (List.map (fun x->x#get_name) self#components)
 
  method suggestedName prefix =
    let rec tip prefix k =
@@ -1935,20 +1539,13 @@ class network () =
      end in tip prefix 1
 
  method get_device_by_name n =
-   try List.find (fun x->x#name=n) devices with _ -> failwith ("get_device_by_name "^n)
+   try List.find (fun x->x#get_name=n) devices with _ -> failwith ("get_device_by_name "^n)
 
  (* Alias: *)
  method get_node_by_name = self#get_device_by_name
 
  method get_cable_by_name n =
-   try List.find (fun x->x#name=n) cables with _ -> failwith ("get_cable_by_name "^n)
-
- (** Managing endpoints: *)
-
- method make_endpoint_of ~node_name ~user_port_name =
-  let node = List.find (fun n->n#name = node_name) self#nodes in
-  let port_index = node#ports_card#internal_index_of_user_port_name user_port_name in
-  (new endpoint ~node ~port_index)
+   try List.find (fun x->x#get_name=n) cables with _ -> failwith ("get_cable_by_name "^n)
 
  method involved_node_and_port_index_list =
    List.flatten (List.map (fun c->c#involved_node_and_port_index_list) cables)
@@ -1962,20 +1559,43 @@ class network () =
    in
    List.map snd related_busy_pairs
 
- method free_port_indexes_of_node (node:node) =
+ method free_port_indexes_of_node ?(force_to_be_included:(int list)=[]) (node:node) =
    let node_port_indexes = ListExtra.range 0 (node#get_port_no-1) in
-   ListExtra.substract node_port_indexes (self#busy_port_indexes_of_node node)
+   let busy_port_indexes =
+     ListExtra.substract (self#busy_port_indexes_of_node node) force_to_be_included
+   in
+   ListExtra.substract node_port_indexes busy_port_indexes 
 
- method free_user_port_names_of_node node =
-   List.map (node#ports_card#user_port_name_of_internal_index) (self#free_port_indexes_of_node node)
+ method free_user_port_names_of_node ?(force_to_be_included=[]) node =
+   (* force_to_be_included expressed now by indexes: *)
+   let force_to_be_included =
+      List.map (node#ports_card#internal_index_of_user_port_name) force_to_be_included
+   in
+   List.map
+     (node#ports_card#user_port_name_of_internal_index)
+     (self#free_port_indexes_of_node ~force_to_be_included node)
 
- method are_endpoints_free endpoints =
-   List.for_all (self#is_endpoint_free) endpoints
+ method free_endpoint_list_humanly_speaking
+  ?(force_to_be_included:((string*string) list)=[])
+  : (string * string) list
+  =
+  let npss =
+    List.map
+      (fun node ->
+	  let n = node#get_name in
+	  let force_to_be_included =
+	    List.map snd (List.filter (fun (n0,p0) -> n0=n) force_to_be_included)
+	  in
+	  (List.map (fun p -> (n,p)) (self#free_user_port_names_of_node ~force_to_be_included node))
+	)
+	self#nodes
+  in List.concat npss
 
- method is_endpoint_free endpoint =
+ (* Unused...*)
+(* method is_endpoint_free endpoint =
    let busy_pairs = self#involved_node_and_port_index_list in
    List.iter (function (n,p) -> Log.printf "Involved: (%s,%d)\n" n#get_name p) busy_pairs;
-   not (List.mem (endpoint#involved_node_and_port_index) busy_pairs)
+   not (List.mem (endpoint#involved_node_and_port_index) busy_pairs)*)
 
  (* The total number of endpoints in the network: *)
  method private endpoint_no =
@@ -2003,93 +1623,40 @@ class network () =
   let min_multiple = (ceil ((float_of_int min_port_no) /. k)) *. k in
   int_of_float (max min_multiple k)
 
- method device_exists  n = let f=(fun x->x#name=n) in (List.exists f devices )
- method cable_exists   n = let f=(fun x->x#name=n) in (List.exists f cables  )
+ method device_exists  n = let f=(fun x->x#get_name=n) in (List.exists f devices )
+ method cable_exists   n = let f=(fun x->x#get_name=n) in (List.exists f cables  )
  method name_exists    n = List.mem n self#names
 
  (** Adding components *)
 
  (** Devices must have a unique name in the network *)
  method add_device_new (d:node) =
-    if (self#name_exists d#name) then
+    if (self#name_exists d#get_name) then
       raise (Failure "add_device: name already used in the network")
     else begin
       devices  <- (devices@[d]);
     end
 
- (** Remove a device from the network. Remove it from the [devices] list and remove all related cables *)
+ (** Remove a device from the network. Remove it from the [devices] list
+     and remove all related cables. TODO: change this behaviour! *)
  method del_device_new dname =
      let d  = self#get_device_by_name dname in
      (* Destroy cables first: they refer what we're removing... *)
      let cables_to_remove = List.filter (fun c->c#is_node_involved dname) cables in
-     List.iter
-       (fun cable -> (* TODO: this must became simply cable#destroy or (better) cable#update *)
-         self#defects#remove_subtree_by_name cable#name;
-         self#del_cable cable#name)
-       cables_to_remove;
+     List.iter (fun cable -> self#del_cable cable#get_name) cables_to_remove;
      devices  <- List.filter (fun x->not (x=d)) devices
 
  (** Cable must connect free ports: *)
+ (* TODO: manage ledgrid with a reactive system!!!*)
  method add_cable (c:cable) =
-    if (self#name_exists c#name)
+    if (self#name_exists c#get_name)
     then raise (Failure "add_cable: name already used in the network")
-    else
-      let (left, right) = (c#get_left, c#get_right) in
-      if (self#are_endpoints_free [left; right])
-      then begin
-        cables  <- (cables@[c]);
-        (* If at least one endpoint is a device then set the port state to connected in
-           the appropriate LED grid: *)
-        if left#node#has_ledgrid then
-          self#ledgrid_manager#set_port_connection_state
-            ~id:(left#node#id)
-            ~port:left#port_index
-            ~value:true
-            ();
-        if right#node#has_ledgrid then
-          self#ledgrid_manager#set_port_connection_state
-            ~id:(right#node#id)
-            ~port:right#port_index
-            ~value:true
-            ();
-      end else
-        raise (Failure ("add_cable: left and/or right endpoints busy or nonexistent for "^(c#show "")))
-
- (** Remove a device from the network. Remove it from the [devices] list and remove all related cables *)
- method del_device dname =
-     let d  = self#get_device_by_name dname in
-     (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#is_node_involved dname) cables in
-     let defects = Treeview_defects.extract () in
-     List.iter
-       (fun cable ->
-         defects#remove_subtree_by_name cable#name;
-         self#del_cable cable#name)
-       cables_to_remove;
-     self#ledgrid_manager#destroy_device_ledgrid ~id:(d#id) ();
-     d#destroy;
-     devices  <- List.filter (fun x->not (x=d)) devices
+    else cables  <- (cables@[c]);
 
  (** Remove a cable from network *)
  method del_cable cname =
      let c = self#get_cable_by_name cname in
-     (* If at least one endpoint is a device then set the port state to disconnected in
-        the appropriate LED grid: *)
-     let (left, right) = (c#get_left, c#get_right) in
-     (if left#node#has_ledgrid then
-       self#ledgrid_manager#set_port_connection_state
-         ~id:(left#node#id)
-         ~port:left#port_index
-         ~value:false
-         ());
-     (if right#node#has_ledgrid then
-       self#ledgrid_manager#set_port_connection_state
-         ~id:(right#node#id)
-         ~port:right#port_index
-         ~value:false
-         ());
      cables <- (List.filter (fun x->not (x=c)) cables);
-     c#destroy;
 
  method change_node_name oldname newname =
    if oldname = newname then () else
@@ -2098,20 +1665,9 @@ class network () =
 
  (** Facilities *)
 
-  (** Would a hypothetical cable of a given crossoverness be 'correct' if it connected the two
-      given nodes? *)
-  method would_a_cable_be_correct_between endpoint1_name endpoint2_name crossoverness =
-    let polarity1 = (self#get_node_by_name endpoint1_name)#polarity in
-    let polarity2 = (self#get_node_by_name endpoint2_name)#polarity in
-    (* We need a crossover cable if the polarity is the same: *)
-    match polarity1, polarity2 with
-     | Intelligent , _      | _           , Intelligent -> true
-     | MDI_X       , MDI    | MDI         , MDI_X       -> crossoverness = Direct
-     | MDI_X       , MDI_X  | MDI         , MDI         -> crossoverness = Crossover
-
  (** List of node names in the network *)
  method get_node_names  =
-   List.map (fun x->x#name) (self#nodes)
+   List.map (fun x->x#get_name) (self#nodes)
 
  method get_devices_that_can_startup ~devkind () =
   ListExtra.filter_map
@@ -2135,24 +1691,30 @@ class network () =
 
  (** List of direct cable names in the network *)
  method get_direct_cable_names  =
-   let clist= List.filter (fun x->x#cablekind=Direct) cables in
-   List.map (fun x->x#name) clist
+   let clist= List.filter (fun x->x#crossover=false) cables in
+   List.map (fun x->x#get_name) clist
 
  (** List of crossover cable names in the network *)
  method get_crossover_cable_names  =
-   let clist= List.filter (fun x->x#cablekind=Crossover) cables in
-   List.map (fun x->x#name) clist
+   let clist= List.filter (fun x->x#crossover=true) cables in
+   List.map (fun x->x#get_name) clist
+
+ method get_direct_cables =
+   List.filter (fun x->x#crossover=false) cables
+
+ method get_crossover_cables  =
+   List.filter (fun x->x#crossover=true) cables
 
  (** Starting and showing the network *)
 
- (** List of reverted cables (used only for drawing network) *)
- method reverted_cables : (string list) =
-   let clist= List.filter (fun x->x#dotoptions#reverted#get) cables in
-   List.map (fun x->x#name) clist
+ (** List of reversed cables (used only for drawing network) *)
+ method reversed_cables : (string list) =
+   let clist= List.filter (fun x->x#is_reversed) cables in
+   List.map (fun x->x#get_name) clist
 
- (** Set the reverted dotoptions field of a cable of the network (identified by name) *)
- method reverted_cable_set (x:bool) (cname:string) =
-   (self#get_cable_by_name cname)#dotoptions#reverted#set x
+ (** Set the reversed dotoptions field of a cable of the network (identified by name) *)
+ method reversed_cable_set (x:bool) (cname:string) =
+   (self#get_cable_by_name cname)#set_reversed x
 
  (** Show network topology *)
  method show =
@@ -2160,7 +1722,7 @@ class network () =
    (* show devices *)
    let msg= try
         (StringExtra.Fold.commacat
-        (List.map (fun d->d#name^" ("^(string_of_devkind d#devkind)^")") devices))
+        (List.map (fun d->d#get_name^" ("^(string_of_devkind d#devkind)^")") devices))
         with _ -> ""
    in Log.printf "Devices \r\t\t: %s\n" msg;
   (* show links *)
@@ -2171,26 +1733,6 @@ class network () =
 
 
  (** {b Consider cable as Edge.edges} *)
-
- (** Gives the list of edges which left and right side verify the given conditions.
-     An edge is a 3-uple (node1,receptname1), cable , (node2,receptname2) *)
- method edgesSuchThat
-   ?(left_pred= function (node:node)->true)
-   ?(right_pred=function (node:node)->true)
-   (cable_pred:cable->bool) : edge list =
-   let cable_info c =
-     let (left, right) = (c#get_left, c#get_right) in
-     let a = (left#node,  left#user_port_name) in
-     let b = (right#node, right#user_port_name) in
-     (a,c,b)
-   in
-   let l1 = List.map cable_info cables in
-   let filter = fun ((n1,_),c,(n2,_)) -> (left_pred n1) && (cable_pred c) && (right_pred n2) in
-   let l2 = (List.filter filter l1) in l2
-
- (** Gives the list of edges of a given kind. *)
- method edges_of_kind (cablekind: cablekind) =
-   self#edgesSuchThat (fun c -> c#cablekind = cablekind)
 
  (** Network translation into the dot language *)
  method dotTrad () =
@@ -2219,12 +1761,12 @@ class network () =
    *********************** */
 
 
-edge [dir=none,color=\""^Color.direct_cable^"\",fontsize=8,labelfontsize=8,minlen=1.6,"^
+edge [dir=none,color=\""^self#dotoptions#direct_cable_color^"\",fontsize=8,labelfontsize=8,minlen=1.6,"^
 opt#labeldistance_for_dot^",tailclip=true];
 
 "^
 (StringExtra.Text.to_string
-   (List.map (dotEdgeTrad labeldistance) (self#edges_of_kind Direct)))
+   (List.map (fun c->c#dot_traduction ~labeldistance) self#get_direct_cables))
 
 ^"
 /* *********************************
@@ -2232,11 +1774,11 @@ opt#labeldistance_for_dot^",tailclip=true];
    ********************************* */
 
 
-edge [headclip=true,minlen=1.6,color=\""^Color.crossover_cable^"\",weight=1];
+edge [headclip=true,minlen=1.6,color=\""^self#dotoptions#crossover_cable_color^"\",weight=1];
 
 "^
 (StringExtra.Text.to_string
-   (List.map (dotEdgeTrad labeldistance) (self#edges_of_kind Crossover)))
+   (List.map (fun c->c#dot_traduction ~labeldistance) self#get_crossover_cables))
 
 ^"} //END of digraph\n"
 

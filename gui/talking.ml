@@ -49,40 +49,6 @@ If the program is run from the Marionnet live DVD, you are advised to \
 use a persistent directory (in /mnt/hd*), in order to not waste \
 your system physical memory.") in Simple_dialogs.help title msg ;;
 
-
- let help_cable_direct_insert_update =
-   let title = (s_ "ADD OR MODIFY A STRAIGHT CABLE") in
-   let msg   = (s_ "\
-In this dialog window you can define the name of a straight Ethernet cable \
-and set its parameters:\n\n\
-- Label: a string appearing near the edge representing the cable in the \
-network graph\n\n\
-- Devices: the two network devices (machine, hub, ...) linked by the cable and \
-their two connected interfaces\n\n\
-WARNING: this dialog allows to define straight cables even in contexts where \
-they won't work (for example between two machines); allowing users to define 'wrong' \
-connections may be of some pedagogical interest.")
-   in Simple_dialogs.help title msg ;;
-
- let help_cable_crossover_insert_update =
-   let title = (s_ "ADD OR MODIFY A CROSSOVER CABLE") in
-   let msg   = (s_ "\
-In this dialog window you can define the name of a crossover Ethernet cable \
-and set its parameters:\n\n\
-- Label: a string appearing near the edge representing the cable in the \
-network graph\n\n\
-- Devices: the two network devices (machine, hub, ...) linked by the cable and \
-their two connected interfaces\n\n\
-WARNING: this dialog allows to define crossover cables even in contexts where \
-they won't work (for example between two machines); allowing users to define 'wrong' \
-connections may be of some pedagogical interest.")
-   in Simple_dialogs.help title msg ;;
-
- let help_cable_insert_update = function
-  | Mariokit.Netmodel.Direct    -> help_cable_direct_insert_update
-  | Mariokit.Netmodel.Crossover -> help_cable_crossover_insert_update
- ;;
-
  let error_saving_while_something_up =
   Simple_dialogs.error
     (s_ "Warning")

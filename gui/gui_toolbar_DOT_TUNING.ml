@@ -221,7 +221,7 @@ let extrasize_react () = if opt#gui_callbacks_disable then () else
 let reverse_edge_callback x () =
   begin
    let c = (st#network#get_cable_by_name x) in
-   c#dotoptions#reverted#set (not c#dotoptions#reverted#get);
+   c#set_reversed (not c#is_reversed);
    st#flash (Printf.sprintf (f_ "Cable %s reversed") x);
   end
 
@@ -238,7 +238,7 @@ let _ = w#vscale_DOT_TUNING_EXTRASIZE#connect#value_changed       extrasize_reac
 
 (** Generic connect function for rotate menus. *)
 let connect_rotate_menu ~widget ~widget_menu ~dynList = begin
- let set_active cname = (List.mem cname st#network#reverted_cables) in
+ let set_active cname = (List.mem cname st#network#reversed_cables) in
  (Widget.DynamicSubmenu.make
    ~set_active
    ~submenu:widget_menu

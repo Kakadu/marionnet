@@ -69,7 +69,7 @@ complete_dir "foo" = "/tmp/marionnet-588078453.dir/test_machine/foo"
 class globalState = fun () ->
   let system = new Chip.system ~name:"motherboard" () in
   let win    = new Gui.window_MARIONNET () in
-  let net    = new Mariokit.Netmodel.network () in
+  let net    = new User_level.network () in
   object (self)
 
   (** Main window. *)
@@ -254,7 +254,7 @@ class globalState = fun () ->
    (* Read the given file. *)
    (if (Shell.regfile_readable f)
    then try
-       let result = Mariokit.Netmodel.Xml.load_network self#network f in
+       let result = User_level.Xml.load_network self#network f in
        Log.printf ("import_network: network imported\n");
        result
    with e -> (emergency e;  raise e)
@@ -268,7 +268,7 @@ class globalState = fun () ->
    app_state#set ActiveNotRunnableProject ;
    self#update_state (); (* is it runnable? *)
 
-   (* Undump Dotoptions.network *)
+   (* Undump Dot_tuning.network *)
    dotAction ();
 
    (* Force GUI coherence. *)
@@ -316,7 +316,7 @@ class globalState = fun () ->
     (* Create the tmp subdirectory. *)
     Unix.mkdir (prefix^"tmp") 0o755 ;
 
-    (* Dotoptions.network will be undumped after the network,
+    (* Dot_tuning.network will be undumped after the network,
        in order to support cable inversions. *)
     let dotAction () = begin
       (try
@@ -457,7 +457,7 @@ class globalState = fun () ->
        ()
     in
     (* Write the network xml file *)
-    Mariokit.Netmodel.Xml.save_network self#network self#networkFile ;
+    User_level.Xml.save_network self#network self#networkFile ;
 
     (* Save also dotoptions for drawing image. *)
     self#dotoptions#save_to_file self#dotoptionsFile;

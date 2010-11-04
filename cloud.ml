@@ -63,7 +63,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction { name = name; label = label } =
       let action () = ignore (
-        new User_level.cloud
+        new User_level_cloud.cloud
           ~network:st#network
           ~name
           ~label
@@ -74,7 +74,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_devices_that_can_startup ~devkind:Mariokit.Netmodel.Cloud ()
+    let dynlist () = st#network#get_devices_that_can_startup ~devkind:`Cloud ()
 
     let dialog name () =
      let d = (st#network#get_device_by_name name) in
@@ -84,7 +84,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction { name = name; label = label; old_name = old_name } =
       let d = (st#network#get_device_by_name old_name) in
-      let h = ((Obj.magic d):> User_level.cloud) in
+      let h = ((Obj.magic d):> User_level_cloud.cloud) in
       let action () = h#update_cloud_with ~name ~label in
       st#network_change action ();
 
@@ -105,7 +105,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction name =
       let d = (st#network#get_device_by_name name) in
-      let h = ((Obj.magic d):> User_level.cloud) in
+      let h = ((Obj.magic d):> User_level_cloud.cloud) in
       let action () = h#destroy in
       st#network_change action ();
 
@@ -123,7 +123,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:Mariokit.Netmodel.Cloud ()
+    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:`Cloud ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
 
@@ -132,7 +132,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:Mariokit.Netmodel.Cloud ()
+    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:`Cloud ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#suspend
 
@@ -141,7 +141,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_resume ~devkind:Mariokit.Netmodel.Cloud ()
+    let dynlist () = st#network#get_devices_that_can_resume ~devkind:`Cloud ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#resume
 
@@ -216,13 +216,13 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_cloud (network:Mariokit.Netmodel.network) (f:Xforest.tree) =
+ let try_to_add_cloud (network:User_level.network) (f:Xforest.tree) =
   try
    (match f with
     | Forest.NonEmpty (("cloud", attrs) , childs , Forest.Empty) ->
     	let name  = List.assoc "name"  attrs in
         Log.printf "Importing cloud \"%s\"...\n" name;
-        let x = new User_level.cloud ~network ~name () in
+        let x = new User_level_cloud.cloud ~network ~name () in
 	x#from_forest ("cloud", attrs) childs  ;
         Log.printf "Cloud \"%s\" successfully imported.\n" name;
         true
@@ -239,7 +239,7 @@ end (* module Eval_forest_child *)
 (*-----*)
 
 
-module User_level = struct
+module User_level_cloud = struct
 
 class cloud =
 
@@ -250,9 +250,9 @@ class cloud =
   object (self) inherit OoExtra.destroy_methods ()
 
   inherit
-    Mariokit.Netmodel.node_with_defects
+    User_level.node_with_defects
       ~network
-      ~name ?label ~devkind:Mariokit.Netmodel.Cloud
+      ~name ?label ~devkind:`Cloud
       ~port_no:Const.port_no_default
       ~port_no_min:Const.port_no_min
       ~port_no_max:Const.port_no_max
@@ -261,8 +261,9 @@ class cloud =
       ()
     as self_as_node_with_defects
   method defects_device_type = "cloud"
-  method polarity = Mariokit.Netmodel.Intelligent (* Because it is didactically meaningless *)
-
+  method polarity = User_level.Intelligent (* Because it is didactically meaningless *)
+  method string_of_devkind = "cloud"
+  
   method dotImg iconsize =
    let imgDir = Initialization.Path.images in
    (imgDir^"ico.cloud."^(self#string_of_simulated_device_state)^"."^iconsize^".png")
@@ -272,10 +273,10 @@ class cloud =
 
   (** Create the simulated device *)
   method private make_simulated_device =
-   ((new Simulation_level.cloud
+   ((new Simulation_level_cloud.cloud
         ~parent:self
         ~unexpected_death_callback:self#destroy_because_of_unexpected_death
-        ()) :> Mariokit.Netmodel.node Simulated_network.device)
+        ()) :> User_level.node Simulation_level.device)
 
   method to_forest =
    Forest.leaf ("cloud", [
@@ -290,13 +291,13 @@ class cloud =
 
 end (* class cloud *)
 
-end (* module User_level *)
+end (* module User_level_cloud *)
 
 (*-----*)
   WHERE
 (*-----*)
 
-module Simulation_level = struct
+module Simulation_level_cloud = struct
 
 open Daemon_language
 
@@ -306,7 +307,7 @@ class ['parent] cloud =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit ['parent] Simulated_network.device
+  inherit ['parent] Simulation_level.device
       ~parent
       ~hublet_no:2
       ~unexpected_death_callback
@@ -326,7 +327,7 @@ object(self)
   method spawn_processes =
     (* Create the internal cable process and spawn it: *)
     let the_internal_cable_process =
-      Simulated_network.make_ethernet_cable_process
+      Simulation_level.make_ethernet_cable_process
         ~left_end:(self#get_hublet_process_of_port 0)
         ~right_end:(self#get_hublet_process_of_port 1)
         ~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index 0)
@@ -350,7 +351,7 @@ object(self)
 end;;
 
 
-end (* module Simulation_level *)
+end (* module Simulation_level_cloud *)
 
 (** Just for testing: *)
 let test = Dialog_add_or_update.make

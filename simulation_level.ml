@@ -18,7 +18,7 @@ open Gettext;;
 
 #load "include_type_definitions_p4.cmo"
 ;;
-INCLUDE DEFINITIONS "simulated_network.mli" ;;
+INCLUDE DEFINITIONS "simulation_level.mli" ;;
 
 open Treeview_defects;;
 open Daemon_language;;
@@ -82,7 +82,9 @@ fun program
     | None ->
         let cmdline = StringExtra.Fold.blankcat (program::arguments) in
         let basename = Filename.basename program in
-        Log.printf "spawning process: the command line for %s is:\n---\n%s\n---\n" basename cmdline;
+        Log.printf "process#spawn: the command line for %s is:\n---\n%s\n---\n"
+          basename
+          (StringExtra.fmt ~tab:2 ~width:60 cmdline);
         let new_pid = (Unix.create_process
                          program
                          (Array.of_list (program :: arguments))

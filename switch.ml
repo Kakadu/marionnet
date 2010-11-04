@@ -66,7 +66,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let reaction { name = name; label = label; port_no = port_no; show_vde_terminal = show_vde_terminal; } =
       let action () =
         ignore
-          (new User_level.switch ~network:st#network ~name ~label ~port_no ~show_vde_terminal ())
+          (new User_level_switch.switch ~network:st#network ~name ~label ~port_no ~show_vde_terminal ())
       in
       st#network_change action ();
 
@@ -74,15 +74,15 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_devices_that_can_startup ~devkind:Mariokit.Netmodel.Switch ()
+    let dynlist () = st#network#get_devices_that_can_startup ~devkind:`Switch ()
 
     let dialog name () =
      let d = (st#network#get_device_by_name name) in
-     let s = ((Obj.magic d):> User_level.switch) in
+     let s = ((Obj.magic d):> User_level_switch.switch) in
      let title = (s_ "Modify switch")^" "^name in
      let label = s#get_label in
      let port_no = s#get_port_no in
-     let port_no_min = st#network#port_no_lower_of (s :> Mariokit.Netmodel.node) in
+     let port_no_min = st#network#port_no_lower_of (s :> User_level.node) in
      let show_vde_terminal = s#get_show_vde_terminal in
      Dialog_add_or_update.make
        ~title ~name ~label ~port_no ~port_no_min ~show_vde_terminal ~ok_callback:Add.ok_callback ()
@@ -90,7 +90,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     let reaction { name = name; label = label; port_no = port_no; old_name = old_name;
                    show_vde_terminal = show_vde_terminal; } =
       let d = (st#network#get_device_by_name old_name) in
-      let s = ((Obj.magic d):> User_level.switch) in
+      let s = ((Obj.magic d):> User_level_switch.switch) in
       let action () = s#update_switch_with ~name ~label ~port_no ~show_vde_terminal in
       st#network_change action ();
 
@@ -111,7 +111,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction name =
       let d = (st#network#get_device_by_name name) in
-      let h = ((Obj.magic d):> User_level.switch) in
+      let h = ((Obj.magic d):> User_level_switch.switch) in
       let action () = h#destroy in
       st#network_change action ();
 
@@ -129,7 +129,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:Mariokit.Netmodel.Switch ()
+    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:`Switch ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
 
@@ -138,7 +138,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:Mariokit.Netmodel.Switch ()
+    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:`Switch ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#suspend
 
@@ -147,7 +147,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_resume ~devkind:Mariokit.Netmodel.Switch ()
+    let dynlist () = st#network#get_devices_that_can_resume ~devkind:`Switch ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#resume
 
@@ -257,14 +257,14 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_switch (network:Mariokit.Netmodel.network) (f:Xforest.tree) =
+ let try_to_add_switch (network:User_level.network) (f:Xforest.tree) =
   try
    (match f with
     | Forest.NonEmpty (("switch", attrs) , childs , Forest.Empty) ->
     	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
         Log.printf "Importing switch \"%s\" with %d ports...\n" name port_no;
-	let x = new User_level.switch ~network ~name ~port_no () in
+	let x = new User_level_switch.switch ~network ~name ~port_no () in
 	x#from_forest ("switch", attrs) childs;
         Log.printf "Switch \"%s\" successfully imported.\n" name;
         true
@@ -273,11 +273,11 @@ module Eval_forest_child = struct
     | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
 	let name  = List.assoc "name" attrs in
 	let port_no = try int_of_string (List.assoc "eth" attrs) with _ -> Const.port_no_default in
-	let devkind = Mariokit.Netmodel.devkind_of_string (List.assoc "kind" attrs) in
-	(match devkind with
-	| Mariokit.Netmodel.Switch ->
+	let kind = List.assoc "kind" attrs in
+	(match kind with
+	| "switch" ->
             Log.printf "Importing switch \"%s\" with %d ports...\n" name port_no;
-	    let x = new User_level.switch ~network ~name ~port_no () in
+	    let x = new User_level_switch.switch ~network ~name ~port_no () in
 	    x#from_forest ("device", attrs) childs; (* Just for the label... *)
             Log.printf "This is an old project: we set the user port offset to 1...\n";
 	    network#defects#change_port_user_offset ~device_name:name ~user_port_offset:1;
@@ -297,7 +297,7 @@ end (* module Eval_forest_child *)
 (*-----*)
 
 
-module User_level = struct
+module User_level_switch = struct
 
 class switch =
 
@@ -310,9 +310,9 @@ class switch =
   object (self) inherit OoExtra.destroy_methods ()
 
   inherit
-    Mariokit.Netmodel.node_with_ledgrid_and_defects
+    User_level.node_with_ledgrid_and_defects
       ~network
-      ~name ?label ~devkind:Mariokit.Netmodel.Switch
+      ~name ?label ~devkind:`Switch
       ~port_no
       ~port_no_min:Const.port_no_min
       ~port_no_max:Const.port_no_max
@@ -322,7 +322,8 @@ class switch =
     as self_as_node_with_ledgrid_and_defects 
   method ledgrid_label = "Switch"
   method defects_device_type = "switch"
-  method polarity = Mariokit.Netmodel.MDI_X
+  method polarity = User_level.MDI_X
+  method string_of_devkind = "switch"
 
   val mutable show_vde_terminal : bool = show_vde_terminal
   method get_show_vde_terminal = show_vde_terminal
@@ -342,12 +343,12 @@ class switch =
     let hublet_no = self#get_port_no in
     let show_vde_terminal = self#get_show_vde_terminal in
     let unexpected_death_callback = self#destroy_because_of_unexpected_death in
-    ((new Simulation_level.switch
+    ((new Simulation_level_switch.switch
        ~parent:self
        ~hublet_no          (* TODO: why not accessible from parent? *)
        ~show_vde_terminal  (* TODO: why not accessible from parent? *)
        ~unexpected_death_callback
-       ()) :> Mariokit.Netmodel.node Simulated_network.device)
+       ()) :> User_level.node Simulation_level.device)
 
   method to_forest =
    Forest.leaf ("switch", [
@@ -372,7 +373,7 @@ end (* module User_level *)
   WHERE
 (*-----*)
 
-module Simulation_level = struct
+module Simulation_level_switch = struct
 
 (** A switch: just a [hub_or_switch] with [hub = false] *)
 class ['parent] switch =
@@ -383,7 +384,7 @@ class ['parent] switch =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit ['parent] Simulated_network.hub_or_switch
+  inherit ['parent] Simulation_level.hub_or_switch
       ~parent
       ~hublet_no
       ?last_user_visible_port_index
@@ -401,7 +402,7 @@ object(self)
   | true ->
     let name = parent#get_name in
     self#add_accessory_process
-      (new Simulated_network.unixterm_process
+      (new Simulation_level.unixterm_process
         ~xterm_title:(name^" terminal")
         ~management_socket_name:(Option.extract self#get_management_socket_name)
  	~unexpected_death_callback:
@@ -412,7 +413,7 @@ object(self)
 
 end;;
 
-end (* module Simulation_level *)
+end (* module Simulation_level_switch *)
 
 (** Just for testing: *)
 let test = Dialog_add_or_update.make

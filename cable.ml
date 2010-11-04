@@ -76,7 +76,7 @@ module Make_menus
     let reaction (r:Data.t) =
       let action () =
         ignore
-          (new User_level.cable
+          (new User_level_cable.cable
                  ~network:st#network
                  ~crossover
                  ~name:r.name
@@ -98,7 +98,7 @@ module Make_menus
 
     let dialog name () =
      let c = (st#network#get_cable_by_name name) in
-     let c = ((Obj.magic c):> User_level.cable) in
+     let c = ((Obj.magic c):> User_level_cable.cable) in
      let title = match crossover with
       | false -> ((s_ "Modify straight cable")^" "^name)
       | true  -> ((s_ "Modify crossover cable")^" "^name)
@@ -123,7 +123,7 @@ module Make_menus
 
     let reaction r =
       let c = (st#network#get_cable_by_name r.old_name) in
-      let c = ((Obj.magic c):> User_level.cable) in
+      let c = ((Obj.magic c):> User_level_cable.cable) in
       (* Make a new cable; it should have a different identity from the old one, and it's
          important that it's initialized anew, to get the reference counter right: *)
       c#destroy;
@@ -150,7 +150,7 @@ module Make_menus
 
     let reaction name =
       let c = (st#network#get_cable_by_name name) in
-      let c = ((Obj.magic c):> User_level.cable) in
+      let c = ((Obj.magic c):> User_level_cable.cable) in
       let action () = c#destroy in
       st#network_change action ();
 
@@ -199,7 +199,7 @@ end
 module Dialog_add_or_update = struct
 
 let make
- ~(network:Mariokit.Netmodel.network)
+ ~(network:User_level.network)
  ?(title="Add cable")
  ?(name="")
  ?label
@@ -345,7 +345,7 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_cable (network:Mariokit.Netmodel.network) (f:Xforest.tree) =
+ let try_to_add_cable (network:User_level.network) (f:Xforest.tree) =
   try
    (match f with
    | Forest.NonEmpty (("cable", attrs) , childs , Forest.Empty) ->
@@ -361,7 +361,7 @@ module Eval_forest_child = struct
  	  with Not_found -> bool_of_string (List.assoc "crossover" attrs)
  	in  
 	let x =
-	  new User_level.cable ~network ~crossover ~name
+	  new User_level_cable.cable ~network ~crossover ~name
 	    ~left_user_endpoint:(ln,lr)
 	    ~right_user_endpoint:(rn,rr)
 	    ()
@@ -382,7 +382,7 @@ end (* module Eval_forest_child *)
 (*-----*)
 
 
-module User_level = struct
+module User_level_cable = struct
 
 class virtual cable_dot_zone ?(reversed=false) ~(motherboard:Motherboard.t) () =
  object (self)
@@ -530,7 +530,7 @@ end
 
 (** Essentially a triple:  (node, port_index, direction) *)
 and endpoint
- ~(node:Mariokit.Netmodel.node)
+ ~(node:User_level.node)
  ~(port_index:int)
  ~(direction:[ `leftward | `rightward ])
  =
@@ -609,11 +609,11 @@ and cable =
     right_endpoint#set_owner (self :> <get_name:string>);
     
   inherit OoExtra.destroy_methods ()
-  inherit Mariokit.Netmodel.component ~network ~name ?label ()
-  inherit [cable] Mariokit.Netmodel.simulated_device () as self_as_simulated_device
+  inherit User_level.component ~network ~name ?label ()
+  inherit [cable] User_level.simulated_device () as self_as_simulated_device
 
   initializer
-    network#add_cable (self :> Mariokit.Netmodel.cable);
+    network#add_cable (self :> User_level.cable);
     self#add_destroy_callback (lazy (network#del_cable self#get_name));
 
   inherit cable_defects_zone ~network:network_alias () as cable_defects_zone
@@ -626,7 +626,7 @@ and cable =
   method is_correct =
     let polarity0 = self#get_left#node#polarity  in
     let polarity1 = self#get_right#node#polarity in
-    let module M = Mariokit.Netmodel in
+    let module M = User_level in
     (* We need a crossover cable if the polarity is the same: *)
     match polarity0, polarity1 with
      | M.Intelligent , _        | _     , M.Intelligent -> true
@@ -707,7 +707,7 @@ and cable =
             self#increment_alive_endpoint_no;
             Log.printf "Ok: connected\n";
           end);
-          Mariokit.refresh_sketch ());
+          User_level.refresh_sketch ());
 
     (** Make the cable disconnected, or do nothing if it's already disconnected: *)
     method private disconnect_right_now =
@@ -729,7 +729,7 @@ and cable =
             self#decrement_alive_endpoint_no;
             Log.printf "Ok: disconnected\n";
           end);
-          Mariokit.refresh_sketch ());
+          User_level.refresh_sketch ());
 
    (** 'Suspending means disconnecting for cables *)
    method suspend_right_now =
@@ -861,7 +861,7 @@ and cable =
      Log.printf "The reference count for the just-created cable %s is %d\n" self#get_name !alive_endpoint_no;
 end
 
-end (* module User_level *)
+end (* module User_level_cable *)
 
 (*-----*)
   WHERE
@@ -882,7 +882,7 @@ class ['parent] ethernet_cable =
       ~(unexpected_death_callback : unit -> unit)
       () ->
 object(self)
-  inherit ['parent] Simulated_network.device
+  inherit ['parent] Simulation_level.device
       ~parent
       ~hublet_no:0
       ~unexpected_death_callback
@@ -897,7 +897,7 @@ object(self)
     let leftward_defects  = parent#get_left#get_my_defects in
     let rightward_defects = parent#get_right#get_my_defects in
     ethernet_cable_process :=
-      Some(Simulated_network.make_ethernet_cable_process
+      Some(Simulation_level.make_ethernet_cable_process
              ~left_end
              ~right_end
              ~blinker_thread_socket_file_name

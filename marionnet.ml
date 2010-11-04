@@ -37,7 +37,7 @@ let st = new globalState ()
 
 (** Add a global thunk allowing to invoke the sketch refresh method, visible from many
     modules: *)
-let () = Mariokit.Refresh_sketch_thunk.set (fun () -> st#refresh_sketch ())
+let () = User_level.Refresh_sketch_thunk.set (fun () -> st#refresh_sketch ())
 let () = st#gui_coherence ()
 
 module State     = struct let st = st end

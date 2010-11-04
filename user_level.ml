@@ -18,14 +18,7 @@
 
 (** Some modules for managing the virtual network *)
 
-(*open Sugar;;*)
-open UnixExtra;;
-open Environment;;
-open Oomarshal;;
-open Task_runner;;
-open Simple_dialogs;;
 open Gettext;;
-
 module Recursive_mutex = MutexExtra.Recursive ;;
 
 (** A thunk allowing to invoke the sketch refresh method, accessible from many
@@ -38,14 +31,14 @@ let refresh_sketch () = Refresh_sketch_thunk.extract () ()
 
 
 (* *************************** *
-        Module Dotoptions
+        Module Dot_tuning
  * *************************** *)
 
-module Dotoptions = struct
+module Dot_tuning = struct
 
 
 (* *************************
-    class Dotoptions.network
+    class Dot_tuning.network
    ************************* *)
 
 type index = int;; (* 0..(length-1) *)
@@ -200,7 +193,7 @@ class network =
       self#from_forest ("dotoptions", attrs) childs
    | _ -> assert false
 
- (** Dotoptions to forest encoding. *)
+ (** Dot_tuning to forest encoding. *)
   method to_forest =
    Forest.leaf ("dotoptions", [
     		   ("iconsize"      , iconsize#get                   ) ;
@@ -227,52 +220,15 @@ class network =
   | ("invertedCables"       , x ) -> self#set_reversed_cables (Xforest.decode x)
   | _ -> () (* Forward-comp. *)
 
-end;; (* class Dotoptions.network *)
+end;; (* class Dot_tuning.network *)
 
-end;; (* module Dotoptions *)
+end;; (* module Dot_tuning *)
 
+type devkind = [ `Machine | `Hub | `Switch | `Router | `World_gateway | `World_bridge | `Cloud ] ;;
 
-(* **************************************** *
-              Module Netmodel
- * **************************************** *)
-
-
-(** Model for managing the virtual network defined step by step by user *)
-module Netmodel = struct
-
-(** {2 Basic functions and types } *)
-
-(** A device may be a Hub, a Switch or a Router. *)
-type devkind   = Machine | Hub | Switch | Router | World_gateway | World_bridge | Cloud ;;
-
-(** String conversion for a devkind. *)
-(* TODO: remove it! *)
-let string_of_devkind = function
-  | Machine    -> "machine"
-  | Hub        -> "hub"
-  | Switch     -> "switch"
-  | Router     -> "router"
-  | World_gateway -> "world_gateway"
-  | World_bridge  -> "world_bridge"
-  | Cloud      -> "cloud"
-;;
-
-(* TODO: remove it! *)
-let devkind_of_string x = match x with
-  | "machine" -> Machine
-  | "hub"     -> Hub
-  | "switch"  -> Switch
-  | "router"  -> Router
-  | "world_gateway" -> World_gateway
-  | "world_bridge"  -> World_bridge
-  | "cloud" -> Cloud
-  | _         -> raise (Failure ("devkind_of_string"^x))
-;;
-
-(** Examples: pc1, pc2 if the node is a machines, A,B,C if the node is a device *)
 type nodename   = string ;;
 
-(** Examples: eth0..eth4 *)
+(** Examples: "eth0", "port3" *)
 type receptname = string ;;
 
 type name   = string ;;
@@ -352,7 +308,7 @@ class virtual ['parent] simulated_device () = object(self)
   (** The device implementing the object in the simulated network, if any (this is
       ref None when the device has not been started yet, or some state modification
       happened) *)
-  val simulated_device : 'parent Simulated_network.device option ref =
+  val simulated_device : 'parent Simulation_level.device option ref =
     ref None
 
   method get_hublet_process_of_port index =
@@ -361,7 +317,7 @@ class virtual ['parent] simulated_device () = object(self)
     | None      -> failwith "looking for a hublet when its device is non-existing"
 
   (** Create a new simulated device according to the current status *)
-  method virtual make_simulated_device : 'parent Simulated_network.device
+  method virtual make_simulated_device : 'parent Simulation_level.device
 
   (** Return the list of cables directly linked to a port of self as an endpoint.
       This is needed so that simulated cables can be automatically started/destroyed
@@ -378,11 +334,11 @@ class virtual ['parent] simulated_device () = object(self)
   method private enqueue_task_with_progress_bar verb thunk =
     let text = verb ^ " " ^ self#get_name in
     let progress_bar = ref None in
-    the_task_runner#schedule
+    Task_runner.the_task_runner#schedule
       ~name:text
       (fun () ->
         (try
-          progress_bar := Some (make_progress_bar_dialog ~title:text ());
+          progress_bar := Some (Simple_dialogs.make_progress_bar_dialog ~title:text ());
           thunk ();
         with e -> begin
           Log.printf "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
@@ -394,12 +350,12 @@ class virtual ['parent] simulated_device () = object(self)
           Log.printf "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
           flush_all ();
         end));
-    the_task_runner#schedule
+    Task_runner.the_task_runner#schedule
       ~name:("Destroy the progress bar for \"" ^ text ^ "\"")
       (fun () ->
         match !progress_bar with
           Some progress_bar ->
-            destroy_progress_bar_dialog progress_bar
+            Simple_dialogs.destroy_progress_bar_dialog progress_bar
         | None ->
             assert false)
 
@@ -412,12 +368,12 @@ class virtual ['parent] simulated_device () = object(self)
 
   method create =
     (* This is invisible for the user: don't set the next state *)
-    the_task_runner#schedule ~name:("create "^self#get_name) (fun () -> self#create_right_now)
+    Task_runner.the_task_runner#schedule ~name:("create "^self#get_name) (fun () -> self#create_right_now)
 
   method (*private*) destroy_my_simulated_device =
     Log.printf "component \"%s\": destroying my simulated device.\n" self#get_name;
     (* This is invisible for the user: don't set the next state *)
-    the_task_runner#schedule ~name:("destroy "^self#get_name)(fun () -> self#destroy_right_now)
+    Task_runner.the_task_runner#schedule ~name:("destroy "^self#get_name)(fun () -> self#destroy_right_now)
 
   method startup =
     self#set_next_simulated_device_state (Some DeviceOn);
@@ -504,7 +460,7 @@ class virtual ['parent] simulated_device () = object(self)
                  )
                self#get_involved_cables;
              Log.printf "  (destroying the simulated device implementing %s...)\n" self#get_name;
-             d#destroy; (* This is the a method from some object in Simulated_network *)
+             d#destroy; (* This is the a method from some object in Simulation_level *)
              simulated_device := None;
              automaton_state := NoDevice;
              self#set_next_simulated_device_state None;
@@ -531,7 +487,7 @@ class virtual ['parent] simulated_device () = object(self)
               )
 
           | DeviceOff, Some(d) ->
-             (d#startup;  (* This is the a method from some object in Simulated_network *)
+             (d#startup;  (* This is the a method from some object in Simulation_level *)
               automaton_state := DeviceOn;
               self#set_next_simulated_device_state None;
               Log.printf "The device %s was started up\n" self#get_name
@@ -551,7 +507,7 @@ class virtual ['parent] simulated_device () = object(self)
         Log.printf "Suspending up the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
           DeviceOn, Some(d) ->
-           (d#suspend; (* This is the a method from some object in Simulated_network *)
+           (d#suspend; (* This is the a method from some object in Simulation_level *)
             automaton_state := DeviceSleeping;
             self#set_next_simulated_device_state None)
         | _ -> raise_forbidden_transition "suspend_right_now")
@@ -562,7 +518,7 @@ class virtual ['parent] simulated_device () = object(self)
         Log.printf "Resuming the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
         | DeviceSleeping, Some(d) ->
-           (d#resume; (* This is the a method from some object in Simulated_network *)
+           (d#resume; (* This is the a method from some object in Simulation_level *)
             automaton_state := DeviceOn;
             self#set_next_simulated_device_state None)
 
@@ -577,7 +533,7 @@ class virtual ['parent] simulated_device () = object(self)
           current_state);
         match !automaton_state, !simulated_device with
         | DeviceOn, Some(d) ->
-           (d#gracefully_shutdown; (* This is the a method from some object in Simulated_network *)
+           (d#gracefully_shutdown; (* This is the a method from some object in Simulation_level *)
             automaton_state := DeviceOff;
             self#set_next_simulated_device_state None)
 
@@ -858,41 +814,38 @@ class virtual node_with_ports_card = fun
       crossover iff both endpoints have the same polarity: *)
    method virtual polarity : polarity
 
-   val mutable devkind = devkind
-   method set_devkind x = devkind <- x
-
   (** The kind of the device (if the node is a device). *)
-  method devkind = devkind
+   method devkind = devkind
 
-  (** The method which give access to the object describing defects of this component. *)
-  (* method defect = defect *)
+   method virtual string_of_devkind : string
 
-  (** Node dot traduction *)
+   (* This is a default, but could be redefined: *)
+   method leds_relative_subdir = self#string_of_devkind
+   
+   (** Returns an image representig the node with the given iconsize. *)
+   method virtual dotImg : iconsize -> string
 
-  (** Returns an image representig the node with the given iconsize. *)
-  method virtual dotImg : iconsize -> string
+   (** Returns the label to use for cable representation.
+       This method may be redefined (for instance in [world_bridge]). *)
+   method dotLabelForEdges (receptname:string) = self#get_label
 
-  (** Returns the label to use for cable representation.
-      This method may be redefined (for instance in [world_bridge]). *)
-  method dotLabelForEdges (receptname:string) = self#get_label
-
-  (** Returns the port to use for cable representation.
-      This method may be redefined (for instance in [world_bridge]). *)
-  method dotPortForEdges (receptname:string)  = receptname
+   (** Returns the port to use for cable representation.
+       This method may be redefined (for instance in [world_bridge]). *)
+   method dotPortForEdges (receptname:string)  = receptname
 
   (** A node is represented in dot with an HTML label which is a table
       with a first line containing the name, with a second line containing the node associated image (method [dotImg]),
       and, if the node has a label, a third line containing the label. With the [nodeoptions] parameter one can force,
       for example, the fontsize or fontname for both name and label :
       [ dotTrad ~nodeoptions="fontsize=8" "large" ] *)
-  method dotTrad ?(nodeoptions="") (z:iconsize) =
+   method dotTrad ?(nodeoptions="") (z:iconsize) =
     let label = self#label_for_dot in
     let label_line =
       if label=""
        then ""
        else "<TR><TD><FONT COLOR=\"#3a3936\">"^label^"</FONT></TD></TR>"
     in
-    let fontsize   = if self#devkind=Machine then "" else "fontsize=8," in
+    let fontsize   = self#dot_fontsize_statement in
     let nodeoptions = if nodeoptions = "" then "" else (nodeoptions^",") in
     begin
     self#get_name^" ["^fontsize^nodeoptions^"shape=plaintext,label=<
@@ -903,15 +856,18 @@ class virtual node_with_ports_card = fun
 </TABLE>>];"
     end
 
-  (** Could be redefined. *)
-  method label_for_dot = self#get_label
+   (* Redefined in User_level_machine as "": *)
+   method dot_fontsize_statement = "fontsize=8,"
+  
+   (** Could be redefined. *)
+   method label_for_dot = self#get_label
 
-  (** make_simulated_device is defined in subclasses, not here  *)
+   (** make_simulated_device is defined in subclasses, not here  *)
 
-  (* TODO: move it in the network class
+   (* TODO: move it in the network class
      Return the list of cables of which a port of self is an endpoint: *)
-  method private get_involved_cables =
-    List.filter (fun c->c#is_node_involved self#get_name) network#cables
+   method private get_involved_cables =
+     List.filter (fun c->c#is_node_involved self#get_name) network#cables
 
 end;;
 
@@ -1104,22 +1060,6 @@ class virtual node_with_ledgrid_and_defects
       Ignore the receptname and returns the empty string. *)
   method dotPortForEdges (receptname:string) = ""
 
-  method to_forest = (* TODO remove it, is obsolete *)
-   Forest.leaf ("device",[
-  		  ("name" , self#get_name) ;
-                  ("label", self#get_label);
-                  ("kind" , (string_of_devkind self#devkind)) ;
-                  ("eth"  , (string_of_int (self#get_port_no)));
-                  ])
-
-  (** A cable has just attributes (no childs) in this version. *)
-  method eval_forest_attribute = function
-  | ("name"  , x ) -> self#set_name  x
-  | ("label" , x ) -> self#set_label x
-  | ("kind"  , x ) -> self#set_devkind (devkind_of_string x)
-  | ("eth"   , x ) -> self#set_port_no (int_of_string x)
-  | _ -> assert false
-
   (** Here we also have to manage LED grids: *)
   method private startup_right_now =
     (* Do as usual... *)
@@ -1143,7 +1083,7 @@ class virtual node_with_ledgrid_and_defects
     network#ledgrid_manager#hide_device_ledgrid ~id:(self#id) ();
 
   method ledgrid_image_directory =
-   let leds_relative_subdir = string_of_devkind self#devkind in
+   let leds_relative_subdir = self#leds_relative_subdir in
    (Initialization.Path.leds ^ leds_relative_subdir)
 
   (* may be redefined *)
@@ -1259,7 +1199,7 @@ class virtual virtual_machine_with_history_and_ifconfig
   method ifconfig_device_type = ifconfig_device_type
 
   method private banner =
-    (Printf.sprintf "Mariokit.virtual_machine: setting %s: " self#get_name)
+    (Printf.sprintf "User_level.virtual_machine: setting %s: " self#get_name)
 
   method sprintf : 'a. ('a, unit, string, string) format4 -> 'a =
     Printf.ksprintf (fun x->self#banner^x)
@@ -1439,7 +1379,7 @@ class network () =
 
  (** Related dot options fro drawing this virtual network.
      This pointer is shared with the project instance. *)
- val mutable dotoptions : (Dotoptions.network option) = None
+ val mutable dotoptions : (Dot_tuning.network option) = None
  method      dotoptions   = match dotoptions with Some x -> x | None -> raise (Failure "network#dotoptions")
  method  set_dotoptions x = dotoptions <- Some x
 
@@ -1722,9 +1662,9 @@ class network () =
    (* show devices *)
    let msg= try
         (StringExtra.Fold.commacat
-        (List.map (fun d->d#get_name^" ("^(string_of_devkind d#devkind)^")") devices))
+        (List.map (fun d->d#get_name^" ("^(d#string_of_devkind)^")") devices))
         with _ -> ""
-   in Log.printf "Devices \r\t\t: %s\n" msg;
+   in Log.printf "Nodes \r\t\t: %s\n" msg;
   (* show links *)
    let msg=try
         (StringExtra.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables))
@@ -1786,7 +1726,7 @@ edge [headclip=true,minlen=1.6,color=\""^self#dotoptions#crossover_cable_color^"
 
 initializer
 
- self#set_dotoptions (new Dotoptions.network self);
+ self#set_dotoptions (new Dot_tuning.network self);
 
 end
 
@@ -1817,6 +1757,3 @@ let save_network (net:network) (fname:string) =
  Log.printf "Netmodel.Xml.save_network: end (success)\n";;
 
 end;; (* module Netmodel.Xml *)
-
-
-end;; (* module Netmodel *)

@@ -64,7 +64,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction { name = name; label = label } =
       let action () = ignore (
-        new User_level.world_bridge
+        new User_level_world_bridge.world_bridge
           ~network:st#network
           ~name
           ~label
@@ -76,7 +76,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_devices_that_can_startup ~devkind:Mariokit.Netmodel.World_bridge ()
+    let dynlist () = st#network#get_devices_that_can_startup ~devkind:`World_bridge ()
 
     let dialog name () =
      let d = (st#network#get_device_by_name name) in
@@ -86,7 +86,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction { name = name; label = label; old_name = old_name } =
       let d = (st#network#get_device_by_name old_name) in
-      let h = ((Obj.magic d):> User_level.world_bridge) in
+      let h = ((Obj.magic d):> User_level_world_bridge.world_bridge) in
       let action () = h#update_world_bridge_with ~name ~label in
       st#network_change action ();
 
@@ -107,7 +107,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction name =
       let d = (st#network#get_device_by_name name) in
-      let h = ((Obj.magic d):> User_level.world_bridge) in
+      let h = ((Obj.magic d):> User_level_world_bridge.world_bridge) in
       let action () = h#destroy in
       st#network_change action ();
 
@@ -125,7 +125,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:Mariokit.Netmodel.World_bridge ()
+    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:`World_bridge ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
 
@@ -134,7 +134,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:Mariokit.Netmodel.World_bridge ()
+    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:`World_bridge ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#suspend
 
@@ -143,7 +143,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_resume ~devkind:Mariokit.Netmodel.World_bridge ()
+    let dynlist () = st#network#get_devices_that_can_resume ~devkind:`World_bridge ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#resume
 
@@ -235,14 +235,14 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_world_bridge (network:Mariokit.Netmodel.network) (f:Xforest.tree) =
+ let try_to_add_world_bridge (network:User_level.network) (f:Xforest.tree) =
   try
    (match f with
     | Forest.NonEmpty (("world_bridge", attrs) , childs , Forest.Empty)
     | Forest.NonEmpty (("gateway" (* retro-compatibility *) , attrs) , childs , Forest.Empty) ->
     	let name  = List.assoc "name"  attrs in
         Log.printf "Importing world bridge \"%s\"...\n" name;
-        let x = new User_level.world_bridge ~network ~name () in
+        let x = new User_level_world_bridge.world_bridge ~network ~name () in
 	x#from_forest ("world_bridge", attrs) childs  ;
         Log.printf "World bridge \"%s\" successfully imported.\n" name;
         true
@@ -259,7 +259,7 @@ end (* module Eval_forest_child *)
 (*-----*)
 
 
-module User_level = struct
+module User_level_world_bridge = struct
 
 class world_bridge =
 
@@ -270,9 +270,9 @@ class world_bridge =
   object (self) inherit OoExtra.destroy_methods ()
 
   inherit
-    Mariokit.Netmodel.node_with_defects
+    User_level.node_with_defects
       ~network
-      ~name ?label ~devkind:Mariokit.Netmodel.World_bridge
+      ~name ?label ~devkind:`World_bridge
       ~port_no:Const.port_no_default
       ~port_no_min:Const.port_no_min
       ~port_no_max:Const.port_no_max
@@ -281,7 +281,8 @@ class world_bridge =
       ()
     as self_as_node_with_defects 
   method defects_device_type = "world_bridge"
-  method polarity = Mariokit.Netmodel.Intelligent (* Because is not pedagogic anyway. *)
+  method polarity = User_level.Intelligent (* Because is not pedagogic anyway. *)
+  method string_of_devkind = "world_bridge"
 
   method dotImg iconsize =
    let imgDir = Initialization.Path.images in
@@ -292,11 +293,11 @@ class world_bridge =
 
   (** Create the simulated device *)
   method private make_simulated_device =
-   ((new Simulation_level.world_bridge
+   ((new Simulation_level_world_bridge.world_bridge
         ~parent:self
         ~bridge_name:Global_options.ethernet_socket_bridge_name
         ~unexpected_death_callback:self#destroy_because_of_unexpected_death
-        ()) :> Mariokit.Netmodel.node Simulated_network.device)
+        ()) :> User_level.node Simulation_level.device)
 
   method to_forest =
    Forest.leaf ("world_bridge", [
@@ -311,13 +312,13 @@ class world_bridge =
 
 end (* class world_bridge *)
 
-end (* module User_level *)
+end (* module User_level_world_bridge *)
 
 (*-----*)
   WHERE
 (*-----*)
 
-module Simulation_level = struct
+module Simulation_level_world_bridge = struct
 
 open Daemon_language
 
@@ -328,7 +329,7 @@ class world_bridge_hub_process =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit Simulated_network.hub_or_switch_process
+  inherit Simulation_level.hub_or_switch_process
       ~port_no:2
       ~hub:true
       ~tap_name
@@ -345,14 +346,14 @@ class ['parent] world_bridge =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit ['parent] Simulated_network.device
+  inherit ['parent] Simulation_level.device
       ~parent
       ~hublet_no:1
       ~unexpected_death_callback
       ()
       as super
   method device_type = "world_bridge"
-
+  
   val the_hublet_process = ref None
   method private get_the_hublet_process =
     match !the_hublet_process with
@@ -427,7 +428,7 @@ object(self)
     (* Create the internal cable process from the single hublet to the hub,
        and spawn it: *)
     let the_internal_cable_process =
-      Simulated_network.make_ethernet_cable_process
+      Simulation_level.make_ethernet_cable_process
         ~left_end:self#get_world_bridge_hub_process
         ~right_end:self#get_the_hublet_process
         ~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index 0)
@@ -458,7 +459,7 @@ object(self)
   method continue_processes = self#spawn_processes
 end
 
-end (* module Simulation_level *)
+end (* module Simulation_level_world_bridge *)
 
 (** Just for testing: *)
 let test = Dialog_add_or_update.make

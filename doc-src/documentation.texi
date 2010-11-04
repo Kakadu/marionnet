@@ -480,7 +480,7 @@ UML, VDE and updating the emulation state.
 @sp 3
 @section Processes
 
-The class @mariourl{Simulated_network.process, process} allows to
+The class @mariourl{Simulation_level.process, process} allows to
 start a generic process with the proper command line arguments, send it
 signals, stop it (in several ways) and moreover handle the start/stop
 of the death monitoring @pxref{DeathMonitor}.@*

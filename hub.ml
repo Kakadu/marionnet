@@ -63,26 +63,26 @@ module Make_menus (State : sig val st:State.globalState end) = struct
       Dialog_add_or_update.make ~title:(s_ "Add hub") ~name ~ok_callback ()
 
     let reaction { name = name; label = label; port_no = port_no } =
-      let action () = ignore (new User_level.hub ~network:st#network ~name ~label ~port_no ()) in
+      let action () = ignore (new User_level_hub.hub ~network:st#network ~name ~label ~port_no ()) in
       st#network_change action ();
 
   end
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_devices_that_can_startup ~devkind:Mariokit.Netmodel.Hub ()
+    let dynlist () = st#network#get_devices_that_can_startup ~devkind:`Hub ()
 
     let dialog name () =
      let d = (st#network#get_device_by_name name) in
      let title = (s_ "Modify hub")^" "^name in
      let label = d#get_label in
      let port_no = d#get_port_no in
-     let port_no_min = st#network#port_no_lower_of (d :> Mariokit.Netmodel.node) in
+     let port_no_min = st#network#port_no_lower_of (d :> User_level.node) in
      Dialog_add_or_update.make ~title ~name ~label ~port_no ~port_no_min ~ok_callback:Add.ok_callback ()
 
     let reaction { name = name; label = label; port_no = port_no; old_name = old_name; } =
       let d = (st#network#get_device_by_name old_name) in
-      let h = ((Obj.magic d):> User_level.hub) in
+      let h = ((Obj.magic d):> User_level_hub.hub) in
       let action () = h#update_with ~name ~label ~port_no in
       st#network_change action ();
 
@@ -103,7 +103,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction name =
       let d = (st#network#get_device_by_name name) in
-      let h = ((Obj.magic d):> User_level.hub) in
+      let h = ((Obj.magic d):> User_level_hub.hub) in
       let action () = h#destroy in
       st#network_change action ();
 
@@ -121,7 +121,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:Mariokit.Netmodel.Hub ()
+    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:`Hub ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
 
@@ -130,7 +130,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:Mariokit.Netmodel.Hub ()
+    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:`Hub ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#suspend
 
@@ -139,7 +139,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_resume ~devkind:Mariokit.Netmodel.Hub ()
+    let dynlist () = st#network#get_devices_that_can_resume ~devkind:`Hub ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#resume
 
@@ -238,14 +238,14 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_hub (network:Mariokit.Netmodel.network) (f:Xforest.tree) =
+ let try_to_add_hub (network:User_level.network) (f:Xforest.tree) =
   try
    (match f with
     | Forest.NonEmpty (("hub", attrs) , childs , Forest.Empty) ->
     	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
         Log.printf "Importing hub \"%s\" with %d ports...\n" name port_no;
-	let x = new User_level.hub ~network ~name ~port_no () in
+	let x = new User_level_hub.hub ~network ~name ~port_no () in
 	x#from_forest ("hub", attrs) childs;
         Log.printf "Hub \"%s\" successfully imported.\n" name;
         true
@@ -254,11 +254,11 @@ module Eval_forest_child = struct
     | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
 	let name  = List.assoc "name" attrs in
 	let port_no = try int_of_string (List.assoc "eth" attrs) with _ -> Const.port_no_default in
-	let devkind = Mariokit.Netmodel.devkind_of_string (List.assoc "kind" attrs) in
-	(match devkind with
-	| Mariokit.Netmodel.Hub ->
+	let kind = List.assoc "kind" attrs in
+	(match kind with
+	| "hub" ->
             Log.printf "Importing hub \"%s\" with %d ports...\n" name port_no;
-	    let x = new User_level.hub ~network ~name ~port_no () in
+	    let x = new User_level_hub.hub ~network ~name ~port_no () in
 	    x#from_forest ("device", attrs) childs; (* Just for the label... *)
             Log.printf "This is an old project: we set the user port offset to 1...\n";
 	    network#defects#change_port_user_offset ~device_name:name ~user_port_offset:1;
@@ -278,7 +278,7 @@ end (* module Eval_forest_child *)
 (*-----*)
 
 
-module User_level = struct
+module User_level_hub = struct
 
 class hub =
 
@@ -290,9 +290,9 @@ class hub =
   object (self) inherit OoExtra.destroy_methods ()
 
   inherit
-    Mariokit.Netmodel.node_with_ledgrid_and_defects
+    User_level.node_with_ledgrid_and_defects
       ~network
-      ~name ?label ~devkind:Mariokit.Netmodel.Hub
+      ~name ?label ~devkind:`Hub
       ~port_no
       ~port_no_min:Const.port_no_min
       ~port_no_max:Const.port_no_max
@@ -302,8 +302,9 @@ class hub =
     as self_as_node_with_ledgrid_and_defects 
   method ledgrid_label = "Hub"
   method defects_device_type = "hub"
-  method polarity = Mariokit.Netmodel.MDI_X
-
+  method polarity = User_level.MDI_X
+  method string_of_devkind = "hub"
+  
   method dotImg iconsize =
    let imgDir = Initialization.Path.images in
    (imgDir^"ico.hub."^(self#string_of_simulated_device_state)^"."^iconsize^".png")
@@ -312,11 +313,11 @@ class hub =
   method private make_simulated_device =
     let hublet_no = self#get_port_no in
     let unexpected_death_callback = self#destroy_because_of_unexpected_death in
-    ((new Simulation_level.hub
+    ((new Simulation_level_hub.hub
         ~parent:self
         ~hublet_no
         ~unexpected_death_callback
-        ()) :> Mariokit.Netmodel.node Simulated_network.device)
+        ()) :> User_level.node Simulation_level.device)
 
   method to_forest =
    Forest.leaf ("hub", [
@@ -333,13 +334,13 @@ class hub =
 
 end (* class hub *)
 
-end (* module User_level *)
+end (* module User_level_hub *)
 
 (*-----*)
   WHERE
 (*-----*)
 
-module Simulation_level = struct
+module Simulation_level_hub = struct
 
 (** A hub: just a [hub_or_switch] with [hub = true] *)
 class ['parent] hub =
@@ -349,7 +350,7 @@ class ['parent] hub =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit ['parent] Simulated_network.hub_or_switch
+  inherit ['parent] Simulation_level.hub_or_switch
       ~parent
       ~hublet_no
       ?last_user_visible_port_index
@@ -360,7 +361,7 @@ object(self)
   method device_type = "hub"
 end;;
 
-end (* module Simulation_level *)
+end (* module Simulation_level_hub *)
 
 (** Just for testing: *)
 let test = Dialog_add_or_update.make

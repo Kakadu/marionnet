@@ -86,7 +86,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
          }
       =
       let action () = ignore (
-        new User_level.router (* defined later with WHERE *)
+        new User_level_router.router (* defined later with WHERE *)
           ~network:st#network
           ~name
           ~label
@@ -104,11 +104,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_devices_that_can_startup ~devkind:Mariokit.Netmodel.Router ()
+    let dynlist () = st#network#get_devices_that_can_startup ~devkind:`Router ()
 
     let dialog name () =
      let r = (st#network#get_device_by_name name) in
-     let r = ((Obj.magic r):> User_level.router) in
+     let r = ((Obj.magic r):> User_level_router.router) in
      let title = (s_ "Modify router")^" "^name in
      let label = r#get_label in
      let distribution = r#get_epithet in
@@ -118,7 +118,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      let port_no = r#get_port_no in
      let port_0_ip_config = r#get_port_0_ip_config in
      (* The user cannot remove receptacles used by a cable. *)
-     let port_no_min = st#network#port_no_lower_of (r :> Mariokit.Netmodel.node)
+     let port_no_min = st#network#port_no_lower_of (r :> User_level.node)
      in
      Dialog_add_or_update.make
        ~title ~name ~label ~distribution ?variant ~show_unix_terminal
@@ -139,7 +139,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
          }
       =
       let d = (st#network#get_device_by_name old_name) in
-      let r = ((Obj.magic d):> User_level.router) in
+      let r = ((Obj.magic d):> User_level_router.router) in
       let action () =
         r#update_router_with
           ~name ~label ~port_0_ip_config ~port_no ~kernel ~show_unix_terminal
@@ -163,7 +163,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction name =
       let d = (st#network#get_device_by_name name) in
-      let r = ((Obj.magic d):> User_level.router) in
+      let r = ((Obj.magic d):> User_level_router.router) in
       let action () = r#destroy in
       st#network_change action ();
 
@@ -181,7 +181,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:Mariokit.Netmodel.Router ()
+    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:`Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
 
@@ -190,7 +190,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:Mariokit.Netmodel.Router ()
+    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:`Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#suspend
 
@@ -200,7 +200,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
     type t = string (* just the name *)
 
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_resume ~devkind:Mariokit.Netmodel.Router ()
+    let dynlist () = st#network#get_devices_that_can_resume ~devkind:`Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#resume
 
@@ -379,14 +379,14 @@ end
 (*-----*)
 
 module Eval_forest_child = struct
- let try_to_add_router (network:Mariokit.Netmodel.network) (f:Xforest.tree) =
+ let try_to_add_router (network:User_level.network) (f:Xforest.tree) =
   try
    (match f with
     | Forest.NonEmpty (("router", attrs) , childs , Forest.Empty) ->
     	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
         Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
-	let x = new User_level.router ~network ~name ~port_no () in
+	let x = new User_level_router.router ~network ~name ~port_no () in
 	x#from_forest ("router", attrs) childs;
         Log.printf "Router \"%s\" successfully imported.\n" name;
         true
@@ -395,12 +395,12 @@ module Eval_forest_child = struct
    | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
       let name  = List.assoc "name" attrs in
       let port_no = int_of_string (List.assoc "eth" attrs) in
-      let devkind = Mariokit.Netmodel.devkind_of_string (List.assoc "kind" attrs) in
-      (match devkind with
-      | Mariokit.Netmodel.Router ->
+      let kind = List.assoc "kind" attrs in
+      (match kind with
+      | "router" ->
           Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
-	  let r = new User_level.router ~network ~name ~port_no () in
-	  let x = (r :> Mariokit.Netmodel.node_with_ledgrid_and_defects) in
+	  let r = new User_level_router.router ~network ~name ~port_no () in
+	  let x = (r :> User_level.node_with_ledgrid_and_defects) in
 	  x#from_forest ("device", attrs) childs ;
           Log.printf "Router \"%s\" successfully imported.\n" name;
           true
@@ -417,10 +417,10 @@ end (* module Eval_forest_child *)
 (*-----*)
 
 
-module User_level = struct
+module User_level_router = struct
 
 class router
-  ~(network:Mariokit.Netmodel.network)
+  ~(network:User_level.network)
   ~name
   ?(port_0_ip_config=Const.port_0_ip_config_default)
   ?label
@@ -447,9 +447,9 @@ class router
 
   object (self) inherit OoExtra.destroy_methods ()
 
-  inherit Mariokit.Netmodel.node_with_ledgrid_and_defects
+  inherit User_level.node_with_ledgrid_and_defects
     ~network
-    ~name ?label ~devkind:Mariokit.Netmodel.Router
+    ~name ?label ~devkind:`Router
     ~port_no
     ~port_no_min:Const.port_no_min
     ~port_no_max:Const.port_no_max
@@ -457,7 +457,7 @@ class router
     ()
     as self_as_node_with_ledgrid_and_defects
 
-  inherit Mariokit.Netmodel.virtual_machine_with_history_and_ifconfig
+  inherit User_level.virtual_machine_with_history_and_ifconfig
     ~network:network_alias
     ?epithet ?variant ?kernel ?terminal
     ~history_icon:"router"
@@ -467,8 +467,8 @@ class router
     ()
     as self_as_virtual_machine_with_history_and_ifconfig
 
-  method polarity = Mariokit.Netmodel.MDI
-
+  method polarity = User_level.MDI
+  method string_of_devkind = "router"
   method ledgrid_label = "Router"
   method defects_device_type = "router"
 
@@ -479,7 +479,7 @@ class router
   (** Get the full host pathname to the directory containing the guest hostfs
       filesystem: *)
   method hostfs_directory_pathname =
-    let d = ((Option.extract !simulated_device) :> Mariokit.Netmodel.node Simulation_level.router) in
+    let d = ((Option.extract !simulated_device) :> User_level.node Simulation_level.router) in
     d#hostfs_directory_pathname
 
   val mutable show_unix_terminal : bool = show_unix_terminal
@@ -616,7 +616,7 @@ class router
 
 end;;
 
-end (* module User_level *)
+end (* module User_level_router *)
 
 (*-----*)
   WHERE
@@ -636,7 +636,7 @@ class ['parent] router =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit ['parent] Simulated_network.machine_or_router
+  inherit ['parent] Simulation_level.machine_or_router
       ~parent
       ~router:true
       ~filesystem_file_name(* :"/usr/marionnet/filesystems/router.debian.lenny.sid.fs" *)

@@ -86,7 +86,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
          }
       =
       let action () = ignore (
-       new User_level.world_gateway
+       new User_level_world_gateway.world_gateway
           ~network:st#network
           ~name
           ~label
@@ -101,11 +101,11 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Properties = struct
     include Data
 
-    let dynlist () = st#network#get_devices_that_can_startup ~devkind:Mariokit.Netmodel.World_gateway ()
+    let dynlist () = st#network#get_devices_that_can_startup ~devkind:`World_gateway ()
 
     let dialog name () =
      let d = (st#network#get_device_by_name name) in
-     let g = ((Obj.magic d):> User_level.world_gateway) in
+     let g = ((Obj.magic d):> User_level_world_gateway.world_gateway) in
      let title = (s_ "Modify world gateway")^" "^name in
      let label = g#get_label in
      (* With the current version of slirpvde i4 is always 1 and cidr is 24 *)
@@ -116,7 +116,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
      let dhcp_enabled = g#get_dhcp_enabled in
      let port_no = g#get_port_no in
      (* The user cannot remove receptacles used by a cable. *)
-     let port_no_min = st#network#port_no_lower_of (g :> Mariokit.Netmodel.node) in
+     let port_no_min = st#network#port_no_lower_of (g :> User_level.node) in
      Dialog_add_or_update.make
        ~title ~name ~label ~network_config ~dhcp_enabled ~port_no ~port_no_min
        ~ok_callback:Add.ok_callback ()
@@ -132,7 +132,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
          }
       =
       let d = (st#network#get_device_by_name old_name) in
-      let g = ((Obj.magic d):> User_level.world_gateway) in
+      let g = ((Obj.magic d):> User_level_world_gateway.world_gateway) in
       let action () = g#update_world_gateway_with ~name ~label ~network_config ~dhcp_enabled ~port_no in
       st#network_change action ();
 
@@ -153,7 +153,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
 
     let reaction name =
       let d = (st#network#get_device_by_name name) in
-      let g = ((Obj.magic d):> User_level.world_gateway) in
+      let g = ((Obj.magic d):> User_level_world_gateway.world_gateway) in
       let action () = g#destroy in
       st#network_change action ();
 
@@ -171,7 +171,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist = st#network#get_devices_that_can_gracefully_shutdown ~devkind:Mariokit.Netmodel.World_gateway
+    let dynlist = st#network#get_devices_that_can_gracefully_shutdown ~devkind:`World_gateway
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
 
@@ -180,7 +180,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:Mariokit.Netmodel.World_gateway ()
+    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:`World_gateway ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#suspend
 
@@ -189,7 +189,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_resume ~devkind:Mariokit.Netmodel.World_gateway ()
+    let dynlist () = st#network#get_devices_that_can_resume ~devkind:`World_gateway ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_device_by_name name)#resume
 
@@ -321,7 +321,7 @@ end
 (*-----*)
 
 module Eval_forest_child = struct
- let try_to_add_world_gateway (network:Mariokit.Netmodel.network) (f:Xforest.tree) =
+ let try_to_add_world_gateway (network:User_level.network) (f:Xforest.tree) =
   try
    (match f with
     | Forest.NonEmpty (("world_gateway", attrs) , childs , Forest.Empty) ->
@@ -330,7 +330,7 @@ module Eval_forest_child = struct
 	  try int_of_string (List.assoc "port_no" attrs) with _ -> Const.port_no_default
 	in
         Log.printf "Importing world gateway \"%s\" with %d ports...\n" name port_no;
-	let x = new User_level.world_gateway ~network ~name ~port_no () in
+	let x = new User_level_world_gateway.world_gateway ~network ~name ~port_no () in
 	x#from_forest ("world_gateway", attrs) childs;
         Log.printf "World gateway \"%s\" successfully imported.\n" name;
         true
@@ -346,13 +346,13 @@ end (* module Eval_forest_child *)
 (*-----*)
 
 
-module User_level = struct
+module User_level_world_gateway = struct
 
 (** A gateway has an associated network address
     and a dhcp server capability. *)
 class world_gateway =
 
-  fun ~(network:Mariokit.Netmodel.network)
+  fun ~(network:User_level.network)
       ~name
       ?label
       ?(port_no=4)
@@ -361,11 +361,11 @@ class world_gateway =
       () ->
   object (self) inherit OoExtra.destroy_methods ()
 
-  inherit Mariokit.Netmodel.node_with_ledgrid_and_defects
+  inherit User_level.node_with_ledgrid_and_defects
     ~network
     ~name
     ?label
-    ~devkind:Mariokit.Netmodel.World_gateway
+    ~devkind:`World_gateway
     ~port_no
     ~port_no_min:Const.port_no_min
     ~port_no_max:Const.port_no_max
@@ -376,9 +376,10 @@ class world_gateway =
 
   method ledgrid_label = "World gateway"
   method defects_device_type = "router"
-  method polarity = Mariokit.Netmodel.Intelligent
+  method polarity = User_level.Intelligent
+  method string_of_devkind = "world_gateway"
 
-  method dotImg (z:Mariokit.Netmodel.iconsize) =
+  method dotImg (z:User_level.iconsize) =
     let imgDir = Initialization.Path.images in
     (imgDir^"ico.world_gateway."^(self#string_of_simulated_device_state)^"."^z^".png")
 
@@ -429,13 +430,13 @@ class world_gateway =
 
   (** Create the simulated device *)
   method private make_simulated_device =
-    ((new Simulation_level.world_gateway
+    ((new Simulation_level_world_gateway.world_gateway
         ~parent:self
 	~port_no:self#get_port_no
 	~network_address
 	~dhcp_enabled
 	~unexpected_death_callback:self#destroy_because_of_unexpected_death
-	()) :> Mariokit.Netmodel.node Simulated_network.device)
+	()) :> User_level.node Simulation_level.device)
 
   method update_world_gateway_with ~name ~label ~port_no ~network_config ~dhcp_enabled =
     (* The following call ensure that the simulated device will be destroyed: *)
@@ -445,13 +446,13 @@ class world_gateway =
 
 end (* class world_gateway *)
 
-end (* module User_level *)
+end (* module User_level_world_gateway *)
 
 (*-----*)
   WHERE
 (*-----*)
 
-module Simulation_level = struct
+module Simulation_level_world_gateway = struct
 
 class ['parent] world_gateway =
   fun ~(parent:'parent)
@@ -463,8 +464,8 @@ class ['parent] world_gateway =
  (* an additional port will be used by the world *)
  let hublet_no = port_no + 1 in
  let last_user_visible_port_index = port_no - 1 in
- object(self)
-  inherit ['parent] Switch.Simulation_level.switch
+ object (self)
+  inherit ['parent] Switch.Simulation_level_switch.switch
     ~parent
     ~hublet_no
     ~last_user_visible_port_index
@@ -479,7 +480,7 @@ class ['parent] world_gateway =
     let slirpvde_socket = (self#get_hublet_process_of_port last_reserved_port)#get_socket_name in
 
     self#add_accessory_process
-      (new Simulated_network.slirpvde_process
+      (new Simulation_level.slirpvde_process
  	~existing_socket_name:slirpvde_socket
  	~network:network_address
 	?dhcp:(Option.of_bool dhcp_enabled)
@@ -488,7 +489,7 @@ class ['parent] world_gateway =
 
 end;;
 
-end (* module Simulation_level *)
+end (* module Simulation_level_world_gateway *)
 
 (** Just for testing: *)
 let test = Dialog_add_or_update.make

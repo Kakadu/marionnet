@@ -74,7 +74,7 @@ module Created_entry_project_new = Menu_factory.Make_entry
      let filename () =
        EDialog.ask_for_fresh_writable_filename
          ~title:(s_ "Name of the new project" )
-         ~filters:[EDialog.MAR;EDialog.ALL]
+         ~filter_names:[`MAR;`ALL]
          ~help:(Some Msg.help_nom_pour_le_projet) ()
      in
      (EDialog.sequence [Common_dialogs.save_current; filename])
@@ -111,7 +111,7 @@ module Created_entry_project_open = Menu_factory.Make_entry
      let filename_dialog () =
        EDialog.ask_for_existing_filename
          ~title:(s_ "Open an existing Marionnet project" )
-         ~filters:[EDialog.MAR;EDialog.ALL]
+         ~filter_names:[`MAR; `ALL]
          ~help:(Some Msg.help_nom_pour_le_projet) ()
      in
      (EDialog.sequence [Common_dialogs.save_current; filename_dialog])
@@ -158,7 +158,7 @@ module Created_entry_project_save_as = Menu_factory.Make_entry
    let dialog () =
      EDialog.ask_for_fresh_writable_filename
        ~title:(s_ "Save as" )
-       ~filters:[EDialog.MAR;EDialog.ALL]
+       ~filter_names:[`MAR; `ALL]
        ~help:(Some Msg.help_nom_pour_le_projet) ()
 
    let reaction r =
@@ -183,7 +183,7 @@ module Created_entry_project_copy_to = Menu_factory.Make_entry
    let dialog () =
      EDialog.ask_for_fresh_writable_filename
        ~title:(s_ "Copy to" )
-       ~filters:[EDialog.MAR;EDialog.ALL]
+       ~filter_names:[`MAR; `ALL]
        ~help:(Some Msg.help_nom_pour_le_projet) ()
 
    let reaction r =
@@ -224,7 +224,6 @@ let project_close = Created_entry_project_close.item
 
 let separator       = project#add_separator ()
 
-
 module Created_entry_project_export = Menu_factory.Make_entry
  (struct
    type t = env
@@ -233,22 +232,43 @@ module Created_entry_project_export = Menu_factory.Make_entry
    let stock = `CONVERT
    let key   = None
 
-   let dialog () = 
+   let dialog () =
+     let extra_widget = 
+       let (combo_box, get_selected) = Dot_widget.combo_of_working_output_formats ~active:`png () in
+       let widget_reader () =
+	 let frm = get_selected () in
+	 Dot.string_of_output_format frm
+       in
+       let table = GPack.table ~rows:2 ~columns:1 ~row_spacings:10 ~homogeneous:false () in
+       let _ = GMisc.label
+         ~xalign:0.5
+         ~markup:("<b>"^(s_ "Output format")^"</b>")
+         ~packing:(table#attach ~left:0 ~top:0) ()
+       in
+       (table#attach ~left:0 ~top:1 combo_box#coerce);
+       (table#coerce, widget_reader)
+     in
      EDialog.ask_for_fresh_writable_filename
        ~title:(s_ "Export network image" )
-       ~filters:[EDialog.PNG;EDialog.ALL]
+       ~filters:(Dot_widget.make_all_working_filters ())
+       ~filter_names:[`ALL]
+       ~extra_widget
        ~help:None ()
 
    let reaction r =
-     let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"png" (r#get "filename") in
-     let command  = ("cp "^st#pngSketchFile^" "^filename) in
-     let () =  Log.printf "About to call Unix.run...\n"; in
+     let output_format = (r#get "extra_widget") in
+     let filename = check_path_name_validity_and_add_extension_if_needed ~extension:output_format (r#get "filename") in
+     let command = Printf.sprintf "dot -T%s -o %s %s" output_format filename st#dotSketchFile in
+     let on_error () =
+	Simple_dialogs.error
+	  "Export network image"
+	  ((s_ "Failed to export network image to the file ")^filename^" (format "^output_format^")")
+	  ()
+     in
      try
-      (match UnixExtra.run command with
-      |  (_ , Unix.WEXITED 0) -> st#flash ~delay:6000 ((s_ "Network image correctly exported to the file ")^filename)
-      |  _                    -> raise (Failure ((s_ "Failed when exporting the network image to the file ")^filename))
-      )
-     with e -> ((Simple_dialogs.error "Export network image" ((s_ "Failed to export network image to the file ")^filename) ()); raise e)
+       Log.system_or_fail command;
+       st#flash ~delay:8000 ((s_ "Network image correctly exported to the file ")^filename)
+     with _ -> on_error ()
 
   end) (F)
 let project_export = Created_entry_project_export.item

@@ -191,7 +191,8 @@ let image_filter () =
   f
 ;;
 
-let all_files     () = let f = GFile.filter ~name:"All" () in f#add_pattern "*" ; f ;;
+(* let all_files     () = let f = GFile.filter ~name:"All" () in (f#add_pattern "*"); f ;; *)
+let all_files     () = GFile.filter ~name:"All" () ~patterns: ["*"] ;;
 let script_filter () = GFile.filter ~name:"Scripts Shell/Python (*.sh *.py)"  ~patterns:[ "*.sh"; "*.py" ] () ;;
 let mar_filter    () = GFile.filter ~name:"Marionnet projects (*.mar)" ~patterns:[ "*.mar"; ] () ;;
 let xml_filter    () = GFile.filter ~name:"XML files (*.xml)" ~patterns:[ "*.xml"; "*.XML" ] () ;;
@@ -199,22 +200,25 @@ let jpeg_filter   () = GFile.filter ~name:"JPEG files (*.jpg *.jpeg)" ~patterns:
 let png_filter    () = GFile.filter ~name:"PNG files (*.png)" ~patterns:[ "*.png"; "*.PNG" ] () ;;
 
 (** Filters for Marionnet *)
-type marfilter = MAR | ALL | IMG | SCRIPT | XML | JPEG | PNG ;;
+(* type filter_name = [ `MAR | `ALL | `IMG | `SCRIPT | `XML | `JPEG | `PNG ];; *)
 
 (** The kit of all defined filters *)
-let allfilters = [ ALL ; MAR ; IMG ; SCRIPT ; XML ; JPEG ]
+let allfilters = [ `ALL ; `MAR ; `IMG ; `SCRIPT ; `XML ; `JPEG ]
 ;;
 
-let fun_filter_of = function
-  | MAR    -> mar_filter    ()
-  | IMG    -> image_filter  ()
-  | SCRIPT -> script_filter ()
-  | XML    -> xml_filter    ()
-  | JPEG   -> jpeg_filter   ()
-  | PNG    -> png_filter    ()
-  | ALL    -> all_files     ()
+let get_filter_by_name = function
+  | `MAR    -> mar_filter    ()
+  | `IMG    -> image_filter  ()
+  | `SCRIPT -> script_filter ()
+  | `XML    -> xml_filter    ()
+  | `JPEG   -> jpeg_filter   ()
+  | `PNG    -> png_filter    ()
+  | `ALL    -> all_files     ()
+  | `DOT name -> Dot_widget.filter_of_format name
 ;;
 
+(* (`vmlz, "vmlz", "Compressed Vector Markup Language (VML)", "XML  document text (gzip compressed data, from Unix)"); *)
+  
 (** The edialog asking for file or folder. It returns a simple environment with an unique identifier
     [gen_id] bound to the selected name *)
 let ask_for_file
@@ -222,7 +226,9 @@ let ask_for_file
     ?(enrich=mkenv [])
     ?(title="FILE SELECTION")
     ?(valid:(string->bool)=(fun x->true))
-    ?(filters = allfilters)
+    ?(filter_names = allfilters)
+    ?(filters:(GFile.filter list)=[])
+    ?(extra_widget:(GObj.widget * (unit -> string)) option)
     ?(action=`OPEN)
     ?(gen_id="filename")
     ?(help=None)()
@@ -241,17 +247,28 @@ let ask_for_file
   ignore (dialog#set_current_folder (Initialization.cwd_at_startup_time));
 
   dialog#set_default_response `OK;
+  Option.iter (fun (w,r) -> dialog#set_extra_widget w) extra_widget;
 
   if (action=`SELECT_FOLDER)        then (try (dialog#add_shortcut_folder "/tmp") with _ -> ());
-  if (action=`OPEN or action=`SAVE) then (List.iter (fun x -> dialog#add_filter (fun_filter_of x)) filters);
+  if (action=`OPEN or action=`SAVE) then
+    begin
+      let filter_list = List.append (List.map get_filter_by_name filter_names) filters in
+      List.iter dialog#add_filter filter_list;
+    end;
   let result = (ref None) in
   let cont   = ref true in
   while (!cont = true) do
   begin match dialog#run () with
   | `OK -> (match dialog#filename with
               | None   -> ()
-              | Some fname -> if (valid fname) then
-                              begin cont := false; enrich#add (gen_id,fname); result := Some enrich end
+              | Some fname ->
+                  if (valid fname) then
+                    begin
+                      cont := false;
+                      enrich#add (gen_id,fname);
+                      Option.iter (fun (w,reader) -> enrich#add ("extra_widget",reader ())) extra_widget;
+                      result := Some enrich
+                    end
               )
   | `HELP -> (match help with
               | Some f -> f ();
@@ -297,14 +314,16 @@ let ask_for_existing_writable_folder_pathname_supporting_sparse_files
          false;
         end
     else true
-  in ask_for_file ~enrich ~title ~valid ~filters:[] ~action:`SELECT_FOLDER ~gen_id:"foldername" ~help () ;;
+  in ask_for_file ~enrich ~title ~valid ~filter_names:[] ~action:`SELECT_FOLDER ~gen_id:"foldername" ~help () ;;
 
 
 (** The edialog asking for a fresh and writable filename. *)
 let ask_for_fresh_writable_filename
  ?(enrich=mkenv [])
  ~title
- ?(filters = allfilters)
+ ?(filters:(GFile.filter list) option)
+ ?filter_names
+ ?(extra_widget:(GObj.widget * (unit -> string)) option)
  ?(help=None) =
 
   let valid x =
@@ -316,11 +335,11 @@ let ask_for_fresh_writable_filename
     else (Shell.freshname_possible x)
   in
   let result =
-    ask_for_file ~enrich ~title ~valid ~filters ~action:`SAVE ~gen_id:"filename" ~help in
+    ask_for_file ~enrich ~title ~valid ?filters ?filter_names ?extra_widget ~action:`SAVE ~gen_id:"filename" ~help in
   result;;
 
 (** The edialog asking for an existing filename. *)
-let ask_for_existing_filename ?(enrich=mkenv []) ~title ?(filters = allfilters) ?(help=None) () =
+let ask_for_existing_filename ?(enrich=mkenv []) ~title ?(filter_names = allfilters) ?(help=None) () =
 
   let valid = fun x ->
     if not (Sys.file_exists x)
@@ -330,7 +349,7 @@ let ask_for_existing_filename ?(enrich=mkenv []) ~title ?(filters = allfilters) 
              ()); false)
     else (Shell.regfile_modifiable x) in
 
-  ask_for_file ~enrich ~title ~valid ~filters ~action:`OPEN ~gen_id:"filename" ~help ()
+  ask_for_file ~enrich ~title ~valid ~filter_names ~action:`OPEN ~gen_id:"filename" ~help ()
 ;;
 
 (** Generic constructor for question dialogs.

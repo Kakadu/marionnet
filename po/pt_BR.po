@@ -1773,42 +1773,42 @@ msgid ""
 "from the project VDE.\n"
 msgstr ""
 
-#~ msgid "kernel"
-#~ msgstr "kernel"
-
-#~ msgid "Hardware specification."
-#~ msgstr "Especificações do hardware"
-
-#~ msgid "Software specification."
-#~ msgstr "Especificações de software"
-
-#~ msgid "Shutdown"
-#~ msgstr "Desligar"
-
-#~ msgid "Do you want to stop the machine %s?"
-#~ msgstr "Deseja parar a máquina %s?"
-
-#~ msgid "Address of the first port"
-#~ msgstr "Endereço da primeira porta"
-
-#~ msgid "You don't have VDE"
-#~ msgstr "Você não tem VDE"
-
-#~ msgid "Add socket"
-#~ msgstr "Adicionar soquete"
-
-#~ msgid "Modify socket"
-#~ msgstr "Modificar soquete"
-
-#~ msgid "socket"
-#~ msgstr "soquete"
-
-#~ msgid "Wrong connection"
-#~ msgstr "Conexão errada"
-
 #~ msgid ""
 #~ "\n"
 #~ "Label"
 #~ msgstr ""
 #~ "\n"
 #~ "Rótulo"
+
+#~ msgid "Wrong connection"
+#~ msgstr "Conexão errada"
+
+#~ msgid "socket"
+#~ msgstr "soquete"
+
+#~ msgid "Modify socket"
+#~ msgstr "Modificar soquete"
+
+#~ msgid "Add socket"
+#~ msgstr "Adicionar soquete"
+
+#~ msgid "You don't have VDE"
+#~ msgstr "Você não tem VDE"
+
+#~ msgid "Address of the first port"
+#~ msgstr "Endereço da primeira porta"
+
+#~ msgid "Do you want to stop the machine %s?"
+#~ msgstr "Deseja parar a máquina %s?"
+
+#~ msgid "Shutdown"
+#~ msgstr "Desligar"
+
+#~ msgid "Software specification."
+#~ msgstr "Especificações de software"
+
+#~ msgid "Hardware specification."
+#~ msgstr "Especificações do hardware"
+
+#~ msgid "kernel"
+#~ msgstr "kernel"

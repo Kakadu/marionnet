@@ -1822,85 +1822,41 @@ msgid ""
 msgstr ""
 
 #~ msgid ""
-#~ "Are you sure that you want to remove %s\n"
-#~ "and all cables connected to this %s?"
-#~ msgstr ""
-#~ "Esta usted seguro que desea remover %s\n"
-#~ "y todos los cables conectados a este %s?"
-
-#~ msgid "kernel"
-#~ msgstr "kernel"
-
-#~ msgid "Hardware specification."
-#~ msgstr "Especificación del hardware."
-
-#~ msgid "Software specification."
-#~ msgstr "Especificación del software."
-
-#~ msgid "Switch port number"
-#~ msgstr "Cambiar el numero del puerto"
-
-#~ msgid "Shutdown"
-#~ msgstr "Apagar"
-
-#~ msgid "Do you want to stop the machine %s?"
-#~ msgstr "Quiere detener la maquina %s?"
-
-#~ msgid ""
-#~ "Gateway name. This name must be unique in the virtual network. Suggested: "
-#~ "G1, G2, ..."
-#~ msgstr ""
-#~ "Nombre del gateway. Este nombre debe ser unico en la red virtual. "
-#~ "Sugeridos: G1, G2, ... "
-
-#~ msgid "Address of the first port"
-#~ msgstr "Direccion del primer puerto"
-
-#~ msgid "You don't have VDE"
-#~ msgstr "Usted no tiene VDE"
-
-#~ msgid "Add socket"
-#~ msgstr "Añadir socket"
-
-#~ msgid "Modify socket"
-#~ msgstr "Modificar socket"
-
-#~ msgid "socket"
-#~ msgstr "socket"
-
-#~ msgid "ADD OR MODIFY AN ETHERNET SOCKET"
-#~ msgstr "AÑADIR O MODIFICAR UN SOCKET ETHERNET"
-
-#~ msgid ""
-#~ "Are you sure you want to remove %s\\nand all cables connected to this %s ?"
-#~ msgstr ""
-#~ "¿Estás seguro que quieres eliminar %s\\ny todos los cables conectados a "
-#~ "este %s ?"
-
-#~ msgid "Strange connexion"
-#~ msgstr "Ésta es una conexión extraña. Revisar."
-
-#~ msgid "Stop all"
-#~ msgstr "Detener todo"
-
-#~ msgid ""
-#~ "Broadcast the specification of the virtual network on a real network."
-#~ msgstr ""
-#~ "Enviar un broadcast desde la red virtual a la red real a la que está "
-#~ "conectada el equipo."
-
-#~ msgid "Failed when exporting the network image to the file "
-#~ msgstr "Error cuando la imagen de la red era exportada en el archivo "
-
-#~ msgid ""
 #~ "\n"
-#~ "Do you confirm this connection?"
+#~ "Label"
 #~ msgstr ""
 #~ "\n"
-#~ "Usted ha confirmado esta conexión?"
+#~ "Etiqueta"
 
-#~ msgid "CONFIRM"
-#~ msgstr "CONFIRMADO"
+#~ msgid ""
+#~ "Straight cable name. This name must be unique in the virtual network. "
+#~ "Suggested: D1, D2, ... "
+#~ msgstr ""
+#~ "Nombre para el cable directo. Este nombre debe ser único en la red. "
+#~ "Sugerencias : D1, D2, ... "
+
+#~ msgid "Label to add to the straight cable icon."
+#~ msgstr "Referencia para asignar al ícono de cable directo."
+
+#~ msgid ""
+#~ "Crossover cable name. This name must be unique in the virtual network. "
+#~ "Suggested: C1, C2, ... "
+#~ msgstr ""
+#~ "Nombre para el cable cruzado. Este nombre debe ser único en la red. "
+#~ "Sugerencias : C1, C2, ... "
+
+#~ msgid "Label to add to the crossover cable icon."
+#~ msgstr "Referencia para asignar al ícono de cable cruzado."
+
+#~ msgid "Wrong connection"
+#~ msgstr "No es posible hacer esa conexión"
+
+#~ msgid "The cable can't be connected on both ends to the same socket!"
+#~ msgstr ""
+#~ "El cable no se puede conectar con los dos extremos en el mismo puerto!"
+
+#~ msgid "Funny connection"
+#~ msgstr "Conexión rara"
 
 #~ msgid ""
 #~ "The cable is connected to the same device.\n"
@@ -1910,39 +1866,83 @@ msgstr ""
 #~ "Las máquinas ya tienen una dirección de loopback (prueba ping localhost o "
 #~ "ping 127.0.0.1)."
 
-#~ msgid "Funny connection"
-#~ msgstr "Conexión rara"
-
-#~ msgid "The cable can't be connected on both ends to the same socket!"
-#~ msgstr ""
-#~ "El cable no se puede conectar con los dos extremos en el mismo puerto!"
-
-#~ msgid "Wrong connection"
-#~ msgstr "No es posible hacer esa conexión"
-
-#~ msgid "Label to add to the crossover cable icon."
-#~ msgstr "Referencia para asignar al ícono de cable cruzado."
-
-#~ msgid ""
-#~ "Crossover cable name. This name must be unique in the virtual network. "
-#~ "Suggested: C1, C2, ... "
-#~ msgstr ""
-#~ "Nombre para el cable cruzado. Este nombre debe ser único en la red. "
-#~ "Sugerencias : C1, C2, ... "
-
-#~ msgid "Label to add to the straight cable icon."
-#~ msgstr "Referencia para asignar al ícono de cable directo."
-
-#~ msgid ""
-#~ "Straight cable name. This name must be unique in the virtual network. "
-#~ "Suggested: D1, D2, ... "
-#~ msgstr ""
-#~ "Nombre para el cable directo. Este nombre debe ser único en la red. "
-#~ "Sugerencias : D1, D2, ... "
+#~ msgid "CONFIRM"
+#~ msgstr "CONFIRMADO"
 
 #~ msgid ""
 #~ "\n"
-#~ "Label"
+#~ "Do you confirm this connection?"
 #~ msgstr ""
 #~ "\n"
-#~ "Etiqueta"
+#~ "Usted ha confirmado esta conexión?"
+
+#~ msgid "Failed when exporting the network image to the file "
+#~ msgstr "Error cuando la imagen de la red era exportada en el archivo "
+
+#~ msgid ""
+#~ "Broadcast the specification of the virtual network on a real network."
+#~ msgstr ""
+#~ "Enviar un broadcast desde la red virtual a la red real a la que está "
+#~ "conectada el equipo."
+
+#~ msgid "Stop all"
+#~ msgstr "Detener todo"
+
+#~ msgid "Strange connexion"
+#~ msgstr "Ésta es una conexión extraña. Revisar."
+
+#~ msgid ""
+#~ "Are you sure you want to remove %s\\nand all cables connected to this %s ?"
+#~ msgstr ""
+#~ "¿Estás seguro que quieres eliminar %s\\ny todos los cables conectados a "
+#~ "este %s ?"
+
+#~ msgid "ADD OR MODIFY AN ETHERNET SOCKET"
+#~ msgstr "AÑADIR O MODIFICAR UN SOCKET ETHERNET"
+
+#~ msgid "socket"
+#~ msgstr "socket"
+
+#~ msgid "Modify socket"
+#~ msgstr "Modificar socket"
+
+#~ msgid "Add socket"
+#~ msgstr "Añadir socket"
+
+#~ msgid "You don't have VDE"
+#~ msgstr "Usted no tiene VDE"
+
+#~ msgid "Address of the first port"
+#~ msgstr "Direccion del primer puerto"
+
+#~ msgid ""
+#~ "Gateway name. This name must be unique in the virtual network. Suggested: "
+#~ "G1, G2, ..."
+#~ msgstr ""
+#~ "Nombre del gateway. Este nombre debe ser unico en la red virtual. "
+#~ "Sugeridos: G1, G2, ... "
+
+#~ msgid "Do you want to stop the machine %s?"
+#~ msgstr "Quiere detener la maquina %s?"
+
+#~ msgid "Shutdown"
+#~ msgstr "Apagar"
+
+#~ msgid "Switch port number"
+#~ msgstr "Cambiar el numero del puerto"
+
+#~ msgid "Software specification."
+#~ msgstr "Especificación del software."
+
+#~ msgid "Hardware specification."
+#~ msgstr "Especificación del hardware."
+
+#~ msgid "kernel"
+#~ msgstr "kernel"
+
+#~ msgid ""
+#~ "Are you sure that you want to remove %s\n"
+#~ "and all cables connected to this %s?"
+#~ msgstr ""
+#~ "Esta usted seguro que desea remover %s\n"
+#~ "y todos los cables conectados a este %s?"

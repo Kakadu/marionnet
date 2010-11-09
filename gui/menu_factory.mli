@@ -52,6 +52,7 @@ module type Factory =
         ?menu:GMenu.menu GMenu.factory ->
         ?submenu:GMenu.menu ->
         ?key:Gdk.keysym ->
+        ?label:string ->
         string ->
         ?callback:(unit -> unit) ->
         unit -> GMenu.image_menu_item

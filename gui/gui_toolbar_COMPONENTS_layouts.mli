@@ -15,10 +15,15 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
+module Toolbar : sig
+ val append_image_menu : GButton.toolbar -> string -> string -> GMenu.image_menu_item
+end
+
 module type Toolbar_entry =
  sig
   val imagefile : string
   val tooltip   : string
+  val packing   : [ `toolbar of GButton.toolbar | `menu_parent of Menu_factory.menu_parent ]
  end
 
 module type State = sig val st:State.globalState end

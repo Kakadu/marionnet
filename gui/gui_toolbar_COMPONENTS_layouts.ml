@@ -19,7 +19,7 @@ open Gettext;;
 
 (** Layouts for component-related menus. See the file gui_machine.ml for an example of application. *)
 
-(** Function to append entries to the toolbar_COMPONENTS *)
+(** Function which appends entries to a toolbar *)
 module Toolbar = struct
 
  (* Note that ~label:"" is very important in the call of GMenu.image_menu_item. Actually, it is a workaround
@@ -41,6 +41,7 @@ module type Toolbar_entry =
  sig
   val imagefile : string
   val tooltip   : string
+  val packing   : [ `toolbar of GButton.toolbar | `menu_parent of Menu_factory.menu_parent ]
  end
 
 module type State = sig val st:State.globalState end
@@ -53,11 +54,16 @@ module Layout_for_network_component
  (Remove        : Menu_factory.Entry_with_children_callbacks)
  = struct
 
-  let toolbar = State.st#mainwin#toolbar_COMPONENTS
-  let image_menu_item = Toolbar.append_image_menu toolbar Toolbar_entry.imagefile Toolbar_entry.tooltip
+  let menu_parent =
+    match Toolbar_entry.packing with
+    | `toolbar toolbar ->
+         let image_menu_item = 
+           Toolbar.append_image_menu toolbar Toolbar_entry.imagefile Toolbar_entry.tooltip
+         in Menu_factory.Menuitem (image_menu_item :> GMenu.menu_item_skel)
+    | `menu_parent p -> p
 
   module F = Menu_factory.Make (struct
-    let parent = Menu_factory.Menuitem (image_menu_item :> GMenu.menu_item_skel)
+    let parent = menu_parent
     let window = State.st#mainwin#window_MARIONNET
   end)
 

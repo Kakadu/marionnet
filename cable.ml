@@ -37,11 +37,16 @@ let to_string t = "<obj>" (* TODO? *)
 end (* Data *)
 
 module Make_menus
- (State     : sig val st:State.globalState end)
- (Cablekind : sig val crossover:bool end)
- = struct
+ (Params : sig
+    val st      : State.globalState
+    val packing : [ `toolbar of GButton.toolbar | `menu_parent of Menu_factory.menu_parent ]
+ end)
+ (Cablekind : sig
+    val crossover:bool
+ end)
+= struct
 
-  open State
+  open Params
   open Cablekind
   
   module Toolbar_entry = struct
@@ -53,6 +58,8 @@ module Make_menus
    let tooltip = match crossover with
       | false -> (s_ "Straight cable")
       | true  -> (s_ "Crossover cable")
+
+   let packing   = Params.packing
 
   end (* Toolbar_entry *)
 
@@ -185,7 +192,7 @@ module Make_menus
   end
 
  module Create_entries =
-  Gui_toolbar_COMPONENTS_layouts.Layout_for_network_edge (State) (Toolbar_entry) (Add) (Properties) (Remove) (Disconnect) (Reconnect)
+  Gui_toolbar_COMPONENTS_layouts.Layout_for_network_edge (Params) (Toolbar_entry) (Add) (Properties) (Remove) (Disconnect) (Reconnect)
 
  (* Subscribe this kind of component to the network club: *)
  st#network#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_cable;

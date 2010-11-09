@@ -43,13 +43,17 @@ type t = {
 let to_string t = "<obj>" (* TODO? *)
 end (* Data *)
 
-module Make_menus (State : sig val st:State.globalState end) = struct
+module Make_menus (Params : sig
+  val st      : State.globalState
+  val packing : [ `toolbar of GButton.toolbar | `menu_parent of Menu_factory.menu_parent ]
+ end) = struct
 
-  open State
+  open Params
 
   module Toolbar_entry = struct
    let imagefile = "ico.switch.palette.png"
    let tooltip   = (s_ "Switch")
+   let packing   = Params.packing
   end
 
   module Add = struct
@@ -154,7 +158,7 @@ module Make_menus (State : sig val st:State.globalState end) = struct
   end
 
  module Create_entries =
-  Gui_toolbar_COMPONENTS_layouts.Layout_for_network_node (State) (Toolbar_entry) (Add) (Properties) (Remove) (Startup) (Stop) (Suspend) (Resume)
+  Gui_toolbar_COMPONENTS_layouts.Layout_for_network_node (Params) (Toolbar_entry) (Add) (Properties) (Remove) (Startup) (Stop) (Suspend) (Resume)
 
  (* Subscribe this kind of component to the network club: *)
  st#network#subscribe_a_try_to_add_procedure Eval_forest_child.try_to_add_switch;

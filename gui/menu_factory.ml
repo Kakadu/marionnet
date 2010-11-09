@@ -93,10 +93,10 @@ module Make (M: Parents) = struct
    let () = match submenu with None -> () | Some submenu -> (result#set_submenu submenu)
    in result
 
- let add_imagefile_item ?(menu = get_current_menu ()) ?submenu ?(key=0) file ?(callback=(monitor file)) () =
-   let result = menu#add_image_item ~label:"" ~image:(GMisc.image ~file ())#coerce ~key ~callback () in
-   let () = match submenu with None -> () | Some submenu -> (result#set_submenu submenu)
-   in result
+ let add_imagefile_item ?(menu = get_current_menu ()) ?submenu ?(key=0) ?(label="") file ?(callback=(monitor file)) () =
+   let result = menu#add_image_item ~label ~image:(GMisc.image ~file ())#coerce ~key ~callback () in
+   let () = match submenu with None -> () | Some submenu -> (result#set_submenu submenu) in
+   result
 
  let add_check_item ?(menu = get_current_menu ()) ?(active=false) ?(key=0) label ?(callback=(monitor label)) () =
    menu#add_check_item label ~key ~active ~callback
@@ -191,6 +191,7 @@ module Make_entry_with_children =
     let submenu = (Submenu.get_current_menu ())#menu
 
    end
+
 
 (** {2 Examples}
 

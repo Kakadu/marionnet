@@ -46,7 +46,7 @@ fun ~packing
     () ->
 object(self)
   inherit
-    Treeview.treeview_with_a_Name_column
+    Treeview.treeview_with_a_primary_key_Name_column
       ~packing
       ~hide_reserved_fields:true
       ()
@@ -126,7 +126,7 @@ object(self)
       try  Scanf.sscanf name "port%i" (fun i -> Printf.sprintf "port%d" (i+offset)) with _ ->
       name
     in
-    let device_row_id = self#row_id_of_name device_name in
+    let device_row_id = self#unique_row_id_of_name device_name in
     let port_row_ids = Forest.children_nodes device_row_id !id_forest in
     List.iter
       (fun row_id ->
@@ -147,7 +147,7 @@ object(self)
     let defaults =
       if defective_by_default then defective_defaults else non_defective_defaults
     in
-    let device_row_id = self#row_id_of_name device_name in
+    let device_row_id = self#unique_row_id_of_name device_name in
     let current_port_no = self#children_no_of ~parent_name:device_name in
     let current_user_port_index = current_port_no + user_port_offset in
     let port_type =
@@ -203,7 +203,7 @@ object(self)
       (List.map self#get_row port_direction_ids)
 
   method get_cable_data cable_name cable_direction =
-    let cable_row_id = self#row_id_of_name cable_name in
+    let cable_row_id = self#unique_row_id_of_name cable_name in
     let cable_direction_ids = self#children_of cable_row_id in
     let filtered_cable_directions =
       List.filter
@@ -213,7 +213,7 @@ object(self)
     List.hd filtered_cable_directions
 
   method rename_cable_endpoints cable_name left_endpoint_name right_endpoint_name =
-    let cable_row_id = self#row_id_of_name cable_name in
+    let cable_row_id = self#unique_row_id_of_name cable_name in
     let cable_direction_ids = self#children_of cable_row_id in
     assert (List.length cable_direction_ids = 2);
     let directions = List.map self#get_complete_row cable_direction_ids in

@@ -482,7 +482,7 @@ and virtual cable_defects_zone ~network () =
 
   method private add_my_defects =
    match
-     (network#defects:Treeview_defects.t)#row_exists_with_binding "Name" self#get_name
+     (network#defects:Treeview_defects.t)#unique_row_exists_with_binding "Name" self#get_name
    with
    | true -> Log.printf "The cable %s has already defects defined...\n" self#get_name
    | false ->

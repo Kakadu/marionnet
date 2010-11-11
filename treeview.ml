@@ -1043,9 +1043,9 @@ object(self)
   method get_row_item row_id column_header =
     Assoc.find column_header (self#get_complete_row row_id)
 
-  method row_exists_with_binding ~(key:string) ~(value:string) =
+  method unique_row_exists_with_binding ~(key:string) ~(value:string) =
    try
-    ignore (self#row_id_such_that (fun row -> (Assoc.find key row) = String value));
+    ignore (self#unique_row_id_such_that (fun row -> (Assoc.find key row) = String value));
     true
    with _ -> false
 
@@ -1214,26 +1214,34 @@ object(self)
     in
     List.map self#id_of_complete_row row_list
 
+  method unique_root_row_id_such_that predicate =
+    let roots = Forest.roots_of_forest self#get_complete_forest in
+    match (List.filter predicate roots) with
+    | [row] -> self#id_of_complete_row row
+    | rows ->
+       failwith (Printf.sprintf "unique_root_row_id_such_that: there were %i results instead of 1"
+                   (List.length rows))
+
   method rows_such_that predicate =
     List.map self#get_row (self#row_ids_such_that predicate)
 
-  method row_such_that predicate =
-    self#get_row (self#row_id_such_that predicate)
+  method unique_row_such_that predicate =
+    self#get_row (self#unique_row_id_such_that predicate)
 
   method complete_rows_such_that predicate =
     List.map self#get_complete_row (self#row_ids_such_that predicate)
 
-  method complete_row_such_that predicate =
-    self#get_complete_row (self#row_id_such_that predicate)
+  method unique_complete_row_such_that predicate =
+    self#get_complete_row (self#unique_row_id_such_that predicate)
 
   (** Return the row_id of the only row satisfying the given predicate. Fail if more
       than one such row exist: *)
-  method row_id_such_that predicate =
+  method unique_row_id_such_that predicate =
     let row_ids = self#row_ids_such_that predicate in
     match row_ids with
       row_id :: [] -> row_id
     | _ -> failwith (Printf.sprintf
-                       "row_id_such_that: there were %i results instead of 1"
+                       "unique_row_id_such_that: there were %i results instead of 1"
                        (List.length row_ids))
 
   (** Return an option containing the the row_id of the parent row, if any. *)
@@ -1242,6 +1250,10 @@ object(self)
 
   method children_of row_id =
     Forest.children_nodes row_id !id_forest
+
+  method children_no row_id =
+    let row_ids = self#children_of row_id in
+    List.length row_ids
 
   method set_column_visibility header visibility =
     (self#get_column header)#gtree_view_column#set_visible visibility
@@ -1308,24 +1320,26 @@ object(self)
     self#add_separator_menu_item;
 end;;
 
+(* useful predicate: *)
+let row_name_is name =
+   (fun row -> (Assoc.find "Name" row) = String name)
+
 class virtual treeview_with_a_Name_column = fun
   ~packing
   ?hide_reserved_fields
   () ->
- let row_name_is name =
-   (fun row -> (Assoc.find "Name" row) = String name)
- in
  object(self)
   inherit t ~packing ?hide_reserved_fields () 
 
   method rename old_name new_name =
-    let row_id = self#row_id_of_name old_name in
-    self#set_row_item row_id "Name" (String new_name)
+    let row_ids = self#row_ids_of_name old_name in
+    List.iter
+      (fun row_id -> self#set_row_item row_id "Name" (String new_name))
+      row_ids
 
-  method row_id_of_name name  = self#row_id_such_that  (row_name_is name)
-  method row_ids_of_name name = self#row_ids_such_that (row_name_is name)
-  method row_of_name name     = self#row_such_that     (row_name_is name)
-  method rows_of_name name    = self#rows_such_that    (row_name_is name)
+  method unique_root_row_id_of_name name = self#unique_root_row_id_such_that (row_name_is name)
+  method row_ids_of_name name            = self#row_ids_such_that (row_name_is name)
+  method rows_of_name name               = self#rows_such_that    (row_name_is name)
 
   method name_of_row_id row_id =
     item_to_string (self#get_row_item row_id "Name")
@@ -1344,23 +1358,40 @@ class virtual treeview_with_a_Name_column = fun
     let grandparent_row_id = Option.extract (self#parent_of parent_row_id) in
     self#name_of_row_id grandparent_row_id
 
-  method children_no row_id =
-    let row_ids = self#children_of row_id in
-    List.length row_ids
+  initializer
+    let _ =
+      self#add_string_column
+        ~header:"Name"
+        ~shown_header:(s_ "Name")
+        ()
+     in ()
+
+ end
+
+(* Name is here a primary key: *)
+class virtual treeview_with_a_primary_key_Name_column
+  ~packing
+  ?hide_reserved_fields
+  () =
+  object(self)
+  inherit treeview_with_a_Name_column ~packing ?hide_reserved_fields ()
+
+  method unique_row_id_of_name name = self#unique_row_id_such_that  (row_name_is name)
+  method unique_row_of_name name    = self#unique_row_such_that     (row_name_is name)
 
   method children_no_of ~parent_name =
-    let row_id = self#row_id_of_name parent_name in
+    let row_id = self#unique_row_id_of_name parent_name in
     self#children_no row_id
 
   (** Do nothing if there is no such name. *)
   method remove_subtree_by_name name =
     try
-      let row_id = self#row_id_of_name name in
+      let row_id = self#unique_row_id_of_name name in
       self#remove_subtree row_id;
     with _ -> ()
 
   method update_children_no ~(add_child_of:string -> unit) ~parent_name new_children_no =
-    let row_id = self#row_id_of_name parent_name in
+    let row_id = self#unique_row_id_of_name parent_name in
     let row_ids = self#children_of row_id in
     let old_children_no = List.length row_ids in
     let delta = new_children_no - old_children_no in
@@ -1374,7 +1405,7 @@ class virtual treeview_with_a_Name_column = fun
     end;
 
   method get_complete_row_of_child ~parent_name ~child_name =
-    let row_id = self#row_id_of_name parent_name in
+    let row_id = self#unique_row_id_of_name parent_name in
     let row_ids = self#children_of row_id in
     let filtered_data =
       List.filter
@@ -1386,13 +1417,5 @@ class virtual treeview_with_a_Name_column = fun
 
   method get_row_of_child ~parent_name ~child_name =
     self#remove_reserved_fields (self#get_complete_row_of_child ~parent_name ~child_name)
-
-  initializer
-    let _ =
-      self#add_string_column
-        ~header:"Name"
-        ~shown_header:(s_ "Name")
-        ()
-     in ()
 
  end

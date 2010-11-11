@@ -27,7 +27,7 @@ fun ~packing
     () ->
 object(self)
   inherit
-    Treeview.treeview_with_a_Name_column
+    Treeview.treeview_with_a_primary_key_Name_column
       ~packing
       ~hide_reserved_fields:true
       ()
@@ -124,7 +124,7 @@ object(self)
     self#children_no_of ~parent_name:device_name
 
   method private add_port ?port_row_completions device_name =
-    let device_row_id = self#row_id_of_name device_name in 
+    let device_row_id = self#unique_row_id_of_name device_name in 
     let current_port_no =
       self#port_no_of device_name in
     let port_type =
@@ -224,7 +224,7 @@ object(self)
 
   (** Update a single port attribute: *)
   method set_port_attribute_by_index device_name port_index column_header value =
-    let device_row_id = self#row_id_of_name device_name in
+    let device_row_id = self#unique_row_id_of_name device_name in
     let device_port_ids = self#children_of device_row_id in
     let port_name = Printf.sprintf "port%i" port_index in
     let filtered_port_data =

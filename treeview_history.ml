@@ -144,8 +144,7 @@ object(self)
   self#highlight_row row_id
 
   method remove_device_tree device_name =
-  (* The element we are searching for is the topmost leftmost: *)
-  let root_id = self#row_id_of_name device_name in
+  let root_id = self#unique_root_row_id_of_name device_name in
   let rows_to_remove = self#rows_of_name device_name in
   (* Remove cow files: *)
   (List.iter
@@ -164,7 +163,7 @@ object(self)
       parent_file_name
   in
   let complete_row_to_copy =
-    self#complete_row_such_that
+    self#unique_complete_row_such_that
       (fun row -> (Assoc.find "File name" row) = String parent_file_name)
   in
   let parent_id   = self#id_of_complete_row complete_row_to_copy in

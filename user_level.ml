@@ -891,7 +891,7 @@ class virtual node_with_defects_zone ~network () =
 
   method private add_my_defects =
    match
-     (network#defects:Treeview_defects.t)#row_exists_with_binding
+     (network#defects:Treeview_defects.t)#unique_row_exists_with_binding
         "Name"
         self#get_name
    with
@@ -1283,7 +1283,7 @@ class virtual virtual_machine_with_history_and_ifconfig
     (port_no:int) : unit
    =
    match
-     (network#ifconfig:Treeview_ifconfig.t)#row_exists_with_binding
+     (network#ifconfig:Treeview_ifconfig.t)#unique_row_exists_with_binding
         "Name"
         self#get_name
    with

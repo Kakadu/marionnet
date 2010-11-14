@@ -924,13 +924,10 @@ along with this program.  If not, see http://www.gnu.org/licenses . -->
           <widget class="GtkVBox" id="vbox10">
             <property name="visible">True</property>
             <child>
-              <widget class="GtkLabel" id="label48">
+              <widget class="GtkLabel" id="label_dialog_A_PROPOS_title">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="label" translatable="yes">
-&lt;b&gt;Marionnet&lt;/b&gt;
-Version QQVERSIONQQ, QQDATEQQ
-</property>
+                <property name="label" translatable="yes">Marionnet</property>
                 <property name="use_markup">True</property>
                 <property name="justify">GTK_JUSTIFY_CENTER</property>
                 <property name="wrap">True</property>
@@ -1063,7 +1060,7 @@ Version QQVERSIONQQ, QQDATEQQ
                             <child>
                               <widget class="GtkImage" id="image23">
                                 <property name="visible">True</property>
-                                <property name="pixbuf">paris13.png</property>
+                                <property name="pixbuf">logo.paris13.png</property>
                               </widget>
                               <packing>
                                 <property name="position">1</property>

@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# This file is part of marionnet
+# Copyright (C) 2010 Jean-Vincent Loddo
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Parsing command line arguments
+FORMAT='r:'
+function parse_cmdline {
+unset ARGS
+while [[ $# -gt 0 ]]; do
+  OPTIND=1
+  while getopts ":h$FORMAT" flag; do
+    [[ ! $flag = '?' ]] || { echo "*** Illegal option -$OPTARG."; exit 1; }
+    eval "option_${flag}=$OPTIND"
+    eval "option_${flag}_arg='$OPTARG'"
+  done
+  for ((index=1; index<OPTIND; index++)) do shift; done
+  for i in "$@"; do ARGS+=("$i"); shift; break; done
+done
+}
+declare -a ARGS
+parse_cmdline "$@"
+set -- "${ARGS[@]}"
+
+# Option -h
+if [[ -n ${option_h}  ]]; then
+ echo "Usage: ${0##*/} [-r REVNO] [-- [OPTION]..] [+FORMAT]
+Return the date of the last (or specified by -r) revision.
+Options:
+  -h            Print this message and exit
+  -r REVNO      Get date for the specified revision
+The other OPTIONs and +FORMAT are in the form readable by the command date.
+Example:
+\$ ${0##*/} -- -u \"+%Y-%m-%d\"
+2010-09-21"
+exit 0
+fi
+
+# Option -r
+if [[ -n ${option_r} ]]; then
+ REVNO="-r ${option_r_arg}"
+else
+ REVNO="-l 1"
+fi
+
+DATE=$(bzr log $REVNO --timezone utc | awk '/^timestamp/' | cut -f2- -d:)
+date -d "$DATE" "$@"

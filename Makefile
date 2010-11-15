@@ -1,6 +1,7 @@
 # This -*- makefile -*- is part of our build system for OCaml projects
 # Copyright (C) 2008, 2009  Luca Saiu
-# Copyright (C) 2008  Jean-Vincent Loddo
+# Copyright (C) 2008, 2010  Jean-Vincent Loddo
+# Copyright (C) 2008, 2009, 2010  Université Paris 13
 # Updated in 2008 by Jonathan Roudiere
 
 # This program is free software: you can redistribute it and/or modify

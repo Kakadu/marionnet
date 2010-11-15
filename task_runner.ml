@@ -1,5 +1,7 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007, 2008  Luca Saiu
+   Copyright (C) 2009, 2010  Jean-Vincent Loddo
+   Copyright (C) 2007, 2008, 2009, 2010  Université Paris 13
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

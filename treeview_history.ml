@@ -1,7 +1,5 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007, 2008, 2009  Luca Saiu
-   Copyright (C) 2009  Jonathan Roudiere
-   Copyright (C) 2009  Marco Stronati
    Copyright (C) 2010  Jean-Vincent Loddo
    Copyright (C) 2007, 2008, 2009, 2010  Université Paris 13
 

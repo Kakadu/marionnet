@@ -916,6 +916,7 @@ meta.ml: META
 	echo -e "let revision = \"$(shell bzr revno)\";;" >> $@ && \
 	echo -e "let build_date = \"$(shell date '+%Y-%m-%d %k:%M:%S %z')\";;" >> $@ && \
 	echo -e "let source_date = \"$(shell bzr info --verbose | /bin/grep 'latest revision' | cut -d: -f2- | cut -d' ' -f3-)\";;" >> $@ && \
+	echo -e "let source_date_utc_yy_mm_dd = \"$(shell ./Makefile.d/bzr_date -- -u "+%Y-%m-%d")\";;" >> $@ && \
 	echo -e "let uname = \"$(shell uname -srvmo)\";;" >> $@ && \
 	echo "Success.")
 

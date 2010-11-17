@@ -26,8 +26,20 @@ let text_title =
     (s_ "Marionnet, a virtual network laboratory")
 ;;
 
-let text_subtitle =
-"<small><i>Version " ^ Version.version ^ "</i> revno " ^ Meta.revision ^ " - " ^ Meta.source_date ^ "</small>"
+let user_intelligible_version, released =
+ match StrExtra.Bool.match_string "^[0-9]+[.][0-9]+[.][0-9]+$" Version.version with
+ | true  ->
+     (* it's a released version *)
+     (Version.version, true)
+ | false ->
+     (* It's just the name of the branch *)
+     let str = Printf.sprintf "%s revno %s" Version.version Meta.revision in
+     (str, false)
+;;
+
+let text_subtitle = match released with
+ | true  -> "<small><i>Version " ^ user_intelligible_version ^ "</i> - " ^ Meta.source_date_utc_yy_mm_dd ^ "</small>"
+ | false -> "<small><i>Version " ^ user_intelligible_version ^ "</i> - " ^ Meta.source_date ^ "</small>"
 ;;
 
 let text =

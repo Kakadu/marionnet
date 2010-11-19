@@ -18,64 +18,185 @@
 
 set -e
 
-if [[ $1 = "--help" || $1 = "-h" || $1 = "-help" ]]; then
- echo "Usage: $(basename $0) [--prefix <dir>] [REPOS_OPTIONS] [--ocamlbricks <revno>] [<revno>]"
- echo "where REPOS_OPTIONS may be:
-  (--marionnet-repo   | -m)  <path>
-  (--ocamlbricks-repo | -o)  <path>"
- echo '
-Build a marionnet bytecode of a given revision (by default the current).
-The good ocamlbricks revno is calculated from the marionnet one, but you
-can set a particular ocamlbricks revision with the option --ocamlbricks.
+# Getopt's format used to parse the command line:
+OPTSTRING="hp:m:o:r:b:"
 
-Repositories are get from "lp:marionnet" and "lp:ocamlbricks", but you
-can override this behaviour with options --marionnet-repo (or -m) and
---ocamlbricks-repo (or -o).
+function parse_cmdline {
+local i j flag
+# Transform long format options into the short one:
+for i in "$@"; do
+  if [[ double_dash_found = 1 ]]; then
+    ARGS+=("$i")
+  else case "$i" in
+    --help)
+      ARGS+=("-h");
+      ;;
+    --marionnet-repo)
+     ARGS+=("-m");
+     ;;
+    --ocamlbricks-repo)
+     ARGS+=("-o");
+     ;;
+    --prefix)
+     ARGS+=("-p");
+     ;;
+    --marionnet-revno)
+     ARGS+=("-r");
+     ;;
+    --ocamlbricks-revno)
+     ARGS+=("-b");
+     ;;
+    --)
+      ARGS+=("--");
+      double_dash_found=1;
+      ;;
+    --[a-zA-Z0-9]*)
+      echo "*** Illegal long option $i.";
+      exit 1;
+      ;;
+    -[a-zA-Z0-9]*)
+      j="${i:1}";
+      while [[ $j != "" ]]; do ARGS+=("-${j:0:1}"); j="${j:1}"; done;
+      ;;
+    *)
+      ARGS+=("$i")
+      ;;
+  esac
+  fi
+done
+set - "${ARGS[@]}"
+unset ARGS
+
+# Interpret short format options:
+while [[ $# -gt 0 ]]; do
+  OPTIND=1
+  while getopts ":$OPTSTRING" flag; do
+    if [[ $flag = '?' ]]; then
+      echo "ERROR: illegal option -$OPTARG.";
+      exit 1;
+    fi
+    eval "option_${flag}=$OPTIND"
+    eval "option_${flag}_arg='$OPTARG'"
+  done
+  for ((j=1; j<OPTIND; j++)) do
+    if [[ $1 = "--" ]]; then
+      shift;
+      for i in "$@"; do ARGS+=("$i"); shift; done
+      break 2;
+    else
+      shift;
+    fi
+  done
+  # Get just the first argument and reloop:
+  for i in "$@"; do ARGS+=("$i"); shift; break; done
+done
+} # end of parse_cmdline()
+
+declare -a ARGS
+parse_cmdline "$@" # read OPTSTRING and set ARGS
+set - "${ARGS[@]}"
+unset ARGS
+
+function print_usage_and_exit {
+ echo -e "Usage: ${0##*/} [OPTIONS]
+Options:
+  -h					Print this message and exit
+  -p, --prefix PATH			Set the working directory prefix
+  -m, --marionnet-repo PATH		Set the marionnet's repository
+  -r, --marionnet-revno REVNO		Set the marionnet's revno
+  -o, --ocamlbricks-repo PATH		Set the ocamlbricks' repository
+  -b, --ocamlbricks-revno REVNO		Set the ocamlbricks' revno
+
+Build a marionnet bytecode of a given revision (option -r or the current
+by default). The good ocamlbricks revno is calculated from the marionnet
+one, but you can set a particular ocamlbricks revision with the option -b.
+
+Repositories are get from \"lp:marionnet\" and \"lp:ocamlbricks\", but you
+can override this behaviour with options -m and -o.
 
 A working directory prefix may be specified with --prefix (by default /tmp).
 The resulting bytecodes (marionnet and daemon) will be generated in a prefix
-sub-directory created by the script.'
- echo
- echo -e "Examples:
-\t$(basename $0) 207
-\t$(basename $0) --prefix /tmp/testing 246
-\t$(basename $0) --ocamlbricks 176 245"
- exit 0
+sub-directory created by the script.
+Examples:
+$ ${0##*/} -r 207
+$ ${0##*/} --prefix /tmp/testing 246
+$ ${0##*/} --ocamlbricks-revno 176 -r 245"
+ exit $1
+}
+
+# Manage now your options in a convenient order
+#
+# Option -h
+if [[ -n ${option_h}  ]]; then
+ print_usage_and_exit 0
 fi
 
-if [[ "$1" = '--prefix' && -d "$2" ]]; then
- PREFIX=$(realpath "$2")
- shift 2
+# Option -p, --prefix
+if [[ -n ${option_p} ]]; then
+ PREFIX=$(realpath "${option_p_arg}")
 else
  PREFIX=/tmp
 fi
 
-if [[ "$1" = '--marionnet-repo' || "$1" = "-m" ]]; then
- MARIONNET_REPO="$2"
- shift 2
+# Option -m, --marionnet-repo
+if [[ -n ${option_m} ]]; then
+ MARIONNET_REPO="${option_m_arg}"
 else
  MARIONNET_REPO=lp:marionnet
 fi
 echo -e "Marionnet repository\r\t\t\t: $MARIONNET_REPO" >/dev/stderr
 
-if [[ "$1" = '--ocamlbricks-repo' || "$1" = "-o" ]]; then
- OCAMLBRICKS_REPO="$2"
- shift 2
+# Option -o, --ocamlbricks-repo
+if [[ -n ${option_o} ]]; then
+  OCAMLBRICKS_REPO="${option_o_arg}"
 else
  OCAMLBRICKS_REPO=lp:ocamlbricks
 fi
 echo -e "Ocamlbricks repository\r\t\t\t: $OCAMLBRICKS_REPO" >/dev/stderr
 
-
-if [[ "$1" = '--ocamlbricks' && -n "$2" ]]; then
- OCAMLBRICKS_REQUESTED_REVNO=$2
- shift 2
+# Option -r, --marionnet-revno
+if [[ -n ${option_r} ]]; then
+ MARIONNET_REQUESTED_REVNO="${option_r_arg}"
 fi
+
+# Option -b, --ocamlbricks-revno
+if [[ -n ${option_b} ]]; then
+  OCAMLBRICKS_REQUESTED_REVNO="${option_b_arg}"
+fi
+
+# Temporary Working Directory TWDIR (global variable)
+# Automatically cleaned when some events occur
+function tmpfile {
+ if [[ -z $TWDIR ]]; then
+   TWDIR=$(mktemp --tmpdir -d ${0##*/}.tmpdir.XXXXXXXX)
+   local SIGINT=2
+   local SIGQUIT=3
+   local SIGABRT=6
+   local SIGKILL=9
+   local SIGTERM=15 # CTRL-C
+   local TRAPPED_EVENTS="$SIGINT $SIGQUIT $SIGABRT $SIGKILL $SIGTERM"
+   trap "rm -rf $TWDIR" $TRAPPED_EVENTS
+   # Assign the system variable TMPDIR used by mktemp (for script childs):
+   export TMPDIR=$TWDIR
+   export -f tmpfile
+ fi
+ if [[ $# = 0 ]]; then
+   local TMPFILE=$(mktemp --tmpdir=$TWDIR tmpfile.XXXXXXXX)
+ else
+   local TMPFILE=$(mktemp --tmpdir=$TWDIR "$@")
+ fi
+ echo "$TMPFILE"
+}
+
+####################################
+#           M  A  I  N             #
+####################################
 
 echo -e "Prefix \r\t\t\t: $PREFIX"
 cd "$PREFIX"
 
-REPODIR=$(mktemp -d tmp_repositories_XXXXXXXX)
+tmpfile -u 1>/dev/null # just create the temporary working directory $TWDIR
+REPODIR="$TWDIR"
 REPODIR=$(realpath $REPODIR)
 echo -e "Working directory \r\t\t\t: $REPODIR"
 cd $REPODIR
@@ -157,7 +278,7 @@ bzr get --verbose $MARIONNET_REPO
 
 cd marionnet
 marionnet_revno=$(bzr revno)
-MARIONNET_REQUESTED_REVNO=${1:-$marionnet_revno}
+MARIONNET_REQUESTED_REVNO=${MARIONNET_REQUESTED_REVNO:-$marionnet_revno}
 if [[ -z "$OCAMLBRICKS_REQUESTED_REVNO" ]]; then
   OCAMLBRICKS_REQUESTED_REVNO=$(ocamlbricks_good_revno_for_marionnet_revno $MARIONNET_REQUESTED_REVNO)
 fi

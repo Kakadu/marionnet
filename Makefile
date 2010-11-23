@@ -208,7 +208,7 @@ PERFORM_MANUALLY_POST_ACTIONS = \
 
 # Edit all ml/mli files and Makefile.local with your $EDITOR
 edit:
-	test -n "$$EDITOR" && $$EDITOR Makefile.local $$(find . \( -wholename "./_build/*" -o -wholename "./_darcs/*" -o -name "meta.ml" -o -name "version.ml" -o -name "gui.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
+	test -n "$$EDITOR" && $$EDITOR Makefile.local $$(find . \( -wholename "./_build/*" -o -name "meta.ml" -o -name "version.ml" -o -name "gui.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
 
 # Create the documentation
 documentation: world documentation-local
@@ -465,13 +465,14 @@ dist: clean dist-local
 	@($(call READ_META, name, version); \
 	$(call FIX_VERSION); \
 	echo "Making the source tarball _build/$$name-$$version.tar.gz ..."; \
+	$(MAKE) meta.ml.released; \
 	$(MAKE) ChangeLog; \
 	mkdir -p _build/$$name-$$version; \
 	cp -af * _build/$$name-$$version/ &> /dev/null; \
-	(tar --exclude=_build --exclude=_darcs -C _build -czf \
+	(tar --exclude=_build --exclude=meta.ml --exclude=.bzr -C _build -czf \
 	     _build/$$name-$$version.tar.gz $$name-$$version/ && \
 	rm -rf _build/$$name-$$version)) && \
-	rm -f ChangeLog; \
+	rm -f meta.ml.released ChangeLog; \
 	echo "Success."
 
 # These files are included also in binary tarballs:
@@ -523,13 +524,13 @@ dist-binary: dist-binary-local main documentation
 	rm -f ChangeLog))) && \
 	echo "Success.")
 
-# Automatically generate a nice ChangeLog from darcs' history:
+# Automatically generate a nice ChangeLog from bzr's history:
 ChangeLog:
-	if ! [ -e _darcs ]; then \
-	  echo 'No ChangeLog available (Darcs metadata are missing)' > $@; \
+	@(if ! [ -d .bzr ]; then \
+	  echo 'No ChangeLog available (bzr metadata are missing)' > $@; \
 	else \
-	  darcs changes > $@; \
-	fi
+	  bzr log --gnu-changelog > $@; \
+	fi)
 
 # Remove generated stuff (the ChangeLog is only removed if we have Darcs
 # metadata to re-generate it):
@@ -538,9 +539,9 @@ clean: clean-local
 	find -type f -name \*~ -exec rm -f {} \;; \
 	find -type f -name \#\*\# -exec rm -f {} \;; \
 	find -type f -name core -exec rm -f {} \;; \
-	rm -f _tags myocamlbuild.ml meta.ml; \
-	if [ -e _darcs ]; then \
-	  rm -f ChangeLog; \
+	rm -f _tags meta.ml myocamlbuild.ml; \
+	if [ -d .bzr ]; then \
+	  rm -f meta.ml.released ChangeLog; \
 	fi; \
 	echo "Success.")
 
@@ -744,7 +745,7 @@ FIX_VERSION = \
 # the value of sourcedirectories:
 SOURCE_SUBDIRECTORIES = \
 	sourcedirectories=''; \
-	for d in `find -type d | grep -v /_darcs\$$ | grep -v /_darcs/ \
+	for d in `find -type d | grep -v "/[.]bzr\$$" | grep -v "/[.]bzr/" \
 	          | grep -v /_build\$$ | grep -v /_build/ \
 	          | grep -v ^.$$ | sort`; do \
 		if ls $$d/*.ml &> /dev/null  || \
@@ -755,7 +756,7 @@ SOURCE_SUBDIRECTORIES = \
 		fi; \
 	done; \
 	echo $$sourcedirectories
-
+	
 # Set the shell variable $(1) as the string obtained by prefixing each token
 # in $(2) with the prefix $(3): for example if the shell variable
 # 'sourcedirectories' is set to './A ./B' then
@@ -913,13 +914,20 @@ meta.ml: META
 	echo -e "let libraryprefix = \"$$libraryprefix\";;" >> $@ && \
 	echo -e "let configurationprefix = \"$$configurationprefix\";;" >> $@ && \
 	echo -e "let documentationprefix = \"$$documentationprefix\";;" >> $@ && \
-	echo -e "let revision = \"$(shell bzr revno)\";;" >> $@ && \
-	echo -e "let build_date = \"$(shell date '+%Y-%m-%d %k:%M:%S %z')\";;" >> $@ && \
-	echo -e "let source_date = \"$(shell bzr info --verbose | /bin/grep 'latest revision' | cut -d: -f2- | cut -d' ' -f3-)\";;" >> $@ && \
-	echo -e "let source_date_utc_yy_mm_dd = \"$(shell ./Makefile.d/bzr_date -- -u "+%Y-%m-%d")\";;" >> $@ && \
 	echo -e "let uname = \"$(shell uname -srvmo)\";;" >> $@ && \
+	echo -e "let build_date = \"$(shell date '+%Y-%m-%d %k:%M:%S %z')\";;" >> $@ && \
+	if [ -d .bzr ]; then \
+	echo -e "let revision = \"$$(bzr revno)\";;" >> $@ && \
+	echo -e "let source_date = \"$$(bzr info --verbose | /bin/grep 'latest revision' | cut -d: -f2- | cut -d' ' -f3-)\";;" >> $@ && \
+	echo -e "let source_date_utc_yy_mm_dd = \"$$(./Makefile.d/bzr_date -- -u "+%Y-%m-%d")\";;" >> $@ ; \
+	else \
+	grep "let revision" <meta.ml.released >> $@ && \
+	grep "let source_date" <meta.ml.released >> $@ ; \
+	fi &&\
 	echo "Success.")
 
+meta.ml.released: meta.ml
+	cp $< $@
 
 ###########################################################################
 # Include the project-dependant file (if any) which implements the '-local'

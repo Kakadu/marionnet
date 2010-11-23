@@ -30,12 +30,15 @@ OBJECTS_TO_LINK = gtkThread
 BYTE_PROGRAMS = marionnet.byte chip_example.byte
 ROOT_BYTE_PROGRAMS = marionnet-daemon.byte
 
+native: marionnet.native marionnet-daemon.native
+byte: marionnet.byte marionnet-daemon.byte
+
 # To do: these should be enabled for release, but they take too long to
 # build every time...
-#NATIVE_PROGRAMS = marionnet.native
-#ROOT_NATIVE_PROGRAMS = marionnet-daemon.native
+NATIVE_PROGRAMS = marionnet.native
+ROOT_NATIVE_PROGRAMS = marionnet-daemon.native
 
-#ROOT_PROGRAMS = marionnet-daemon.byte marionnet-daemon.native
+ROOT_PROGRAMS = marionnet-daemon.byte marionnet-daemon.native
 OTHER_PROGRAMS_TO_INSTALL =
 
 # menu_factory.ml menu_factory.mli chip.ml are not documented because they

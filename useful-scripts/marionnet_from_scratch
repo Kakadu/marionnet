@@ -31,7 +31,10 @@ function abspath {
 }
 
 # If realpath is not installed, use the poor man version:
-type -t realpath 2>/dev/null 1>/dev/null || alias realpath=abspath
+type -t realpath 2>/dev/null 1>/dev/null || {
+ function realpath { abspath "$@"; }
+ export -f realpath
+}
 
 # Backup of the command line:
 COMMAND_LINE="$(type -p $0 || realpath $0) "

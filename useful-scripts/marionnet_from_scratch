@@ -698,8 +698,13 @@ launch_and_log \
 
 function exit_and_continue_as_root {
 # global TWDIR COMMAND_LINE
-echo -e "Error: the program 'sudo' seems useless for the user '$USER'."
-echo -e "In order to install marionnet, become superuser and continue launching
+echo
+if [[ -n "$1" ]]; then
+  echo "Error using the program '$1' to become the super user."
+else
+  echo "No manner to become the super user."
+fi
+echo -e "In order to install marionnet, become super user and continue launching
 the following command:
 ---
 $COMMAND_LINE -c $TWDIR
@@ -713,12 +718,19 @@ if [[ $USER = root || -w "$PREFIX" ]]; then
   alias sudo=eval
 elif type -t sudo 1>&2; then
   echo "* Preparing to install in $PREFIX"
-  sudo -v || exit_and_continue_as_root
+  sudo -v || exit_and_continue_as_root "sudo"
   # The following is really needed, otherwise sudo reask the password
   # executing $MAKE_INSTALL in a foreground job:
-  sudo -v 
+  sudo -v
   sync
+  sleep 1
   MAKE_INSTALL="sudo PATH=$PATH make install"
+elif type -t su 1>&2; then
+  echo "* Preparing to install in $PREFIX"
+  echo "  The script will be continued as root."
+  echo -n "  Please provide root's password: "
+  su -c "$COMMAND_LINE -c $TWDIR" || exit_and_continue_as_root "su"
+  exit 0
 else
   exit_and_continue_as_root
 fi

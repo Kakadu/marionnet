@@ -390,7 +390,7 @@ function wait_printing_percent_progress {
    local SECTION_SIZE=$1 # or "weight"
    local LOGSIZE=$(wc -c <$LOGFILE)
    local OFFSET=$LOGSIZE
-   local TAB=${2:-"\r\t\t\t\t\t\t\t"}
+   local TAB=${2:-"\r\t\t\t\t\t\t\t\t\t"}
    local PERCENT
    while sleep 2 && jobs %% 1>/dev/null 2>&1; do
      LOGSIZE=$(wc -c <$LOGFILE)
@@ -407,14 +407,14 @@ function wait_printing_percent_progress {
 function launch_and_log {
  # global COMMAND_RESULT ALREADY_DONE
  local MSG="$1"
- echo -n "* $MSG..."
+ echo -n "* $MSG ..."
  if grep <$ALREADY_DONE -q "^$MSG DONE$"; then
-  echo -e "\r\t\t\t\t\t\t\tdone"
+  echo -e "\r\t\t\t\t\t\t\t\t\tdone"
   return 0
  fi
  local CMD="{ $2 2>&1 || echo 1 > $COMMAND_RESULT; } 1>&2"
  local SECTION_SIZE=$3
- echo -e "===\n$MSG\n===\n" 1>&2
+ echo -e "===\nCHECKPOINT: $MSG\n===\n" 1>&2
  echo 0 > $COMMAND_RESULT
  eval $CMD &
  wait_printing_percent_progress $SECTION_SIZE
@@ -581,8 +581,8 @@ touch $COMMAND_RESULT
 OUR_BASE_URL="http://www.marionnet.org/download/marionnet_from_scratch"
 OUR_MIRROR="$OUR_BASE_URL/mirror/"
 
-launch_and_log "Downloading marionnet" download_latest_marionnet 22253
-launch_and_log "Downloading ocamlbricks" download_latest_ocamlbricks 7394
+launch_and_log "Downloading marionnet" download_latest_marionnet 22400
+launch_and_log "Downloading ocamlbricks" download_latest_ocamlbricks 7500
 
 # =============================================================
 #                       OCAML & LABLGTK
@@ -633,10 +633,10 @@ case $USING_GODI in
   export OCAML_PREFIX=$PWD/local
   export PATH=$OCAML_PREFIX/bin:$PATH
   LIB_OCAML=$OCAML_PREFIX/lib/ocaml/
-  launch_and_log "Downloading ocaml" download_latest_ocaml 74911
-  launch_and_log "Downloading lablgtk" download_latest_lablgtk 17221
+  launch_and_log "Downloading ocaml" download_latest_ocaml 83000
+  launch_and_log "Downloading lablgtk" download_latest_lablgtk 17800
   launch_and_log "Compiling ocaml" compile_ocaml 382000 
-  launch_and_log "Compiling lablgtk" compile_lablgtk 55940
+  launch_and_log "Compiling lablgtk" compile_lablgtk 56000
  ;;
 
  yes)
@@ -729,7 +729,7 @@ elif type -t su 1>&2; then
   echo "* Preparing to install in $PREFIX"
   echo "  The script will be continued as root."
   echo -n "  Please provide root's password: "
-  su -c "$COMMAND_LINE -c $TWDIR" || exit_and_continue_as_root "su"
+  su -c "echo; $COMMAND_LINE -c $TWDIR" || exit_and_continue_as_root "su"
   exit 0
 else
   exit_and_continue_as_root
@@ -802,9 +802,14 @@ function download_our_kernels {
   | grep -o 'href="kernels_.*"' \
   | grep -o "kernels_.*[.]tar[.]gz"\
   )
-  local i
+  local i WEIGHT
   for i in $KERNELS; do
-    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }"
+    # Known weights:
+    case "$i" in
+      "kernels_linux-2.6.18-ghost.tar.gz") WEIGHT=6032 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }" $WEIGHT 
   done
 }
 
@@ -813,10 +818,17 @@ function download_our_big_filesystems {
   FILESYSTEMS=$(wget -O - "$OUR_BASE_URL" \
   | grep -o 'href="filesystems_.*"' \
   | grep -o "filesystems_.*[.]tar[.]gz"\
+  | grep -v "filesystems_pinocchio.*[.]tar[.]gz"\
   )
-  local i
+  local i WEIGHT
   for i in $FILESYSTEMS; do
-    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }"
+    # Known weights:
+    case "$i" in
+      "filesystems_machine-debian-lenny-sid-2008.tar.gz") WEIGHT=677935 ;;
+      "filesystems_machine-mandriva20100215.tar.gz") WEIGHT=540521 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }" $WEIGHT
   done
 }
 
@@ -826,9 +838,14 @@ function download_our_pinocchio_filesystems {
   | grep -o 'href="filesystems_pinocchio.*"' \
   | grep -o "filesystems_.*[.]tar[.]gz"\
   )
-  local i
+  local i WEIGHT
   for i in $FILESYSTEMS; do
-    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }"
+    # Known weights:
+    case "$i" in
+      "filesystems_pinocchio.tar.gz") WEIGHT=77543 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }"  $WEIGHT
   done
 }
 

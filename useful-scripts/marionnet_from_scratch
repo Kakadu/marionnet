@@ -674,12 +674,6 @@ cd ..
 cd marionnet
 cp ../ocamlbricks/CONFIGME .
 
-# The Makefile must be modified to remove inclusion directives of the form -I +library
-# which refer to the standard library, not our pseudo; so:
-echo "* Fixing the marionnet Makefile..." 1>&2
-awk <Makefile '/echo -en "A / && /+\$\$/ {print "\t echo -n;\\"; next} {print}' > Makefile.tmp_copy
-mv -f Makefile.tmp_copy Makefile
-
 case $GENERATE_BYTECODE in
  yes)
   MARIONNET_MAKE_COMMAND='make byte'

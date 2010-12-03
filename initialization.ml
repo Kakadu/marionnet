@@ -57,7 +57,6 @@ let configuration =
        "~/.marionnet/marionnet.conf" ]
   in
   new Configuration_files.configuration
-    ~software_name:"marionnet"
     ~file_names
     ~variables:["MARIONNET_SOCKET_NAME";
                 "MARIONNET_BRIDGE";(* This is temporary: more than one bridge will be usable... *)

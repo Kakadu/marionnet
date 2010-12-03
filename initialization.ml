@@ -49,8 +49,16 @@ Random.self_init ();;
 
 (** Read configuration files: *)
 let configuration =
+  (* Lowest priority first: *)
+  let file_names = 
+     [ Printf.sprintf "%s/share/marionnet/marionnet.conf" Meta.prefix; (* failsafe copy *)
+       "/etc/marionnet/marionnet.conf";
+       Printf.sprintf "%s/etc/marionnet/marionnet.conf" Meta.prefix;
+       "~/.marionnet/marionnet.conf" ]
+  in
   new Configuration_files.configuration
     ~software_name:"marionnet"
+    ~file_names
     ~variables:["MARIONNET_SOCKET_NAME";
                 "MARIONNET_BRIDGE";(* This is temporary: more than one bridge will be usable... *)
                 "MARIONNET_KEYBOARD_LAYOUT";

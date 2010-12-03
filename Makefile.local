@@ -131,8 +131,12 @@ clean-local: clean-mo clean-doc
 
 # ==============gettext stuff=============
 
+install-data-local: copy-failsafe-marionnet.conf
 install-local: install-mo
 uninstall-local: uninstall-mo
+
+copy-failsafe-marionnet.conf:
+	cp etc/marionnet.conf share/
 
 _build/marionnet.pot: marionnet.byte
 	@msgcat --use-first $(shell find _build/ -name "*.ml.pot") > $@

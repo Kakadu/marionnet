@@ -1,0 +1,900 @@
+#!/bin/bash
+
+# This file is part of marionnet
+# Copyright (C) 2010  Jean-Vincent Loddo
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Script version: 0.90
+
+set -e
+
+# =============================================================
+#                     SELF DEPENDENCIES
+# =============================================================
+
+function abspath {
+ local B=$(basename $1)
+ local D=$(dirname $1)
+ (builtin cd $D; echo $PWD/$B)
+}
+
+# If realpath is not installed, use the poor man version:
+type -t realpath 2>/dev/null 1>/dev/null || {
+ function realpath { abspath "$@"; }
+ export -f realpath
+}
+
+# Backup of the command line:
+COMMAND_LINE="$(type -p $0 || realpath $0) "
+COMMAND_LINE="$(realpath $COMMAND_LINE) "$@""
+
+# =============================================================
+#                  PARSING COMMAND LINE
+# =============================================================
+
+# Getopt's format used to parse the command line:
+OPTSTRING="hp:m:b:o:gG:t:kl:d:v:NVDKPFAc:"
+
+function parse_cmdline {
+local i j flag
+# Transform long format options into the short one:
+for i in "$@"; do
+  if [[ double_dash_found = 1 ]]; then
+    ARGS+=("$i")
+  else case "$i" in
+    --help)
+      ARGS+=("-h");
+      ;;
+    --marionnet-version|--marionnet)
+     ARGS+=("-m");
+     ;;
+    --ocamlbricks-version|--ocamlbricks)
+     ARGS+=("-b");
+     ;;
+    --ocaml-version|--ocaml)
+     ARGS+=("-o");
+     ;;
+    --use-godi)
+     ARGS+=("-g");
+     ;;
+    --no-native|--bytecode)
+     ARGS+=("-N");
+     ;;
+    --lablgtk-version|--lablgtk)
+     ARGS+=("-l");
+     ;;
+    --vde-version|--vde)
+     ARGS+=("-v");
+     ;;
+    --dot-version|--dot|--graphviz)
+     ARGS+=("-d");
+     ;;
+    --godi-version|--godi)
+     ARGS+=("-G");
+     ;;
+    --debris|--keep-debris)
+     ARGS+=("-k");
+     ;;
+    --no-vde|--ignore-vde)
+     ARGS+=("-V");
+     ;;
+    --no-dot|--ignore-dot)
+     ARGS+=("-D");
+     ;;
+    --no-kernels|--ignore-kernels)
+     ARGS+=("-K");
+     ;;
+    --no-pinocchio|--ignore-pinocchio)
+     ARGS+=("-P");
+     ;;
+    --no-filesystems|--ignore-filesystems)
+     ARGS+=("-F");
+     ;;
+    --no-all|--ignore-all)
+     ARGS+=("-A");
+     ;;
+    --continue)
+     ARGS+=("-c");
+     ;;
+    --prefix)
+     ARGS+=("-p");
+     ;;
+    --tmpdir)
+     ARGS+=("-t");
+     ;;
+    --)
+      ARGS+=("--");
+      double_dash_found=1;
+      ;;
+    --[a-zA-Z0-9]*)
+      echo "*** Illegal long option $i.";
+      exit 1;
+      ;;
+    -[a-zA-Z0-9]*)
+      j="${i:1}";
+      while [[ $j != "" ]]; do ARGS+=("-${j:0:1}"); j="${j:1}"; done;
+      ;;
+    *)
+      ARGS+=("$i")
+      ;;
+  esac
+  fi
+done
+set - "${ARGS[@]}"
+unset ARGS
+
+# Interpret short format options:
+while [[ $# -gt 0 ]]; do
+  OPTIND=1
+  while getopts ":$OPTSTRING" flag; do
+    if [[ $flag = '?' ]]; then
+      echo "ERROR: illegal option -$OPTARG.";
+      exit 1;
+    fi
+    eval "option_${flag}=$OPTIND"
+    eval "option_${flag}_arg='$OPTARG'"
+  done
+  for ((j=1; j<OPTIND; j++)) do
+    if [[ $1 = "--" ]]; then
+      shift;
+      for i in "$@"; do ARGS+=("$i"); shift; done
+      break 2;
+    else
+      shift;
+    fi
+  done
+  # Get just the first argument and reloop:
+  for i in "$@"; do ARGS+=("$i"); shift; break; done
+done
+} # end of parse_cmdline()
+
+declare -a ARGS
+parse_cmdline "$@" # read OPTSTRING and set ARGS
+set - "${ARGS[@]}"
+unset ARGS
+
+function print_usage_and_exit {
+ echo -e "Usage: ${0##*/} [OPTIONS]
+Download, compile and install marionnet and its principal dependencies.
+In addition to compile-time dependencies, when a run-time dependency
+like 'vde' or 'dot' seems not installed, the script automatically
+downloads, compiles and installs it from the appropriate project homepage
+or from our mirror (i.e. http://www.marionnet.org/download/mirror/).
+Options:
+  -p, --prefix PATH		Set the installation prefix
+  -t, --tmpdir PATH		Set the temporary working directory
+  -c, --continue PATH		Continue execution started in PATH
+  -k, --keep-debris		Don't clean temporary files when exiting
+  -h				Print this message and exit
+  -m, --marionnet VERSION	Set marionnet's version
+  -b, --ocamlbricks VERSION	Set ocamlbricks' version
+  -o, --ocaml VERSION		Set ocaml's version
+  -g, --use-godi		Use godi's ocaml distribution
+  -G, --godi VERSION		Set godi's version
+  -l, --lablgtk VERSION         Set lablgtk's version
+  -v, --vde VERSION             Set vde2's version
+  -d, --dot VERSION 		Set dot's (graphviz) version
+  -N, --bytecode		Generate bytecode only (no native executables)
+  -V, --no-vde			Do nothing about vde
+  -D, --no-dot			Do nothing about dot (graphviz)
+  -K, --no-kernels 		Don't download kernels
+  -P, --no-pinocchio		Don't download pinocchio (small) filesystems
+  -F, --no-filesystems		Don't download other (big) filesystems
+  -A, --no-all		        Equivalent to --no-{vde,dot,kernels,pinocchio,filesystems}
+Defaults:
+  - the installation prefix is ${PREFIX}
+  - the temporary working directory is $TMPDIR
+  - continue execution: ${CONTINUE:-none}
+  - marionnet's version is ${MARIONNET_VERSION:-latest}
+  - ocamlbricks' version is ${OCAMLBRICKS_VERSION:-latest}
+  - ocaml's version is ${OCAML_VERSION:-latest}
+  - godi's version is ${GODI_OCAML_VERSION:-latest}
+  - lablgtk's version is ${LABLGTK_VERSION:-latest}
+  - vde's version is ${VDE2_VERSION:-latest}
+  - dot's (graphviz') version is ${GRAPHVIZ_VERSION:-latest}
+  - using godi: $USING_GODI
+  - keep debris: $KEEP_DEBRIS
+  - generate bytecode only: $GENERATE_BYTECODE
+  - ignore vde: $IGNORE_VDE
+  - ignore dot: $IGNORE_DOT
+  - ignore kernels: $IGNORE_KERNELS
+  - ignore pinocchio filesystems: $IGNORE_PINOCCHIO_FILESYSTEMS
+  - ignore other (big) filesystems: $IGNORE_BIG_FILESYSTEMS"
+ exit $1
+}
+
+# =============================================================
+#                         TUNING
+# =============================================================
+
+# Option -p, --prefix
+if [[ -n ${option_p} ]]; then
+ PREFIX=$(realpath "${option_p_arg}")
+else
+ PREFIX=$(realpath /usr/local)
+fi
+
+# Option -t, --tmpdir
+if [[ -n ${option_t} ]]; then
+ TMPDIR=$(realpath "${option_t_arg}")
+else
+ # We initialize the system variable TMPDIR if necessary:
+ TMPDIR=${TMPDIR:-/tmp}
+ TMPDIR=$(realpath $TMPDIR)
+fi
+
+# Option -m, --marionnet-version
+if [[ -n ${option_m} ]]; then
+ MARIONNET_VERSION="${option_m_arg}"
+fi
+
+# Option -b, --ocamlbricks-version
+if [[ -n ${option_b} ]]; then
+ OCAMLBRICKS_VERSION="${option_b_arg}"
+fi
+
+# Option -o, --ocaml-version
+if [[ -n ${option_o} ]]; then
+ OCAML_VERSION="${option_o_arg}"
+fi
+
+# Option -l, --lablgtk-version
+if [[ -n ${option_l} ]]; then
+ LABLGTK_VERSION="${option_l_arg}"
+fi
+
+# Option -v, --vde-version
+if [[ -n ${option_v} ]]; then
+ VDE2_VERSION="${option_v_arg}"
+fi
+
+# Option -d, --dot-version
+if [[ -n ${option_d} ]]; then
+ GRAPHVIZ_VERSION="${option_d_arg}"
+fi
+
+# Option -g, --use-godi
+if [[ -n ${option_g} ]]; then
+ USING_GODI=yes
+ REQUIRED_MB=380
+else
+ USING_GODI=no
+ REQUIRED_MB=480
+fi
+
+# Option -G, --godi-version
+if [[ -n ${option_G} ]]; then
+ GODI_OCAML_VERSION="${option_G_arg}"
+fi
+
+# Option -N, --no-native, --bytecode
+if [[ -n ${option_N} ]]; then
+ GENERATE_BYTECODE=yes
+else
+ GENERATE_BYTECODE=no
+fi
+
+# Option -k, --keep-debris
+if [[ -n ${option_k} ]]; then
+ KEEP_DEBRIS=yes
+else
+ KEEP_DEBRIS=no
+fi
+
+# Option -c, --continue
+if [[ -n ${option_c} ]]; then
+  if [[ -d "${option_c_arg}" ]]; then
+   TMPDIR=$(realpath "${option_c_arg}")
+   TWDIR="$TMPDIR"
+   CONTINUE=yes
+  else
+   echo "Error: ${option_c_arg} doesn't exist or is not a directory."
+   echo "Exiting."
+   exit 1
+  fi 
+fi
+
+# Option -V, --no-vde
+if [[ -n ${option_V} || -n ${option_A} ]]; then IGNORE_VDE=yes; else IGNORE_VDE=no; fi
+
+# Option -D, --no-dot
+if [[ -n ${option_D} || -n ${option_A} ]]; then IGNORE_DOT=yes; else IGNORE_DOT=no; fi
+
+# Option -K, --no-kernels
+if [[ -n ${option_K} || -n ${option_A} ]]; then IGNORE_KERNELS=yes; else IGNORE_KERNELS=no; fi
+
+# Option -P, --no-pinocchio
+if [[ -n ${option_P} || -n ${option_A} ]]; then IGNORE_PINOCCHIO_FILESYSTEMS=yes; else IGNORE_PINOCCHIO_FILESYSTEMS=no; fi
+
+# Option -F, --no-filesystems
+if [[ -n ${option_F} || -n ${option_A} ]]; then IGNORE_BIG_FILESYSTEMS=yes; else IGNORE_BIG_FILESYSTEMS=no; fi
+
+# Option -h
+if [[ -n ${option_h}  ]]; then
+ print_usage_and_exit 0
+fi
+
+# =============================================================
+#                     TEMPORARY STUFF
+# =============================================================
+
+function exiting_because_signal {
+ # global KEEP_DEBRIS TWDIR COMMAND_LINE
+ if [[ $KEEP_DEBRIS = no ]]; then
+  rm -rf $TWDIR
+ else
+  echo -e "Exiting because of signal."
+  echo -e "You can continue the execution launching the following command:
+---
+$COMMAND_LINE -c $TWDIR
+---
+Exiting."
+ fi
+ exit 2
+}
+
+# Temporary Working Directory TWDIR (global variable)
+# Automatically cleaned when some events occur
+function tmpfile {
+ # global TMPDIR TWDIR
+ if [[ -z $TWDIR ]]; then
+   local FREE_MB=$(df -B 1M -P $TMPDIR | awk '{print $4}' | tail -n 1)
+   if [[ $FREE_MB -lt $REQUIRED_MB ]]; then
+     echo "Insufficient free disk space (${FREE_MB} Mb) in the directory $TMPDIR."
+     echo "You can set a larger temporary working directory using the -t option."
+     echo "Near to $REQUIRED_MB Mb are required for the script's execution."
+     echo "Exiting."
+     exit 1
+   fi 1>&2
+   TWDIR=$(mktemp -p ${TMPDIR:-/tmp} -d ${0##*/}.XXXXXXXX)
+   local SIGINT=2
+   local SIGQUIT=3
+   local SIGABRT=6
+   local SIGKILL=9
+   local SIGTERM=15 # CTRL-C
+   local TRAPPED_EVENTS="$SIGINT $SIGQUIT $SIGABRT $SIGKILL $SIGTERM"
+   trap "exiting_because_signal" $TRAPPED_EVENTS
+ fi
+ if [[ $# = 0 ]]; then
+   local TMPFILE=$(mktemp -p $TWDIR tmpfile.XXXXXXXX)
+ else
+   local TMPFILE=$(mktemp -p $TWDIR "$@")
+ fi
+ echo "$TMPFILE"
+}
+
+# =============================================================
+#                           TOOLS
+# =============================================================
+
+function wait_printing_dots {
+ while sleep 2 && jobs %% 1>/dev/null 2>&1; do echo -n "."; done
+}
+
+function wait_printing_percent_progress {
+ if [[ -z $1 ]];
+ then wait_printing_dots
+ else
+   local SECTION_SIZE=$1 # or "weight"
+   local LOGSIZE=$(wc -c <$LOGFILE)
+   local OFFSET=$LOGSIZE
+   local TAB=${2:-"\r\t\t\t\t\t\t\t\t\t"}
+   local PERCENT
+   while sleep 2 && jobs %% 1>/dev/null 2>&1; do
+     LOGSIZE=$(wc -c <$LOGFILE)
+     eval echo -en "'$TAB'"
+     PERCENT=$((100*(LOGSIZE-OFFSET)/SECTION_SIZE))
+     if [[ $PERCENT -gt 100 ]]; then PERCENT=100; fi
+     printf "%3d%%" $PERCENT
+   done
+   eval echo -en "'$TAB'"
+   printf "100%%"
+ fi
+}
+
+function launch_and_log {
+ # global COMMAND_RESULT ALREADY_DONE
+ local MSG="$1"
+ echo -n "* $MSG ..."
+ if grep <$ALREADY_DONE -q "^$MSG DONE$"; then
+  echo -e "\r\t\t\t\t\t\t\t\t\tdone"
+  return 0
+ fi
+ local CMD="{ $2 2>&1 || echo 1 > $COMMAND_RESULT; } 1>&2"
+ local SECTION_SIZE=$3
+ echo -e "===\nCHECKPOINT: $MSG\n===\n" 1>&2
+ echo 0 > $COMMAND_RESULT
+ eval $CMD &
+ wait_printing_percent_progress $SECTION_SIZE
+ sync
+ local RETURN_CODE=$(<$COMMAND_RESULT)
+ if [[ $RETURN_CODE -eq 1 ]]; then
+  echo "FAILED!"
+  echo "Last 20 lines of log ($LOGFILE):"
+  echo "======"
+  tail -n 20 $LOGFILE
+  echo "======"
+  echo "Exiting."
+ else
+  echo
+  echo "$MSG DONE" >> $ALREADY_DONE 
+ fi
+ return $RETURN_CODE
+}
+
+# Support https:
+alias wget='wget --no-check-certificate'
+
+function download_latest_tar_gz_from_url {
+local BASENAME="$1" # ex: vde2
+local VERSION="${2:-[0-9][0-9]*[.][0-9][0-9]*[.][0-9][0-9]*}"
+local URL="$3" # ex: http://sourceforge.net/projects/vde/
+local TGZ="${4:-$(tmpfile)}"
+{ wget -O - "$URL" \
+  | grep -o "href=\".*${BASENAME}-${VERSION}[.]tar[.]gz[0-9A-Za-z/_-]*\"" \
+  | cut -d\" -f2
+  } > $TGZ || return 1
+LATEST=$(grep <$TGZ -o "${VERSION}[.]tar[.]gz" | tr '.' ' '| sort -n | tr ' ' '.' | tail -n 1)
+if [[ -z "$LATEST" ]]; then
+  echo "No latest version of $BASENAME found looking into $URL."
+  return 2
+else   
+  echo "Ok, latest version $LATEST of $BASENAME found looking into $URL."
+fi 1>&2
+TGZ=$(grep <$TGZ -o ".*${BASENAME}-${LATEST}[0-9A-Za-z/_-]*")
+# Adjust relative href:
+if [[ ${TGZ#http://} = ${TGZ} ]] && [[ ${TGZ#ftp://} = ${TGZ} ]]; then
+TGZ="${URL%/*}/$TGZ"
+fi
+{ wget -O - $TGZ \
+  | tar 1>&2 xvzf -
+  } || return 1
+ln -s ${BASENAME}-* ${BASENAME} || true
+return 0
+}
+
+# Usage: download_latest_tar_gz [(-v|--version) REGEXPR] BASENAME URL...
+function download_latest_tar_gz {
+local VERSION
+if [[ $1 = '-v' || $1 = '--version' ]]; then
+ VERSION="$2"
+ shift 2 || return 2
+else
+ VERSION="[0-9][0-9]*[.][0-9][0-9]*[.][0-9][0-9]*"
+fi
+# "-v latest" means the latest matching the default regexp:
+if [[ $VERSION = latest || -z $VERSION ]]; then
+  VERSION="[0-9][0-9]*[.][0-9][0-9]*[.][0-9][0-9]*"
+fi
+local BASENAME="$1" # ex: vde2
+shift || return 2
+local URL LATEST
+local TGZ=$(tmpfile)
+for URL in "$@"; do
+ download_latest_tar_gz_from_url "$BASENAME" "$VERSION" "$URL" "$TGZ"  && {
+   [[ $# -gt 1 ]] && echo "Downloaded from $URL"
+   rm -f "$TGZ"
+   return 0
+   }
+done
+rm -f "$TGZ"
+return 1
+}
+
+# =============================================================
+#                        DOWNLOADS
+# =============================================================
+
+function download_latest_godi {
+  local VERSION="${GODI_OCAML_VERSION:-20[0-9]*}"
+  download_latest_tar_gz -v "$VERSION" godi-rocketboost \
+    "http://download.camlcity.org/download/" \
+    $OUR_MIRROR
+}
+
+# Marionnet 0.90.2 has a problem with 3.12.0 (camlp4)
+function download_latest_ocaml {
+  local VERSION="${OCAML_VERSION:-[0-9][.][0-9][0-9][.][0-9]*}"
+  download_latest_tar_gz -v "$VERSION" ocaml \
+    "http://caml.inria.fr/pub/distrib/ocaml-3.11/" \
+    $OUR_MIRROR \
+    "http://caml.inria.fr/download.html"
+}
+
+
+function download_latest_lablgtk {
+  local VERSION="${LABLGTK_VERSION:-[0-9][.][0-9][0-9]*[.][0-9][0-9]*}"
+  download_latest_tar_gz -v "$VERSION" lablgtk \
+    "ftp://ftp.kurims.kyoto-u.ac.jp/pub/lang/olabl/" \
+    $OUR_MIRROR
+}
+
+function download_latest_vde {
+  local VERSION=${VDE2_VERSION:-latest}
+  download_latest_tar_gz -v "$VERSION" vde2 \
+    "http://sourceforge.net/projects/vde/" \
+    $OUR_MIRROR
+}
+
+function download_latest_marionnet {
+  local VERSION=${MARIONNET_VERSION:-latest}
+  download_latest_tar_gz -v "$VERSION" marionnet \
+    "https://launchpad.net/marionnet" \
+    $OUR_MIRROR
+}
+
+function download_latest_ocamlbricks  {
+  local VERSION=${OCAMLBRICKS_VERSION:-latest}
+  download_latest_tar_gz -v "$VERSION" ocamlbricks \
+    "https://launchpad.net/ocamlbricks" \
+    $OUR_MIRROR
+}
+
+function download_latest_graphviz {
+  local VERSION=${GRAPHVIZ_VERSION:-latest}
+  download_latest_tar_gz -v "$VERSION" graphviz \
+    "http://www.graphviz.org/Download_source.php" \
+    $OUR_MIRROR
+}
+
+# =============================================================
+#                            MAIN
+# =============================================================
+
+PATH_BACKUP=$PATH
+cd "$TMPDIR"
+
+if [[ $CONTINUE != yes ]]; then
+tmpfile -u 1>/dev/null # just create the temporary working directory $TWDIR
+fi
+
+# We reassign the system variable TMPDIR used by mktemp (for childs):
+export TMPDIR=$TWDIR
+export -f tmpfile
+
+REPODIR="$TWDIR"
+REPODIR=$(realpath $REPODIR)
+# echo -e "Working directory \r\t\t\t: $REPODIR"
+cd $REPODIR
+LOGFILE=$REPODIR/log
+echo -e "The log file is $LOGFILE"
+
+# Redirect stderr to the log file:
+exec 2>>$LOGFILE
+
+COMMAND_RESULT=$REPODIR/result
+ALREADY_DONE=$REPODIR/already_done
+touch $COMMAND_RESULT
+
+OUR_BASE_URL="http://www.marionnet.org/download/marionnet_from_scratch"
+OUR_MIRROR="$OUR_BASE_URL/mirror/"
+
+launch_and_log "Downloading marionnet" download_latest_marionnet 22400
+launch_and_log "Downloading ocamlbricks" download_latest_ocamlbricks 7500
+
+# =============================================================
+#                       OCAML & LABLGTK
+# =============================================================
+
+function compile_ocaml {
+cd ocaml
+{ ./configure -prefix $OCAML_PREFIX -no-curses -no-tk &&
+  make world.opt &&
+  make install &&
+  make -C tools/ objinfo &&
+  [[ -e $OCAML_PREFIX/bin/ocamlobjinfo ]] || {
+    cp tools/objinfo $OCAML_PREFIX/bin/ &&
+    ln -s objinfo $OCAML_PREFIX/bin/ocamlobjinfo
+    }
+  } || return 1
+cd ..
+}
+
+function compile_lablgtk {
+cd lablgtk
+{ ./configure --prefix $OCAML_PREFIX \
+  --with-glade --without-gl --without-rsvg --without-gnomecanvas --without-gnomeui \
+  --without-panel --without-gtkspell --without-gtksourceview --without-gtksourceview2 \
+  --without-quartz &&
+  make &&
+  make opt &&
+  make install
+  } || return 1
+cd ..
+}
+
+function compile_godi {
+cd godi-rocketboost
+./bootstrap --batch -prefix $GODI_PREFIX 1>&2
+export PATH=$GODI_PREFIX/bin:$GODI_PREFIX/sbin:$PATH
+echo "GODI_BASEPKG_PCRE=yes" >> $GODI_PREFIX/etc/godi.conf
+{ ./bootstrap_stage2 1>&2 &&
+  godi_perform -build godi-lablgtk2  1>&2 &&
+  ln -s objinfo ../godi/bin/ocamlobjinfo
+  } || return 1
+cd ..
+}
+
+case $USING_GODI in
+ no)
+  # Tuning:
+  export OCAML_PREFIX=$PWD/local
+  export PATH=$OCAML_PREFIX/bin:$PATH
+  LIB_OCAML=$OCAML_PREFIX/lib/ocaml/
+  launch_and_log "Downloading ocaml" download_latest_ocaml 83000
+  launch_and_log "Downloading lablgtk" download_latest_lablgtk 17800
+  launch_and_log "Compiling ocaml" compile_ocaml 382000 
+  launch_and_log "Compiling lablgtk" compile_lablgtk 56000
+ ;;
+
+ yes)
+  export GODI_PREFIX=$PWD/godi
+  launch_and_log "Downloading ocaml (godi)" download_latest_godi 37342 
+  launch_and_log "Compiling ocaml with godi" compile_godi 990130
+  # Tuning using godi
+  export PATH=$GODI_PREFIX/bin:$GODI_PREFIX/sbin:$PATH
+  LIB_OCAML=$GODI_PREFIX/lib/ocaml/std-lib/
+ ;;
+
+esac
+
+# =============================================================
+#                       OCAMLBRICKS
+# =============================================================
+
+cd ocamlbricks
+cat >CONFIGME <<EOF
+libraryprefix=$LIB_OCAML
+prefix=$PREFIX
+configurationprefix=\$prefix/etc
+documentationprefix=\$prefix/doc
+localeprefix=\$prefix/locale
+ocaml_sources=$LIB_OCAML/caml
+EOF
+
+launch_and_log "Compiling ocamlbricks" 'make && make install' 4002673
+cd ..
+
+# =============================================================
+#                        MARIONNET
+# =============================================================
+
+cd marionnet
+cp ../ocamlbricks/CONFIGME .
+
+case $GENERATE_BYTECODE in
+ yes)
+  MARIONNET_MAKE_COMMAND='make byte'
+  WEIGHT=2460914 
+  ;;
+ no) 
+  MARIONNET_MAKE_COMMAND='make native'
+  WEIGHT=2780316
+  ;;
+esac
+
+launch_and_log \
+  "Compiling marionnet" \
+  "$MARIONNET_MAKE_COMMAND" \
+  $WEIGHT
+
+function exit_and_continue_as_root {
+# global TWDIR COMMAND_LINE
+echo
+if [[ -n "$1" ]]; then
+  echo "Error using the program '$1' to become the super user."
+else
+  echo "No manner to become the super user."
+fi
+echo -e "In order to install marionnet, become super user and continue launching
+the following command:
+---
+$COMMAND_LINE -c $TWDIR
+---
+Exiting."
+exit 1
+}
+
+if [[ $USER = root || -w "$PREFIX" ]]; then
+  MAKE_INSTALL='make install'
+  alias sudo=eval
+elif type -t sudo 1>&2; then
+  echo "* Preparing to install in $PREFIX"
+  sudo -v || exit_and_continue_as_root "sudo"
+  # The following is really needed, otherwise sudo reask the password
+  # executing $MAKE_INSTALL in a foreground job:
+  sudo -v
+  sync
+  sleep 1
+  MAKE_INSTALL="sudo PATH=$PATH make install"
+elif type -t su 1>&2; then
+  echo "* Preparing to install in $PREFIX"
+  echo "  The script will be continued as root."
+  echo -n "  Please provide root's password: "
+  su -c "echo; $COMMAND_LINE -c $TWDIR" || exit_and_continue_as_root "su"
+  exit 0
+else
+  exit_and_continue_as_root
+fi
+
+launch_and_log \
+  "Installing marionnet" \
+  "$MAKE_INSTALL" \
+  3918924 # weight
+
+cd ..
+
+# =============================================================
+#                           VDE
+# =============================================================
+
+function download_compile_and_install_vde2 {
+  download_latest_vde &&
+  cd vde2
+  { ./configure -prefix $PREFIX &&
+    make &&
+    $MAKE_INSTALL
+    } || return 1
+  cd ..
+}
+
+if type vde_switch 1>&2; then
+ echo "* vde2 seems to be already installed."
+elif [[ $IGNORE_VDE = yes ]]; then
+ echo "* Ignoring the vde2 dependency."
+else
+ launch_and_log \
+   "Downloading, compiling and installing vde2" \
+   download_compile_and_install_vde2 \
+   54276 # weight
+fi
+
+# =============================================================
+#                       DOT (GRAPHVIZ)
+# =============================================================
+
+function download_compile_and_install_graphviz {
+  download_latest_graphviz &&
+  cd graphviz
+  { ./configure -prefix=$PREFIX &&
+    make &&
+    $MAKE_INSTALL
+    } || return 1
+  cd ..
+}
+
+if type dot 1>&2; then
+ echo "* dot (graphviz) seems to be already installed."
+elif [[ $IGNORE_DOT = yes ]]; then
+ echo "* Ignoring the dot (graphviz) dependency."
+else
+ launch_and_log \
+   "Downloading, compiling and installing dot" \
+   download_compile_and_install_graphviz \
+   863227 # weight
+fi
+
+# =============================================================
+#                     KERNELS AND FILESYSTEMS
+# =============================================================
+
+function download_our_kernels {
+  local KERNELS
+  KERNELS=$(wget -O - "$OUR_BASE_URL" \
+  | grep -o 'href="kernels_.*"' \
+  | grep -o "kernels_.*[.]tar[.]gz"\
+  )
+  local i WEIGHT
+  for i in $KERNELS; do
+    # Known weights:
+    case "$i" in
+      "kernels_linux-2.6.18-ghost.tar.gz") WEIGHT=6032 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }" $WEIGHT 
+  done
+}
+
+function download_our_big_filesystems {
+  local FILESYSTEMS
+  FILESYSTEMS=$(wget -O - "$OUR_BASE_URL" \
+  | grep -o 'href="filesystems_.*"' \
+  | grep -o "filesystems_.*[.]tar[.]gz"\
+  | grep -v "filesystems_pinocchio.*[.]tar[.]gz"\
+  )
+  local i WEIGHT
+  for i in $FILESYSTEMS; do
+    # Known weights:
+    case "$i" in
+      "filesystems_machine-debian-lenny-sid-2008.tar.gz") WEIGHT=677935 ;;
+      "filesystems_machine-mandriva20100215.tar.gz") WEIGHT=540521 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }" $WEIGHT
+  done
+}
+
+function download_our_pinocchio_filesystems {
+  local FILESYSTEMS
+  FILESYSTEMS=$(wget -O - "$OUR_BASE_URL" \
+  | grep -o 'href="filesystems_pinocchio.*"' \
+  | grep -o "filesystems_.*[.]tar[.]gz"\
+  )
+  local i WEIGHT
+  for i in $FILESYSTEMS; do
+    # Known weights:
+    case "$i" in
+      "filesystems_pinocchio.tar.gz") WEIGHT=77543 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }"  $WEIGHT
+  done
+}
+
+sudo mkdir -p $PREFIX/share/marionnet/
+pushd $PREFIX/share/marionnet/ 1>&2
+
+if [[ $IGNORE_KERNELS = yes ]]; then
+ echo "* Ignoring the kernels dependency."
+else download_our_kernels; fi
+
+if [[ $IGNORE_PINOCCHIO_FILESYSTEMS = yes ]]; then
+ echo "* Ignoring the pinocchio filesystems dependency."
+else download_our_pinocchio_filesystems; fi
+
+if [[ $IGNORE_BIG_FILESYSTEMS = yes ]]; then
+ echo "* Ignoring the other filesystems dependency."
+else download_our_big_filesystems; fi
+
+popd 1>&2
+
+# =============================================================
+#                          FINISHING
+# =============================================================
+
+# Mr proper
+if [[ $KEEP_DEBRIS = yes ]]; then
+ echo "* Temporary working directory $TWDIR not cleaned."
+else
+ echo "* Cleaning..."
+ rm -rf $TWDIR
+fi
+
+# Path warning:
+if echo "$PATH_BACKUP" | tr ':' '\n' | grep -q "$PREFIX/bin"; then
+ echo "PATH contains $PREFIX/bin. Good." 1>&2
+else
+ echo '---'
+ echo "* Warning: the path $PREFIX/bin seems not to be contained in your PATH."
+ echo "  => Put something like the following line somewhere in your shell configuration:"
+ echo "     export PATH=$PREFIX/bin:$PREFIX/sbin:\$PATH"
+fi
+
+# 64-bit architecture warning:
+if type uname 1>&2 && [[ $(uname -m) = "x86_64" ]]; then
+ echo '---'
+ echo "* Warning: this is 64-bit architecture."
+ echo "  => Make sure that the package libc6-i386 is installed."
+fi
+
+# Where to install filesystems and kernels:
+echo '---'
+echo "* Notes:"
+echo "  - Filesystem must be installed in        : " $PREFIX/share/marionnet/filesystems/
+echo "  - Kernels ilesystem must be installed in : " $PREFIX/share/marionnet/kernels/
+
+echo '---'
+echo "Success."
+exit 0

@@ -349,7 +349,6 @@ class virtual ['parent] simulated_device () = object(self)
           Log.printf "%s\n" message;
           Simple_dialogs.warning message message ();
           Log.printf "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
-          flush_all ();
         end));
     Task_runner.the_task_runner#schedule
       ~name:("Destroy the progress bar for \"" ^ text ^ "\"")
@@ -957,8 +956,8 @@ class virtual node_with_defects
 
   initializer
     (* TODO: the following line must be moved the a node initializer: *)
-    network#add_device_new (self :> node);
-    self#add_destroy_callback (lazy (network#del_device_new self#get_name));
+    network#add_device (self :> node);
+    self#add_destroy_callback (lazy (network#del_device self#get_name));
 
   inherit node_with_defects_zone ~network:network_alias () as node_with_defects_zone
 
@@ -1038,8 +1037,8 @@ class virtual node_with_ledgrid_and_defects
 
   initializer
     (* TODO: the following line must be moved the a node initializer: *)
-    network#add_device_new (self :> node);
-    self#add_destroy_callback (lazy (network#del_device_new self#get_name));
+    network#add_device (self :> node);
+    self#add_destroy_callback (lazy (network#del_device self#get_name));
     (* this is correct here: *)
     self#add_my_ledgrid;
     self#add_destroy_callback (lazy self#destroy_my_ledgrid);
@@ -1571,7 +1570,7 @@ class network () =
  (** Adding components *)
 
  (** Devices must have a unique name in the network *)
- method add_device_new (d:node) =
+ method add_device (d:node) =
     if (self#name_exists d#get_name) then
       raise (Failure "add_device: name already used in the network")
     else begin
@@ -1580,11 +1579,12 @@ class network () =
 
  (** Remove a device from the network. Remove it from the [devices] list
      and remove all related cables. TODO: change this behaviour! *)
- method del_device_new dname =
+ method del_device dname =
      let d  = self#get_device_by_name dname in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_remove = List.filter (fun c->c#is_node_involved dname) cables in
-     List.iter (fun cable -> self#del_cable cable#get_name) cables_to_remove;
+     let cables_to_destroy = List.filter (fun c->c#is_node_involved dname) cables in
+     (* The cable#destroy will call itself the network#del_cable: *)
+     List.iter (fun cable -> cable#destroy) cables_to_destroy;
      devices  <- List.filter (fun x->not (x=d)) devices
 
  (** Cable must connect free ports: *)
@@ -1594,7 +1594,7 @@ class network () =
     then raise (Failure "add_cable: name already used in the network")
     else cables  <- (cables@[c]);
 
- (** Remove a cable from network *)
+ (** Remove a cable from network. Called by cable#destroy. *)
  method del_cable cname =
      let c = self#get_cable_by_name cname in
      cables <- (List.filter (fun x->not (x=c)) cables);

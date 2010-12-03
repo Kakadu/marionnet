@@ -1,0 +1,17 @@
+#!/bin/bash
+
+function cutv {
+ awk "(f==0)&&/$1/{f=1;print;next}  (f==1)&&/$2/{print;f=2;next} (f==1){print;next}";
+}
+
+LOGFILE=${1:-/dev/stdin}
+
+grep <$LOGFILE '^CHECKPOINT[:][ ]' \
+  | { read line0;
+      while [[ "$line0" != '___EnD_of_FiLe___' ]] ; do
+	line1=$(read z && echo $z || echo '___EnD_of_FiLe___')
+	W=$(cutv <$LOGFILE "$line0" "$line1" | wc -c)
+	echo "$line0 => $W"
+	line0="$line1"
+      done
+    }

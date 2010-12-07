@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90
+# Script version: 0.91
 
 set -e
+shopt -s nullglob
+shopt -s expand_aliases
 
 # =============================================================
 #                     SELF DEPENDENCIES
@@ -379,8 +381,38 @@ function tmpfile {
 #                           TOOLS
 # =============================================================
 
+function append_line_if_needed {
+local LINE="$1"
+local FILE="$2"
+{ test -f "$FILE" && grep -q "${LINE}" "$FILE"; } || sudo echo "$LINE" >> "$FILE"
+}
+
 function wait_printing_dots {
  while sleep 2 && jobs %% 1>/dev/null 2>&1; do echo -n "."; done
+}
+
+function define_global_TAB {
+local i COLS
+if [[ -z $COLUMNS ]]; then
+ if type tput 1>/dev/null 2>/dev/null; then
+   COLUMNS=$(tput cols)
+ else
+   COLUMNS=80
+ fi
+fi
+# COLS is the max between $COLUMNS and 104
+if [[ $COLUMNS -gt 104 ]]; then COLS=104; else COLS=$COLUMNS; fi
+global_TAB+='\r'
+for ((i=1; i<=(COLS/8)-1; i++)); do global_TAB+='\t'; done
+}
+
+define_global_TAB;
+
+function echo_at_right_side {
+ local NEWLINE=""
+ if [[ $1 = --newline ]]; then NEWLINE="\n"; shift; fi
+ eval echo -en "'$global_TAB'"
+ eval printf "'%4s$NEWLINE'" "$1"
 }
 
 function wait_printing_percent_progress {
@@ -390,7 +422,7 @@ function wait_printing_percent_progress {
    local SECTION_SIZE=$1 # or "weight"
    local LOGSIZE=$(wc -c <$LOGFILE)
    local OFFSET=$LOGSIZE
-   local TAB=${2:-"\r\t\t\t\t\t\t\t\t\t"}
+   local TAB=${2:-$global_TAB}
    local PERCENT
    while sleep 2 && jobs %% 1>/dev/null 2>&1; do
      LOGSIZE=$(wc -c <$LOGFILE)
@@ -406,17 +438,34 @@ function wait_printing_percent_progress {
 
 function launch_and_log {
  # global COMMAND_RESULT ALREADY_DONE
+ local SUDO
+ if [[ $1 = --sudo ]]; then
+   shift
+   SUDO=yes
+ fi
  local MSG="$1"
  echo -n "* $MSG ..."
  if grep <$ALREADY_DONE -q "^$MSG DONE$"; then
-  echo -e "\r\t\t\t\t\t\t\t\t\tdone"
+  echo_at_right_side "done";
+  echo
   return 0
  fi
  local CMD="{ $2 2>&1 || echo 1 > $COMMAND_RESULT; } 1>&2"
  local SECTION_SIZE=$3
  echo -e "===\nCHECKPOINT: $MSG\n===\n" 1>&2
  echo 0 > $COMMAND_RESULT
- eval $CMD &
+ case $SUDO in
+   yes)
+     local TMPSCRIPT=$(tmpfile script.XXXXXX)
+     echo '#!/bin/bash' > $TMPSCRIPT
+     echo $CMD >> $TMPSCRIPT
+     chmod +x $TMPSCRIPT
+     sudo $TMPSCRIPT &
+     ;;
+     *)
+     eval $CMD &
+     ;;
+ esac
  wait_printing_percent_progress $SECTION_SIZE
  sync
  local RETURN_CODE=$(<$COMMAND_RESULT)
@@ -707,18 +756,22 @@ Exiting."
 exit 1
 }
 
+function ensure_sudo {
+[[ $USER = root ]] && return 0
+sudo -v "$@" || exit_and_continue_as_root "sudo"
+# The following is really needed, otherwise sudo reask the password
+# executing a new sudo in a foreground job:
+sudo -v; sync; sleep 1
+}
+
 if [[ $USER = root || -w "$PREFIX" ]]; then
   MAKE_INSTALL='make install'
   alias sudo=eval
+  SUDO=eval
 elif type -t sudo 1>&2; then
-  echo "* Preparing to install in $PREFIX"
-  sudo -v || exit_and_continue_as_root "sudo"
-  # The following is really needed, otherwise sudo reask the password
-  # executing $MAKE_INSTALL in a foreground job:
-  sudo -v
-  sync
-  sleep 1
-  MAKE_INSTALL="sudo PATH=$PATH make install"
+  ensure_sudo -p "* Required the [sudo] password for %u:"
+  MAKE_INSTALL="PATH=$PATH make install"
+  SUDO=sudo
 elif type -t su 1>&2; then
   echo "* Preparing to install in $PREFIX"
   echo "  The script will be continued as root."
@@ -729,10 +782,22 @@ else
   exit_and_continue_as_root
 fi
 
-launch_and_log \
+launch_and_log --sudo \
   "Installing marionnet" \
   "$MAKE_INSTALL" \
   3918924 # weight
+
+# Alias for marionnet -> marionnet.native (or marionnet.byte)
+if ! type marionnet 1>&2; then
+ pushd $PREFIX/bin/
+ for i in marionnet.{native,byte}; do
+   if [[ -x $i ]]; then
+     $SUDO ln -sf $i marionnet
+     break
+   fi
+ done
+ popd
+fi 1>&2
 
 cd ..
 
@@ -750,10 +815,12 @@ function download_compile_and_install_vde2 {
   cd ..
 }
 
-if type vde_switch 1>&2; then
- echo "* vde2 seems to be already installed."
-elif [[ $IGNORE_VDE = yes ]]; then
- echo "* Ignoring the vde2 dependency."
+if [[ $IGNORE_VDE = yes ]]; then
+ echo -n "* Installing vde2: dependency ignored (--no-vde)"
+ echo_at_right_side --newline "ok"
+elif type vde_switch 1>&2; then
+ echo -n "* Installing vde2: it seems to be already installed"
+ echo_at_right_side --newline "ok"
 else
  launch_and_log \
    "Downloading, compiling and installing vde2" \
@@ -775,13 +842,15 @@ function download_compile_and_install_graphviz {
   cd ..
 }
 
-if type dot 1>&2; then
- echo "* dot (graphviz) seems to be already installed."
-elif [[ $IGNORE_DOT = yes ]]; then
- echo "* Ignoring the dot (graphviz) dependency."
+if [[ $IGNORE_DOT = yes ]]; then
+ echo -n "* Installing dot (graphviz): dependency ignored (--no-dot)"
+ echo_at_right_side --newline "ok"
+elif type dot 1>&2; then
+ echo -n "* Installing dot (graphviz): it seems to be already installed"
+ echo_at_right_side --newline "ok"
 else
  launch_and_log \
-   "Downloading, compiling and installing dot" \
+   "Downloading, compiling and installing dot (graphviz)" \
    download_compile_and_install_graphviz \
    863227 # weight
 fi
@@ -803,7 +872,7 @@ function download_our_kernels {
       "kernels_linux-2.6.18-ghost.tar.gz") WEIGHT=6032 ;;
       *) unset WEIGHT ;;
     esac
-    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }" $WEIGHT 
+    launch_and_log --sudo "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
   done
 }
 
@@ -822,7 +891,7 @@ function download_our_big_filesystems {
       "filesystems_machine-mandriva20100215.tar.gz") WEIGHT=540521 ;;
       *) unset WEIGHT ;;
     esac
-    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }" $WEIGHT
+    launch_and_log --sudo "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
   done
 }
 
@@ -839,38 +908,261 @@ function download_our_pinocchio_filesystems {
       "filesystems_pinocchio.tar.gz") WEIGHT=77543 ;;
       *) unset WEIGHT ;;
     esac
-    launch_and_log "Downloading $i" "{ wget -O - '$OUR_BASE_URL/$i' | sudo tar 1>&2 xvzf -; }"  $WEIGHT
+    launch_and_log --sudo "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }"  $WEIGHT
   done
 }
 
+ensure_sudo -p "* Required the [sudo] password for %u:"
 sudo mkdir -p $PREFIX/share/marionnet/
 pushd $PREFIX/share/marionnet/ 1>&2
 
 if [[ $IGNORE_KERNELS = yes ]]; then
- echo "* Ignoring the kernels dependency."
+ echo -n "* Installing kernels: dependency ignored (--no-kernels)"
+ echo_at_right_side --newline "ok"
 else download_our_kernels; fi
 
 if [[ $IGNORE_PINOCCHIO_FILESYSTEMS = yes ]]; then
- echo "* Ignoring the pinocchio filesystems dependency."
+ echo -n "* Installing pinocchio filesystems: dependency ignored (--no-pinocchio)"
+ echo_at_right_side --newline "ok"
 else download_our_pinocchio_filesystems; fi
 
 if [[ $IGNORE_BIG_FILESYSTEMS = yes ]]; then
- echo "* Ignoring the other filesystems dependency."
+ echo -n "* Installing other filesystems: dependency ignored (--no-filesystems)"
+ echo_at_right_side --newline "ok"
 else download_our_big_filesystems; fi
 
 popd 1>&2
 
 # =============================================================
-#                          FINISHING
+#                     SysV-style INIT
+# =============================================================
+
+function generate_the_marionnet_daemon_script {
+local TMPFILE=$(tmpfile)
+cat >$TMPFILE <<EOF
+#!/bin/bash
+
+# This file was automatically generated by ${0##*/}
+
+# This file is part of marionnet
+# Copyright (C) 2010 Jean-Vincent Loddo
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e
+PATH=$PREFIX/bin:$PREFIX/sbin:\$PATH
+
+DAEMON=\$(type -p marionnet-daemon.native || type -p marionnet-daemon.byte) || {
+  echo "Error: neither marionnet-daemon.native nor marionnet-daemon.byte found."
+  exit 1
+}
+
+function killall_marionnet_daemon {
+ ps -u 0 -o pid,cmd | awk '\$2 ~ /marionnet-daemon/ {print \$1}' | while read pid; do kill -9 \$pid; done
+}
+
+function is_marionnet_daemon_launched {
+ ps -u 0 -o cmd | awk '\$1 ~ /marionnet-daemon/ {print \$1}' | grep -q 'marionnet-daemon'
+}
+
+function pid_of_marionnet_daemon {
+ ps -u 0 -o pid,cmd | awk '\$2 ~ /marionnet-daemon/ {print \$1}' | while read pid; do echo \$pid; done
+}
+
+case "\$1" in
+ start)
+  if is_marionnet_daemon_launched; then
+    echo "The marionnet daemon is already launched."
+    exit 0
+  else
+    echo -n "Starting the marionnet daemon..."
+    \$DAEMON >/dev/null 2>/dev/null &
+  fi
+  echo " Ok"
+  ;;
+ stop)
+  echo -n "Stopping the marionnet daemon..."
+  killall_marionnet_daemon || true
+  echo " Ok"
+  ;;
+ status)
+  if is_marionnet_daemon_launched; then
+    PID=\$(pid_of_marionnet_daemon)
+    echo "The marionnet daemon is running (PID=\$PID)."
+  else
+    echo "The marionnet daemon is stopped."
+  fi
+  exit 0
+  ;;
+ *)
+  echo "Usage: $1 (start|stop|status)"
+  echo "Start or stop the marionnet daemon."
+  exit 1
+esac
+EOF
+chmod +x $TMPFILE
+sudo mv -f $TMPFILE $1
+}
+
+function install_the_marionnet_daemon_script {
+# global INIT_DIR
+generate_the_marionnet_daemon_script $INIT_DIR/marionnet-daemon
+local RC_DIRS i
+RC_DIRS=$(for i in /etc/rc[2-5S].d /etc/*/rc[2-5S].d/ /etc/*/*/rc[2-5S].d ; do
+  [[ -d $i ]] && B=$(basename $i) && echo "$B $i $B"
+done | sort -u --key=1,1 | { while read _ b _; do echo $b; done })
+
+for i in $RC_DIRS; do
+ pushd $i
+ if [[ "$(realpath ../init.d)" = "$INIT_DIR" ]]; then
+   sudo ln -sf ../init.d/marionnet-daemon S90marionnet-daemon
+ elif [[ "$(realpath ../../init.d)" = "$INIT_DIR" ]]; then
+   sudo ln -sf ../../init.d/marionnet-daemon S90marionnet-daemon
+ else
+   sudo ln -sf $INIT_DIR/marionnet-daemon S90marionnet-daemon
+ fi
+ popd
+done 1>&2
+}
+
+function launch_the_marionnet_daemon_script {
+# global INIT_DIR
+sudo $INIT_DIR/marionnet-daemon start 1>&2
+}
+
+function define_global_INIT_DIR {
+# global INIT_DIR
+local i j
+if [[ -d /etc/init.d ]]; then
+ INIT_DIR=/etc/init.d
+else
+ declare -i j
+ j=0
+ for i in /etc/*/init.d; do
+   [[ -d $i ]] && INIT_DIR=$i && j+=1
+ done
+ if [[ j != 1 ]]; then unset INIT_DIR; fi
+fi
+}
+
+define_global_INIT_DIR;
+
+if [[ -z $INIT_DIR ]]; then
+ echo -n "* Installing daemon: directory init.d not found in /etc"
+ echo_at_right_side --newline "ko"
+elif [[ -f $INIT_DIR/marionnet-daemon ]]; then
+ echo -n "* Installing daemon: script already exists in $INIT_DIR"
+ echo_at_right_side --newline "ok"
+else
+  echo "* Installing daemon:"
+  echo -n "  Do I install the marionnet daemon in your runlevels ([y]/n)? "
+  read z
+  if [[ $z != n && $z != N ]]; then
+    ensure_sudo -p "  Required the [sudo] password for %u:"
+    echo -n "  Installing the marionnet daemon ..."
+    install_the_marionnet_daemon_script
+    [[ -e /dev/net/tun ]] || sudo mknod /dev/net/tun c 10 200
+    sudo chmod a+rw /dev/net/tun
+    if [[ -f /etc/modules.conf ]]; then
+      append_line_if_needed "alias char-major-10-200 tun" /etc/modules.conf
+      sudo depmod -a
+    fi 1>&2
+    echo_at_right_side --newline "ok"
+    echo -n "  Launching the marionnet daemon ..."
+    launch_the_marionnet_daemon_script
+    echo_at_right_side --newline "ok"
+    DAEMON_LAUNCHED=yes
+  fi
+fi
+
+# =============================================================
+#                          Mr Proper
 # =============================================================
 
 # Mr proper
 if [[ $KEEP_DEBRIS = yes ]]; then
- echo "* Temporary working directory $TWDIR not cleaned."
+ echo -n "* Cleaning: $TWDIR not removed (-k)"
+ echo_at_right_side --newline "ok"
 else
  echo "* Cleaning..."
  rm -rf $TWDIR
 fi
+
+# =============================================================
+#                     Adjust X -nolisten tcp
+# =============================================================
+
+function remove_nolisten_assignment_from {
+local i=$1
+sudo sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*[-]nolisten tcp.*\)$/#\1\n\1/g' $i
+sudo sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*\)[-]nolisten tcp\(.*\)$/\1 \2/g' $i
+}
+
+function remove_nolisten_X_or_startx_actuals_from {
+local i=$1
+sudo sed -i -e 's/\(^[a-ZA-Z0-9/: ]*X.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
+sudo sed -i -e 's/\(^[a-ZA-Z0-9/: ]*startx.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
+}
+
+function remove_DisallowTCP_from {
+local i=$1
+sudo sed -i -e 's/\(^DisallowTCP=true.*\)$/#\1\nDisallowTCP=false/g' $i
+}
+
+function apply_all_filters {
+# global CHANGED_FILES
+local i=$1
+cat $i > $BACKUP
+{ remove_nolisten_assignment_from $i;
+  remove_DisallowTCP_from $i;
+  remove_nolisten_X_or_startx_actuals_from $i;
+  } || true
+diff -q $BACKUP $i >/dev/null || {
+  CHANGED_FILES+="$i "
+  }
+}
+
+function adjust_X_display_manager {
+# global CHANGED_FILES
+local BACKUP=$(tmpfile)
+DIRS=$(sudo find /etc/ -type d -name "?dm")
+FILES=$(sudo find $DIRS -name "*rc" -o -name "*.conf")
+FILES=$(for i in $FILES; do grep -l "^[a-ZA-Z0-9]*[=].*[-]nolisten tcp" $i; done)
+for i in $FILES; do apply_all_filters $i; done
+rm -f $BACKUP
+[[ -n $CHANGED_FILES ]]
+}
+
+if ps -A -o cmd | grep -q '^[a-zA-Z0-9/]*X.*[-]nolisten tcp'; then
+ echo '---'
+ echo "* Warning: your X server has been launched with the option '-nolisten tcp'"
+ echo "  => Remove this option from your X display manager configuration."
+ echo -n "     Do I try to correct this configuration ([y]/n)? "
+ read z
+ if [[ $z != n && $z != N ]]; then
+   if adjust_X_display_manager; then
+     echo "     Ok. File(s) changed: $CHANGED_FILES"
+     echo "     You must restart your X server for the changes to take effect."
+   else
+     echo "     Sorry, no change performed: you must edit your configuration manually."
+   fi
+ fi
+fi
+
+# =============================================================
+#                         Adjust PATH
+# =============================================================
 
 # Path warning:
 if echo "$PATH_BACKUP" | tr ':' '\n' | grep -q "$PREFIX/bin"; then
@@ -878,9 +1170,27 @@ if echo "$PATH_BACKUP" | tr ':' '\n' | grep -q "$PREFIX/bin"; then
 else
  echo '---'
  echo "* Warning: the path $PREFIX/bin seems not to be contained in your PATH."
- echo "  => Put something like the following line somewhere in your shell configuration:"
+ echo "  => Put something like the following line in your shell configuration:"
  echo "     export PATH=$PREFIX/bin:$PREFIX/sbin:\$PATH"
+ case $USER in
+   root)
+     DEST='/etc/profile'
+     echo -n "     Do I add this line to $DEST ([y]/n)? "
+     ;;
+   *)
+     DEST=~/.bashrc
+     echo -n "     Do I add this line to your ~/.bashrc ([y]/n)? "
+     ;;
+ esac
+ read z
+ if [[ $z != n && $z != N ]]; then
+   append_line_if_needed "export PATH=$PREFIX/bin:$PREFIX/sbin:\$PATH" $DEST
+ fi
 fi
+
+# =============================================================
+#                        64-bit warning
+# =============================================================
 
 # 64-bit architecture warning:
 if type uname 1>&2 && [[ $(uname -m) = "x86_64" ]]; then
@@ -889,11 +1199,15 @@ if type uname 1>&2 && [[ $(uname -m) = "x86_64" ]]; then
  echo "  => Make sure that the package libc6-i386 is installed."
 fi
 
+# =============================================================
+#                          Notes
+# =============================================================
+
 # Where to install filesystems and kernels:
 echo '---'
 echo "* Notes:"
-echo "  - Filesystem must be installed in        : " $PREFIX/share/marionnet/filesystems/
-echo "  - Kernels ilesystem must be installed in : " $PREFIX/share/marionnet/kernels/
+echo "  - Install additional filesystem in" $PREFIX/share/marionnet/filesystems/
+echo "  - Install additional kernels in" $PREFIX/share/marionnet/kernels/
 
 echo '---'
 echo "Success."

@@ -764,6 +764,7 @@ sudo -v "$@" || exit_and_continue_as_root "sudo"
 sudo -v; sync; sleep 1
 }
 
+unset SUDO_ACTUAL
 if [[ $USER = root || -w "$PREFIX" ]]; then
   MAKE_INSTALL='make install'
   alias sudo=eval
@@ -772,6 +773,7 @@ elif type -t sudo 1>&2; then
   ensure_sudo -p "* Required the [sudo] password for %u:"
   MAKE_INSTALL="PATH=$PATH make install"
   SUDO=sudo
+  SUDO_ACTUAL=--sudo
 elif type -t su 1>&2; then
   echo "* Preparing to install in $PREFIX"
   echo "  The script will be continued as root."
@@ -782,7 +784,7 @@ else
   exit_and_continue_as_root
 fi
 
-launch_and_log --sudo \
+launch_and_log ${SUDO_ACTUAL} \
   "Installing marionnet" \
   "$MAKE_INSTALL" \
   3918924 # weight

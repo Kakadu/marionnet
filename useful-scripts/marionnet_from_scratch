@@ -22,6 +22,9 @@ set -e
 shopt -s nullglob
 shopt -s expand_aliases
 
+# By default SUDO is sudo:
+export SUDO=sudo
+
 # =============================================================
 #                     SELF DEPENDENCIES
 # =============================================================
@@ -382,9 +385,10 @@ function tmpfile {
 # =============================================================
 
 function append_line_if_needed {
+# global SUDO
 local LINE="$1"
 local FILE="$2"
-{ test -f "$FILE" && grep -q "${LINE}" "$FILE"; } || sudo echo "$LINE" >> "$FILE"
+{ test -f "$FILE" && grep -q "${LINE}" "$FILE"; } || $SUDO echo "$LINE" >> "$FILE"
 }
 
 function wait_printing_dots {
@@ -437,11 +441,13 @@ function wait_printing_percent_progress {
 }
 
 function launch_and_log {
- # global COMMAND_RESULT ALREADY_DONE
- local SUDO
- if [[ $1 = --sudo ]]; then
+ # global COMMAND_RESULT ALREADY_DONE SUDO
+ # The option --script implies that the command will be launched
+ # with $SUDO; otherwise the command is executed with eval
+ local AS_SCRIPT
+ if [[ $1 = --script || $1 = --as-script ]]; then
    shift
-   SUDO=yes
+   AS_SCRIPT=yes
  fi
  local MSG="$1"
  echo -n "* $MSG ..."
@@ -454,13 +460,14 @@ function launch_and_log {
  local SECTION_SIZE=$3
  echo -e "===\nCHECKPOINT: $MSG\n===\n" 1>&2
  echo 0 > $COMMAND_RESULT
- case $SUDO in
+ case $AS_SCRIPT in
    yes)
      local TMPSCRIPT=$(tmpfile script.XXXXXX)
      echo '#!/bin/bash' > $TMPSCRIPT
+     echo "export PATH=$PATH" >> $TMPSCRIPT
      echo $CMD >> $TMPSCRIPT
      chmod +x $TMPSCRIPT
-     sudo $TMPSCRIPT &
+     $SUDO $TMPSCRIPT &
      ;;
      *)
      eval $CMD &
@@ -764,16 +771,18 @@ sudo -v "$@" || exit_and_continue_as_root "sudo"
 sudo -v; sync; sleep 1
 }
 
-unset SUDO_ACTUAL
-if [[ $USER = root || -w "$PREFIX" ]]; then
+if [[ $USER = root ]]; then
   MAKE_INSTALL='make install'
-  alias sudo=eval
+  # Redefine SUDO:
   SUDO=eval
+  unset AS_SCRIPT
+elif [[ -w "$PREFIX" ]]; then
+  MAKE_INSTALL='make install'
+  unset AS_SCRIPT
 elif type -t sudo 1>&2; then
   ensure_sudo -p "* Required the [sudo] password for %u:"
   MAKE_INSTALL="PATH=$PATH make install"
-  SUDO=sudo
-  SUDO_ACTUAL=--sudo
+  AS_SCRIPT=--script
 elif type -t su 1>&2; then
   echo "* Preparing to install in $PREFIX"
   echo "  The script will be continued as root."
@@ -784,7 +793,7 @@ else
   exit_and_continue_as_root
 fi
 
-launch_and_log ${SUDO_ACTUAL} \
+launch_and_log ${AS_SCRIPT} \
   "Installing marionnet" \
   "$MAKE_INSTALL" \
   3918924 # weight
@@ -874,7 +883,7 @@ function download_our_kernels {
       "kernels_linux-2.6.18-ghost.tar.gz") WEIGHT=6032 ;;
       *) unset WEIGHT ;;
     esac
-    launch_and_log --sudo "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
+    launch_and_log --script "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
   done
 }
 
@@ -893,7 +902,7 @@ function download_our_big_filesystems {
       "filesystems_machine-mandriva20100215.tar.gz") WEIGHT=540521 ;;
       *) unset WEIGHT ;;
     esac
-    launch_and_log --sudo "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
+    launch_and_log --script "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
   done
 }
 
@@ -910,12 +919,12 @@ function download_our_pinocchio_filesystems {
       "filesystems_pinocchio.tar.gz") WEIGHT=77543 ;;
       *) unset WEIGHT ;;
     esac
-    launch_and_log --sudo "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }"  $WEIGHT
+    launch_and_log --script "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }"  $WEIGHT
   done
 }
 
 ensure_sudo -p "* Required the [sudo] password for %u:"
-sudo mkdir -p $PREFIX/share/marionnet/
+$SUDO mkdir -p $PREFIX/share/marionnet/
 pushd $PREFIX/share/marionnet/ 1>&2
 
 if [[ $IGNORE_KERNELS = yes ]]; then
@@ -1014,7 +1023,7 @@ case "\$1" in
 esac
 EOF
 chmod +x $TMPFILE
-sudo mv -f $TMPFILE $1
+$SUDO mv -f $TMPFILE $1
 }
 
 function install_the_marionnet_daemon_script {
@@ -1028,19 +1037,19 @@ done | sort -u --key=1,1 | { while read _ b _; do echo $b; done })
 for i in $RC_DIRS; do
  pushd $i
  if [[ "$(realpath ../init.d)" = "$INIT_DIR" ]]; then
-   sudo ln -sf ../init.d/marionnet-daemon S90marionnet-daemon
+   $SUDO ln -sf ../init.d/marionnet-daemon S90marionnet-daemon
  elif [[ "$(realpath ../../init.d)" = "$INIT_DIR" ]]; then
-   sudo ln -sf ../../init.d/marionnet-daemon S90marionnet-daemon
+   $SUDO ln -sf ../../init.d/marionnet-daemon S90marionnet-daemon
  else
-   sudo ln -sf $INIT_DIR/marionnet-daemon S90marionnet-daemon
+   $SUDO ln -sf $INIT_DIR/marionnet-daemon S90marionnet-daemon
  fi
  popd
 done 1>&2
 }
 
 function launch_the_marionnet_daemon_script {
-# global INIT_DIR
-sudo $INIT_DIR/marionnet-daemon start 1>&2
+# global INIT_DIR SUDO
+$SUDO $INIT_DIR/marionnet-daemon start 1>&2
 }
 
 function define_global_INIT_DIR {
@@ -1074,11 +1083,11 @@ else
     ensure_sudo -p "  Required the [sudo] password for %u:"
     echo -n "  Installing the marionnet daemon ..."
     install_the_marionnet_daemon_script
-    [[ -e /dev/net/tun ]] || sudo mknod /dev/net/tun c 10 200
-    sudo chmod a+rw /dev/net/tun
+    [[ -e /dev/net/tun ]] || $SUDO mknod /dev/net/tun c 10 200
+    $SUDO chmod a+rw /dev/net/tun
     if [[ -f /etc/modules.conf ]]; then
       append_line_if_needed "alias char-major-10-200 tun" /etc/modules.conf
-      sudo depmod -a
+      $SUDO depmod -a
     fi 1>&2
     echo_at_right_side --newline "ok"
     echo -n "  Launching the marionnet daemon ..."
@@ -1106,20 +1115,23 @@ fi
 # =============================================================
 
 function remove_nolisten_assignment_from {
+# global SUDO
 local i=$1
-sudo sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*[-]nolisten tcp.*\)$/#\1\n\1/g' $i
-sudo sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*\)[-]nolisten tcp\(.*\)$/\1 \2/g' $i
+$SUDO sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*[-]nolisten tcp.*\)$/#\1\n\1/g' $i
+$SUDO sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*\)[-]nolisten tcp\(.*\)$/\1 \2/g' $i
 }
 
 function remove_nolisten_X_or_startx_actuals_from {
+# global SUDO
 local i=$1
-sudo sed -i -e 's/\(^[a-ZA-Z0-9/: ]*X.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
-sudo sed -i -e 's/\(^[a-ZA-Z0-9/: ]*startx.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
+$SUDO sed -i -e 's/\(^[a-ZA-Z0-9/: ]*X.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
+$SUDO sed -i -e 's/\(^[a-ZA-Z0-9/: ]*startx.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
 }
 
 function remove_DisallowTCP_from {
+# global SUDO
 local i=$1
-sudo sed -i -e 's/\(^DisallowTCP=true.*\)$/#\1\nDisallowTCP=false/g' $i
+$SUDO sed -i -e 's/\(^DisallowTCP=true.*\)$/#\1\nDisallowTCP=false/g' $i
 }
 
 function apply_all_filters {
@@ -1138,8 +1150,8 @@ diff -q $BACKUP $i >/dev/null || {
 function adjust_X_display_manager {
 # global CHANGED_FILES
 local BACKUP=$(tmpfile)
-DIRS=$(sudo find /etc/ -type d -name "?dm")
-FILES=$(sudo find $DIRS -name "*rc" -o -name "*.conf")
+DIRS=$($SUDO find /etc/ -type d -name "?dm")
+FILES=$($SUDO find $DIRS -name "*rc" -o -name "*.conf")
 FILES=$(for i in $FILES; do grep -l "^[a-ZA-Z0-9]*[=].*[-]nolisten tcp" $i; done)
 for i in $FILES; do apply_all_filters $i; done
 rm -f $BACKUP

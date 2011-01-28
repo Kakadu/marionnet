@@ -684,7 +684,7 @@ function echo_required_debian_packages {
  local LIST i VDE2_VERSION
 
  # Then continue with aptitude
- for i in gcc make flex libtool bison grep tar xterm wget diff mktemp realpath sed gawk; do
+ for i in gcc make flex libtool bison grep tar xterm wget diff mktemp realpath sed gawk aptitude; do
    LIST+=$(echo_debian_package_for_binary_if_really_needed $i $i)
  done
 
@@ -704,13 +704,15 @@ function echo_required_debian_packages {
  done
 
  # vde2 only if is not already installed and the available version is >= 2.2.1
- type 1>&2 vde_switch || {
-   VDE2_VERSION=$(aptitude show vde2 | awk '/^Version.*2[.]2[.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
-   VDE2_VERSION=$(echo $VDE2_VERSION | awk -F '.' '(($2 * 100 + $3 * 10 + $4) >= 221) {print}')
-   if [[ -n "$VDE2_VERSION" ]]; then
-     LIST+="vde2 "
-   fi
- }
+ if type 1>&2 aptitude; then
+   type 1>&2 vde_switch || {
+       VDE2_VERSION=$(aptitude show vde2 | awk '/^Version.*2[.]2[.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
+       VDE2_VERSION=$(echo $VDE2_VERSION | awk -F '.' '(($2 * 100 + $3 * 10 + $4) >= 221) {print}')
+       if [[ -n "$VDE2_VERSION" ]]; then
+	   LIST+="vde2 "
+       fi
+   }
+ fi
 
  # x86_64 => libc6-i386
  if type uname && [[ $(uname -m) = "x86_64" ]] && ! dpkg -p libc6-i386; then
@@ -759,7 +761,7 @@ if are_we_in_debian_or_derived; then
   echo "DEBIAN_PACKAGE_LIST=$DEBIAN_PACKAGE_LIST" 1>&2 # debugging
   if [[ -n ${DEBIAN_PACKAGE_LIST%% } ]]; then
     echo "  Required packages: $DEBIAN_PACKAGE_LIST"
-    echo -n "  Do I install required package(s) with aptitude ([y]/n)? "
+    echo -n "  Shall I install required package(s) with aptitude ([y]/n)? "
     read z
     if [[ $z != n && $z != N ]]; then
       MSG="Installing required packages with aptitude"
@@ -767,6 +769,16 @@ if are_we_in_debian_or_derived; then
       # First install aptitude if needed:
       if ! type 1>&2 aptitude; then
         launch_and_log --sudo "Installing aptitude" "apt-get -y install aptitude"
+        APTITUDE_INSTALLED_NOW=yes
+      fi
+      # vde2 only if is not already installed and the available version is >= 2.2.1
+      if [[ $APTITUDE_INSTALLED_NOW = yes ]] && ! type 1>&2 vde_switch; then
+	  VDE2_VERSION=$(aptitude show vde2 | awk '/^Version.*2[.]2[.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
+	  VDE2_VERSION=$(echo $VDE2_VERSION | awk -F '.' '(($2 * 100 + $3 * 10 + $4) >= 221) {print}')
+	  if [[ -n "$VDE2_VERSION" ]]; then
+	      DEBIAN_PACKAGE_LIST+="vde2 "
+              echo "  Note: I will also install vde2 with aptitude"
+	  fi
       fi
       launch_and_log --sudo "$MSG" "aptitude -q -y install $DEBIAN_PACKAGE_LIST"
       DISABLE_libc6_i386_WARNING=yes
@@ -1232,7 +1244,7 @@ elif [[ -f $INIT_DIR/marionnet-daemon ]]; then
  echo_at_right_side --newline "ok"
 else
   echo "* Installing daemon:"
-  echo -n "  Do I install the marionnet daemon in your runlevels ([y]/n)? "
+  echo -n "  Shall I install the marionnet daemon in your runlevels ([y]/n)? "
   read z
   if [[ $z != n && $z != N ]]; then
     ensure_sudo -p "  Required the [sudo] password for %u:"
@@ -1324,11 +1336,11 @@ function ensure_DisallowTCP_false_to_gdm_custom_dot_conf {
 # global SUDO CHANGED_FILES
 local custom=/etc/gdm/custom.conf
 local TMPFILE=$(tmpfile)
-cp $i $TMPFILE
+cp $custom $TMPFILE
 ensure_section_and_binding "security" "DisallowTCP" "false" $TMPFILE 
 ensure_section_and_binding "xdmcp" "Enable" "true" $TMPFILE
 if ! diff -q $custom $TMPFILE >/dev/null; then 
-  CHANGED_FILES+="$i "
+  CHANGED_FILES+="$custom "
   $SUDO bash -c "cat $TMPFILE >$custom"
 fi
 }
@@ -1351,12 +1363,13 @@ function adjust_X_display_manager {
 local BACKUP=$(tmpfile)
 DIRS=$($SUDO find /etc/ -type d -name "?dm")
 if [[ -d /etc/X11/xinit ]]; then DIRS+=" /etc/X11/xinit/"; fi
-FILES=$($SUDO find $DIRS -name "*rc" -o -name "*.conf")
-FILES=$(for i in $FILES; do grep -l "^[a-ZA-Z0-9]*[=].*[-]nolisten tcp" $i; done)
+FILES=$([[ -n $DIRS ]] && $SUDO find $DIRS -name "*rc" -o -name "*.conf")
+FILES=$(for i in $FILES; do grep -l "^[a-zA-Z0-9/_\-= ]*[-]nolisten tcp" $i; done)
 for i in $FILES; do apply_all_filters $i; done
 rm -f $BACKUP
 # A special case:
-if [[ -f /etc/gdm/custom.conf ]]; then
+if [[ -d /etc/gdm ]]; then
+  $SUDO touch /etc/gdm/custom.conf
   ensure_DisallowTCP_false_to_gdm_custom_dot_conf
 fi
 [[ -n $CHANGED_FILES ]]
@@ -1365,13 +1378,13 @@ fi
 if ps -A -o cmd | grep -q '^[a-zA-Z0-9/]*X.*[-]nolisten tcp'; then
  echo '---'
  echo "* Warning: your X server has been launched with the option '-nolisten tcp'"
- echo "  => Remove this option from your X display manager configuration."
- echo -n "     Do I try to correct this configuration ([y]/n)? "
+ echo "  => This option should be removed from your X display manager configuration."
+ echo -n "     Shall I try to fix it ([y]/n)? "
  read z
  if [[ $z != n && $z != N ]]; then
    if adjust_X_display_manager; then
      echo "     Ok. File(s) changed: $CHANGED_FILES"
-     echo "     You must restart your X server for the changes to take effect."
+     echo "     You must restart your X display manager for the changes to take effect."
    else
      echo "     Sorry, no change performed: you must edit your configuration manually."
    fi
@@ -1393,11 +1406,11 @@ else
  case $USER in
    root)
      DEST='/etc/profile'
-     echo -n "     Do I add this line to $DEST ([y]/n)? "
+     echo -n "     Shall I add this line to $DEST ([y]/n)? "
      ;;
    *)
      DEST=~/.bashrc
-     echo -n "     Do I add this line to your ~/.bashrc ([y]/n)? "
+     echo -n "     Shall I add this line to your ~/.bashrc ([y]/n)? "
      ;;
  esac
  read z

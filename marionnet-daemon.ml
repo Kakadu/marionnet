@@ -25,12 +25,8 @@ open Hashmmap;;
 
 module Recursive_mutex = MutexExtra.Recursive ;;
 
-(** Read configuration files: *)
-let configuration =
-  new Configuration_files.configuration
-    ~software_name:"marionnet"
-    ~variables:["MARIONNET_SOCKET_NAME"]
-    ();;
+(* Read configuration files: *)
+include Configuration ;;
 
 let socket_name =
   configuration#string "MARIONNET_SOCKET_NAME";;

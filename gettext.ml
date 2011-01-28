@@ -18,7 +18,7 @@
 include
   Gettext_builder.Make(struct
       let text_domain = "marionnet";;
-      let directory = "/usr/share/locale";;
+      let directory = Meta.localeprefix;;
      end);;
 
 (* Printf.eprintf "Gettext instanciated with domain \"marionnet\" and directory \"/usr/share/locale\"\n";; *)

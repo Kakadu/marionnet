@@ -1,6 +1,7 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007, 2008  Luca Saiu
-   Copyright (C) 2007, 2008  Université Paris 13
+   Copyright (C) 2011  Jean-Vincent Loddo
+   Copyright (C) 2007, 2008, 2011  Université Paris 13
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -16,89 +17,46 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
-let display_environment_variable =
+let fail x = failwith (Printf.sprintf "Ill-formed DISPLAY string: '%s'" x)
+;;
+
+(** The syntax of $DISPLAY is: [host]:display[.screen] *)
+let get_host_display_screen_from_string x =
+ let split_rigth_part y =
+   match (StringExtra.split ~d:'.' y) with
+   | [ display; screen ] -> (display, screen)
+   | [ display ]         -> (display, "0")
+   | _ -> fail x
+ in 
+ let host, (display, screen) =
+   match (StringExtra.split ~d:':' x) with
+   | [ host; right_part ] -> host, (split_rigth_part right_part) 
+   | [ right_part ]       -> "localhost", (split_rigth_part right_part)
+   | _ -> fail x
+ in 
+ let strip_and_use_default_if_empty ~default x=
+   let x = StringExtra.strip x in
+   if x = "" then default else x
+ in
+ let host    = strip_and_use_default_if_empty ~default:"localhost" host in
+ let screen  = strip_and_use_default_if_empty ~default:"0" screen in
+ let display = StringExtra.strip display in
+ (host, display, screen)
+;;
+
+let get_host_display_screen () =
   try
-    let result = Sys.getenv "DISPLAY" in
-    if result = "" then
+    let x = Sys.getenv "DISPLAY" in
+    if x = "" then
       raise Not_found (* It's just like it weren't defined... *)
     else
-      result
+      get_host_display_screen_from_string x
   with Not_found ->
     failwith "The environment variable DISPLAY is not defined or empty, and Marionnet requires X.\nBailing out...";;
 
-let screen = 
-  try
-    let dot_index = String.rindex display_environment_variable '.' in
-    let result =
-      String.sub
-        display_environment_variable
-        (dot_index + 1)
-        ((String.length display_environment_variable) - dot_index - 1)
-    in
-    if String.length result = 0 then
-      failwith
-        (Printf.sprintf "Ill-formed DISPLAY string: the screen number in \"%s\" is empty"
-           display_environment_variable)
-    else
-      result
-  with Not_found ->
-    "0";;
-
-let get_display_given_display_string_with_no_screen s = 
-  try
-    let colon_index = String.rindex s ':' in
-    let result =
-      String.sub
-        s
-        (colon_index + 1)
-        ((String.length s) - colon_index - 1) in
-    if String.length result = 0 then
-      failwith
-        (Printf.sprintf "Ill-formed DISPLAY string: the display number in \"%s\" is empty" s)
-    else
-      result
-  with Not_found ->
-    failwith
-      (Printf.sprintf "Ill-formed DISPLAY string: there is no display number in \"%s\"" s);;
-
-let display = 
-  try
-    let dot_index = String.rindex display_environment_variable '.' in
-    get_display_given_display_string_with_no_screen
-      (String.sub
-         display_environment_variable
-         0
-         dot_index)
-  with Not_found ->
-    get_display_given_display_string_with_no_screen display_environment_variable;;
-
-let get_display_host_name_given_display_string_with_no_screen s = 
-  try
-    let colon_index = String.rindex s ':' in
-    let result =
-      String.sub
-        s
-        0
-        colon_index in
-    if String.length result = 0 then
-      "localhost"
-    else
-      result
-  with Not_found ->
-    failwith
-      (Printf.sprintf "Ill-formed DISPLAY string: there is no display number in \"%s\"" s);;
-
-let host_name = 
-  try
-    let dot_index = String.rindex display_environment_variable '.' in
-    get_display_host_name_given_display_string_with_no_screen
-      (String.sub
-         display_environment_variable
-         0
-         dot_index)
-  with Not_found ->
-    get_display_host_name_given_display_string_with_no_screen
-      display_environment_variable;;
+(* Global variables: *)
+let host, display, screen = get_host_display_screen ()
+;;
 
 let _last_used_local_display_index =
   ref 0;;
@@ -125,7 +83,7 @@ let get_unused_local_display () =
 
 Log.printf
   "-------------------------------------\nHost X data from $DISPLAY:\n\nHost: %s\nDisplay: %s\nScreen: %s\n\n"
-  host_name
+  host
   display
   screen;;
 

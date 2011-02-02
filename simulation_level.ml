@@ -237,7 +237,7 @@ let hex_byte_to_int_byte h =
 let gensym = Counter.make_int_generator ();;
 
 class xnest_process =
-  fun ?(host_name_as_client=X.host_name)
+  fun ?(host_name_as_client=X.host)
       ?(display_as_client=X.display)
       ?(screen_as_client=X.screen)
       ?(display_number_as_server=X.get_unused_local_display ())

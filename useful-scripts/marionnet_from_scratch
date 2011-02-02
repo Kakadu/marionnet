@@ -680,11 +680,17 @@ function is_aptitude_installed  {
  type 1>&2 aptitude
 }
 
+
+function is_package_installed {
+ local L==en_US.UTF-8 
+ LANG=$L LC_ALL=$L LC_MESSAGES=$L LANGUAGE=$L dpkg -s $1 2>/dev/null | \grep -q 'Status: install ok installed';
+}
+
 function echo_required_debian_packages {
  local LIST i VDE2_VERSION
 
  # Then continue with aptitude
- for i in gcc make flex libtool bison grep tar xterm wget diff mktemp realpath sed gawk aptitude; do
+ for i in gcc g++ make flex libtool bison grep tar xterm wget mktemp realpath sed gawk aptitude; do
    LIST+=$(echo_debian_package_for_binary_if_really_needed $i $i)
  done
 
@@ -693,12 +699,12 @@ function echo_required_debian_packages {
 
  for i in \
    libgtk2.0-dev libglade2-dev \
-   bridge-utils coreutils debianutils \
+   bridge-utils coreutils debianutils diffutils \
    net-tools uml-utilities util-linux x11-xserver-utils \
    coreutils findutils login procps \
    rlfe; # alternatives are rlwrap and ledit
    do
-   if ! dpkg -p $i 1>&2; then
+   if ! is_package_installed $i; then
      LIST+="$i "
    fi
  done
@@ -764,6 +770,10 @@ if are_we_in_debian_or_derived; then
     echo -n "  Shall I install required package(s) with aptitude ([y]/n)? "
     read z
     if [[ $z != n && $z != N ]]; then
+      echo -n "  Shall I use the aptitude option --allow-untrusted ([y]/n)? "; read z
+      if [[ $z != n && $z != N ]]; then
+        APTITUDE_OPTIONS+="--allow-untrusted "
+      fi
       MSG="Installing required packages with aptitude"
       ensure_sudo_or_continue_as_root "* $MSG"
       # First install aptitude if needed:
@@ -773,14 +783,14 @@ if are_we_in_debian_or_derived; then
       fi
       # vde2 only if is not already installed and the available version is >= 2.2.1
       if [[ $APTITUDE_INSTALLED_NOW = yes ]] && ! type 1>&2 vde_switch; then
-	  VDE2_VERSION=$(aptitude show vde2 | awk '/^Version.*2[.]2[.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
+	  VDE2_VERSION=$(aptitude $APTITUDE_OPTIONS show vde2 | awk '/^Version.*2[.]2[.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
 	  VDE2_VERSION=$(echo $VDE2_VERSION | awk -F '.' '(($2 * 100 + $3 * 10 + $4) >= 221) {print}')
 	  if [[ -n "$VDE2_VERSION" ]]; then
 	      DEBIAN_PACKAGE_LIST+="vde2 "
               echo "  Note: I will also install vde2 with aptitude"
 	  fi
       fi
-      launch_and_log --sudo "$MSG" "aptitude -q -y install $DEBIAN_PACKAGE_LIST"
+      launch_and_log --sudo "$MSG" "aptitude $APTITUDE_OPTIONS -q -y install $DEBIAN_PACKAGE_LIST"
       DISABLE_libc6_i386_WARNING=yes
     fi # answered yes
   fi # package list not empty 

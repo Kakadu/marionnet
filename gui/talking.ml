@@ -70,7 +70,7 @@ end;; (* module Msg *)
     we don't want to bother supporting, like ' ', otherwise raise an exception.
     No check is performed on the pathname actual existence or permissions: *)
 let check_pathname_validity pathname =
-  if StrExtra.Bool.match_string "^[a-zA-Z0-9_\\/\\-]+$" pathname then
+  if StrExtra.Bool.match_string "^[.a-zA-Z0-9_\\/\\-]+$" pathname then
     pathname
   else
     failwith "The pathname "^ pathname ^" contains funny characters, and we don't support it";;
@@ -93,7 +93,7 @@ let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path
       Simple_dialogs.error
         (s_ "Invalid directory name")
         (Printf.sprintf (f_ "The name \"%s\" is not a valid directory.\n\nDirectory names \
-must contain only letters, numbers, dashes ('-') and underscores ('_').") directory)
+must contain only letters, numbers, dots, dashes ('-') and underscores ('_').") directory)
         ();
       failwith "the given directory name is invalid";
     end in

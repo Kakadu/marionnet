@@ -185,7 +185,7 @@ object(self)
              ~comment:"[no comment]"
              ~file_name:copied_file_name
              ~parent:parent_id
-             ~date:(Timestamp.current_timestamp_as_string ())
+             ~date:(UnixExtra.date ~dot:" " ())
              ~scenario:"[no scenario]"
              ~prefixed_filesystem:(item_to_string (Assoc.find "Prefixed filesystem" row_to_copy))
              ()
@@ -210,7 +210,7 @@ object(self)
     let correct_date = item_to_string (self#get_row_item row_id "Timestamp") in
     let _cow_file_name = item_to_string (self#get_row_item row_id "File name") in
     let name = item_to_string (self#get_row_item row_id "Name") in
-    self#set_row_item row_id "Timestamp" (String (Timestamp.current_timestamp_as_string ()));
+    self#set_row_item row_id "Timestamp" (String (UnixExtra.date ~dot:" " ()));
     let _, startup_function = Startup_functions.extract () in
     let () = startup_function name in
     Task_runner.the_task_runner#schedule
@@ -371,7 +371,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       self#add_string_column
         ~header:"Timestamp"
         ~shown_header:(s_ "Timestamp")
-        ~default:(fun () -> String (Timestamp.current_timestamp_as_string ()))
+        ~default:(fun () -> String (UnixExtra.date ~dot:" " ()))
         () in
     let _ =
       self#add_editable_string_column

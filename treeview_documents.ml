@@ -169,7 +169,7 @@ object(self)
     self#set_row_item row_id "Title" (String title);
     self#set_row_item row_id "Author" (String "-");
     self#set_row_item row_id "Type" (String (s_ "Report"));
-    self#set_row_item row_id "Comment" (String ((s_ "created on ") ^ (Timestamp.current_timestamp_as_string ())));
+    self#set_row_item row_id "Comment" (String ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ())));
 
   method import_history ~machine_or_router_name ~pathname () =
     let title = (s_ "History of ") ^ machine_or_router_name in
@@ -177,7 +177,7 @@ object(self)
     self#set_row_item row_id "Title" (String title);
     self#set_row_item row_id "Author" (String "-");
     self#set_row_item row_id "Type" (String (s_ "History"));
-    self#set_row_item row_id "Comment" (String ((s_ "created on ") ^ (Timestamp.current_timestamp_as_string ())));
+    self#set_row_item row_id "Comment" (String ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ())));
 
   method import_document ?(move=false) user_path_name =
     let internal_file_name, format = self#import_file user_path_name in

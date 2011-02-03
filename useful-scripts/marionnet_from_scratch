@@ -25,8 +25,10 @@ shopt -s expand_aliases
 # By default SUDO is 'sudo' for the normal user:
 if [[ $USER = root ]]; then
   export SUDO=eval
+  export SUDO_OR_NOTHING=
 else
   export SUDO=sudo
+  export SUDO_OR_NOTHING=sudo
 fi
 
 # =============================================================
@@ -1082,7 +1084,6 @@ else download_our_big_filesystems; fi
 
 popd 1>&2
 
-
 # =============================================================
 #                     marionnet.conf
 # =============================================================
@@ -1111,7 +1112,9 @@ MARIONNET_TEXT_EDITOR=$(first_installed_binary_of_list emacs gedit kate kwrite x
 
 for i in MARIONNET_{PDF,POSTSCRIPT,DVI,HTML}_READER MARIONNET_TEXT_EDITOR MARIONNET_KEYBOARD_LAYOUT; do
  v=$(eval echo \$$i);
- $SUDO sed -i -e "s/$i=\(.*\)/$i=$v/" $MARIONNET_DOT_CONF
+ # Workaround for a strange problem of the couple eval-sed:
+ # $SUDO_OR_NOTHING instead of $SUDO as usual:
+ $SUDO_OR_NOTHING sed -i -e "s/$i=\(.*\)/$i=$v/" $MARIONNET_DOT_CONF
 done
 
 if [[ ! -f /etc/marionnet/marionnet.conf ]]; then

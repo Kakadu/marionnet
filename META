@@ -1,4 +1,4 @@
 name="marionnet"
 description="A virtual network laboratory"
-version="0.90.6"
+version="trunk"
 requires(mt) = "threads str unix lablgtk2 lablglade ocamlbricks"

@@ -1278,19 +1278,6 @@ else
 fi
 
 # =============================================================
-#                          Mr Proper
-# =============================================================
-
-# Mr proper
-if [[ $KEEP_DEBRIS = yes ]]; then
- echo -n "* Cleaning: $TWDIR not removed (-k)"
- echo_at_right_side --newline "ok"
-else
- echo "* Cleaning..."
- rm -rf $TWDIR
-fi
-
-# =============================================================
 #                     Adjust X -nolisten tcp
 # =============================================================
 
@@ -1444,6 +1431,21 @@ if [[ -z $DISABLE_libc6_i386_WARNING ]]; then
   echo "  => Make sure that the package libc6-i386 is installed."
  fi
 fi
+
+# =============================================================
+#                          Mr Proper
+# =============================================================
+
+# Mr proper
+echo '---'
+if [[ $KEEP_DEBRIS = yes ]]; then
+ echo -n "* Cleaning: $TWDIR not removed (-k)"
+ echo_at_right_side --newline "ok"
+else
+ echo "* Cleaning..."
+ rm -rf $TWDIR
+fi
+
 # =============================================================
 #                          Notes
 # =============================================================

@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: marionnet\n"
-"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"Report-Msgid-Bugs-To: loddo@univ-paris13.fr\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "PO-Revision-Date: 2011-04-07 22:16+0200\n"
 "Last-Translator: Slavko <linux@slavino.sk>\n"

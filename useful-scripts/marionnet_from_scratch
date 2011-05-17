@@ -668,6 +668,22 @@ function are_we_in_debian_or_derived {
   $(which dpkg) -L apt  2>/dev/null | grep -q $(which apt-get)
 }
 
+function are_we_in_ubuntu_11_or_greater {
+ if [[ -f /etc/issue ]]; then
+   local A=$(head -n 1 /etc/issue)
+   local a b c
+   read a b c <<<"$A"
+   IFS="." read a c <<<"$b"
+   if [[ $a -ge 11 ]]; then
+     return 0
+   else
+     return 1
+   fi
+ else
+  return 1
+ fi
+}
+
 function echo_debian_package_for_binary_if_really_needed {
  local BINARY=$1
  local PACKAGE=$2
@@ -689,7 +705,7 @@ function is_package_installed {
 }
 
 function echo_required_debian_packages {
- local LIST i VDE2_VERSION
+ local LIST i VDE2_VERSION EXTRA_FOR_GODI
 
  # Then continue with aptitude
  for i in gcc g++ make flex libtool bison grep tar xterm wget mktemp realpath sed gawk aptitude; do
@@ -699,8 +715,12 @@ function echo_required_debian_packages {
  LIST+=$(echo_debian_package_for_binary_if_really_needed dot graphviz)
  LIST+=$(echo_debian_package_for_binary_if_really_needed uml_switch uml-utilities)
 
+ if [[ $USING_GODI = yes ]]; then
+  EXTRA_FOR_GODI="gtkgl-dev freeglut3-dev tk8.4-dev libxmu-dev"
+ fi
+ 
  for i in \
-   libgtk2.0-dev libglade2-dev \
+   libgtk2.0-dev libglade2-dev $EXTRA_FOR_GODI \
    bridge-utils coreutils debianutils diffutils \
    net-tools uml-utilities util-linux x11-xserver-utils \
    coreutils findutils login procps \
@@ -735,6 +755,18 @@ function echo_required_debian_packages {
 #                            MAIN
 # =============================================================
 
+# Ubuntu 11.x workaround:
+if are_we_in_debian_or_derived; then
+  if [[ $USING_GODI = no ]] && are_we_in_ubuntu_11_or_greater ; then
+    echo "* Warning: some OCaml/Ubuntu (>= 11.x) combinations may require the option -g"
+    echo -n "  Shall I do as if you chose -g (compile OCaml with Godi) ([y]/n)? "; read z
+    if [[ $z != n && $z != N ]]; then
+        USING_GODI="yes"
+        REQUIRED_MB=380
+    fi
+  fi
+fi
+
 PATH_BACKUP=$PATH
 cd "$TMPDIR"
 
@@ -751,7 +783,7 @@ REPODIR=$(realpath $REPODIR)
 # echo -e "Working directory \r\t\t\t: $REPODIR"
 cd $REPODIR
 LOGFILE=$REPODIR/log
-echo -e "The log file is $LOGFILE"
+echo -e "* The log file is $LOGFILE"
 
 # Redirect stderr to the log file:
 exec 2>>$LOGFILE

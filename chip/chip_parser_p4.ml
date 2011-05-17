@@ -1,6 +1,7 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2009  Jean-Vincent Loddo
    Copyright (C) 2009  Université Paris 13
+   Applied an OCaml 3.12 compatibility patch by Clément Démoulins in 2011
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -49,7 +50,7 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
   let lambda_class_expr _loc xs body = List.fold_right (fun x b -> <:class_expr< fun $x$ -> $b$>>) xs body
 
   (* Make a multiple abstraction to a type. *)
-  let lambda_ctyp _loc xs body = List.fold_right (fun x b -> <:ctyp< $x$ -> $b$>>) xs body
+  let lambda_ctyp _loc xs body = List.fold_right (fun x b -> <:ctyp< ($x$ -> $b$)>>) xs body
 
   (* Make a fresh identifier (string). *)
   let fresh_var_name ~blacklist ~prefix =
@@ -243,18 +244,18 @@ module Make (Syntax : Sig.Camlp4Syntax) = struct
            | [] , [] -> assert false
            |  _ , [] ->
 	      let i_forall_vars = List.fold_left (fun x y -> Ast.TyApp (_loc,x,y)) (List.hd qivl) (List.tl qivl) in
-	      let method_type = Ast.TyPol (_loc, i_forall_vars, <:ctyp< $it$ -> unit>>) in
+	      let method_type = Ast.TyPol (_loc, i_forall_vars, <:ctyp< ($it$ -> unit)>>) in
 	      [ <:class_str_item< method connect : $method_type$ = function $pi$ -> begin $connect_actions$ end >> ]
 
 	   | [] , _  ->
 	      let o_forall_vars = List.fold_left (fun x y -> Ast.TyApp (_loc,x,y)) (List.hd qovl) (List.tl qovl) in
-	      let method_type = Ast.TyPol (_loc, o_forall_vars, <:ctyp< $ot$ -> unit>>) in
+	      let method_type = Ast.TyPol (_loc, o_forall_vars, <:ctyp< ($ot$ -> unit)>>) in
 	      [ <:class_str_item< method connect : $method_type$ = function $po$ -> begin $connect_actions$ end >> ]
 
 	   |  _ , _  ->
 	      let qvl = List.append qivl qovl in
 	      let forall_vars = List.fold_left (fun x y -> Ast.TyApp (_loc,x,y)) (List.hd qvl) (List.tl qvl) in
-	      let method_type = Ast.TyPol (_loc, forall_vars, <:ctyp< $it$ -> $ot$ -> unit>>) in
+	      let method_type = Ast.TyPol (_loc, forall_vars, <:ctyp< ($it$ -> $ot$ -> unit)>>) in
 	      [ <:class_str_item< method connect : $method_type$ = function $pi$ -> function $po$ -> begin $connect_actions$ end >> ]
           in
 

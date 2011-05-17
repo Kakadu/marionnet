@@ -40,10 +40,18 @@
 libraryprefix=`ocamlc -where || exit -1`
 #libraryprefix=/mystrangepath
 
-# This may be useful for distributions of linux that do not have ocaml sources
-# OCAML sources:
-#ocaml_sources=/home/butelle/TestPrograms/marionnet/ocaml-3.11.0/byterun
+# This should be defines as the absolute path to a directory containing
+# the already configured OCaml source; in alternative, is your GNU/Linux
+# distribution packages OCaml headers (debian and its offspring install
+# headers in /usr/include/caml), you can set this to the full path of
+# the directory containing OCaml headers.  
+#
+# This definition is appropriate for debian-like distributions:
 ocaml_sources=/usr/include/caml
+#
+# This is reasonable if you have downloaded and configured the OCaml
+# sources yourself, somewhere:
+# ocaml_sources=/home/luca/projects-by-others/ocaml-3.12.0
 
 # Installation prefix, for example /usr or /usr/local
 # *No* trailing slash should be included.

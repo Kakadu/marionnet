@@ -236,7 +236,7 @@ let add_help_button_if_necessary window = function
 module Ok_callback = struct
 
 let check_name name old_name name_exists t =
-  if not (StrExtra.wellFormedName name)
+  if not (StrExtra.Class.identifierp name)
   then begin
     Simple_dialogs.error
       (s_ "Ill-formed name" )

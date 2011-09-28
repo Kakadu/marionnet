@@ -309,7 +309,7 @@ object(self)
       ~constraint_predicate:
 	  (fun s ->
 	    (String.length s > 0) &&
-	    (StrExtra.wellFormedName ~allow_dash:true s))
+	    (StrExtra.Class.identifierp ~allow_dash:() s))
       ~invalid_text_message:(s_ "The name must begin with a letter and can contain letters, numbers, dashes and underscores.")
       ~enable_cancel:true
       ~ok_callback:(fun variant_name ->

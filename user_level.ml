@@ -618,10 +618,10 @@ let generator = Counter.make_int_generator ();;
 class id_name_label = fun ?(name="noname") ?(label="") () ->
 
   (* Some checks over used name and label *)
-  let wellFormedLabel x = not (StrExtra.Bool.match_string ".*[><].*" x) in
+  let wellFormedLabel x = not (StrExtra.First.matchingp (Str.regexp ".*[><].*") x) in
 
   let check_name  x =
-  	if not (StrExtra.wellFormedName  x)
+  	if not (StrExtra.Class.identifierp x)
        	then failwith ("Setting component "^name^": invalid name")
         else x in
 

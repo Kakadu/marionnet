@@ -68,7 +68,7 @@ _build/chip/chip_parser_p4.cmo: chip/chip_parser_p4.ml
 _build/chip/chip_example_expanded.ml : chip/chip_example.ml _build/chip/chip_parser_p4.cmo
 	@camlp4of -I _build/chip/ -printer Camlp4OCamlRevisedPrinter chip_parser_p4.cmo -o $@ $<
 
-CHIP_CMDLINE=-custom -I _build/chip/ -I _build/gettext/ -I +threads unix.cma threads.cma \
+CHIP_CMDLINE=-custom -I _build/chip/ -I _build/gettext/ -I +threads unix.cma threads.cma str.cma \
   -I +ocamlbricks ocamlbricks.cma meta.cmo log.cmo configuration.cmo initialization.cmo global_options.cmo chip.cmo
 
 _build/chip/chip_example_expanded.byte : _build/chip/chip_example_expanded.ml

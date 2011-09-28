@@ -27,7 +27,7 @@ let text_title =
 ;;
 
 let user_intelligible_version, released =
- match StrExtra.Bool.match_string "^[0-9]+[.][0-9]+[.][0-9]+$" Version.version with
+ match StrExtra.First.matchingp (Str.regexp "^[0-9]+[.][0-9]+[.][0-9]+$") Version.version with
  | true  ->
      (* it's a released version *)
      (Version.version, true)

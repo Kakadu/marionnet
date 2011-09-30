@@ -429,8 +429,8 @@ class virtual cable_dot_zone ?(reversed=false) ~(motherboard:Motherboard.t) () =
       | _ , "" -> (","^iden^"=\""^port^"\"")
       | _ , _  ->
           begin
-          let port_line      = (StringExtra.assemble "<TR><TD>" port "</TD></TR>") in
-          let portlabel_line = (StringExtra.assemble "<TR><TD><FONT COLOR=\"#3a3936\">" portlabel "</FONT></TD></TR>") in
+          let port_line      = (StringExtra.assemble_if_not_empty ~prefix:"<TR><TD>" ~suffix:"</TD></TR>" port ) in
+          let portlabel_line = (StringExtra.assemble_if_not_empty ~prefix:"<TR><TD><FONT COLOR=\"#3a3936\">" ~suffix:"</FONT></TD></TR>" portlabel) in
 (","^iden^"=<
 <TABLE BORDER=\"0\" CELLBORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\">
 "^port_line^"

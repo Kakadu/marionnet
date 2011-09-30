@@ -1662,13 +1662,13 @@ class network () =
    Log.printf "========== NETWORK STATUS ===========\n";
    (* show devices *)
    let msg= try
-        (StringExtra.Fold.commacat
+        (String.concat " , "
         (List.map (fun d->d#get_name^" ("^(d#string_of_devkind)^")") devices))
         with _ -> ""
    in Log.printf "Nodes \r\t\t: %s\n" msg;
   (* show links *)
    let msg=try
-        (StringExtra.Fold.newlinecat (List.map (fun c->(c#show "\r\t\t  ")) cables))
+        (String.concat "\n" (List.map (fun c->(c#show "\r\t\t  ")) cables))
         with _ -> ""
    in Log.printf "Cables \r\t\t: %s\n" msg
 

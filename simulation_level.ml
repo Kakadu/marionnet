@@ -82,7 +82,7 @@ fun program
       (Some _) ->
         raise (ProcessIsntInTheRightState "spawn")
     | None ->
-        let cmdline = StringExtra.Fold.blankcat (program::arguments) in
+        let cmdline = String.concat " " (program::arguments) in
         let basename = Filename.basename program in
         Log.printf "process#spawn: the command line for %s is:\n---\n%s\n---\n"
           basename

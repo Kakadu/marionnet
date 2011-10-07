@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.8
+# Script version: 0.90.9
 # 2011.10.07
 
 set -e
@@ -608,11 +608,13 @@ return 1
 #                        DOWNLOADS
 # =============================================================
 
+# We look first at our mirror because the new versions of godi
+# use ocaml 3.12
 function download_latest_godi {
   local VERSION="${GODI_OCAML_VERSION:-20[0-9]*}"
   download_latest_tar_gz -v "$VERSION" godi-rocketboost \
-    "http://download.camlcity.org/download/" \
-    $OUR_MIRROR
+    $OUR_MIRROR \
+    "http://download.camlcity.org/download/"
 }
 
 # Marionnet 0.90.2 has a problem with 3.12.0 (camlp4)
@@ -857,7 +859,7 @@ fi
   make -C tools/ objinfo &&
   [[ -e $OCAML_PREFIX/bin/ocamlobjinfo ]] || {
     cp tools/objinfo $OCAML_PREFIX/bin/ &&
-    ln -s objinfo $OCAML_PREFIX/bin/ocamlobjinfo
+    [[ -e $OCAML_PREFIX/bin/ocamlobjinfo ]] || ln -s objinfo $OCAML_PREFIX/bin/ocamlobjinfo
     }
   } || return 1
 cd ..
@@ -883,7 +885,7 @@ export PATH=$GODI_PREFIX/bin:$GODI_PREFIX/sbin:$PATH
 echo "GODI_BASEPKG_PCRE=yes" >> $GODI_PREFIX/etc/godi.conf
 { ./bootstrap_stage2 1>&2 &&
   godi_perform -build godi-lablgtk2  1>&2 &&
-  ln -s objinfo ../godi/bin/ocamlobjinfo
+  [[ -e ../godi/bin/ocamlobjinfo ]] || ln -s objinfo ../godi/bin/ocamlobjinfo
   } || return 1
 cd ..
 }

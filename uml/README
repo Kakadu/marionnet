@@ -1,0 +1,12 @@
+This directory contains UML kernel patches (mostly for
+ghostofication), kernel .config files, and userland utilities (again,
+mostly for ghostification).
+
+Our repositories do *not* contain copies of Linux, since the kernel
+is huge and we only need tiny modifications.
+
+All of this makes easy to create UML kernels usable with Marionnet.
+
+
+This part of the work has been performed by Jonathan Roudiere and Luca
+Saiu.

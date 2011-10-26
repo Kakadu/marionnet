@@ -1,0 +1,275 @@
+# Written by Jonathan Roudiere in 2009.
+# To do: add copyright notice.
+# To do: update
+
+	Informations about Ghostification support
+	=========================================
+
+
+	1. Authors
+	2. Ghostification support
+	3. What ghostification means
+	4. User interface
+	5. Limitations
+	6. Implementation
+	7. Implementation rationale
+	8. Contact information
+	9. License
+
+
+1. Authors
+==========
+
+	Copyright (C) 2007 Luca Saiu (original author)
+	Copyright (C) 2009 Jonathan Roudiere
+
+	This patch is released under the GNU General Public 
+	License v2 or any later version published by the Free
+	Software Foundation, Inc.
+
+	See the added comments in the patch for information about 
+	who wrote what.
+
+
+2. Ghostification support
+=========================
+
+This project consists in a small kernel patch allowing the user
+to "ghostify" one or several network interfaces.
+
+This patch was originally developed for kernel 2.6.18, is now 
+available for the following kernel versions : 2.6.26, 2.6.27,
+2.6.28, 2.6.29, 2.6.30, 2.6.31 (soon 2.6.32).
+
+
+3. What ghostification means
+============================
+
+A network interface in "ghostified" state continues to operate as
+usual and can be normally employed by user applications for
+communication. Sockets can be opened and closed and packets are
+normally sent, received and routed.
+
+However a ghostified interface is different from a non-ghostified
+network interface in the following respects:
+
+* Its presence can not be *detected* by user processes: kernel ioctl's
+  don't report the interface presence, and when they receive its name
+  as parameter they fail as if the interface didn't exist, with -ENODEV.
+  The /proc virtual filesystem doesn't contain references to its name.
+
+* Its configuration can't be *queried* by user processes: the kernel
+  answers with an error when receiving any configuration query ioctl.
+  Routes involving a ghostified interface are not shown to user
+  processes, although they continue to be normally followed by the
+  kernel.
+
+* Its configuration can't be *changed* by user processes: the network
+  interface can't be disabled if currently enabled, or vice-versa. Its
+  address (at all levels, from network down to hardware) can't be
+  changed. Routes involving it cannot be added or removed.
+
+* Its configuration can't be *queried* or *changed* by user processes
+  using the kernel netlink interface, so tools as iproute2 cann't 
+  obtain more information than ifconfig, route, etc (tools using ioctl
+  request).
+
+* Packets received or emited by a ghostified interface cann't be catch
+  through Netfilter (iptables). All Netfilter's hooks are skiped (ARP,
+  Bridge, IPv4, IPv6 and Decnet).
+
+* Packets received by a ghostified interface are never copied to
+  AF_PACKET sockets, so that user-level sniffers don't see any
+  traffic when reading from a generic AF_PACKET socket associated to
+  "all" network interfaces.
+
+* A ghostified interface can be "unghostified" (see below), after
+  which its state reverts to normal.
+
+The implementation has been heavily tested only on Ethernet, loopback,
+bridge, TUN/TAP devices and dummy interface (and most of virtual interfaces)
+but is expected to work on any other kind of network interface.
+
+The code is architecture-idependent, SMP-safe and also works in User
+Mode Linux.
+
+
+4. User interface
+=================
+
+A normal network interface can be ghostified and a ghostified one can
+be "unghostified" with the new SIOCGIFGHOSTIFY and SIOCGIFUNGHOSTIFY
+ioctls.
+
+Both take the interface name as parameter and return 0 on success 
+or a negative error code on failure, according to ioctl conventions 
+(see file ghost_kernel_errors.txt for exact return error code for
+each case). On ghostification and unghostification some lines are 
+written to the system log (only if messages are actived at build 
+time), explaining what happened in an understandable way and listing
+the currently ghostified network interfaces.
+
+Configuration of the Ghostification can be done or adapted by using
+usual interface to configure the Linux Kernel (make *config); the
+maximum number of ghostified interface can be changed, the verbosity
+of messages which are displayed by the ghosfication engine (many or
+no messages) and the Netfilter support for the ghostification can be
+enabled or disabled for each hook level (IPv4, IPv6, ARP, Bridge and
+Decnet).
+
+A simple user-level program called "ghost2" is provided for convenience:
+it take the interface name and an option which specify if user wish
+to ghostify or unghostify the network interface (two little scripts
+called "ghostify" and "unghostify" are provided to keep compatibility
+with old versions).
+
+
+5. Limitations
+==============
+
+The current implementation imposes a fixed limit to the number of network
+interface which can be in ghostified state in any given moment. The limit
+is currently set to 9, but can be trivially raised by modifying the config
+of the kernel at build time (through make *config, under -> Networking ->
+Networking support -> Ghostification support).
+
+The implementation was tested on a network using IPv4 and IPv6. Some
+operations in more exoteric protocols might not be correctly filtered,
+and in particular the interface name could show up somewhere under
+/proc if such protocols were employed. In fact, some informations are
+available under /sys and /proc virtual filesystems. 
+
+If iproute is used (or any tools using the Netlink interface of the Kernel)
+then user can notice that the index number of interfaces which are displayed
+are no contiguous.
+
+
+6. Implementation
+=================
+
+The implementation is failry simple and unobtrusive. Its bulk resides in 
+net/core/dev.c, where a simple fixed-length array of fixed-length strings
+is defined, ghost_interface_names. Such structure is static and always
+accessed from the outside via is_a_ghost_interface_name() -- which makes
+changing the implementation fairly easy, should it ever be needed.
+
+Structure updates are performed only from within net/core/dev.c, which
+also contains what essentially is the full implementation of the new
+ioctls in ghostify_interface() and unghostify_interface(). Their common
+table lookup functionality is implemented in __lookup_ghost_interface_names().
+Such functions (and their unlocked counterparts, where appliable)
+are of course all static.
+
+The data structure initialization is performed in netdev_boot_setup(),
+in net/core/dev.c .
+
+Critical sections are implemented with a spinlock (ghost_interface_spin_lock),
+and the only exported function, is_a_ghost_interface_name(), is reentrant.
+
+The behaviour of several ioctls has been modified according to the 
+specification above, including all SIOCxIFxxx calls (see net/core/dev.c),
+and SIOCDELRT and SIOCADDRT (see net/ipv4/fib_frontend.c, 
+net/ipv4/fib_trie.c, net/ipv4/fib_hash.c, net/ipv6/route.c).
+
+Many modifications just consist in the addition of a call to
+is_a_ghost_interface_name() within a conditional, making an
+operation fail when a ghostified interface is involved. Such updates
+pertain to many files under net/ . Similar modifications have the
+purpose of "filtering out" some lines displayed in files under /proc/ .
+
+A slightly more involved modification consists in making a file under
+/proc/net/dev_snmp6/ appear or disapper at ghostification or
+unghostification time. The implementation is in net/ipv6/addrconf.c
+and net/ipv6/proc.c .
+
+Sockets with address format AF_PACKET are dealt with in
+net/packet/af_packet.c . Modifications just consist in selective
+packet dropping, even if in several distinct cases. Multicast and
+memory-mapped devices are explicitly supported.
+
+Netfilter ghostification support is performed with a simple test
+in order to know if a network packet comes from or goes through a
+ghostified interface. It is possible to skip all Netfilter's hooks
+or just select some hooks in particular (skip not all but just some
+hooks may be incredibly inefficient and it is not recommended to 
+use this method).
+
+The userspace utility ghost2 just uses ioctl request to do its work,
+it is a little and very stupid tool.
+
+For more informations see the following sources files, patch
+modify the following :
+
+        include/linux/netdevice.h
+        include/linux/sockios.h
+        include/net/ghostdebug.h
+        kernel/softirq.c
+        net/Kconfig
+        net/core/dev.c
+        net/core/dev_mcast.c
+        net/core/rtnetlink.c
+        net/ipv4/arp.c
+        net/ipv4/devinet.c
+        net/ipv4/fib_frontend.c
+        net/ipv4/fib_hash.c
+        net/ipv4/fib_semantics.c
+        net/ipv4/fib_trie.c
+        net/ipv4/igmp.c
+        net/ipv4/route.c
+        net/ipv6/Kconfig
+        net/ipv6/addrconf.c
+        net/ipv6/ip6_fib.c
+        net/ipv6/mcast.c
+        net/ipv6/proc.c
+        net/ipv6/route.c
+        net/netfilter/core.c
+        net/packet/af_packet.c
+
+
+7. Implementation rationale
+===========================
+
+The cleanest, most straightforward and also most efficient way of
+keeping track of which interface is currently ghostified would
+have been adding a new field to struct net_device, defined in
+include/linux/netdevice.h .
+
+Unfortunately such structure is exported to the user level, and even
+just appending a field to its end would have changed its size, breaking
+binary compatibility with user applications.
+
+We decided to fall back to a less efficient solution, which shouldn't
+however cause perceivable slowdowns because of the extremely small
+size of our fixed table.
+Even using a hash table would have probably been overkill for such a
+small structure, and could actually have resulted in higher access
+time.
+
+is_a_ghost_interface_name() has constant complexity, consisting (in the
+worst case) in MAX_GHOST_INTERFACES_NO string comparisons where all
+strings have size less than IFNAMSIZ (currently defined as 16 in in
+include/linux/if.h).
+
+Using a unique index (such as the ifindex field of struct net_device)
+instead of the interface name would have probably been less efficient,
+as many kernel structures and interfaces work with interface names
+expressed as strings.
+
+
+8. Contact information
+======================
+
+For any bug report or comment, the author is reachable 
+at the address :
+
+	- <marionnet-dev@marionnet.org> (mailing list)
+ 	- <roudiere@lipn.univ-paris13.fr>
+ 	- <luca.saiu@lipn.univ-paris13.fr>
+
+
+9. License
+==========
+
+This patch and the ghost2 user tool are released under the GNU GPL 
+v2 or later.
+

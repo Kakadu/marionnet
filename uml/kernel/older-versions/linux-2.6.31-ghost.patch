@@ -1,0 +1,2972 @@
+diff -rNuad linux-2.6.31/include/linux/netdevice.h linux-2.6.31-ghost/include/linux/netdevice.h
+--- linux-2.6.31/include/linux/netdevice.h	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/include/linux/netdevice.h	2009-11-26 22:58:23.000000000 +0000
+@@ -14,6 +14,8 @@
+  *		Alan Cox, <alan@lxorguk.ukuu.org.uk>
+  *		Bjorn Ekwall. <bj0rn@blox.se>
+  *              Pekka Riikonen <priikone@poseidon.pspt.fi>
++ *              Luca Saiu <positron@gnu.org> (trivial changes for
++ *              ghostification support)
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -2001,4 +2003,12 @@
+ }
+ #endif /* __KERNEL__ */
+ 
++/*
++ * (ghost support) Just check whether the given name 
++ * belongs to the ghost interface
++ */
++#ifdef CONFIG_GHOSTIFICATION
++int is_a_ghost_interface_name(const char *interface_name);
++#endif /* CONFIG_GHOSTIFICATION */
++
+ #endif	/* _LINUX_NETDEVICE_H */
+diff -rNuad linux-2.6.31/include/linux/sockios.h linux-2.6.31-ghost/include/linux/sockios.h
+--- linux-2.6.31/include/linux/sockios.h	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/include/linux/sockios.h	2009-11-26 22:58:23.000000000 +0000
+@@ -9,6 +9,8 @@
+  *
+  * Authors:	Ross Biro
+  *		Fred N. van Kempen, <waltje@uWalt.NL.Mugnet.ORG>
++ *		Luca Saiu <positron@gnu.org> (trivial changes for
++ *		ghostification support)
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -83,6 +85,13 @@
+ 
+ #define SIOCWANDEV	0x894A		/* get/set netdev parameters	*/
+ 
++/* (ghost support) ghostification's ioctl */
++#ifdef CONFIG_GHOSTIFICATION
++#define SIOKLOG		0x894D		/* Write a string to the log	 */
++#define SIOCGIFGHOSTIFY	0x894E		/* Make a network device 'ghost' */
++#define SIOCGIFUNGHOSTIFY	0x894F	/* Make a network device 'ghost' */
++#endif /* CONFIG_GHOSTIFICATION */
++
+ /* ARP cache control calls. */
+ 		    /*  0x8950 - 0x8952  * obsolete calls, don't re-use */
+ #define SIOCDARP	0x8953		/* delete ARP table entry	*/
+diff -rNuad linux-2.6.31/include/net/ghostdebug.h linux-2.6.31-ghost/include/net/ghostdebug.h
+--- linux-2.6.31/include/net/ghostdebug.h	1970-01-01 00:00:00.000000000 +0000
++++ linux-2.6.31-ghost/include/net/ghostdebug.h	2009-11-26 22:58:23.000000000 +0000
+@@ -0,0 +1,93 @@
++/*
++ * Ghost support:
++ *		Some trivials macros for display messages, trace ghost ops,
++ *		debug and devel the ghostification kernel patch. 
++ *
++ * Authors:	Roudiere Jonathan, <roudiere@lipn.univ-paris13.fr>
++ *
++ *		This program is free software; you can redistribute it and/or
++ *		modify it under the terms of the GNU General Public License
++ *		as published by the Free Software Foundation; either version
++ *		2 of the License, or (at your option) any later version.
++ */
++
++#ifndef __GHOSTDEBUG__
++#define __GHOSTDEBUG__
++
++#ifdef CONFIG_GHOSTIFICATION
++
++/*
++ * Ghost macros: there are three type of macros for three kind of 
++ * information level :
++ *
++ * - the first one is ghost_ptk, that is a simple printk with the 
++ *   KERN_INFO log level, it is the standard type of display used
++ *   by the  ghostification kernel code to allow user to monitor
++ *   ghost operations, if GHOSTIFICATION_PRINTK is not defined then
++ *   user will not any information about the ghostified interfaces
++ *   and the ghost engine (almost any infos ;-)),
++ *
++ * - ghost_debug and ghost_debugmsg are respectively used to show a
++ *   calling card in a part of the code (function, files) and to show
++ *   in plus informations additional (variable, etc ..), these two macros
++ *   display messages with the level KERNEL_DEBUG, 
++ *
++ * - ghost_devel and ghost_develmsg are very similar (redundant)
++ *   in both previous ones, they are mainly used for the development
++ *   of the patch to follow the stream of execution, activate 
++ *   GHOSTIFICATION_DEVEL has interest only for developers.
++ *
++*/
++
++/*
++ * Macro usable to debug during normal usage of the kernel.
++*/
++#ifdef CONFIG_GHOSTIFICATION_DEBUG
++#define ghost_debug \
++	printk(KERN_DEBUG \
++		"(ghost_debug): file(%s): funct(%s): line(%04d): -- info debug -- \n", \
++		__FILE__, __FUNCTION__, __LINE__)
++#define ghost_debugmsg(msg,args...) \
++	printk(KERN_DEBUG \
++		"(ghost_debug): file(%s): funct(%s): line(%04d): " msg "\n", \
++		__FILE__, __FUNCTION__, __LINE__, ##args)
++#else
++#define ghost_debug
++#define ghost_debugmsg(msg,args...)
++#endif
++
++/*
++ * A little bit redundant with the macro ghost_debug/debugmsg
++ * but allows a difference in the use, they are not used for the
++ * debugging, but to verify roads borrowed during the development.
++ * (note: certainly remove at next release of the patch)
++*/
++#ifdef CONFIG_GHOSTIFICATION_DEVEL
++#define ghost_devel \
++	printk(KERN_DEBUG \
++		"(ghost_devel): file(%s): funct(%s): line(%04d): -- info devel -- \n", \
++		__FILE__, __FUNCTION__, __LINE__)
++#define ghost_develmsg(msg,args...) \
++	printk(KERN_DEBUG \
++		"(ghost_devel): file(%s): funct(%s): line(%04d): " msg "\n", \
++		__FILE__, __FUNCTION__, __LINE__, ##args)
++#else
++#define ghost_devel
++#define ghost_develmsg(msg,args...)
++#endif
++
++/*
++ * Macro to display all message from chunk of code which has
++ * ghostification in charge (use macro to add debug level later).
++*/
++#ifdef CONFIG_GHOSTIFICATION_PRINTK
++#define ghost_ptk(msg,args...) \
++	printk(KERN_DEBUG \
++		"(ghost) " msg "\n", ##args)
++#else
++#define ghost_ptk(msg,args...)
++#endif
++
++#endif /* CONFIG_GHOSTIFICATION */
++
++#endif /* __GHOSTDEBUG__ */
+diff -rNuad linux-2.6.31/kernel/softirq.c linux-2.6.31-ghost/kernel/softirq.c
+--- linux-2.6.31/kernel/softirq.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/kernel/softirq.c	2009-11-26 22:58:23.000000000 +0000
+@@ -128,8 +128,11 @@
+  */
+ void _local_bh_enable(void)
+ {
++/* (ghost support) we don't want disturbe user's console */
++#ifndef CONFIG_GHOSTIFICATION
+ 	WARN_ON_ONCE(in_irq());
+ 	WARN_ON_ONCE(!irqs_disabled());
++#endif
+ 
+ 	if (softirq_count() == SOFTIRQ_OFFSET)
+ 		trace_softirqs_on((unsigned long)__builtin_return_address(0));
+@@ -140,7 +143,10 @@
+ 
+ static inline void _local_bh_enable_ip(unsigned long ip)
+ {
++/* (ghost support) we don't want disturbe user's console */
++#ifndef CONFIG_GHOSTIFICATION
+ 	WARN_ON_ONCE(in_irq() || irqs_disabled());
++#endif
+ #ifdef CONFIG_TRACE_IRQFLAGS
+ 	local_irq_disable();
+ #endif
+diff -rNuad linux-2.6.31/net/Kconfig linux-2.6.31-ghost/net/Kconfig
+--- linux-2.6.31/net/Kconfig	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/Kconfig	2009-11-26 22:58:23.000000000 +0000
+@@ -159,6 +159,105 @@
+ source "net/decnet/netfilter/Kconfig"
+ source "net/bridge/netfilter/Kconfig"
+ 
++config GHOSTIFICATION_NETFILTER
++	bool "Ghostification support to netfilter"
++	depends on GHOSTIFICATION && NETFILTER_ADVANCED
++	default	y
++	help
++	  Ghostification support to Netfilter. Allow to bypass all
++	  Netfilter's hooks (INPUT, OUTPUT, FORWARD, POSTROUTING and 
++	  PREROUTING (when available)) and that for all layer or protocol:
++	  ARP, Bridge, IPv4, IPv6 (and Decnet) or just for one protocol
++	  or layer.
++	  If you choose to activate the Ghostification of Netfilter then
++	  all the network packets which come from, or go to an ghostified
++	  interface will not get through the hooks of Netfilter; so rules
++	  which have been created with Iptables, Ip6tables, Arptables or
++	  Ebtables will have no effect on these packets.
++	  Note: This option allows you to have access to the options of
++	  configuration of the Ghostification of Netfilter but it activates
++	  no section of code; you will thus need to select one or some 
++	  among those this below.
++
++config GHOSTIFICATION_NETFILTER_ALL
++        bool "Ghostification support to netfilter, skip all hooks"
++        depends on GHOSTIFICATION_NETFILTER 
++        default y
++	help
++	  Netfiter Ghostification support for all protocols/layers.
++	  If you activate this option then all network packets which
++	  come from, or go to a ghostified interface will bypass 
++	  Netfilter's hooks; thus any actions or rules which have been
++	  created through Iptables, Ip6tables, Arptables or Ebtables
++	  will not have any effect on this packets.
++
++config GHOSTIFICATION_NETFILTER_ARP
++        bool "Ghostification support to netfilter, skip ARP hooks"
++        depends on GHOSTIFICATION_NETFILTER && IP_NF_ARPTABLES
++        depends on !GHOSTIFICATION_NETFILTER_ALL
++	help
++	  Netfiter ghostification support for the ARP protocol/layer.
++	  If you activate this option then all network packets which
++	  come from, or go to a ghostified interface will bypass Arp
++	  hooks of Netfilter; thus the rules which have been created
++	  with the Arptables tool will not have any effect on them.
++	  If you activate Netfilter Ghostification for this protocol/layer
++	  then you will lose the capability that network packets bypass
++	  Decnet's hooks of Netfilter.
++	  If you are unsure how to answer this question when you have 
++	  decided to use ghostification then answer N and use instead 
++	  GHOSTIFICATION_NETFILTER_ALL above. 
++ 
++config GHOSTIFICATION_NETFILTER_BRIDGE
++        bool "Ghostification support to netfilter, skip Bridge hooks"
++        depends on GHOSTIFICATION_NETFILTER && BRIDGE_NF_EBTABLES
++        depends on !GHOSTIFICATION_NETFILTER_ALL
++	help
++	  Netfiter ghostification support for the Bridge protocol/layer.
++	  If you activate this option then all network packets which
++	  come from, or go to a ghostified interface will bypass Bridge
++	  hooks of Netfilter; thus the rules which have been created
++	  with the Ebtables tool will not have any effect on them.
++	  If you activate Netfilter Ghostification for this protocol/layer
++	  then you will lose the capability that network packets bypass
++	  Decnet's hooks of Netfilter.
++	  If you are unsure how to answer this question when you have 
++	  decided to use ghostification then answer N and use instead 
++	  GHOSTIFICATION_NETFILTER_ALL above. 
++ 
++config GHOSTIFICATION_NETFILTER_IPV4
++        bool "Ghostification support to netfilter, skip IPv4 hooks"
++        depends on GHOSTIFICATION_NETFILTER && !GHOSTIFICATION_NETFILTER_ALL
++	help
++	  Netfiter ghostification support for the IPv4 protocol/layer.
++	  If you activate this option then all network packets which
++	  come from, or go to a ghostified interface will bypass IPv4
++	  hooks of Netfilter; thus the rules which have been created
++	  with the Iptables tool will not have any effect on them.
++	  If you activate Netfilter Ghostification for this protocol/layer
++	  then you will lose the capability that network packets bypass
++	  Decnet's hooks of Netfilter.
++	  If you are unsure how to answer this question when you have 
++	  decided to use ghostification then answer N and use instead 
++	  GHOSTIFICATION_NETFILTER_ALL above. 
++ 
++config GHOSTIFICATION_NETFILTER_IPV6
++        bool "Ghostification support to netfilter, skip IPv6 hooks"
++        depends on GHOSTIFICATION_NETFILTER && IP6_NF_IPTABLES
++        depends on !GHOSTIFICATION_NETFILTER_ALL
++	help
++	  Netfiter ghostification support for the IPv6 protocol/layer.
++	  If you activate this option then all network packets which
++	  come from, or go to a ghostified interface will bypass IPv6
++	  hooks of Netfilter; thus the rules which have been created
++	  with the Ip6tables tool will not have any effect on them.
++	  If you activate Netfilter Ghostification for this protocol/layer
++	  then you will lose the capability that network packets bypass
++	  Decnet's hooks of Netfilter.
++	  If you are unsure how to answer this question when you have 
++	  decided to use ghostification then answer N and use instead 
++	  GHOSTIFICATION_NETFILTER_ALL above. 
++ 
+ endif
+ 
+ source "net/dccp/Kconfig"
+@@ -256,4 +355,93 @@
+ source "net/rfkill/Kconfig"
+ source "net/9p/Kconfig"
+ 
++config GHOSTIFICATION
++        bool "Ghostification support"
++        depends on INET
++        default y
++	help
++	  Ghostification support allow you to hide network interfaces
++	  on your system. Ghostify and Unghostify are the actions which
++	  make dynamically invisible and visible a network interface/cards
++	  (eth0, lo, tun, ...) for the userspace.
++	  When a network interface is ghostified, users of your system
++	  can not see it with userspace tools like ifconfig, route, iproute, 
++	  netstat and/or have statistics about it. However even if a network
++	  interface is ghostified it is always possible to open a socket 
++	  using the Ip address of this interface, ping this interface or 
++	  any host connected to the same network remains possible; has the 
++	  opposite, it is not possible to sniff packets on a ghostified 
++	  interface with userspace tools like tcpdump, wireshark, ...
++	  Informations about a ghostified interface are hidden under /proc 
++	  but they can be find under /sys, it is a limit of the ghostification
++	  patch.
++	  For more informations about Ghostification patch and engine see
++	  the README of the tarball that you have used or go to website of
++	  the Marionnet project at <http://www.marionnet.org>.
++	
++
++config GHOSTIFICATION_NUM
++        int "Ghostification support : max number of possible ghostified interface"
++        depends on GHOSTIFICATION
++        range 4 32
++        default 8
++	help
++	  Here you can choose the number of network interfaces that
++	  you will be allowed to ghostify. This number must be between
++	  4 and 32.
++
++config GHOSTIFICATION_MESG
++	bool "Ghostification messages, display, debug and devel"
++	depends on GHOSTIFICATION
++	default y
++	help
++	  Ghostification messages configuration. This option allow
++	  you to have acces to the options which configure and control
++	  the type of messages that you want the ghostification engine
++	  diplay (visible through syslogd). 
++	  There are three options which make more or less verbose the
++	  ghostification engine. You can choose to not select any
++	  options below if you want to try to hide the ghostification
++	  operations for the users of your system.
++	  Note: This option allows you to have access to the options
++	  which control the number of messages and the verbosity of 
++	  the Ghostification engine but it activates no section of
++	  code; you will thus need to select one or some among those 
++	  this below.
++
++config GHOSTIFICATION_PRINTK
++	bool "Ghostification, messages to monitor ghost operations"
++	depends on GHOSTIFICATION_MESG
++	default y
++	help
++	  This option allow you to activate normal messsages from the
++	  ghostification engine, those messages are display through a 
++	  simple printk (visible through syslogd), this messages allow
++	  to have informations about the ghost operations (like "the 
++	  interface ethX has been ghostified", "unghostified", "is already
++	  ghostified", etc ...). If you really wish to hide ghostified 
++	  interfaces and ghost operations for the users of your system
++	  don't select this option.
++
++config GHOSTIFICATION_DEBUG
++	bool "Ghostification, debugging messages to monitor ghost operations"
++	depends on GHOSTIFICATION_MESG
++	help
++	  This option increase the verbosity of the ghostification engine,
++	  allow to get more informations in order to debug the ghost ops.
++	  This option is in general used to verify the result of a test or
++	  to display the datas (interface name, pid of a calling process, ...)
++	  which are treated by the ghost engine.
++
++config GHOSTIFICATION_DEVEL
++	bool "Ghostification, helping messages to trace ghost operations (devel)"
++	depends on GHOSTIFICATION_MESG
++	help
++	  This option give more informations that the option above, it is use
++	  by developer of the ghostification patch in order to control some
++	  paths used in the kernel code and the datas which are manipulated.
++	  This option is a little redundant with the debug option but allow
++	  to have a better granularity, maybe it will be remove for the next
++	  release of the ghostification patch.
++
+ endif   # if NET
+diff -rNuad linux-2.6.31/net/core/dev.c linux-2.6.31-ghost/net/core/dev.c
+--- linux-2.6.31/net/core/dev.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/core/dev.c	2009-11-26 22:58:23.000000000 +0000
+@@ -18,6 +18,7 @@
+  *		Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
+  *		Adam Sulmicki <adam@cfar.umd.edu>
+  *              Pekka Riikonen <priikone@poesidon.pspt.fi>
++ *		Luca Saiu <positron@gnu.org> (ghostification support)
+  *
+  *	Changes:
+  *              D.J. Barrow     :       Fixed bug where dev->refcnt gets set
+@@ -70,6 +71,8 @@
+  *              			indefinitely on dev->refcnt
+  * 		J Hadi Salim	:	- Backlog queue sampling
+  *				        - netif_rx() feedback
++ *	     Roudiere Jonathan 	:	make some buxfix in ghostification engine
++ *					verify CAP_NET_ADMIN before (un)ghost iface
+  */
+ 
+ #include <asm/uaccess.h>
+@@ -137,6 +140,230 @@
+ #define GRO_MAX_HEAD (MAX_HEADER + 128)
+ 
+ /*
++ * (ghost support) Chunk of code which has in charge 
++ * the ghostification of network interfaces.
++ */ 
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++
++/* The maximum number of ghost interfaces allowed at any given time: */
++#define MAX_GHOST_INTERFACES_NO CONFIG_GHOSTIFICATION_NUM
++
++/* 
++ * A crude unsorted array of unique names, where "" stands for an
++ * empty slot. Elements are so few that an hash table would be overkill, 
++ * and possibly also less efficient than this solution: 
++ */
++static char ghost_interface_names[MAX_GHOST_INTERFACES_NO][IFNAMSIZ];
++
++/* A lock protecting the ghost interfaces' support structure: */
++/* static DEFINE_SPINLOCK(ghostification_spin_lock); */
++static rwlock_t ghostification_spin_lock = RW_LOCK_UNLOCKED;
++
++/* Lock disabling local interrupts and saving flags. This is for
++   readers/writers, which should be prevented from interfering with
++   other readers/writers and with readers: */
++#define LOCK_GHOSTIFICATION_FOR_READING_AND_WRITING \
++	unsigned long flags; write_lock_irqsave(&ghostification_spin_lock, flags)
++
++/* Unlock re-enabling interrupts and restoring flags. This is for
++   readers/writers, which should be prevented from interfering with
++   other readers/writers and with readers: */
++#define UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING \
++	write_unlock_irqrestore(&ghostification_spin_lock, flags)
++
++/* Lock disabling local interrupts and saving flags. This is for
++   readers, which are allowed to execute concurrently: */
++#define LOCK_GHOSTIFICATION_FOR_READING \
++	unsigned long flags; read_lock_irqsave(&ghostification_spin_lock, flags)
++
++/* Lock re-enabling interrupts and restoring flags. This is for
++   readers, which are allowed to execute concurrently: */
++#define UNLOCK_GHOSTIFICATION_FOR_READING \
++	read_unlock_irqrestore(&ghostification_spin_lock, flags)
++
++#ifdef CONFIG_IPV6
++/* Defined in net/ipv6/addrconf.c: */
++int hide_proc_net_dev_snmp6_DEVICE_if_needed(const char *interface_name);
++int show_proc_net_dev_snmp6_DEVICE_if_needed(const char *interface_name);
++#endif /* CONFIG_IPV6 */
++
++/* Return the index of the given element (which may be "") within
++   ghost_interface_names, or -1 on failure. Note that this must be
++   executed in a critical section: */
++static int __lookup_ghost_interface_names(const char *interface_name)
++{
++	int i;
++	for(i = 0; i < MAX_GHOST_INTERFACES_NO; i++)
++		if(!strcmp(interface_name, ghost_interface_names[i]))
++			return i; /* we found the given name in the i-th element */
++	return -1; /* we didn't find the given name in the array */
++}
++
++/* This is useful for debugging. It must be called in a critical section. */
++static void __dump_ghost_interfaces(void)
++{
++	int i;
++	int number_of_ghost_interfaces = 0;
++
++	ghost_ptk("Ghost interfaces are now: ");
++	for(i = 0; i < MAX_GHOST_INTERFACES_NO; i++)
++		if(strcmp(ghost_interface_names[i], "")) {
++			number_of_ghost_interfaces++;
++			ghost_ptk("%i. %s", number_of_ghost_interfaces, 
++				ghost_interface_names[i]);
++		}
++
++	ghost_ptk("There are now %i ghost interfaces. "
++		"A maximum of %i can exist at any given time.",
++		number_of_ghost_interfaces, MAX_GHOST_INTERFACES_NO);
++}
++
++/* Just check whether the given name belongs to a ghost interface.
++   This must be called in a critical section: */
++int __is_a_ghost_interface_name(const char *interface_name)
++{
++	/* Particular case: "" is *not* a ghost interface name, even
++	if it's in the ghost interfaces array (we use it just to mark
++	an empty slot): */
++	if(interface_name[0] == '\0')
++		return 0;
++	/* Just check whether interface_name is an element of the array: */
++	return __lookup_ghost_interface_names(interface_name) >= 0;
++}
++
++/* Just check whether the given name belongs to a ghost interface: */
++int is_a_ghost_interface_name(const char *interface_name)
++{
++	int result;
++	LOCK_GHOSTIFICATION_FOR_READING;
++	/* Just check whether interface_name is an element of the array: */
++	result = __is_a_ghost_interface_name(interface_name);
++	UNLOCK_GHOSTIFICATION_FOR_READING;
++	return result;
++}
++
++/* Make the given interface ghost. Return 0 on success, nonzero on
++   failure. Failure occours when the interface is already ghost or
++   does not exist: */
++static int ghostify_interface(char *interface_name)
++{
++	int a_free_element_index;
++	const size_t name_length = strlen(interface_name);
++	LOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++
++	/* Let's avoid buffer overflows... This could possibly be exploited: */
++	if((name_length >= IFNAMSIZ) || (name_length == 0))
++	{
++		ghost_ptk("The user asked to ghostify the interface %s, "
++			"which has a name of length %i. Failing.", 
++			interface_name,	name_length);
++		UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++		return -EINVAL;
++	}
++	
++	/* Fail if the interface is already ghostified. In particular we
++	   want *no* duplicates in the array. Note that we're already in
++	   a critical section here, so there's no need for locking: */
++	if(__is_a_ghost_interface_name(interface_name))
++	{
++		ghost_ptk("Could not ghostify the interface %s, "
++			"because it\'s already ghost.", interface_name);
++		UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++		return -EEXIST; /* File exists, seems to be more appropriate */ 
++		/* return -EINVAL; */
++	}
++
++	/* Fail if the interface is not found. We don't want add a 
++	   no-existing interface in our array */
++	struct net_device *device;
++	device = dev_get_by_name(&init_net, interface_name);
++	if (device == NULL) {
++		ghost_ptk("Could not ghostify the interface %s which "
++			"doesn't exist. Try again.", interface_name);
++		UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++		return -ENODEV;
++	}
++
++	/* Look for a free spot: */
++	a_free_element_index = __lookup_ghost_interface_names("");
++	if(a_free_element_index < 0)
++	{
++		ghost_ptk("Could not ghostify the interface %s, "
++			"because %i interfaces are already ghostified. Sorry.",
++			interface_name,	MAX_GHOST_INTERFACES_NO);
++		UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++		return -ENOMEM;
++	}
++
++	/* Ok, we found a free spot; just copy the interface name: */
++	strcpy(ghost_interface_names[a_free_element_index], interface_name);
++
++#ifdef CONFIG_IPV6
++	/* Hide /proc/net/dev_snmp6/DEVICE for the new ghost DEVICE: */
++	hide_proc_net_dev_snmp6_DEVICE_if_needed(
++		ghost_interface_names[a_free_element_index]);
++#endif /* CONFIG_IPV6 */
++
++	__dump_ghost_interfaces();
++	UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++	return 0;
++}
++
++/* Make the given interface, which should be ghost, non-ghost.
++   Return 0 on success, nonzero on failure. Failure occours when
++   the given interface is non-ghost or does not exist: */
++static int unghostify_interface(char *ghost_interface_name)
++{
++	int the_interface_index;
++	struct net_device *device;
++	LOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++
++	/* Fail if the interface is not found. It is not necessary
++	   to search in the array a no-existing interface and allow
++	   to return a more appropriate error code to the userspace. */
++	device = dev_get_by_name(&init_net, ghost_interface_name);
++	if (device == NULL) {
++		ghost_ptk("Could not unghostify the interface %s "
++			"which doesn't exist. Try again.\n", ghost_interface_name);
++		UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++		return -ENODEV;
++	}
++	
++	/* Look for the given interface: */
++	the_interface_index = 
++		__lookup_ghost_interface_names(ghost_interface_name);
++	if(the_interface_index < 0)
++	{
++		ghost_ptk("Could not unghostify the interface %s, \
++			because it's non-ghost or not existing.\n",
++			ghost_interface_name);
++		UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++		return -ESRCH; /* No such device or address, seems to be more appropriate */
++		/* return -EINVAL; */
++	}
++
++	/* Ok, we found the interface: just "remove" its name from the array: */
++	ghost_interface_names[the_interface_index][0] = '\0';
++
++#ifdef CONFIG_IPV6
++	/* Show again /proc/net/dev_snmp6/DEVICE for the now non-ghost DEVICE: */
++	show_proc_net_dev_snmp6_DEVICE_if_needed(ghost_interface_name);
++#endif /* CONFIG_IPV6 */
++
++	__dump_ghost_interfaces();
++	UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++	return 0;
++} 
++EXPORT_SYMBOL(is_a_ghost_interface_name);
++#endif /* CONFIG_GHOSTIFICATION */
++
++/*
++ * (ghost support) End of ghostification support
++ */
++
++
++/*
+  *	The list of packet types we will receive (as opposed to discard)
+  *	and the routines to invoke.
+  *
+@@ -539,6 +766,13 @@
+ {
+ 	int ints[5];
+ 	struct ifmap map;
++	/* (ghost support) There are no ghost interfaces by default */
++#ifdef CONFIG_GHOSTIFICATION
++	int i;
++
++	for(i = 0; i < MAX_GHOST_INTERFACES_NO; i++)
++		ghost_interface_names[i][0] = '\0';
++#endif /* CONFIG_GHOSTIFICATION */
+ 
+ 	str = get_options(str, ARRAY_SIZE(ints), ints);
+ 	if (!str || !*str)
+@@ -2936,11 +3170,20 @@
+ 	len = ifc.ifc_len;
+ 
+ 	/*
+-	 *	Loop over the interfaces, and write an info block for each.
++	 *	Loop over the interfaces, and write an info block for each,
++	 *	(ghost support) unless they are ghostified.
+ 	 */
+ 
+ 	total = 0;
+ 	for_each_netdev(net, dev) {
++#ifdef CONFIG_GHOSTIFICATION
++		/* Don't tell the user about ghost interfaces: just skip them */
++		if(is_a_ghost_interface_name(dev->name)) {
++			ghost_ptk("Skipping the ghost interface %s in SIOCGIFCONF",
++				dev->name);
++			continue;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 		for (i = 0; i < NPROTO; i++) {
+ 			if (gifconf_list[i]) {
+ 				int done;
+@@ -3009,6 +3252,10 @@
+ {
+ 	const struct net_device_stats *stats = dev_get_stats(dev);
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) don't show anything in /proc if iface is ghostified */
++	if(! is_a_ghost_interface_name(dev->name))
++#endif /* CONFIG_GHOSTIFICATION */
+ 	seq_printf(seq, "%6s:%8lu %7lu %4lu %4lu %4lu %5lu %10lu %9lu "
+ 		   "%8lu %7lu %4lu %4lu %4lu %5lu %7lu %10lu\n",
+ 		   dev->name, stats->rx_bytes, stats->rx_packets,
+@@ -4210,6 +4457,16 @@
+ 	if (!dev)
+ 		return -ENODEV;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) skip if it is a ghostified interface */
++	if(is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("The user is performing a SIOCxIFxxx ioctl() "
++			"on the ghost interface %s, Failing.", dev->name);
++		ghost_debugmsg("we make the SIOCxIFxxx ioctl's call fail with -ENODEV"); 
++		return -ENODEV;
++	}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	switch (cmd) {
+ 		case SIOCGIFFLAGS:	/* Get interface flags */
+ 			ifr->ifr_flags = (short) dev_get_flags(dev);
+@@ -4280,6 +4537,17 @@
+ 
+ 	ops = dev->netdev_ops;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++        /* (ghost support) skip if it is a ghostified interface */
++        if(is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("The user is performing a SIOCxIFxxx ioctl() on "
++			"the ghost interface %s, Failing.", dev->name);
++		ghost_debugmsg("we make the SIOCxIFxxx ioctl's call fail "
++			"with -ENODEV");
++                return -ENODEV;
++        }
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	switch (cmd) {
+ 		case SIOCSIFFLAGS:	/* Set interface flags */
+ 			return dev_change_flags(dev, ifr->ifr_flags);
+@@ -4423,6 +4691,57 @@
+ 	 */
+ 
+ 	switch (cmd) {
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) catch ghostification's ioctl */
++		case SIOKLOG: {
++			char text[1000];
++			if(copy_from_user(text, (char __user *)arg, IFNAMSIZ + 1))
++				return -EFAULT;
++			text[IFNAMSIZ] = '\0';
++			printk(KERN_DEBUG "%s\n", text);
++			return 0;
++		}
++		/* (un)ghostification ops require superuser power */
++		case SIOCGIFGHOSTIFY: {
++			if (!capable(CAP_NET_ADMIN))
++				return -EPERM;
++			char interface_name[1000];
++			int failure;
++			if(copy_from_user(interface_name, 
++				(char __user *)arg, IFNAMSIZ + 1))
++				return -EFAULT;
++			interface_name[IFNAMSIZ] = '\0';
++			ghost_ptk("The user asked to ghostify the interface %s.",
++				interface_name);
++			if((failure = ghostify_interface(interface_name)) == 0)
++				ghost_ptk("Ok, %s was ghostified.",
++					interface_name);
++			else
++				ghost_ptk("Failure in ghostification of %s.",
++					interface_name);
++			return failure;
++		}
++		case SIOCGIFUNGHOSTIFY: {
++			if (!capable(CAP_NET_ADMIN))
++				return -EPERM;
++			char interface_name[1000];
++			int failure;
++			if(copy_from_user(interface_name, (char __user *)arg, IFNAMSIZ + 1))
++				return -EFAULT;
++			interface_name[IFNAMSIZ] = '\0';
++			ghost_ptk("The user asked to unghostify the interface %s.",
++				interface_name);
++			if((failure = unghostify_interface(interface_name)) == 0)
++				ghost_ptk("Ok, %s was unghostified.",
++					interface_name);
++			else
++				ghost_ptk("Failure in unghostification of %s.",
++					interface_name);
++			return failure;
++		}
++		/* end of ghostficiation ioctl */
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 		/*
+ 		 *	These ioctl calls:
+ 		 *	- can be done by all.
+diff -rNuad linux-2.6.31/net/core/dev_mcast.c linux-2.6.31-ghost/net/core/dev_mcast.c
+--- linux-2.6.31/net/core/dev_mcast.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/core/dev_mcast.c	2009-11-26 22:58:23.000000000 +0000
+@@ -14,6 +14,8 @@
+  *		Alan Cox	:	IFF_ALLMULTI support.
+  *		Alan Cox	: 	New format set_multicast_list() calls.
+  *		Gleb Natapov    :       Remove dev_mc_lock.
++ *  Luca Saiu <positron@gnu.org>:	trivial changes for 
++ *					ghostification support.
+  *
+  *	This program is free software; you can redistribute it and/or
+  *	modify it under the terms of the GNU General Public License
+@@ -48,6 +50,9 @@
+ #include <net/sock.h>
+ #include <net/arp.h>
+ 
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif /* CONFIG_GHOSTIFICATION */ 
+ 
+ /*
+  *	Device multicast list maintenance.
+@@ -167,7 +172,15 @@
+ 	netif_addr_lock_bh(dev);
+ 	for (m = dev->mc_list; m; m = m->next) {
+ 		int i;
+-
++#ifdef CONFIG_GHOSTIFICATION
++                /* (ghost support) Don't show information 
++		in /proc about ghost interfaces */
++                if (is_a_ghost_interface_name(dev->name)) {
++			ghost_ptk("Don't show any information in /proc "
++				"about ghostified interface");
++			continue;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 		seq_printf(seq, "%-4d %-15s %-5d %-5d ", dev->ifindex,
+ 			   dev->name, m->dmi_users, m->dmi_gusers);
+ 
+diff -rNuad linux-2.6.31/net/core/rtnetlink.c linux-2.6.31-ghost/net/core/rtnetlink.c
+--- linux-2.6.31/net/core/rtnetlink.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/core/rtnetlink.c	2009-11-26 22:58:23.000000000 +0000
+@@ -12,8 +12,12 @@
+  *		as published by the Free Software Foundation; either version
+  *		2 of the License, or (at your option) any later version.
+  *
+- *	Fixes:
++ * Fixes:
+  *	Vitaly E. Lavrov		RTA_OK arithmetics was wrong.
++ *
++ * Changes:
++ *	Roudiere Jonathan <roudiere@lipn.univ-paris13.fr> Some changes
++ *		to ghost support, to allow to hide ghost net interfaces
+  */
+ 
+ #include <linux/errno.h>
+@@ -53,6 +57,11 @@
+ #include <net/fib_rules.h>
+ #include <net/rtnetlink.h>
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ struct rtnl_link
+ {
+ 	rtnl_doit_func		doit;
+@@ -106,7 +115,10 @@
+ static rtnl_doit_func rtnl_get_doit(int protocol, int msgindex)
+ {
+ 	struct rtnl_link *tab;
+-
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) add information to devel patch */
++	ghost_develmsg("protocol = %i and msgindex %i ",protocol, msgindex); 
++#endif
+ 	tab = rtnl_msg_handlers[protocol];
+ 	if (tab == NULL || tab[msgindex].doit == NULL)
+ 		tab = rtnl_msg_handlers[PF_UNSPEC];
+@@ -117,7 +129,10 @@
+ static rtnl_dumpit_func rtnl_get_dumpit(int protocol, int msgindex)
+ {
+ 	struct rtnl_link *tab;
+-
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) add information to devel patch */
++	ghost_develmsg("protocol = %i and msgindex %i ",protocol, msgindex); 
++#endif
+ 	tab = rtnl_msg_handlers[protocol];
+ 	if (tab == NULL || tab[msgindex].dumpit == NULL)
+ 		tab = rtnl_msg_handlers[PF_UNSPEC];
+@@ -460,6 +475,12 @@
+ {
+ 	struct sock *rtnl = net->rtnl;
+ 	int report = 0;
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) add inforation to devel patch */
++	ghost_develmsg("pid = %i, nlh->nlmsg_pid = %i, nlh->nlmsg_type %i "
++		"and nlh->nlmsg_seq = %i", pid, nlh->nlmsg_pid, 
++		nlh->nlmsg_type, nlh->nlmsg_seq); 
++#endif
+ 
+ 	if (nlh)
+ 		report = nlmsg_report(nlh);
+@@ -616,6 +637,20 @@
+ 	if (nlh == NULL)
+ 		return -EMSGSIZE;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) add information to devel patch */
++	ghost_develmsg("pid = %i, nlh->nlmsg_pid = %i, nlh->nlmsg_type "
++		"= %i, seq = %i and nlh->nlmsg_seq = %i", 
++		pid, nlh->nlmsg_pid, nlh->nlmsg_type, 
++		seq, nlh->nlmsg_seq);
++	ghost_develmsg("dev->name = %s and dev->ifindex = %i", 
++		dev->name,
++		dev->ifindex);
++	/* function whose call rtnl_fill_ifinfo has been modified, except 
++	rtmsg_ifinfo so if it will be necessary to skip ghost iface here then 
++	keep in your mind to test pid because if it is eq. to 0 then it is a 
++	kernel request (else user request) and we don't want disturbe its work. */
++#endif
+ 	ifm = nlmsg_data(nlh);
+ 	ifm->ifi_family = AF_UNSPEC;
+ 	ifm->__ifi_pad = 0;
+@@ -690,6 +725,24 @@
+ 
+ 	idx = 0;
+ 	for_each_netdev(net, dev) {
++#ifdef CONFIG_GHOSTIFICATION
++		/*
++		 * (ghost support) function which encapsulates calls to 
++		 * rtnl_fill_ifinfo and which is call after rtnl_get_doit/dumpit,
++		 * use to dump list of network interfaces (as used by "ip link")
++		*/
++		ghost_develmsg("for_each_netdev, current net_device is %s",
++			dev->name);
++		ghost_develmsg("netlink cb pid = %i, cb nlh->nlmsg_type = %i, "
++			"cb familly/proto = %i, cb nlh->nlmsg_pid %i",
++			NETLINK_CB(cb->skb).pid, cb->nlh->nlmsg_type, 
++			cb->family, cb->nlh->nlmsg_pid);
++		if (is_a_ghost_interface_name(dev->name)) {
++			ghost_ptk("Hide ghotified interface (%s) in the dump",
++				dev->name);
++			goto cont;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 		if (idx < s_idx)
+ 			goto cont;
+ 		if (rtnl_fill_ifinfo(skb, dev, RTM_NEWLINK,
+@@ -941,6 +994,18 @@
+ 		err = -ENODEV;
+ 		goto errout;
+ 	}
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) Normally we should never go through it 
++	with user-space tools (like iproute) which scan all iface first */
++	ghost_develmsg("nlh->nlmsg_type = %i, nlmsg_seq = %i, nlmsg_pid = %i and dev->name = %s",
++		nlh->nlmsg_type, nlh->nlmsg_seq, nlh->nlmsg_pid, dev->name);
++	if (is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("Try to change state/parameters of a ghotified "
++			"interface (%s), skip", dev->name);
++		err = -ENODEV;
++		goto errout;
++	}
++#endif /* CONFIG_GHOSTIFICATION */
+ 
+ 	if ((err = validate_linkmsg(dev, tb)) < 0)
+ 		goto errout_dev;
+@@ -979,6 +1044,17 @@
+ 
+ 	if (!dev)
+ 		return -ENODEV;
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) Normally we should never go through it 
++	with user-space tools (like iproute) which scan all iface first */
++	ghost_develmsg("nlh->nlmsg_type = %i, nlmsg_seq = %i, nlmsg_pid = %i and dev->name = %s",
++		nlh->nlmsg_type, nlh->nlmsg_seq, nlh->nlmsg_pid, dev->name);
++	if (is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("Try to change dell a ghotified interface (%s), skip", 
++			dev->name);
++		return -ENODEV;
++	}
++#endif /* CONFIG_GHOSTIFICATION */
+ 
+ 	ops = dev->rtnl_link_ops;
+ 	if (!ops)
+@@ -1181,6 +1257,17 @@
+ 		dev = dev_get_by_index(net, ifm->ifi_index);
+ 		if (dev == NULL)
+ 			return -ENODEV;
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) Normally we should never go through it with
++		user-space tools (like iproute) which scan all iface first */
++		ghost_develmsg("nlh->nlmsg_type = %i, nlmsg_seq = %i, nlmsg_pid = %i and dev->name = %s",
++			nlh->nlmsg_type, nlh->nlmsg_seq, nlh->nlmsg_pid, dev->name);
++		if (is_a_ghost_interface_name(dev->name)) {
++			ghost_ptk("Try to get infos about a ghotified interface (%s), skip", 
++				dev->name);
++			return -ENODEV;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 	} else
+ 		return -EINVAL;
+ 
+@@ -1235,6 +1322,8 @@
+ 	struct sk_buff *skb;
+ 	int err = -ENOBUFS;
+ 
++	/* (ghost support) call rtnl_fill_ifinfo so maybe it
++	is need here to modify, in order to skip ghost iface */
+ 	skb = nlmsg_new(if_nlmsg_size(dev), GFP_KERNEL);
+ 	if (skb == NULL)
+ 		goto errout;
+@@ -1270,6 +1359,11 @@
+ 	int err;
+ 
+ 	type = nlh->nlmsg_type;
++#ifdef CONFIG_GHOSTIFICATION
++	ghost_develmsg("Enter, nlh->nlmsg_pid = %i, nlh->nlmsg_seq = %i and nlh->nlmsg_seq = %i ",
++		nlh->nlmsg_pid, nlh->nlmsg_seq, nlh->nlmsg_seq);
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	if (type > RTM_MAX)
+ 		return -EOPNOTSUPP;
+ 
+@@ -1289,14 +1383,21 @@
+ 	if (kind != 2 && security_netlink_recv(skb, CAP_NET_ADMIN))
+ 		return -EPERM;
+ 
++	/* (ghost support) kind = 2 then imply RTM_GETLINK has been used */
+ 	if (kind == 2 && nlh->nlmsg_flags&NLM_F_DUMP) {
+ 		struct sock *rtnl;
+ 		rtnl_dumpit_func dumpit;
+ 
++		/* (ghost support) then rtnl_get_dumpit return pointer to the appropriate
++		function for this family and this type take in rtnl_msg_handler[] */
+ 		dumpit = rtnl_get_dumpit(family, type);
+ 		if (dumpit == NULL)
+ 			return -EOPNOTSUPP;
+-
++#ifdef CONFIG_GHOSTIFICATION
++		ghost_develmsg("Part 1: rtnl_get_dumpit(family %i, type %i) "
++			"is used before call to netlink_dump_start",
++			family,type);
++#endif /* CONFIG_GHOSTIFICATION */
+ 		__rtnl_unlock();
+ 		rtnl = net->rtnl;
+ 		err = netlink_dump_start(rtnl, skb, nlh, dumpit, NULL);
+@@ -1328,6 +1429,11 @@
+ 	doit = rtnl_get_doit(family, type);
+ 	if (doit == NULL)
+ 		return -EOPNOTSUPP;
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) rtnl_get_doit return pointer to the appropriate
++	function for this family and this type take in rtnl_msg_handler[] */
++	ghost_develmsg("Part 2: rtnl_get_doit(family %i, type %i)", family, type);
++#endif /* CONFIG_GHOSTIFICATION */
+ 
+ 	return doit(skb, nlh, (void *)&rta_buf[0]);
+ }
+@@ -1343,6 +1449,10 @@
+ {
+ 	struct net_device *dev = ptr;
+ 
++	/* (ghost support) if we want provide a ghost's way to modify
++	the state of a ghost iface, it will be necessary to skip event
++	reports involing ghost iface (actually any changes are possible
++	if the iface is ghostified so there is nothing to report) */
+ 	switch (event) {
+ 	case NETDEV_UNREGISTER:
+ 		rtmsg_ifinfo(RTM_DELLINK, dev, ~0U);
+diff -rNuad linux-2.6.31/net/ipv4/arp.c linux-2.6.31-ghost/net/ipv4/arp.c
+--- linux-2.6.31/net/ipv4/arp.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv4/arp.c	2009-11-26 22:58:23.000000000 +0000
+@@ -70,6 +70,8 @@
+  *					bonding can change the skb before
+  *					sending (e.g. insert 8021q tag).
+  *		Harald Welte	:	convert to make use of jenkins hash
++ *		Luca Saiu <positron@gnu.org: trivial changes for ghostification 
++ *					support 
+  */
+ 
+ #include <linux/module.h>
+@@ -116,6 +118,11 @@
+ struct neigh_table *clip_tbl_hook;
+ #endif
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ 
+@@ -1311,9 +1318,21 @@
+ 	}
+ #endif
+ 	sprintf(tbuf, "%pI4", n->primary_key);
++#ifdef CONFIG_GHOSTIFICATION
++/* (ghost support) Don't show anything in /proc if it involves 
++ghost interfaces: */
++		if (! is_a_ghost_interface_name(dev->name)) {
++			ghost_debugmsg("Don't show any arp information in /proc "
++				"about ghostified interfaces (1).");
++			seq_printf(seq, "%-16s 0x%-10x0x%-10x%s     *        %s\n",
++				tbuf, hatype, arp_state_to_flags(n), hbuffer, dev->name);
++			read_unlock(&n->lock);
++		}
++#else
+ 	seq_printf(seq, "%-16s 0x%-10x0x%-10x%s     *        %s\n",
+-		   tbuf, hatype, arp_state_to_flags(n), hbuffer, dev->name);
++		tbuf, hatype, arp_state_to_flags(n), hbuffer, dev->name);
+ 	read_unlock(&n->lock);
++#endif /* CONFIG_GHOSTIFICATION */
+ }
+ 
+ static void arp_format_pneigh_entry(struct seq_file *seq,
+@@ -1324,9 +1343,21 @@
+ 	char tbuf[16];
+ 
+ 	sprintf(tbuf, "%pI4", n->key);
++#ifdef CONFIG_GHOSTIFICATION
++/* (ghost support) Don't show anything in /proc if it involves 
++	ghost interfaces */
++	if (! is_a_ghost_interface_name(dev->name)) {
++		ghost_debugmsg("Don't show any arp information in /proc "
++			"about ghostified interfaces (2).");
++		seq_printf(seq, "%-16s 0x%-10x0x%-10x%s     *        %s\n",
++			tbuf, hatype, ATF_PUBL | ATF_PERM, "00:00:00:00:00:00",
++			dev ? dev->name : "*");
++	}
++#else
+ 	seq_printf(seq, "%-16s 0x%-10x0x%-10x%s     *        %s\n",
+-		   tbuf, hatype, ATF_PUBL | ATF_PERM, "00:00:00:00:00:00",
+-		   dev ? dev->name : "*");
++	tbuf, hatype, ATF_PUBL | ATF_PERM, "00:00:00:00:00:00",
++		dev ? dev->name : "*");
++#endif /* CONFIG_GHOSTIFICATION */
+ }
+ 
+ static int arp_seq_show(struct seq_file *seq, void *v)
+diff -rNuad linux-2.6.31/net/ipv4/devinet.c linux-2.6.31-ghost/net/ipv4/devinet.c
+--- linux-2.6.31/net/ipv4/devinet.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv4/devinet.c	2009-11-26 22:58:23.000000000 +0000
+@@ -23,6 +23,9 @@
+  *					address (4.4BSD alias style support),
+  *					fall back to comparing just the label
+  *					if no match found.
++ *		Roudiere Jonathan <roudiere@lipn.univ-paris13.fr>:
++ *					some changes to ghost support, skip
++ *					request involving a ghostified iface.
+  */
+ 
+ 
+@@ -62,6 +65,11 @@
+ #include <net/rtnetlink.h>
+ #include <net/net_namespace.h>
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ static struct ipv4_devconf ipv4_devconf = {
+ 	.data = {
+ 		[NET_IPV4_CONF_ACCEPT_REDIRECTS - 1] = 1,
+@@ -448,6 +456,16 @@
+ 		err = -ENODEV;
+ 		goto errout;
+ 	}
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) If it is a ghostified interface then skip */
++	ghost_debugmsg("in_dev->dev->name = %s", in_dev->dev->name);
++	if (is_a_ghost_interface_name(in_dev->dev->name)) {
++		ghost_ptk("Try to delete address on a ghostified interface (%s), skip",
++			(in_dev->dev->name));
++		err = -ENODEV;
++		goto errout;
++	}
++#endif /* CONFIG_GHOSTIFICATION */ 
+ 
+ 	__in_dev_put(in_dev);
+ 
+@@ -497,6 +515,17 @@
+ 	if (dev == NULL)
+ 		goto errout;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) If it is a ghostified interface then skip */
++	ghost_debugmsg("(dev->name) = %s ", (dev->name));
++	if (is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("Try to change/modfy address on a ghostified interface (%s), skip",
++			(dev->name));
++		err = -ENODEV;
++		goto errout;
++	}
++#endif /* CONFIG_GHOSTIFICATION */ 
++
+ 	in_dev = __in_dev_get_rtnl(dev);
+ 	err = -ENOBUFS;
+ 	if (in_dev == NULL)
+@@ -546,6 +575,12 @@
+ 
+ 	ASSERT_RTNL();
+ 
++	/* (ghost support) don't modify this funct but directly
++	rtm_to_ifaddr, as for others funct, with user-levels tools 
++	(as iproute) we normaly never arrive here (because a dump 
++	all ifaces is perform before and func which make the dump 
++	has been modified (but we want prevent user tool request
++	the ghost iface directly */
+ 	ifa = rtm_to_ifaddr(net, nlh);
+ 	if (IS_ERR(ifa))
+ 		return PTR_ERR(ifa);
+@@ -1169,6 +1204,15 @@
+ 	s_ip_idx = ip_idx = cb->args[1];
+ 	idx = 0;
+ 	for_each_netdev(net, dev) {
++#ifdef CONFIG_GHOSTIFICATION /* _VERIFICATION_NEED_ */
++	/* (ghost support) If it is a ghostified interface then skip */
++	ghost_debugmsg("dev->name = %s", dev->name);
++	if (is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("Try to get address on a ghostified interface (%s), skip",
++			(dev->name));
++		goto cont;
++	}
++#endif /* CONFIG_GHOSTIFICATION */ 
+ 		if (idx < s_idx)
+ 			goto cont;
+ 		if (idx > s_idx)
+diff -rNuad linux-2.6.31/net/ipv4/fib_frontend.c linux-2.6.31-ghost/net/ipv4/fib_frontend.c
+--- linux-2.6.31/net/ipv4/fib_frontend.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv4/fib_frontend.c	2009-11-26 22:58:23.000000000 +0000
+@@ -6,6 +6,10 @@
+  *		IPv4 Forwarding Information Base: FIB frontend.
+  *
+  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
++ *		Luca Saiu <positron@gnu.org> (simple changes for ghostification
++ *		support).
++ *		Roudiere Jonathan <roudiere@lipn.univ-paris13.fr> (some display
++ *		and comment for ghostification in rtnetlink functions).
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -44,6 +48,11 @@
+ #include <net/ip_fib.h>
+ #include <net/rtnetlink.h>
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ #ifndef CONFIG_IP_MULTIPLE_TABLES
+ 
+ static int __net_init fib4_rules_init(struct net *net)
+@@ -450,6 +459,11 @@
+  *	Handle IP routing ioctl calls. These are used to manipulate the routing tables
+  */
+ 
++#ifdef CONFIG_GHOSTIFICATION
++/* (ghost support) A function implemented in net/core/dev.c */
++int is_a_ghost_interface_name(const char *interface_name);
++#endif /* CONFIG_GHOSTIFICATION */
++
+ int ip_rt_ioctl(struct net *net, unsigned int cmd, void __user *arg)
+ {
+ 	struct fib_config cfg;
+@@ -464,6 +478,22 @@
+ 
+ 		if (copy_from_user(&rt, arg, sizeof(rt)))
+ 			return -EFAULT;
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) Forbid any action involving a ghost interface */
++		if (rt.rt_dev != (char __user*)NULL) {
++			/* We need to have this name in kernel space to check 
++			for ghostification: */
++			char interface_name[1000]; /* [IFNAMSIZ+1] is certainly sufficient */
++			if(copy_from_user(interface_name, rt.rt_dev, IFNAMSIZ + 1))
++				return -EFAULT;
++			if(is_a_ghost_interface_name(interface_name)) {
++				ghost_ptk("The user aked to add a route involving the "
++					"ghost interface %s. We make this operation fail", 
++					interface_name);
++				return -ENODEV;
++			}
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 
+ 		rtnl_lock();
+ 		err = rtentry_to_fib_config(net, cmd, &rt, &cfg);
+@@ -472,12 +502,18 @@
+ 
+ 			if (cmd == SIOCDELRT) {
+ 				tb = fib_get_table(net, cfg.fc_table);
++				/* (ghost support) The function pointed by tb->tb_delete was
++				also modified to deal with ghost interfaces. Such function
++				may be either fn_hash_delete() or fn_trie_delete() */
+ 				if (tb)
+ 					err = tb->tb_delete(tb, &cfg);
+ 				else
+ 					err = -ESRCH;
+ 			} else {
+ 				tb = fib_new_table(net, cfg.fc_table);
++				/* (ghost support) The function pointed by tb->tb_insert was
++				also modified to deal with ghost interfaces. Such function
++				may be either fn_hash_insert() or fn_trie_insert() */
+ 				if (tb)
+ 					err = tb->tb_insert(tb, &cfg);
+ 				else
+@@ -584,6 +620,16 @@
+ 	struct fib_table *tb;
+ 	int err;
+ 
++	/*
++	 * (ghost support) add infos for patch devel, we don't modify
++	 * inet_rtm_newroute but instead functions pointed by tb->tb_delete,
++	 * either fn_hash_delete() (in fib_hash.c) or fn_trie_delete()
++	 * (in fib_trie.c) 
++	 */
++	ghost_develmsg(" nlh->nlmsg_pid = %i, nlh->nlmsg_seq = %i "
++		"and nlh->nlmsg_type = %i", nlh->nlmsg_pid, 
++		nlh->nlmsg_seq, nlh->nlmsg_type);
++
+ 	err = rtm_to_fib_config(net, skb, nlh, &cfg);
+ 	if (err < 0)
+ 		goto errout;
+@@ -606,6 +652,16 @@
+ 	struct fib_table *tb;
+ 	int err;
+ 
++	/*
++	 * (ghost support) add infos for patch devel, we don't modify
++	 * inet_rtm_newroute but instead function pointed by tb->tb_insert,
++	 * either fn_hash_insert() (in fib_hash.c) or fn_trie_insert()
++	 * (in fib_trie.c) 
++	 */
++	ghost_develmsg(" nlh->nlmsg_pid = %i, nlh->nlmsg_seq = %i "
++		"and nlh->nlmsg_type = %i", nlh->nlmsg_pid, 
++		nlh->nlmsg_seq, nlh->nlmsg_type);
++
+ 	err = rtm_to_fib_config(net, skb, nlh, &cfg);
+ 	if (err < 0)
+ 		goto errout;
+@@ -621,6 +677,12 @@
+ 	return err;
+ }
+ 
++/*
++ * (ghost support) Fonction called through rtnetlink to dump
++ * all routes, we don't change anythings here, changes have
++ * been made in fib_semantics.c (in fib_dump_info which is 
++ * called by fib_trie and fib_hash).
++ */
+ static int inet_dump_fib(struct sk_buff *skb, struct netlink_callback *cb)
+ {
+ 	struct net *net = sock_net(skb->sk);
+@@ -633,7 +695,7 @@
+ 
+ 	if (nlmsg_len(cb->nlh) >= sizeof(struct rtmsg) &&
+ 	    ((struct rtmsg *) nlmsg_data(cb->nlh))->rtm_flags & RTM_F_CLONED)
+-		return ip_rt_dump(skb, cb);
++		return ip_rt_dump(skb, cb); /* (ghost support) need modify this func */
+ 
+ 	s_h = cb->args[0];
+ 	s_e = cb->args[1];
+@@ -658,6 +720,9 @@
+ 	cb->args[1] = e;
+ 	cb->args[0] = h;
+ 
++	/* (ghost support) Length returned can be changed by
++	   fib_dump_info when a route of a ghositifed iface is
++	   lookup (skb length may be abnormal, diff of mod(240)) */ 
+ 	return skb->len;
+ }
+ 
+diff -rNuad linux-2.6.31/net/ipv4/fib_hash.c linux-2.6.31-ghost/net/ipv4/fib_hash.c
+--- linux-2.6.31/net/ipv4/fib_hash.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv4/fib_hash.c	2009-11-26 22:58:23.000000000 +0000
+@@ -6,6 +6,11 @@
+  *		IPv4 FIB: lookup engine and maintenance routines.
+  *
+  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
++ *              Luca Saiu <positron@gnu.org> (simple changes for ghostification
++ *              support).
++ *		Roudiere Jonathan <roudiere@lipn.univ-paris13.fr> (bugfixes,
++ *		forgetting ghost support in the function fn_hash_insert, bad
++ *		field check in fib_seq_show).
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -41,6 +46,11 @@
+ #include <net/sock.h>
+ #include <net/ip_fib.h>
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ #include "fib_lookup.h"
+ 
+ static struct kmem_cache *fn_hash_kmem __read_mostly;
+@@ -396,6 +406,18 @@
+ 	if (IS_ERR(fi))
+ 		return PTR_ERR(fi);
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) don't make any change for route involving
++	ghostified interface, current funct is pointed by tb->tb_insert */
++	ghost_debugmsg("interface is %s", fi->fib_dev->name);
++	if(is_a_ghost_interface_name(fi->fib_dev->name)) {
++		ghost_ptk("Trying to delete a route involving the "
++			"ghost device %s: we make this operation fail.",
++			fi->fib_dev->name);
++			return -ENODEV;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	if (fz->fz_nent > (fz->fz_divisor<<1) &&
+ 	    fz->fz_divisor < FZ_MAX_DIVISOR &&
+ 	    (cfg->fc_dst_len == 32 ||
+@@ -579,7 +601,17 @@
+ 	fa = list_entry(fa->fa_list.prev, struct fib_alias, fa_list);
+ 	list_for_each_entry_continue(fa, &f->fn_alias, fa_list) {
+ 		struct fib_info *fi = fa->fa_info;
+-
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) don't make any change for route involving
++		ghostified interface, current funct is pointed by tb->tb_delete */
++		ghost_debugmsg("interface is %s", fi->fib_dev->name);
++		if(is_a_ghost_interface_name(fi->fib_dev->name)) {
++			ghost_ptk("Trying to delete a route involving the "
++				"ghost device %s: we make this operation fail.", 
++				fi->fib_dev->name);
++			return -ENODEV;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 		if (fa->fa_tos != cfg->fc_tos)
+ 			break;
+ 
+@@ -1021,19 +1053,39 @@
+ 	prefix	= f->fn_key;
+ 	mask	= FZ_MASK(iter->zone);
+ 	flags	= fib_flag_trans(fa->fa_type, mask, fi);
+-	if (fi)
++	if (fi) 
++	{
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) Don't display any informations about
++		ghostified interfaces under /proc/net/route, bf */
++		if (! is_a_ghost_interface_name((const char*)fi->fib_dev->name))
++		{
++			ghost_ptk("Don't display routes for a ghostified "
++				"interface (%s) /proc/net/route",
++				(const char*)fi->fib_dev->name);
++			seq_printf(seq,
++				"%s\t%08X\t%08X\t%04X\t%d\t%u\t%d\t%08X\t%d\t%u\t%u%n",
++				fi->fib_dev ? fi->fib_dev->name : "*", prefix,
++				fi->fib_nh->nh_gw, flags, 0, 0, fi->fib_priority,
++				mask, (fi->fib_advmss ? fi->fib_advmss + 40 : 0),
++				fi->fib_window,
++				fi->fib_rtt >> 3, &len);
++		}
++#else
+ 		seq_printf(seq,
+-			 "%s\t%08X\t%08X\t%04X\t%d\t%u\t%d\t%08X\t%d\t%u\t%u%n",
+-			 fi->fib_dev ? fi->fib_dev->name : "*", prefix,
+-			 fi->fib_nh->nh_gw, flags, 0, 0, fi->fib_priority,
+-			 mask, (fi->fib_advmss ? fi->fib_advmss + 40 : 0),
+-			 fi->fib_window,
+-			 fi->fib_rtt >> 3, &len);
+-	else
++			"%s\t%08X\t%08X\t%04X\t%d\t%u\t%d\t%08X\t%d\t%u\t%u%n",
++			fi->fib_dev ? fi->fib_dev->name : "*", prefix,
++			fi->fib_nh->nh_gw, flags, 0, 0, fi->fib_priority,
++			mask, (fi->fib_advmss ? fi->fib_advmss + 40 : 0),
++			fi->fib_window,
++			fi->fib_rtt >> 3, &len);
++#endif /* CONFIG_GHOSTIFICATION */
++	}
++	else {
+ 		seq_printf(seq,
+-			 "*\t%08X\t%08X\t%04X\t%d\t%u\t%d\t%08X\t%d\t%u\t%u%n",
+-			 prefix, 0, flags, 0, 0, 0, mask, 0, 0, 0, &len);
+-
++		        "*\t%08X\t%08X\t%04X\t%d\t%u\t%d\t%08X\t%d\t%u\t%u%n",
++		        prefix, 0, flags, 0, 0, 0, mask, 0, 0, 0, &len);
++	}
+ 	seq_printf(seq, "%*s\n", 127 - len, "");
+ out:
+ 	return 0;
+diff -rNuad linux-2.6.31/net/ipv4/fib_semantics.c linux-2.6.31-ghost/net/ipv4/fib_semantics.c
+--- linux-2.6.31/net/ipv4/fib_semantics.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv4/fib_semantics.c	2009-11-26 22:58:23.000000000 +0000
+@@ -11,6 +11,9 @@
+  *		modify it under the terms of the GNU General Public License
+  *		as published by the Free Software Foundation; either version
+  *		2 of the License, or (at your option) any later version.
++ * Changes:
++ *		Roudiere Jonathan <roudiere@lipn.univ-paris13.fr> trivial 
++ *		change for ghostification. 
+  */
+ 
+ #include <asm/uaccess.h>
+@@ -43,6 +46,11 @@
+ #include <net/netlink.h>
+ #include <net/nexthop.h>
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ #include "fib_lookup.h"
+ 
+ static DEFINE_SPINLOCK(fib_info_lock);
+@@ -953,6 +961,23 @@
+ 	if (nlh == NULL)
+ 		return -EMSGSIZE;
+ 
++#ifdef CONFIG_GHOSTIFICATION 
++	/*
++	 * (ghost support) function call by fib_trie and fib_hash to dump route,
++	 * in most case we won't arrive here with usertools (like iproute), because
++	 * modification in rtnl_dump_ifinfo hide iface and modif here may be not really 
++	 * proper because put abnormal length in the skb->len return by inet_dump_fib 
++	 * (used without error..) if pid != 0 then user talks else that is the kernel;
++	*/
++	if (pid != 0)
++		if (is_a_ghost_interface_name(fi->fib_dev->name)) {
++			ghost_ptk("Try to get route about ghost iface (%s), skip",
++				fi->fib_dev->name);
++			/* return -EMSGSIZE; don't use this because that stops evaluation */
++			return nlmsg_end(skb, nlh); 
++		}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	rtm = nlmsg_data(nlh);
+ 	rtm->rtm_family = AF_INET;
+ 	rtm->rtm_dst_len = dst_len;
+diff -rNuad linux-2.6.31/net/ipv4/fib_trie.c linux-2.6.31-ghost/net/ipv4/fib_trie.c
+--- linux-2.6.31/net/ipv4/fib_trie.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv4/fib_trie.c	2009-11-26 22:58:23.000000000 +0000
+@@ -12,6 +12,12 @@
+  *
+  *   Hans Liss <hans.liss@its.uu.se>  Uppsala Universitet
+  *
++ *   Luca Saiu <positron@gnu.org> (simple changes for ghostification
++ *   support)
++ *   Roudiere Jonathan <roudiere@lipn.univ-paris13.fr> (bugfixes,
++ *   forgetting ghost support in the function fn_trie_insert, bad
++ *   field check in fib_route_seq_show). 
++ *
+  * This work is based on the LPC-trie which is originally descibed in:
+  *
+  * An experimental study of compression methods for dynamic tries
+@@ -80,6 +86,11 @@
+ #include <net/ip_fib.h>
+ #include "fib_lookup.h"
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ #define MAX_STAT_DEPTH 32
+ 
+ #define KEYLENGTH (8*sizeof(t_key))
+@@ -1225,6 +1236,18 @@
+ 		goto err;
+ 	}
+ 
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) don't make any change for
++		route involving ghostified interface */
++		ghost_debugmsg("interface is %s", fi->fib_dev->name);
++		if(is_a_ghost_interface_name(fi->fib_dev->name)) {
++			ghost_ptk("Trying to delete a route involving the "
++				"ghost device %s: we make this operation fail.", 
++				fi->fib_dev->name);
++			return -ENODEV;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	l = fib_find_node(t, key);
+ 	fa = NULL;
+ 
+@@ -1652,7 +1675,17 @@
+ 	fa = list_entry(fa->fa_list.prev, struct fib_alias, fa_list);
+ 	list_for_each_entry_continue(fa, fa_head, fa_list) {
+ 		struct fib_info *fi = fa->fa_info;
+-
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) don't make any change for
++		route involving ghostified interface */
++		ghost_debugmsg("interface is %s", fi->fib_dev->name);
++		if(is_a_ghost_interface_name(fi->fib_dev->name)) {
++			ghost_ptk("Trying to delete a route involving the "
++				"ghost device %s: we make this operation fail.", 
++				fi->fib_dev->name);
++			return -ENODEV;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 		if (fa->fa_tos != tos)
+ 			break;
+ 
+@@ -2612,7 +2645,28 @@
+ 			    || fa->fa_type == RTN_MULTICAST)
+ 				continue;
+ 
+-			if (fi)
++			if (fi) {
++#ifdef CONFIG_GHOSTIFICATION
++				/* (ghost support) Don't display any informations about
++				ghostified interfaces under /proc/net/route, bf */
++				if (! is_a_ghost_interface_name((const char*)fi->fib_dev->name)) {
++					ghost_ptk("Don't display routes for a ghostified "
++						"interface (%s) in /proc/net/route",
++						(const char*)fi->fib_dev->name);
++					seq_printf(seq,
++						 "%s\t%08X\t%08X\t%04X\t%d\t%u\t"
++						 "%d\t%08X\t%d\t%u\t%u%n",
++						 fi->fib_dev ? fi->fib_dev->name : "*",
++						 prefix,
++						 fi->fib_nh->nh_gw, flags, 0, 0,
++						 fi->fib_priority,
++						 mask,
++						 (fi->fib_advmss ?
++						  fi->fib_advmss + 40 : 0),
++						 fi->fib_window,
++						 fi->fib_rtt >> 3, &len);
++				}
++#else
+ 				seq_printf(seq,
+ 					 "%s\t%08X\t%08X\t%04X\t%d\t%u\t"
+ 					 "%d\t%08X\t%d\t%u\t%u%n",
+@@ -2625,13 +2679,14 @@
+ 					  fi->fib_advmss + 40 : 0),
+ 					 fi->fib_window,
+ 					 fi->fib_rtt >> 3, &len);
+-			else
++#endif /* CONFIG_GHOSTIFICATION */
++			} else {
+ 				seq_printf(seq,
+ 					 "*\t%08X\t%08X\t%04X\t%d\t%u\t"
+ 					 "%d\t%08X\t%d\t%u\t%u%n",
+ 					 prefix, 0, flags, 0, 0, 0,
+ 					 mask, 0, 0, 0, &len);
+-
++			}
+ 			seq_printf(seq, "%*s\n", 127 - len, "");
+ 		}
+ 	}
+diff -rNuad linux-2.6.31/net/ipv4/igmp.c linux-2.6.31-ghost/net/ipv4/igmp.c
+--- linux-2.6.31/net/ipv4/igmp.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv4/igmp.c	2009-11-26 22:58:23.000000000 +0000
+@@ -68,6 +68,8 @@
+  *		Alexey Kuznetsov:	Accordance to igmp-v2-06 draft.
+  *		David L Stevens:	IGMPv3 support, with help from
+  *					Vinay Kulkarni
++ *		Luca Saiu <positron@gnu.org>: trivial changes for ghostification 
++ *					support
+  */
+ 
+ #include <linux/module.h>
+@@ -105,6 +107,11 @@
+ #include <linux/seq_file.h>
+ #endif
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ #define IP_MAX_MEMBERSHIPS	20
+ #define IP_MAX_MSF		10
+ 
+@@ -2387,8 +2394,18 @@
+ #endif
+ 
+ 		if (state->in_dev->mc_list == im) {
++#ifdef CONFIG_GHOSTIFICATION
++ 			/* (ghost support) Don't show any info about ghost interfaces */
++ 			if(! is_a_ghost_interface_name(state->dev->name)) {
++ 				ghost_debugmsg("Don't show any igmp information in /proc "
++ 					"about ghostified interfaces (1).");
++				seq_printf(seq, "%d\t%-10s: %5d %7s\n",
++				   state->dev->ifindex, state->dev->name, state->in_dev->mc_count, querier);
++ 			}
++#else
+ 			seq_printf(seq, "%d\t%-10s: %5d %7s\n",
+ 				   state->dev->ifindex, state->dev->name, state->in_dev->mc_count, querier);
++#endif /* CONFIG_GHOSTIFICATION */
+ 		}
+ 
+ 		seq_printf(seq,
+@@ -2550,14 +2567,30 @@
+ 			   "Device", "MCA",
+ 			   "SRC", "INC", "EXC");
+ 	} else {
+-		seq_printf(seq,
+-			   "%3d %6.6s 0x%08x "
+-			   "0x%08x %6lu %6lu\n",
+-			   state->dev->ifindex, state->dev->name,
+-			   ntohl(state->im->multiaddr),
+-			   ntohl(psf->sf_inaddr),
+-			   psf->sf_count[MCAST_INCLUDE],
+-			   psf->sf_count[MCAST_EXCLUDE]);
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) Don't show any info about ghost interfaces */
++		if (! is_a_ghost_interface_name(state->dev->name)) {
++			ghost_debugmsg("Don't show any igmp information in /proc "
++				"about ghostified interfaces (2).");
++			seq_printf(seq,
++				   "%3d %6.6s 0x%08x "
++				   "0x%08x %6lu %6lu\n",
++				   state->dev->ifindex, state->dev->name,
++				   ntohl(state->im->multiaddr),
++				   ntohl(psf->sf_inaddr),
++				   psf->sf_count[MCAST_INCLUDE],
++				   psf->sf_count[MCAST_EXCLUDE]);
++		}
++#else
++			seq_printf(seq,
++				   "%3d %6.6s 0x%08x "
++				   "0x%08x %6lu %6lu\n",
++				   state->dev->ifindex, state->dev->name,
++				   ntohl(state->im->multiaddr),
++				   ntohl(psf->sf_inaddr),
++				   psf->sf_count[MCAST_INCLUDE],
++				   psf->sf_count[MCAST_EXCLUDE]);
++#endif /* CONFIG_GHOSTIFICATION */
+ 	}
+ 	return 0;
+ }
+diff -rNuad linux-2.6.31/net/ipv4/route.c linux-2.6.31-ghost/net/ipv4/route.c
+--- linux-2.6.31/net/ipv4/route.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv4/route.c	2009-11-26 22:58:23.000000000 +0000
+@@ -55,6 +55,9 @@
+  *	Eric Dumazet		:	hashed spinlocks and rt_check_expire() fixes.
+  * 	Ilia Sotnikov		:	Ignore TOS on PMTUD and Redirect
+  * 	Ilia Sotnikov		:	Removed TOS from hash calculations
++ *	Luca Saiu <positron@gnu.org> :	trivial changes for ghostification support
++ *	Roudiere Jonathan <roudiere@lipn.univ-paris13.fr> : ghost support to rtnetlink
++ *					function, ghost bugfix (field) in rt_cache_seq_show
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -108,6 +111,11 @@
+ #include <linux/sysctl.h>
+ #endif
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ #define RT_FL_TOS(oldflp) \
+     ((u32)(oldflp->fl4_tos & (IPTOS_RT_MASK | RTO_ONLINK)))
+ 
+@@ -375,6 +383,14 @@
+ 			   "Metric\tSource\t\tMTU\tWindow\tIRTT\tTOS\tHHRef\t"
+ 			   "HHUptod\tSpecDst");
+ 	else {
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) Dont't display informations about ghost ifaces, bf */
++		if(is_a_ghost_interface_name((const char*)((struct rtable*)v)->u.dst.dev->name)) {
++			ghost_ptk("Don't display routing informations about ghost interface (%s)",
++				((const char*)((struct rtable*)v)->u.dst.dev->name));
++                        return 0;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 		struct rtable *r = v;
+ 		int len;
+ 
+@@ -392,11 +408,11 @@
+ 			r->fl.fl4_tos,
+ 			r->u.dst.hh ? atomic_read(&r->u.dst.hh->hh_refcnt) : -1,
+ 			r->u.dst.hh ? (r->u.dst.hh->hh_output ==
+-				       dev_queue_xmit) : 0,
++		                        dev_queue_xmit) : 0,
+ 			r->rt_spec_dst, &len);
+ 
+ 		seq_printf(seq, "%*s\n", 127 - len, "");
+-	}
++        }
+ 	return 0;
+ }
+ 
+@@ -2833,8 +2849,13 @@
+ 		r->rtm_src_len = 32;
+ 		NLA_PUT_BE32(skb, RTA_SRC, rt->fl.fl4_src);
+ 	}
+-	if (rt->u.dst.dev)
++	if (rt->u.dst.dev) {
++#ifdef CONFIG_GHOSTIFICATION
++		/* (ghost support) */
++		ghost_develmsg("Net device is = %s ",rt->u.dst.dev->name);
++#endif
+ 		NLA_PUT_U32(skb, RTA_OIF, rt->u.dst.dev->ifindex);
++	}
+ #ifdef CONFIG_NET_CLS_ROUTE
+ 	if (rt->u.dst.tclassid)
+ 		NLA_PUT_U32(skb, RTA_FLOW, rt->u.dst.tclassid);
+@@ -2917,7 +2938,7 @@
+ 		err = -ENOBUFS;
+ 		goto errout;
+ 	}
+-
++	
+ 	/* Reserve room for dummy headers, this skb can pass
+ 	   through good chunk of routing engine.
+ 	 */
+@@ -2939,6 +2960,17 @@
+ 		if (dev == NULL) {
+ 			err = -ENODEV;
+ 			goto errout_free;
++
++#ifdef CONFIG_GHOSTIFICATION
++		ghost_debugmsg("Net device is %s ", dev->name);
++		/* (ghost support) If it is a ghostified interface then exit */
++		if (is_a_ghost_interface_name(dev->name)) {
++			ghost_ptk("Try to get a route involving a ghostified "
++				"interface (%s), skip", dev->name);
++			err = -ENODEV;
++			goto errout_free;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 		}
+ 
+ 		skb->protocol	= htons(ETH_P_IP);
+@@ -2971,6 +3003,22 @@
+ 	if (rtm->rtm_flags & RTM_F_NOTIFY)
+ 		rt->rt_flags |= RTCF_NOTIFY;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) Don't allow get ops for route 
++	involving a ghostified interface, unnecessary test ..(rt) */
++	if (rt) {
++		if (rt->u.dst.dev) {
++			ghost_debugmsg("Net device is %s ",rt->u.dst.dev->name);
++			if (is_a_ghost_interface_name(rt->u.dst.dev->name)) {
++				ghost_ptk("Try to get a route involving a ghostified "
++					"interface (%s), skip",
++					rt->u.dst.dev->name);
++				err = -ENETUNREACH;
++				goto errout_free;
++			}
++		}
++	}
++#endif /* CONFIG_GHOSTIFICATION */
+ 	err = rt_fill_info(net, skb, NETLINK_CB(in_skb).pid, nlh->nlmsg_seq,
+ 			   RTM_NEWROUTE, 0, 0);
+ 	if (err <= 0)
+@@ -2985,6 +3033,8 @@
+ 	goto errout;
+ }
+ 
++/* (ghost support) maybe it will be necessary to modify
++this func which is call in fib_frontend.c */
+ int ip_rt_dump(struct sk_buff *skb,  struct netlink_callback *cb)
+ {
+ 	struct rtable *rt;
+diff -rNuad linux-2.6.31/net/ipv6/Kconfig linux-2.6.31-ghost/net/ipv6/Kconfig
+--- linux-2.6.31/net/ipv6/Kconfig	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv6/Kconfig	2009-11-26 22:58:23.000000000 +0000
+@@ -4,8 +4,8 @@
+ 
+ #   IPv6 as module will cause a CRASH if you try to unload it
+ menuconfig IPV6
+-	tristate "The IPv6 protocol"
+-	default m
++	bool "The IPv6 protocol"
++	default y
+ 	---help---
+ 	  This is complemental support for the IP version 6.
+ 	  You will still be able to do traditional IPv4 networking as well.
+@@ -16,6 +16,10 @@
+ 	  For specific information about IPv6 under Linux, read the HOWTO at
+ 	  <http://www.bieringer.de/linux/IPv6/>.
+ 
++	  Ghostification notes:
++	  =====================
++	  IPV6 can not be built in module with ghost support.
++
+ 	  To compile this protocol support as a module, choose M here: the 
+ 	  module will be called ipv6.
+ 
+@@ -68,7 +72,7 @@
+ 	  If unsure, say N.
+ 
+ config INET6_AH
+-	tristate "IPv6: AH transformation"
++	bool "IPv6: AH transformation"
+ 	select XFRM
+ 	select CRYPTO
+ 	select CRYPTO_HMAC
+@@ -80,7 +84,7 @@
+ 	  If unsure, say Y.
+ 
+ config INET6_ESP
+-	tristate "IPv6: ESP transformation"
++	bool "IPv6: ESP transformation"
+ 	select XFRM
+ 	select CRYPTO
+ 	select CRYPTO_AUTHENC
+@@ -95,7 +99,7 @@
+ 	  If unsure, say Y.
+ 
+ config INET6_IPCOMP
+-	tristate "IPv6: IPComp transformation"
++	bool "IPv6: IPComp transformation"
+ 	select INET6_XFRM_TUNNEL
+ 	select XFRM_IPCOMP
+ 	---help---
+@@ -105,7 +109,7 @@
+ 	  If unsure, say Y.
+ 
+ config IPV6_MIP6
+-	tristate "IPv6: Mobility (EXPERIMENTAL)"
++	bool "IPv6: Mobility (EXPERIMENTAL)"
+ 	depends on EXPERIMENTAL
+ 	select XFRM
+ 	---help---
+@@ -114,16 +118,16 @@
+ 	  If unsure, say N.
+ 
+ config INET6_XFRM_TUNNEL
+-	tristate
++	bool
+ 	select INET6_TUNNEL
+ 	default n
+ 
+ config INET6_TUNNEL
+-	tristate
++	bool
+ 	default n
+ 
+ config INET6_XFRM_MODE_TRANSPORT
+-	tristate "IPv6: IPsec transport mode"
++	bool "IPv6: IPsec transport mode"
+ 	default IPV6
+ 	select XFRM
+ 	---help---
+@@ -132,7 +136,7 @@
+ 	  If unsure, say Y.
+ 
+ config INET6_XFRM_MODE_TUNNEL
+-	tristate "IPv6: IPsec tunnel mode"
++	bool "IPv6: IPsec tunnel mode"
+ 	default IPV6
+ 	select XFRM
+ 	---help---
+@@ -141,7 +145,7 @@
+ 	  If unsure, say Y.
+ 
+ config INET6_XFRM_MODE_BEET
+-	tristate "IPv6: IPsec BEET mode"
++	bool "IPv6: IPsec BEET mode"
+ 	default IPV6
+ 	select XFRM
+ 	---help---
+@@ -150,14 +154,14 @@
+ 	  If unsure, say Y.
+ 
+ config INET6_XFRM_MODE_ROUTEOPTIMIZATION
+-	tristate "IPv6: MIPv6 route optimization mode (EXPERIMENTAL)"
++	bool "IPv6: MIPv6 route optimization mode (EXPERIMENTAL)"
+ 	depends on EXPERIMENTAL
+ 	select XFRM
+ 	---help---
+ 	  Support for MIPv6 route optimization mode.
+ 
+ config IPV6_SIT
+-	tristate "IPv6: IPv6-in-IPv4 tunnel (SIT driver)"
++	bool "IPv6: IPv6-in-IPv4 tunnel (SIT driver)"
+ 	select INET_TUNNEL
+ 	select IPV6_NDISC_NODETYPE
+ 	default y
+@@ -174,7 +178,7 @@
+ 	bool
+ 
+ config IPV6_TUNNEL
+-	tristate "IPv6: IP-in-IPv6 tunnel (RFC2473)"
++	bool "IPv6: IP-in-IPv6 tunnel (RFC2473)"
+ 	select INET6_TUNNEL
+ 	---help---
+ 	  Support for IPv6-in-IPv6 and IPv4-in-IPv6 tunnels described in
+diff -rNuad linux-2.6.31/net/ipv6/addrconf.c linux-2.6.31-ghost/net/ipv6/addrconf.c
+--- linux-2.6.31/net/ipv6/addrconf.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv6/addrconf.c	2009-11-26 22:58:23.000000000 +0000
+@@ -36,6 +36,9 @@
+  *	YOSHIFUJI Hideaki @USAGI	:	improved source address
+  *						selection; consider scope,
+  *						status etc.
++ *	Luca Saiu <positron@gnu.org>    :       ghostification support 
++ *	Roudiere Jonathan <roudiere@lipn.univ-paris13.frfr>	: ghost
++ *						modify functions using (rt)netlink
+  */
+ 
+ #include <linux/errno.h>
+@@ -81,6 +84,11 @@
+ #include <linux/random.h>
+ #endif
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ #include <asm/uaccess.h>
+ #include <asm/unaligned.h>
+ 
+@@ -446,6 +454,86 @@
+ 	return idev;
+ }
+ 
++/*
++ * (ghost support) Support to hide snmp6 proc infos.
++ */
++#ifdef CONFIG_GHOSTIFICATION
++/* Utility procedure, needed for {show,hide}_proc_net_dev_snmp6_DEVICE_if_needed(). 
++   Return a pointer to a valid inet6_dev structure on success, NULL on failure: */
++static struct inet6_dev* lookup_snmp6_device(const char *interface_name)
++{
++	struct net_device *device;
++	struct inet6_dev *idev;
++
++	/* Lookup the device by name, obtaining an inet6_dev structure: */
++	device = dev_get_by_name(&init_net, interface_name);
++	if(device == NULL)
++		return NULL;
++	rtnl_lock();
++	idev = ipv6_find_idev(device);
++	rtnl_unlock();
++	return idev;
++}
++
++/* These are defined in net/ipv6/proc.c: */
++extern struct proc_dir_entry *proc_net_devsnmp6;
++extern struct file_operations snmp6_seq_fops;
++
++/* Remove the virtual file /proc/net/dev_snmp6/DEVICE, unless
++   it's already hidden. Return 0 on success, nonzero on error: */
++int hide_proc_net_dev_snmp6_DEVICE_if_needed(const char *interface_name)
++{
++	struct inet6_dev *idev = lookup_snmp6_device(interface_name);
++	ghost_ptk("Hiding /proc/net/dev_snmp6/%s...", interface_name);
++	if(idev == NULL) /* lookup failed */
++		return -EINVAL;
++
++	/* Remove the proc/ entry, if any. If there was no entry
++	then remove_proc_entry() will fail, but it's ok for us: */
++#ifdef CONFIG_PROC_FS
++	if (!proc_net_devsnmp6)
++		return -ENOENT;
++	if (idev->stats.proc_dir_entry == NULL)
++		return -EINVAL;
++	remove_proc_entry(interface_name, proc_net_devsnmp6);
++#endif /* CONFIG_PROC_FS */
++	return 0;
++	//return snmp6_unregister_dev(idev);
++}
++
++/* Create the virtual file /proc/net/dev_snmp6/DEVICE, unless 
++   it's already shown. Return 0 on success, nonzero on error: */
++int show_proc_net_dev_snmp6_DEVICE_if_needed(const char *interface_name)
++{
++	struct inet6_dev *idev = lookup_snmp6_device(interface_name);
++	struct proc_dir_entry *proc_directory_entry;
++	ghost_ptk("Showing /proc/net/dev_snmp6/%s...",
++		interface_name);
++	if(idev == NULL)	/* lookup failed */
++		return -EINVAL;
++	if(idev->dev == NULL)	/* I doubt this may happen... */
++		return -EINVAL;
++#ifdef CONFIG_PROC_FS
++	if(!proc_net_devsnmp6)	/* there isn't any /proc/net/dev_snmp6 */
++		return -ENOENT;
++	if((proc_directory_entry = create_proc_entry(interface_name, 
++		S_IRUGO, proc_net_devsnmp6)) == NULL)
++		return -ENOMEM;
++	proc_directory_entry->data = idev;
++	proc_directory_entry->proc_fops = &snmp6_seq_fops;
++	idev->stats.proc_dir_entry = proc_directory_entry;
++#endif /* CONFIG_PROC_FS */
++	return 0;
++	/* return snmp6_register_dev(idev); */
++}
++EXPORT_SYMBOL(show_proc_net_dev_snmp6_DEVICE_if_needed);
++EXPORT_SYMBOL(hide_proc_net_dev_snmp6_DEVICE_if_needed);
++#endif /* CONFIG_GHOSTIFICATION */
++
++/*
++ * End of ghostification support 
++ */
++
+ #ifdef CONFIG_SYSCTL
+ static void dev_forward_change(struct inet6_dev *idev)
+ {
+@@ -2151,6 +2239,10 @@
+ 	return PTR_ERR(ifp);
+ }
+ 
++/*
++ * (ghost support) We don't want that an address which is linked 
++ * to an ghostified interface can be show/add/del/modify/etc
++ */
+ static int inet6_addr_del(struct net *net, int ifindex, struct in6_addr *pfx,
+ 			  unsigned int plen)
+ {
+@@ -2165,6 +2257,15 @@
+ 	if (!dev)
+ 		return -ENODEV;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) If it is a ghostified interface then exit */
++	if (is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("Try to delete address on a ghostified interface (%s), skip",
++			dev->name);
++		return -ENODEV;
++	}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	if ((idev = __in6_dev_get(dev)) == NULL)
+ 		return -ENXIO;
+ 
+@@ -2979,6 +3080,22 @@
+ static int if6_seq_show(struct seq_file *seq, void *v)
+ {
+ 	struct inet6_ifaddr *ifp = (struct inet6_ifaddr *)v;
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) Don't show information about ghost interfaces */
++	if (is_a_ghost_interface_name(ifp->idev->dev->name)) {
++		ghost_ptk("Don't show informations about a ghostified "
++			"interface (%s) under /proc.",
++			ifp->idev->dev->name);
++	} else {
++		seq_printf(seq, "%pi6 %02x %02x %02x %02x %8s\n",
++			   &ifp->addr,
++			   ifp->idev->dev->ifindex,
++			   ifp->prefix_len,
++			   ifp->scope,
++			   ifp->flags,
++			   ifp->idev->dev->name);
++	}
++#else
+ 	seq_printf(seq, "%pi6 %02x %02x %02x %02x %8s\n",
+ 		   &ifp->addr,
+ 		   ifp->idev->dev->ifindex,
+@@ -2986,6 +3103,8 @@
+ 		   ifp->scope,
+ 		   ifp->flags,
+ 		   ifp->idev->dev->name);
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	return 0;
+ }
+ 
+@@ -3193,6 +3312,10 @@
+ 	[IFA_CACHEINFO]		= { .len = sizeof(struct ifa_cacheinfo) },
+ };
+ 
++/*
++ * (ghost support) We don't want that an address which is linked 
++ * to an ghostified interface can be show/add/del/modify/etc
++ */
+ static int
+ inet6_rtm_deladdr(struct sk_buff *skb, struct nlmsghdr *nlh, void *arg)
+ {
+@@ -3210,7 +3333,9 @@
+ 	pfx = extract_addr(tb[IFA_ADDRESS], tb[IFA_LOCAL]);
+ 	if (pfx == NULL)
+ 		return -EINVAL;
+-
++	/* (ghost support) we could/should stop here a request involving a 
++	ghostified interface but inet6_addr_del already do a part of our work 
++	(get dev etc ..) so instead we modify inet6_addr_del */ 
+ 	return inet6_addr_del(net, ifm->ifa_index, pfx, ifm->ifa_prefixlen);
+ }
+ 
+@@ -3259,6 +3384,10 @@
+ 	return 0;
+ }
+ 
++/*
++ * (ghost support) We don't want that an address which is linked 
++ * to an ghostified interface can be show/add/del/modify/etc
++ */
+ static int
+ inet6_rtm_newaddr(struct sk_buff *skb, struct nlmsghdr *nlh, void *arg)
+ {
+@@ -3296,6 +3425,15 @@
+ 	if (dev == NULL)
+ 		return -ENODEV;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) If it is a ghostified interface then exit */
++	if (is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("Try to add a address to a ghostified interface (%s). Failing.",
++			dev->name);
++		return -ENODEV;
++	}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	/* We ignore other flags so far. */
+ 	ifa_flags = ifm->ifa_flags & (IFA_F_NODAD | IFA_F_HOMEADDRESS);
+ 
+@@ -3464,6 +3602,12 @@
+ 	ANYCAST_ADDR,
+ };
+ 
++/*
++ * (ghost support) We don't want that an address which is linked 
++ * to an ghostified interface can be show/add/del/modify/etc;
++ * inet6_dump_addr is called by inet6_dump_{ifaddr,ifmcaddr,ifacaddr}
++ * and call the appropriate inet6_fill_* function.
++ */
+ static int inet6_dump_addr(struct sk_buff *skb, struct netlink_callback *cb,
+ 			   enum addr_type_t type)
+ {
+@@ -3489,6 +3633,17 @@
+ 		ip_idx = 0;
+ 		if ((idev = in6_dev_get(dev)) == NULL)
+ 			goto cont;
++
++#ifdef CONFIG_GHOSTIFICATION
++        	/* (ghost support) If it is a ghostified interface then exit */
++		if (is_a_ghost_interface_name(dev->name)) {
++			ghost_ptk("Try to get infos about addresses of a ghostified interface (%s), skip.",
++				dev->name);
++			goto cont;
++			/* return -ENODEV; don't use it */
++		}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 		read_lock_bh(&idev->lock);
+ 		switch (type) {
+ 		case UNICAST_ADDR:
+@@ -3560,7 +3715,6 @@
+ 	return inet6_dump_addr(skb, cb, type);
+ }
+ 
+-
+ static int inet6_dump_ifacaddr(struct sk_buff *skb, struct netlink_callback *cb)
+ {
+ 	enum addr_type_t type = ANYCAST_ADDR;
+@@ -3568,6 +3722,10 @@
+ 	return inet6_dump_addr(skb, cb, type);
+ }
+ 
++/*
++ * (ghost support) We don't want that an address which is linked 
++ * to an ghostified interface can be show/add/del/modify/etc
++ */
+ static int inet6_rtm_getaddr(struct sk_buff *in_skb, struct nlmsghdr* nlh,
+ 			     void *arg)
+ {
+@@ -3594,6 +3752,17 @@
+ 	if (ifm->ifa_index)
+ 		dev = __dev_get_by_index(net, ifm->ifa_index);
+ 
++#ifdef CONFIG_GHOSTIFICATION
++        /* (ghost support) If it is a ghostified interface then exit */
++	if (dev) {
++		if (is_a_ghost_interface_name(dev->name)) {
++			ghost_ptk("Try to get address of a ghostified interface (%s), skip.",
++				dev->name);
++			return -ENODEV;
++		}
++	}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	if ((ifa = ipv6_get_ifaddr(net, addr, dev, 1)) == NULL) {
+ 		err = -EADDRNOTAVAIL;
+ 		goto errout;
+@@ -3802,6 +3971,10 @@
+ 	return -EMSGSIZE;
+ }
+ 
++/*
++ * (ghost support) We don't want that an address which is linked 
++ * to an ghostified interface can be show/add/del/modify/etc
++ */
+ static int inet6_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
+ {
+ 	struct net *net = sock_net(skb->sk);
+@@ -3813,6 +3986,14 @@
+ 	read_lock(&dev_base_lock);
+ 	idx = 0;
+ 	for_each_netdev(net, dev) {
++#ifdef CONFIG_GHOSTIFICATION
++        	/* (ghost support) If it is a ghostified interface then exit */
++		if (is_a_ghost_interface_name(dev->name)) {
++			ghost_ptk("Try to dump address infos about a ghostified interface (%s), skip.",
++				dev->name);
++			goto cont;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 		if (idx < s_idx)
+ 			goto cont;
+ 		if ((idev = in6_dev_get(dev)) == NULL)
+@@ -3840,7 +4021,6 @@
+ 	skb = nlmsg_new(inet6_if_nlmsg_size(), GFP_ATOMIC);
+ 	if (skb == NULL)
+ 		goto errout;
+-
+ 	err = inet6_fill_ifinfo(skb, idev, 0, 0, event, 0);
+ 	if (err < 0) {
+ 		/* -EMSGSIZE implies BUG in inet6_if_nlmsg_size() */
+diff -rNuad linux-2.6.31/net/ipv6/ip6_fib.c linux-2.6.31-ghost/net/ipv6/ip6_fib.c
+--- linux-2.6.31/net/ipv6/ip6_fib.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv6/ip6_fib.c	2009-11-26 22:58:23.000000000 +0000
+@@ -275,6 +275,8 @@
+ 
+ #endif
+ 
++/* (ghost support) iterate on net device, don't modify this function,
++we can return ENODEV here, user-space tools (as ip) dump iface list before */
+ static int fib6_dump_node(struct fib6_walker_t *w)
+ {
+ 	int res;
+@@ -320,7 +322,6 @@
+ {
+ 	struct fib6_walker_t *w;
+ 	int res;
+-
+ 	w = (void *)cb->args[2];
+ 	w->root = &table->tb6_root;
+ 
+diff -rNuad linux-2.6.31/net/ipv6/mcast.c linux-2.6.31-ghost/net/ipv6/mcast.c
+--- linux-2.6.31/net/ipv6/mcast.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv6/mcast.c	2009-11-26 22:59:37.000000000 +0000
+@@ -24,6 +24,10 @@
+  *		- MLD for link-local addresses.
+  *	David L Stevens <dlstevens@us.ibm.com>:
+  *		- MLDv2 support
++ *	Luca Saiu <positron@gnu.org>:
++ *		- trivial changes for ghostification support
++ *	Roudiere Jonathan <roudiere@lipn.univ-paris13.fr>
++ *		- trivial changes to correct an forgetting
+  */
+ 
+ #include <linux/module.h>
+@@ -61,6 +65,11 @@
+ 
+ #include <net/ip6_checksum.h>
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ /* Set to 3 to get tracing... */
+ #define MCAST_DEBUG 2
+ 
+@@ -2440,6 +2449,20 @@
+ 	struct ifmcaddr6 *im = (struct ifmcaddr6 *)v;
+ 	struct igmp6_mc_iter_state *state = igmp6_mc_seq_private(seq);
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) Don't show information about ghost interfaces */
++	if(! is_a_ghost_interface_name(state->dev->name)) {
++		ghost_debugmsg("Don't show any igmp6 information in /proc "
++			"about ghostified interfaces (1).");
++        	seq_printf(seq,
++        		   "%-4d %-15s %pi6 %5d %08X %ld\n",
++        		   state->dev->ifindex, state->dev->name,
++        		   &im->mca_addr,
++        		   im->mca_users, im->mca_flags,
++	        	   (im->mca_flags&MAF_TIMER_RUNNING) ?
++        		   jiffies_to_clock_t(im->mca_timer.expires-jiffies) : 0);
++	}
++#else
+ 	seq_printf(seq,
+ 		   "%-4d %-15s %pi6 %5d %08X %ld\n",
+ 		   state->dev->ifindex, state->dev->name,
+@@ -2447,6 +2470,7 @@
+ 		   im->mca_users, im->mca_flags,
+ 		   (im->mca_flags&MAF_TIMER_RUNNING) ?
+ 		   jiffies_to_clock_t(im->mca_timer.expires-jiffies) : 0);
++#endif /* CONFIG_GHOSTIFICATION */
+ 	return 0;
+ }
+ 
+@@ -2601,6 +2625,20 @@
+ 			   "Device", "Multicast Address",
+ 			   "Source Address", "INC", "EXC");
+ 	} else {
++#ifdef CONFIG_GHOSTIFICATION
++                /* (ghost support) Don't show any info about ghost interfaces */
++                if (! is_a_ghost_interface_name(state->dev->name)) {
++                        ghost_debugmsg("Don't show any igmp6 information in /proc"
++                                " about ghostified interfaces (2).");
++		        seq_printf(seq,
++			           "%3d %6.6s %pi6 %pi6 %6lu %6lu\n",
++        			   state->dev->ifindex, state->dev->name,
++        			   &state->im->mca_addr,
++        			   &psf->sf_addr,
++        			   psf->sf_count[MCAST_INCLUDE],
++        			   psf->sf_count[MCAST_EXCLUDE]);
++		}
++#else
+ 		seq_printf(seq,
+ 			   "%3d %6.6s %pi6 %pi6 %6lu %6lu\n",
+ 			   state->dev->ifindex, state->dev->name,
+@@ -2608,6 +2646,7 @@
+ 			   &psf->sf_addr,
+ 			   psf->sf_count[MCAST_INCLUDE],
+ 			   psf->sf_count[MCAST_EXCLUDE]);
++#endif /* CONFIG_GHOSTIFICATION */
+ 	}
+ 	return 0;
+ }
+diff -rNuad linux-2.6.31/net/ipv6/proc.c linux-2.6.31-ghost/net/ipv6/proc.c
+--- linux-2.6.31/net/ipv6/proc.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv6/proc.c	2009-11-26 22:59:07.000000000 +0000
+@@ -9,6 +9,8 @@
+  *
+  * Authors:	David S. Miller (davem@caip.rutgers.edu)
+  * 		YOSHIFUJI Hideaki <yoshfuji@linux-ipv6.org>
++ *		Luca Saiu <positron@gnu.org> (trivial changes for 
++ *		ghostification support)
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -29,6 +31,16 @@
+ #include <net/transp_v6.h>
+ #include <net/ipv6.h>
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++
++/* (ghost support) We don't want this to be static, as it has to 
++    be read at ghostifying and unghostifying time */
++struct proc_dir_entry *proc_net_devsnmp6;
++EXPORT_SYMBOL(proc_net_devsnmp6);
++#endif /* CONFIG_GHOSTIFICATION */ 
++
+ static int sockstat6_seq_show(struct seq_file *seq, void *v)
+ {
+ 	struct net *net = seq->private;
+@@ -200,6 +212,18 @@
+ 	return single_open_net(inode, file, snmp6_seq_show);
+ }
+ 
++/* (ghost support) This was originally static,
++but we need to make it visible */
++#ifdef CONFIG_GHOSTIFICATION
++struct file_operations snmp6_seq_fops = {
++	.owner	 = THIS_MODULE,
++	.open	 = snmp6_seq_open,
++	.read	 = seq_read,
++	.llseek	 = seq_lseek,
++	.release = single_release,
++};
++EXPORT_SYMBOL(snmp6_seq_fops);
++#else
+ static const struct file_operations snmp6_seq_fops = {
+ 	.owner	 = THIS_MODULE,
+ 	.open	 = snmp6_seq_open,
+@@ -207,6 +231,7 @@
+ 	.llseek	 = seq_lseek,
+ 	.release = single_release_net,
+ };
++#endif /* CONFIG_GHOSTIFICATION */
+ 
+ static int snmp6_dev_seq_show(struct seq_file *seq, void *v)
+ {
+diff -rNuad linux-2.6.31/net/ipv6/route.c linux-2.6.31-ghost/net/ipv6/route.c
+--- linux-2.6.31/net/ipv6/route.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/ipv6/route.c	2009-11-26 22:58:23.000000000 +0000
+@@ -22,6 +22,10 @@
+  *		reachable.  otherwise, round-robin the list.
+  *	Ville Nuorvala
+  *		Fixed routing subtrees.
++ *	Luca Saiu <positron@gnu.org>
++ *		trivial changes for ghostification support
++ *	Roudiere Jonathan <roudiere@lipn.univ-paris13.fr>
++ * 		ghostification support update, modify functions using netlink
+  */
+ 
+ #include <linux/capability.h>
+@@ -60,6 +64,11 @@
+ #include <linux/sysctl.h>
+ #endif
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ /* Set to 3 to get tracing. */
+ #define RT6_DEBUG 2
+ 
+@@ -1115,10 +1124,6 @@
+ 	return hoplimit;
+ }
+ 
+-/*
+- *
+- */
+-
+ int ip6_route_add(struct fib6_config *cfg)
+ {
+ 	int err;
+@@ -1830,6 +1835,8 @@
+ 	struct in6_rtmsg rtmsg;
+ 	int err;
+ 
++	/* (ghost support) don't make any change, changes
++	have been made later for ioctl request */
+ 	switch(cmd) {
+ 	case SIOCADDRT:		/* Add a route */
+ 	case SIOCDELRT:		/* Delete a route */
+@@ -2133,26 +2140,84 @@
+ 	return err;
+ }
+ 
++/*
++ * (ghost support) We don't want a route which involed a
++ * ghostified interface can be show/add/del/modify/etc.
++ */ 
+ static int inet6_rtm_delroute(struct sk_buff *skb, struct nlmsghdr* nlh, void *arg)
+ {
+ 	struct fib6_config cfg;
+ 	int err;
+ 
+-	err = rtm_to_fib6_config(skb, nlh, &cfg);
+-	if (err < 0)
+-		return err;
++#ifdef CONFIG_GHOSTIFICATION
++        struct net *net = NULL;
++        struct net_device *dev = NULL;
++	
++        err = rtm_to_fib6_config(skb, nlh, &cfg);
++        if (err < 0)
++                return err;
++
++        /* (ghost support) get the net struct through sock struct */
++        net = sock_net(skb->sk);
++        if(!net) 
++                return  ip6_route_del(&cfg); /* do that or exit on error ... */
++        /* (ghost support) get the net_device struct through fib6_config */
++        dev = dev_get_by_index(net, cfg.fc_ifindex);
++        if(!dev)
++                return  ip6_route_del(&cfg); /* do that or exit on error ... */
++        /* (ghost support) ok we know the device name so if it 
++	   is a ghostified interface, return device not exist */
++        if(is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("Try to del route involving a ghostified interface (%s). Failing",
++			dev->name);
++                return -ENODEV;
++        }
++#else
++        err = rtm_to_fib6_config(skb, nlh, &cfg);
++        if (err < 0)
++                return err;
++#endif /* CONFIG_GHOSTIFICATION */
+ 
+ 	return ip6_route_del(&cfg);
+ }
+ 
++/*
++ * (ghost support) We don't want a route which involed a
++ * ghostified interface can be show/add/del/modify/etc.
++ */ 
+ static int inet6_rtm_newroute(struct sk_buff *skb, struct nlmsghdr* nlh, void *arg)
+ {
+ 	struct fib6_config cfg;
+ 	int err;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	struct net *net = NULL;
++	struct net_device *dev = NULL;
++
+ 	err = rtm_to_fib6_config(skb, nlh, &cfg);
+ 	if (err < 0)
+ 		return err;
++	
++	/* (ghost support) get the net struct through sock struct */
++	net = sock_net(skb->sk);
++	if(!net)
++		return ip6_route_add(&cfg); /* do that or exit on error ... */
++	/* (ghost support) get the net_device struct through fib6_config */
++	dev = dev_get_by_index(net, cfg.fc_ifindex);
++	if(!dev)
++		return ip6_route_add(&cfg); /* do that or exit on error ... */
++	/* (ghost support) ok we know the device name so if it is 
++	    a ghostified interface, return device not exist */
++	if(is_a_ghost_interface_name(dev->name)) {
++		ghost_ptk("Try to add route involving a ghostified interface (%s). Failing.",
++			dev->name);
++		return -ENODEV;
++	}
++#else
++	err = rtm_to_fib6_config(skb, nlh, &cfg);
++        if (err < 0)
++                return err;
++#endif /* CONFIG_GHOSTIFICATION */
+ 
+ 	return ip6_route_add(&cfg);
+ }
+@@ -2172,6 +2237,10 @@
+ 	       + nla_total_size(sizeof(struct rta_cacheinfo));
+ }
+ 
++/*
++ * (ghost support) We don't want a route which involed a 
++ * ghostified interface can be show/add/del/modify/etc 
++ */
+ static int rt6_fill_node(struct net *net,
+ 			 struct sk_buff *skb, struct rt6_info *rt,
+ 			 struct in6_addr *dst, struct in6_addr *src,
+@@ -2183,6 +2252,19 @@
+ 	long expires;
+ 	u32 table;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	ghost_develmsg("rtnetlink msg type %i, pid %i and seq %i",
++		type, pid, seq);
++	/* (ghost support) this function is called by by rt6_dump_route, and
++	inet6_rtm_get_route and inet6_rt_notify, test if it is a kernel request*/
++	if (rt->rt6i_dev->name)
++		if(is_a_ghost_interface_name(rt->rt6i_dev->name)) {
++			ghost_ptk("Try to get/notify route infos about a "
++				"ghostified interface (%s), skip.",
++				rt->rt6i_dev->name);
++			return 1;
++	}
++#endif /* CONFIG_GHOSTIFICATION */
+ 	if (prefix) {	/* user wants prefix routes only */
+ 		if (!(rt->rt6i_flags & RTF_PREFIX_RT)) {
+ 			/* success since this is not a prefix route */
+@@ -2290,10 +2372,26 @@
+ 	return -EMSGSIZE;
+ }
+ 
++/*
++ * (ghost support) We don't want a route which involed a
++ * ghostified interface can be show/add/del/modify/etc,
++ */
+ int rt6_dump_route(struct rt6_info *rt, void *p_arg)
+ {
+ 	struct rt6_rtnl_dump_arg *arg = (struct rt6_rtnl_dump_arg *) p_arg;
+ 	int prefix;
++	
++#ifdef CONFIG_GHOSTIFICATION
++	ghost_develmsg(" rtnetlink mesg %i, pid %i and seq %i",
++		arg->cb->nlh->nlmsg_type, arg->cb->nlh->nlmsg_pid, arg->cb->nlh->nlmsg_seq);
++        /* if (rt->rt6i_dev)
++		if(is_a_ghost_interface_name(rt->rt6i_dev->name)) {
++			ghost_ptk("Try to dump route infos about a ghostified interface (%s), skip",
++				rt->rt6i_dev->name);
++			return -ENODEV; errro maybe come from here, modify instead 
++			rt6_fill_node which has multiple callers
++		} */
++#endif /* CONFIG_GHOSTIFICATION */
+ 
+ 	if (nlmsg_len(arg->cb->nlh) >= sizeof(struct rtmsg)) {
+ 		struct rtmsg *rtm = nlmsg_data(arg->cb->nlh);
+@@ -2307,6 +2405,8 @@
+ 		     prefix, 0, NLM_F_MULTI);
+ }
+ 
++/* (ghost support) Don't make changes here, function 
++rt6_fill_node has been modified instead */
+ static int inet6_rtm_getroute(struct sk_buff *in_skb, struct nlmsghdr* nlh, void *arg)
+ {
+ 	struct net *net = sock_net(in_skb->sk);
+@@ -2452,6 +2552,17 @@
+ {
+ 	struct seq_file *m = p_arg;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* (ghost support) Do nothing if this route involves a 
++       ghostified interface */
++	if(rt->rt6i_dev != NULL) /* can't use &&: evaluation order is undefined */
++		if(is_a_ghost_interface_name(rt->rt6i_dev->name)) {
++			ghost_ptk("Don't show any informations under /proc/net"
++				"involving a ghostified interface (%s)",
++				rt->rt6i_dev->name);
++			return 0;
++		}
++#endif /* CONFIG_GHOSTIFICATION */
+ 	seq_printf(m, "%pi6 %02x ", &rt->rt6i_dst.addr, rt->rt6i_dst.plen);
+ 
+ #ifdef CONFIG_IPV6_SUBTREES
+diff -rNuad linux-2.6.31/net/netfilter/core.c linux-2.6.31-ghost/net/netfilter/core.c
+--- linux-2.6.31/net/netfilter/core.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/netfilter/core.c	2009-11-26 23:00:16.000000000 +0000
+@@ -5,6 +5,8 @@
+  * way.
+  *
+  * Rusty Russell (C)2000 -- This code is GPL.
++ * Little change by Jonathan Roudiere <roudiere@lipn.fr> to add 
++ * Ghostification support (bypass netfilter for ghost interface).
+  */
+ #include <linux/kernel.h>
+ #include <linux/netfilter.h>
+@@ -22,6 +24,11 @@
+ #include <net/net_namespace.h>
+ #include <net/sock.h>
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ #include "nf_internals.h"
+ 
+ static DEFINE_MUTEX(afinfo_mutex);
+@@ -59,7 +66,6 @@
+ {
+ 	struct nf_hook_ops *elem;
+ 	int err;
+-
+ 	err = mutex_lock_interruptible(&nf_hook_mutex);
+ 	if (err < 0)
+ 		return err;
+@@ -169,7 +175,158 @@
+ 	rcu_read_lock();
+ 
+ 	elem = &nf_hooks[pf][hook];
++
+ next_hook:
++	/*
++	 * (ghost support) Netfilter ghostification support.
++	 * Perform too much tests here is not a good idea because all
++	 * network packets pass through this section but we have
++	 * not other choice to skip netfilter hooks (per hook).
++	 */
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER
++	/*
++	 * Bypass all Netfilter hooks (for ipv4/6, arp, bridge) for any
++	 * ghostified interface (eq. to return NF_ACCEPT for each packet which
++	 * go through an interface which is ghostified (do that at hook level
++	 * in order to skip all chains's rules hang on the hooks))
++	 */
++
++	/* don't use ghost_debugmsg macro in this section 
++	because it may introduce too much delay */
++	ghost_develmsg("Enter in hook (pf=%i) (hook=%i) from indev->name = "
++		"%s to outdev->name = %s", pf, hook, indev->name, outdev->name);
++
++/* If we wish to skip all netfilter hooks for all PF */
++#ifdef  CONFIG_GHOSTIFICATION_NETFILTER_ALL
++	/*
++	 * outdev->name field is defined in OUTPUT, FORWARD and POSTROUTING hooks, 
++	 * if it is a ghostified interface then we must bypass netfilter hooks
++	 * (and all rules chains), we start here (with outdev) to bypass netfilter's 
++	 * hooks in the case where we are in FORWARD.
++	 */
++	if ((outdev->name) != NULL) {
++		if (!is_a_ghost_interface_name(outdev->name)) {
++			ghost_develmsg("(outdev->name) = %s is not a ghostfied interface",
++				(outdev->name));
++			goto apply_hook;
++		} else {
++			ghost_develmsg("(outdev->name) = %s is a ghostfied interface",
++				(outdev->name));
++			ret = 1;
++			goto unlock;
++		}
++	}
++	/*
++	 * indev->name field is defined in PREROUTING, FORWARD and INPUT hooks,
++	 * if it is a ghostified interface then we must bypass netfilter hooks
++	 * (and all rules chains), if we are in FORWARD hook and outdev/indev->name 
++	 * is not a ghostified interface then we can go towards hooks.
++	 */
++	if ((indev->name) != NULL) {
++		if (!is_a_ghost_interface_name(indev->name)) {
++			ghost_develmsg("(indev->name) = %s is not a ghostfied interface",
++				(indev->name));
++			goto apply_hook;
++                } else {
++			ghost_develmsg("(indev->name) = %s is a ghostfied interface",
++				(indev->name));
++			ret = 1;
++			goto unlock;
++		}
++	}
++
++/* 
++ * If GHOSTIFICATION_NETFILTER_ALL is not defined neither any 
++ * GHOSTIFICATION_NETFILTER_PF then we 'll skip all this code chunk.
++ * (about performance, choose to skip netfilter just for certains PF
++ * is the most bad things we can do, but ...) 
++ */
++#elif (defined(CONFIG_GHOSTIFICATION_NETFILTER_IPV4) || defined(CONFIG_GHOSTIFICATION_NETFILTER_IPV6) || \
++	defined(CONFIG_GHOSTIFICATION_NETFILTER_ARP) || defined(CONFIG_GHOSTIFICATION_NETFILTER_BRIDGE))
++	/* Here we have the same logic as previously (in GHOSTIFICATION_NETFILTER_ALL) 
++	but with the ability to choose what are the PFs that we want to skip */
++	if ((outdev->name) != NULL) {
++		if (!is_a_ghost_interface_name(outdev->name)) {
++			ghost_develmsg("(outdev->name) = %s is not a ghostfied interface",
++				(outdev->name));
++			goto apply_hook; 
++		} else {
++			ghost_develmsg("(outdev->name) = %s is a ghostfied interface",
++				(outdev->name));
++			/* start with IPv4, IPv6 because they are the most current PF */
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER_IPV4
++			if (pf == PF_INET) {
++				ret = 1;
++				goto unlock;
++			}
++#endif /* CONFIG_GHOSTIFICATION_NETFILTER_IPV4 */
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER_IPV6
++			if (pf == PF_INET6) {
++				ret = 1;
++				goto unlock;
++			}
++#endif /* CONFIG_GHOSTIFICATION_NETFILTER_IPV6 */
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER_ARP
++			if (pf == NF_ARP) {
++				ret = 1;
++				goto unlock;
++			}
++#endif /* CONFIG_GHOSTIFICATION_NETFILTER_ARP */
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER_BRIDGE
++			if (pf == PF_BRIDGE) {
++				ret = 1;
++				goto unlock;
++			}
++#endif /* CONFIG_GHOSTIFICATION_NETFILTER_BRIDGE */
++			/* We arrive here that is because we are not in a PF
++			that we wish skip so we apply rules chain (for decnet) */
++			goto apply_hook;
++		}
++	}
++	if ((indev->name) != NULL) {
++		if (!is_a_ghost_interface_name(indev->name)) {
++			ghost_develmsg("(indev->name) = %s is not a ghostfied interface",
++				(indev->name));
++			goto apply_hook;
++		} else {
++			ghost_develmsg("(indev->name) = %s is a ghostfied interface",
++				(indev->name));
++			/* start with IPv4, IPv6 because they are the most current PF */
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER_IPV4
++			if (pf == PF_INET) {
++				ret = 1;
++				goto unlock;
++			}
++#endif /* CONFIG_GHOSTIFICATION_NETFILTER_IPV4 */
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER_IPV6
++			if (pf == PF_INET6) {
++				ret = 1;
++				goto unlock;
++			}
++#endif /* CONFIG_GHOSTIFICATION_NETFILTER_IPV6 */
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER_ARP
++			if (pf == NF_ARP) {
++				ret = 1;
++				goto unlock;
++			}
++#endif /* CONFIG_GHOSTIFICATION_NETFILTER_ARP */
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER_BRIDGE
++			if (pf == PF_BRIDGE) {
++				ret = 1;
++				goto unlock;
++			}
++#endif /* CONFIG_GHOSTIFICATION_NETFILTER_BRIDGE */
++			/* We arrive here that is because we are not in a PF
++			that we wish skip so we apply rules chain (for decnet) */
++			goto apply_hook;
++		}
++	}
++
++#endif /* CONFIG_GHOSTIFICATION_ALL */
++apply_hook:
++#endif /* CONFIG_GHOSTIFICATION_NETFILTER */
++/* (ghost support) End of ghostification support */
++
+ 	verdict = nf_iterate(&nf_hooks[pf][hook], skb, hook, indev,
+ 			     outdev, &elem, okfn, hook_thresh);
+ 	if (verdict == NF_ACCEPT || verdict == NF_STOP) {
+@@ -182,6 +339,9 @@
+ 			      verdict >> NF_VERDICT_BITS))
+ 			goto next_hook;
+ 	}
++#ifdef CONFIG_GHOSTIFICATION_NETFILTER
++unlock:
++#endif
+ 	rcu_read_unlock();
+ 	return ret;
+ }
+diff -rNuad linux-2.6.31/net/packet/af_packet.c linux-2.6.31-ghost/net/packet/af_packet.c
+--- linux-2.6.31/net/packet/af_packet.c	2009-09-09 22:13:59.000000000 +0000
++++ linux-2.6.31-ghost/net/packet/af_packet.c	2009-11-26 22:58:23.000000000 +0000
+@@ -8,6 +8,7 @@
+  * Authors:	Ross Biro
+  *		Fred N. van Kempen, <waltje@uWalt.NL.Mugnet.ORG>
+  *		Alan Cox, <gw4pts@gw4pts.ampr.org>
++ * 		Luca Saiu <positron@gnu.org> :       Trivial changes for ghostification
+  *
+  * Fixes:
+  *		Alan Cox	:	verify_area() now used correctly
+@@ -84,6 +85,11 @@
+ #include <net/inet_common.h>
+ #endif
+ 
++/* (ghost support) */
++#ifdef CONFIG_GHOSTIFICATION
++#include <net/ghostdebug.h>
++#endif
++
+ /*
+    Assumptions:
+    - if device has no dev->hard_header routine, it adds and removes ll header
+@@ -549,6 +555,18 @@
+ 	if (skb->pkt_type == PACKET_LOOPBACK)
+ 		goto drop;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* 
++	 * (ghost support) Drop packets involving ghost interfaces: 
++	 * we don't want the user to be able to sniff them
++	 */
++	if(is_a_ghost_interface_name(orig_dev->name) ||
++		is_a_ghost_interface_name(dev->name)) {
++		ghost_debugmsg("Drop a packet which is going through a ghostified interface (rcv)");
++		goto drop;
++	}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	sk = pt->af_packet_priv;
+ 	po = pkt_sk(sk);
+ 
+@@ -670,6 +688,18 @@
+ 	if (skb->pkt_type == PACKET_LOOPBACK)
+ 		goto drop;
+ 
++#ifdef CONFIG_GHOSTIFICATION
++	/* 
++	 * (ghost support) Drop packets involving ghost interfaces: 
++	 * we don't want the user to be able to sniff them.
++	 */
++	if(is_a_ghost_interface_name(orig_dev->name) ||
++	 	is_a_ghost_interface_name(dev->name)) {
++		ghost_debugmsg("Drop a packet which is going through a ghostified interface (trcv)");
++		goto drop;
++	}
++#endif /* CONFIG_GHOSTIFICATION */
++
+ 	sk = pt->af_packet_priv;
+ 	po = pkt_sk(sk);
+ 
+@@ -2420,17 +2450,38 @@
+ 		struct sock *s = v;
+ 		const struct packet_sock *po = pkt_sk(s);
+ 
++#ifdef CONFIG_GHOSTIFICATION
++		/*
++		 * (ghost support) Don't show packets involving ghost devices
++		 */
++		struct net_device *net_device = dev_get_by_index(sock_net(s), po->ifindex);
++		if(! is_a_ghost_interface_name(net_device->name)) {
++			ghost_debugmsg("Don't show packets involving ghostified interface");
++			seq_printf(seq,
++				   "%p %-6d %-4d %04x   %-5d %1d %-6u %-6u %-6lu\n",
++				   s,
++				   atomic_read(&s->sk_refcnt),
++				   s->sk_type,
++				   ntohs(po->num),
++				   po->ifindex,
++				   po->running,
++				   atomic_read(&s->sk_rmem_alloc),
++				   sock_i_uid(s),
++				   sock_i_ino(s) );
++		}
++#else
+ 		seq_printf(seq,
+-			   "%p %-6d %-4d %04x   %-5d %1d %-6u %-6u %-6lu\n",
+-			   s,
+-			   atomic_read(&s->sk_refcnt),
+-			   s->sk_type,
+-			   ntohs(po->num),
+-			   po->ifindex,
+-			   po->running,
+-			   atomic_read(&s->sk_rmem_alloc),
+-			   sock_i_uid(s),
+-			   sock_i_ino(s) );
++			"%p %-6d %-4d %04x   %-5d %1d %-6u %-6u %-6lu\n",
++			s,
++			atomic_read(&s->sk_refcnt),
++			s->sk_type,
++			ntohs(po->num),
++			po->ifindex,
++			po->running,
++			atomic_read(&s->sk_rmem_alloc),
++			sock_i_uid(s),
++			sock_i_ino(s) );
++#endif /* CONFIG_GHOSTIFICATION */
+ 	}
+ 
+ 	return 0;

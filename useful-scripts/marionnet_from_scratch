@@ -1207,6 +1207,18 @@ cat >$TMPFILE <<EOF
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Very basic init launcher for the marionnet-daemon
+
+### BEGIN INIT INFO
+# Provides: marionnet-daemon
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $remote_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Support daemon for marionnet
+# Description: Support daemon for marionnet
+### END INIT INFO
+
 set -e
 PATH=$PREFIX/bin:$PREFIX/sbin:\$PATH
 

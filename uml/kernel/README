@@ -1,0 +1,60 @@
+This directory contains patch files and .config files.
+
+.config files
+-------------
+Each DOT-config-* file is specific to one certain kernel version -- the
+file name cleraly says which one.  A DOT-config-* file should be renamed
+to .config and copied into the main directory of unpacked kernel sources.
+
+patch files
+-----------
+We distribute patch files, hopefully applicable to several kernel
+versions, but named after a specific version we tested.
+
+
+History and current status
+---------------------------
+
+Since unfortunately Jonathan Roudiere is no longer very active in the
+project, we (Luca Saiu and Jean-Vincent Loddo) have taken over
+maintenance.
+
+I (Luca Saiu) had the original idea and wrote the original
+ghostification kernel patch in 2007, against Linux 2.6.18; the idea of
+modifying the kernel in order to shield students from the frighteningly
+complex reality of X11 network communication started as a joke between
+me and Jean-Vincent; but then he encouraged me to actually do it, and
+of course I was happy to accept the challenge.
+
+When Jonathan joined the project (was it 2009 or 2010?) he ported my
+patch to more recent kernel versions, and in particular to the new
+internal network infrastructure.  He also cleaned up the sources,
+correctly interfaced them to the Linux configuration system, rewrote
+from scratch the userland utilties (my version was just a hacked-up
+ifconfig), and generally made the code much more powerful.  Jonathan
+released patches for Linux 2.6.26, 2.6.27, 2.6.28, 2.6.29, 2.6.30,
+2.6.31 and 2.6.32.
+
+Now in 2011 those versions have become old, and more importantly are
+starting to become problematic to compile on new hosts; that's why
+I've taken Jonathan's last patch and ported it to the most recent
+stable kernel available as of this writing, Linux 3.0.8.  Of course
+the code changes rapidly, and some changes were required: for example
+the filed named "u" in struct rtable, defined in include/net/route.h,
+has been removed some versions ago; we used to use "u" to access its
+field "dst", but now dst is directly referred by a new pointer field
+in struct rtable.  Even without studying the kernel code in detail as
+Jonathan did I've fixed some problems such as this, and the result
+seems to work reliably.  I have not cleaned up the code unless it was
+necessary for building: what I have done until this moment is just
+porting work.
+
+In the future we plan to drop support for old kernel versions, but for
+the time being we prefer to keep the older patches around, since the
+latest one hasn't been tested much yet.
+
+
+Have fun with ghostification.
+
+-- 
+Luca Saiu, October 2011

@@ -1,0 +1,845 @@
+diff -rNuadEb linux-source-2.6.18/arch/um/sys-i386/user-offsets.c linux-source-2.6.18-ghost/arch/um/sys-i386/user-offsets.c
+--- linux-source-2.6.18/arch/um/sys-i386/user-offsets.c	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/arch/um/sys-i386/user-offsets.c	2009-11-29 20:04:05.000000000 +0100
+@@ -2,7 +2,8 @@
+ #include <signal.h>
+ #include <asm/ptrace.h>
+ #include <asm/user.h>
+-#include <linux/stddef.h>
++#include <linux/compiler.h>
++//#include <linux/stddef.h>
+ #include <sys/poll.h>
+ 
+ #define DEFINE(sym, val) \
+@@ -11,6 +12,10 @@
+ #define DEFINE_LONGS(sym, val) \
+ 	asm volatile("\n->" #sym " %0 " #val : : "i" (val/sizeof(unsigned long)))
+ 
++//#define offsetof(TYPE,MEMBER)	((size_t)&((TYPE*)0)->MEMBER)
++#define offsetof(TYPE, MEMBER) __builtin_offsetof (TYPE, MEMBER)
++
++
+ #define OFFSET(sym, str, mem) \
+ 	DEFINE(sym, offsetof(struct str, mem));
+ 
+diff -rNuadEb linux-source-2.6.18/include/linux/netdevice.h linux-source-2.6.18-ghost/include/linux/netdevice.h
+--- linux-source-2.6.18/include/linux/netdevice.h	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/include/linux/netdevice.h	2009-11-29 20:04:05.000000000 +0100
+@@ -14,6 +14,8 @@
+  *		Alan Cox, <Alan.Cox@linux.org>
+  *		Bjorn Ekwall. <bj0rn@blox.se>
+  *              Pekka Riikonen <priikone@poseidon.pspt.fi>
++ *              Luca Saiu <positron@gnu.org> (trivial changes
++ *                                            for ghostification support)
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -1041,4 +1043,7 @@
+ 
+ #endif /* __KERNEL__ */
+ 
++/* Just check whether the given name belongs to the ghost interface: */
++int is_a_ghost_interface_name(const char *interface_name);
++
+ #endif	/* _LINUX_DEV_H */
+diff -rNuadEb linux-source-2.6.18/include/linux/sockios.h linux-source-2.6.18-ghost/include/linux/sockios.h
+--- linux-source-2.6.18/include/linux/sockios.h	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/include/linux/sockios.h	2009-11-29 20:04:05.000000000 +0100
+@@ -9,6 +9,8 @@
+  *
+  * Authors:	Ross Biro
+  *		Fred N. van Kempen, <waltje@uWalt.NL.Mugnet.ORG>
++ *              Luca Saiu <positron@gnu.org> (trivial changes
++ *                                            for ghostification support)
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -83,6 +85,10 @@
+ 
+ #define SIOCWANDEV	0x894A		/* get/set netdev parameters	*/
+ 
++#define SIOKLOG	        0x894D		/* Write a string to the log */
++#define SIOCGIFGHOSTIFY	0x894E		/* Make a network device 'ghost' */
++#define SIOCGIFUNGHOSTIFY 0x894F	/* Make a network device 'ghost' */
++
+ /* ARP cache control calls. */
+ 		    /*  0x8950 - 0x8952  * obsolete calls, don't re-use */
+ #define SIOCDARP	0x8953		/* delete ARP table entry	*/
+diff -rNuadEb linux-source-2.6.18/net/core/dev.c linux-source-2.6.18-ghost/net/core/dev.c
+--- linux-source-2.6.18/net/core/dev.c	2009-11-05 04:47:10.000000000 +0100
++++ linux-source-2.6.18-ghost/net/core/dev.c	2009-11-29 20:04:05.000000000 +0100
+@@ -18,6 +18,7 @@
+  *		Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
+  *		Adam Sulmicki <adam@cfar.umd.edu>
+  *              Pekka Riikonen <priikone@poesidon.pspt.fi>
++ *              Luca Saiu <positron@gnu.org> (ghostification support)
+  *
+  *	Changes:
+  *              D.J. Barrow     :       Fixed bug where dev->refcnt gets set
+@@ -118,6 +119,179 @@
+ #include <linux/err.h>
+ #include <linux/ctype.h>
+ 
++
++/* The maximum number of ghost interfaces allowed at any given
++   time: */
++#define MAX_GHOST_INTERFACES_NO 8
++
++/* A crude unsorted array of unique names, where "" stands for an
++   empty slot. Elements are so few that an hash table would be
++   overkill, and possibly also less efficient than this solution: */
++static char ghost_interface_names[MAX_GHOST_INTERFACES_NO][IFNAMSIZ];
++
++/* A lock protecting the ghost interfaces' support structure: */
++//static DEFINE_SPINLOCK(ghostification_spin_lock);
++static rwlock_t ghostification_spin_lock = RW_LOCK_UNLOCKED;
++
++/* Lock disabling local interrupts and saving flags. This is for
++   readers/writers, which should be prevented from interfering with
++   other readers/writers and with readers: */
++#define LOCK_GHOSTIFICATION_FOR_READING_AND_WRITING \
++  unsigned long flags; write_lock_irqsave(&ghostification_spin_lock, flags)
++/* Unlock re-enabling interrupts and restoring flags. This is for
++   readers/writers, which should be prevented from interfering with
++   other readers/writers and with readers: */
++#define UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING \
++  write_unlock_irqrestore(&ghostification_spin_lock, flags)
++
++/* Lock disabling local interrupts and saving flags. This is for readers,
++   which are allowed to execute concurrently: */
++#define LOCK_GHOSTIFICATION_FOR_READING \
++  unsigned long flags; read_lock_irqsave(&ghostification_spin_lock, flags)
++/* Lock re-enabling interrupts and restoring flags. This is for readers,
++   which are allowed to execute concurrently: */
++#define UNLOCK_GHOSTIFICATION_FOR_READING \
++  read_unlock_irqrestore(&ghostification_spin_lock, flags)
++
++/* Defined in net/ipv6/addrconf.c: */
++int hide_proc_net_dev_snmp6_DEVICE_if_needed(const char *interface_name);
++int show_proc_net_dev_snmp6_DEVICE_if_needed(const char *interface_name);
++
++/* Return the index of the given element (which may be "") within
++   ghost_interface_names, or -1 on failure. Note that this must be
++   executed in a critical section: */
++static int __lookup_ghost_interface_names(const char *interface_name){
++  int i;
++  for(i = 0; i < MAX_GHOST_INTERFACES_NO; i++)
++    if(!strcmp(interface_name, ghost_interface_names[i]))
++      return i; // we found the given name in the i-th element
++  return -1; // we didn't find the given name in the array
++}
++
++/* This is useful for debugging. It must be called in a critical
++   section. */
++static void __dump_ghost_interfaces(void){
++  int i, number_of_ghost_interfaces = 0;
++  printk(KERN_DEBUG
++         "Ghost interfaces are now:\n");
++  for(i = 0; i < MAX_GHOST_INTERFACES_NO; i++)
++    if(strcmp(ghost_interface_names[i], "")){
++      number_of_ghost_interfaces++;
++      printk(KERN_DEBUG "%i. %s\n",
++             number_of_ghost_interfaces,
++             ghost_interface_names[i]);
++    }
++  printk(KERN_DEBUG "There are now %i ghost interfaces. A maximum of %i can exist at any given time.\n",
++         number_of_ghost_interfaces,
++         MAX_GHOST_INTERFACES_NO);
++}
++
++/* Just check whether the given name belongs to a ghost interface.
++   This must be called in a critical section: */
++int __is_a_ghost_interface_name(const char *interface_name){
++  /* Particular case: "" is *not* a ghost interface name, even if
++     it's in the ghost interfaces array (we use it just to mark
++     an empty slot): */
++  if(interface_name[0] == '\0')
++    return 0;
++  /* Just check whether interface_name is an element of the array: */
++  return __lookup_ghost_interface_names(interface_name) >= 0;
++}
++
++/* Just check whether the given name belongs to a ghost interface: */
++int is_a_ghost_interface_name(const char *interface_name){
++  int result;
++  LOCK_GHOSTIFICATION_FOR_READING;
++  /* Just check whether interface_name is an element of the array: */
++  result = __is_a_ghost_interface_name(interface_name);
++  UNLOCK_GHOSTIFICATION_FOR_READING;
++  return result;
++}
++
++/* Make the given interface ghost. Return 0 on success, nonzero on
++   failure. Failure occours when the interface is already ghost or
++   does not exist: */
++static int ghostify_interface(char *interface_name){
++  int a_free_element_index;
++  const size_t name_length = strlen(interface_name);
++  LOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++  /* Let's avoid buffer overflows... This could possibly be exploited: */
++  if((name_length >= IFNAMSIZ) || (name_length == 0)){
++    printk(KERN_DEBUG
++           "The user asked to ghostify the interface %s, which has a name of length %i. Failing.\n",
++           interface_name,
++           name_length);
++    UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++    return -EINVAL;
++  } // if
++  
++  /* Fail if the interface is already ghostified. In particular we
++     want *no* duplicates in the array. Note that we're already in
++     a critical section here, so there's no need for locking: */
++  if(__is_a_ghost_interface_name(interface_name)){
++    printk(KERN_DEBUG
++           "Could not ghostify the interface %s, because it\'s already ghost.\n",
++           interface_name);
++    UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++    return -EINVAL;
++  } // if
++  
++  /* Look for a free spot: */
++  a_free_element_index = __lookup_ghost_interface_names("");
++  if(a_free_element_index < 0){
++    printk(KERN_DEBUG
++           "Could not ghostify the interface %s, because %i interfaces are already ghostified. Sorry.\n",
++           interface_name,
++           MAX_GHOST_INTERFACES_NO);
++    UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++    return -ENOMEM;
++  } // if
++  
++  /* Ok, we found a free spot; just copy the interface name: */
++  strcpy(ghost_interface_names[a_free_element_index],
++         interface_name);
++  
++  /* Hide /proc/net/dev_snmp6/DEVICE for the new ghost DEVICE: */
++  hide_proc_net_dev_snmp6_DEVICE_if_needed(
++     ghost_interface_names[a_free_element_index]);
++  
++  __dump_ghost_interfaces();
++  UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++  return 0;
++}
++
++/* Make the given interface, which should be ghost, non-ghost.
++   Return 0 on success, nonzero on failure. Failure occours when
++   the given interface is non-ghost or does not exist: */
++static int unghostify_interface(char *ghost_interface_name){
++  int the_interface_index;
++  LOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++  /* Look for the given interface: */
++  the_interface_index =
++    __lookup_ghost_interface_names(ghost_interface_name);
++  if(the_interface_index < 0){
++    printk(KERN_DEBUG
++           "Could not unghostify the interface %s, because it's non-ghost or not existing.\n",
++           ghost_interface_name);
++    UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++    return -EINVAL;
++  } // if
++  
++  /* Ok, we found the interface: just "remove" its name from the array: */
++  ghost_interface_names[the_interface_index][0] = '\0';
++  
++  /* Show again /proc/net/dev_snmp6/DEVICE for the now non-ghost DEVICE: */
++  show_proc_net_dev_snmp6_DEVICE_if_needed(
++     ghost_interface_name);
++  
++  __dump_ghost_interfaces();
++  UNLOCK_GHOSTIFICATION_FOR_READING_AND_WRITING;
++  return 0;
++}
++
++EXPORT_SYMBOL(is_a_ghost_interface_name);
++
++
+ /*
+  *	The list of packet types we will receive (as opposed to discard)
+  *	and the routines to invoke.
+@@ -433,8 +607,13 @@
+ int __init netdev_boot_setup(char *str)
+ {
+ 	int ints[5];
++        int i;
+ 	struct ifmap map;
+ 
++        /* There are no ghost interfaces by default: */
++        for(i = 0; i < MAX_GHOST_INTERFACES_NO; i++)
++          ghost_interface_names[i][0] = '\0';
++
+ 	str = get_options(str, ARRAY_SIZE(ints), ints);
+ 	if (!str || !*str)
+ 		return 0;
+@@ -2044,11 +2223,16 @@
+ 	len = ifc.ifc_len;
+ 
+ 	/*
+-	 *	Loop over the interfaces, and write an info block for each.
++	 *	Loop over the interfaces, and write an info block for each,
++         *      unless they are ghostified.
+ 	 */
+-
+ 	total = 0;
+-	for (dev = dev_base; dev; dev = dev->next) {
++	for (dev = dev_base; dev; dev = dev->next){
++          /* Don't tell the user about ghost interfaces: just skip them: */
++          if(is_a_ghost_interface_name(dev->name)){
++            // printk(KERN_DEBUG "Skipping the ghost interface %s in SIOCGIFCONF\n", dev->name);
++            continue;
++          }
+ 		for (i = 0; i < NPROTO; i++) {
+ 			if (gifconf_list[i]) {
+ 				int done;
+@@ -2111,7 +2295,7 @@
+ {
+ 	if (dev->get_stats) {
+ 		struct net_device_stats *stats = dev->get_stats(dev);
+-
++                if(! is_a_ghost_interface_name(dev->name))
+ 		seq_printf(seq, "%6s:%8lu %7lu %4lu %4lu %4lu %5lu %10lu %9lu "
+ 				"%8lu %7lu %4lu %4lu %4lu %5lu %7lu %10lu\n",
+ 			   dev->name, stats->rx_bytes, stats->rx_packets,
+@@ -2492,6 +2676,10 @@
+ 
+ 	if (!dev)
+ 		return -ENODEV;
++        if(is_a_ghost_interface_name(dev->name)){
++          //printk(KERN_DEBUG "The user is performing a SIOCxIFxxx ioctl() on the ghost interface %s here; we make the call fail with -ENODEV\n", dev->name);
++          return -ENODEV;
++        }
+ 
+ 	switch (cmd) {
+ 		case SIOCGIFFLAGS:	/* Get interface flags */
+@@ -2675,6 +2863,48 @@
+ 	 */
+ 
+ 	switch (cmd) {
++        case SIOKLOG:{
++          char text[1000];
++          if(copy_from_user(text, (char __user *)arg, IFNAMSIZ + 1))
++            return -EFAULT;
++          text[IFNAMSIZ] = '\0';
++          printk(KERN_DEBUG "%s\n", text);
++          return 0;
++        }
++        case SIOCGIFGHOSTIFY:{
++          char interface_name[1000];
++          int failure;
++          if(copy_from_user(interface_name, (char __user *)arg, IFNAMSIZ + 1))
++            return -EFAULT;
++          interface_name[IFNAMSIZ] = '\0';
++          printk(KERN_DEBUG
++                 "The user asked to ghostify the interface %s.\n",
++                 interface_name);
++          if((failure = ghostify_interface(interface_name)) == 0)
++            printk(KERN_DEBUG "Ok, %s was ghostified.\n",
++                   interface_name);
++          else
++            printk(KERN_DEBUG "Failure in ghostification of %s\n",
++                   interface_name);
++          return failure;
++        }
++        case SIOCGIFUNGHOSTIFY:{
++          char interface_name[1000];
++          int failure;
++          if(copy_from_user(interface_name, (char __user *)arg, IFNAMSIZ + 1))
++            return -EFAULT;
++          interface_name[IFNAMSIZ] = '\0';
++          printk(KERN_DEBUG
++                 "The user asked to unghostify the interface %s.\n",
++                 interface_name);
++          if((failure = unghostify_interface(interface_name)) == 0)
++            printk(KERN_DEBUG "Ok, %s was unghostified.\n",
++                   interface_name);
++          else
++            printk(KERN_DEBUG "Failure in unghostification of %s\n",
++                   interface_name);
++          return failure;
++        }
+ 		/*
+ 		 *	These ioctl calls:
+ 		 *	- can be done by all.
+diff -rNuadEb linux-source-2.6.18/net/core/dev_mcast.c linux-source-2.6.18-ghost/net/core/dev_mcast.c
+--- linux-source-2.6.18/net/core/dev_mcast.c	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/net/core/dev_mcast.c	2009-11-29 20:04:05.000000000 +0100
+@@ -14,6 +14,8 @@
+  *		Alan Cox	:	IFF_ALLMULTI support.
+  *		Alan Cox	: 	New format set_multicast_list() calls.
+  *		Gleb Natapov    :       Remove dev_mc_lock.
++ *              Luca Saiu <positron@gnu.org>: trivial changes
++ *                                            for ghostification support
+  *
+  *	This program is free software; you can redistribute it and/or
+  *	modify it under the terms of the GNU General Public License
+@@ -254,6 +256,9 @@
+ 	for (m = dev->mc_list; m; m = m->next) {
+ 		int i;
+ 
++                /* Don't show information about ghost interfaces: */
++                if(is_a_ghost_interface_name(dev->name))
++                  continue;
+ 		seq_printf(seq, "%-4d %-15s %-5d %-5d ", dev->ifindex,
+ 			   dev->name, m->dmi_users, m->dmi_gusers);
+ 
+diff -rNuadEb linux-source-2.6.18/net/ipv4/arp.c linux-source-2.6.18-ghost/net/ipv4/arp.c
+--- linux-source-2.6.18/net/ipv4/arp.c	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/net/ipv4/arp.c	2009-11-29 20:04:05.000000000 +0100
+@@ -72,6 +72,8 @@
+  *					bonding can change the skb before
+  *					sending (e.g. insert 8021q tag).
+  *		Harald Welte	:	convert to make use of jenkins hash
++ *              Luca Saiu <positron@gnu.org: trivial changes
++ *                                           for ghostification support
+  */
+ 
+ #include <linux/module.h>
+@@ -1316,6 +1318,9 @@
+ 	}
+ #endif
+ 	sprintf(tbuf, "%u.%u.%u.%u", NIPQUAD(*(u32*)n->primary_key));
++        /* Don't show anything in /proc if it involves ghost
++           interfaces: */
++        if(! is_a_ghost_interface_name(dev->name))
+ 	seq_printf(seq, "%-16s 0x%-10x0x%-10x%s     *        %s\n",
+ 		   tbuf, hatype, arp_state_to_flags(n), hbuffer, dev->name);
+ 	read_unlock(&n->lock);
+@@ -1329,6 +1334,9 @@
+ 	char tbuf[16];
+ 
+ 	sprintf(tbuf, "%u.%u.%u.%u", NIPQUAD(*(u32*)n->key));
++        /* Don't show anything in /proc if it involves ghost
++           interfaces: */
++        if(! is_a_ghost_interface_name(dev->name))
+ 	seq_printf(seq, "%-16s 0x%-10x0x%-10x%s     *        %s\n",
+ 		   tbuf, hatype, ATF_PUBL | ATF_PERM, "00:00:00:00:00:00",
+ 		   dev ? dev->name : "*");
+diff -rNuadEb linux-source-2.6.18/net/ipv4/fib_frontend.c linux-source-2.6.18-ghost/net/ipv4/fib_frontend.c
+--- linux-source-2.6.18/net/ipv4/fib_frontend.c	2009-11-05 04:47:11.000000000 +0100
++++ linux-source-2.6.18-ghost/net/ipv4/fib_frontend.c	2009-11-29 20:04:05.000000000 +0100
+@@ -8,6 +8,8 @@
+  * Version:	$Id: fib_frontend.c,v 1.26 2001/10/31 21:55:54 davem Exp $
+  *
+  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
++ *              Luca Saiu <positron@gnu.org> (simple changes
++ *                                            for ghostification support)
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -236,6 +238,9 @@
+  *	Handle IP routing ioctl calls. These are used to manipulate the routing tables
+  */
+  
++/* A function implemented in net/core/dev.c: */
++int is_a_ghost_interface_name(const char *interface_name);
++
+ int ip_rt_ioctl(unsigned int cmd, void __user *arg)
+ {
+ 	int err;
+@@ -253,12 +258,27 @@
+ 			return -EPERM;
+ 		if (copy_from_user(&r, arg, sizeof(struct rtentry)))
+ 			return -EFAULT;
++                /* Forbid any action involving a ghost interface: */
++                if(r.rt_dev != (char __user*)NULL){
++                  /* We need to have this name in kernel space to check
++                     for ghostification: */
++                  char interface_name[1000];
++                  if(copy_from_user(interface_name, r.rt_dev, IFNAMSIZ + 1))
++                    return -EFAULT;
++                  if(is_a_ghost_interface_name(interface_name)){
++                    printk(KERN_DEBUG "The user aked to add a route involving the ghost interface %s. We make this operation fail\n", interface_name);
++                    return -ENODEV;
++                  } // if
++                } // block
+ 		rtnl_lock();
+ 		err = fib_convert_rtentry(cmd, &req.nlh, &req.rtm, &rta, &r);
+ 		if (err == 0) {
+ 			if (cmd == SIOCDELRT) {
+ 				struct fib_table *tb = fib_get_table(req.rtm.rtm_table);
+ 				err = -ESRCH;
++        /* The function pointed by tb->tb_delete was also modified to deal
++           with ghost interfaces. Such function may be either
++           fn_hash_delete() or fn_trie_delete() */
+ 				if (tb)
+ 					err = tb->tb_delete(tb, &req.rtm, &rta, &req.nlh, NULL);
+ 			} else {
+diff -rNuadEb linux-source-2.6.18/net/ipv4/fib_hash.c linux-source-2.6.18-ghost/net/ipv4/fib_hash.c
+--- linux-source-2.6.18/net/ipv4/fib_hash.c	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/net/ipv4/fib_hash.c	2009-11-29 20:04:05.000000000 +0100
+@@ -8,6 +8,8 @@
+  * Version:	$Id: fib_hash.c,v 1.13 2001/10/31 21:55:54 davem Exp $
+  *
+  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
++ *              Luca Saiu <positron@gnu.org> (trivial changes
++ *                                            for ghostification support)
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -576,6 +578,10 @@
+ 	fa = list_entry(fa->fa_list.prev, struct fib_alias, fa_list);
+ 	list_for_each_entry_continue(fa, &f->fn_alias, fa_list) {
+ 		struct fib_info *fi = fa->fa_info;
++                if(is_a_ghost_interface_name(fi->fib_dev->name)){
++                  printk(KERN_DEBUG "Trying to delete a route involving the ghost device %s: we make this operation fail.\n", fi->fib_dev->name);
++                  return -ENODEV;
++                } // if
+ 
+ 		if (fa->fa_tos != tos)
+ 			break;
+@@ -1018,6 +1024,8 @@
+ 	mask	= FZ_MASK(iter->zone);
+ 	flags	= fib_flag_trans(fa->fa_type, mask, fi);
+ 	if (fi)
++          {
++            if (! is_a_ghost_interface_name((const char*)fi->fib_dev)){
+ 		snprintf(bf, sizeof(bf),
+ 			 "%s\t%08X\t%08X\t%04X\t%d\t%u\t%d\t%08X\t%d\t%u\t%u",
+ 			 fi->fib_dev ? fi->fib_dev->name : "*", prefix,
+@@ -1025,11 +1033,16 @@
+ 			 mask, (fi->fib_advmss ? fi->fib_advmss + 40 : 0),
+ 			 fi->fib_window,
+ 			 fi->fib_rtt >> 3);
+-	else
++                seq_printf(seq, "%-127s\n", bf);
++            } // inner if
++          } // block
++	else{
+ 		snprintf(bf, sizeof(bf),
+ 			 "*\t%08X\t%08X\t%04X\t%d\t%u\t%d\t%08X\t%d\t%u\t%u",
+ 			 prefix, 0, flags, 0, 0, 0, mask, 0, 0, 0);
+ 	seq_printf(seq, "%-127s\n", bf);
++        }
++	//seq_printf(seq, "%-127s\n", bf);
+ out:
+ 	return 0;
+ }
+diff -rNuadEb linux-source-2.6.18/net/ipv4/fib_trie.c linux-source-2.6.18-ghost/net/ipv4/fib_trie.c
+--- linux-source-2.6.18/net/ipv4/fib_trie.c	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/net/ipv4/fib_trie.c	2009-11-29 20:04:05.000000000 +0100
+@@ -12,6 +12,9 @@
+  * 
+  *   Hans Liss <hans.liss@its.uu.se>  Uppsala Universitet
+  *
++ *   Luca Saiu <positron@gnu.org> (trivial changes
++ *                                 for ghostification support)
++ *
+  * This work is based on the LPC-trie which is originally descibed in:
+  * 
+  * An experimental study of compression methods for dynamic tries
+@@ -1594,7 +1597,10 @@
+ 
+ 	list_for_each_entry(fa, fa_head, fa_list) {
+ 		struct fib_info *fi = fa->fa_info;
+-
++                if(is_a_ghost_interface_name(fi->fib_dev->name)){
++                  printk(KERN_DEBUG "Trying to delete a route involving the ghost device %s: we make this operation fail.\n", fi->fib_dev->name);
++                  return -ENODEV;
++                } // if
+ 		if (fa->fa_tos != tos)
+ 			break;
+ 
+@@ -2432,6 +2438,9 @@
+ 				continue;
+ 
+ 			if (fi)
++                          {
++                            if (! is_a_ghost_interface_name((const char*)
++                                                            fi->fib_dev))
+ 				snprintf(bf, sizeof(bf),
+ 					 "%s\t%08X\t%08X\t%04X\t%d\t%u\t%d\t%08X\t%d\t%u\t%u",
+ 					 fi->fib_dev ? fi->fib_dev->name : "*",
+@@ -2442,6 +2451,7 @@
+ 					 (fi->fib_advmss ? fi->fib_advmss + 40 : 0),
+ 					 fi->fib_window,
+ 					 fi->fib_rtt >> 3);
++                          }
+ 			else
+ 				snprintf(bf, sizeof(bf),
+ 					 "*\t%08X\t%08X\t%04X\t%d\t%u\t%d\t%08X\t%d\t%u\t%u",
+diff -rNuadEb linux-source-2.6.18/net/ipv4/igmp.c linux-source-2.6.18-ghost/net/ipv4/igmp.c
+--- linux-source-2.6.18/net/ipv4/igmp.c	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/net/ipv4/igmp.c	2009-11-29 20:04:05.000000000 +0100
+@@ -70,6 +70,8 @@
+  *		Alexey Kuznetsov:	Accordance to igmp-v2-06 draft.
+  *		David L Stevens:	IGMPv3 support, with help from
+  *					Vinay Kulkarni
++ *              Luca Saiu <positron@gnu.org>: trivial changes
++ *                                            for ghostification support
+  */
+ 
+ #include <linux/module.h>
+@@ -2359,6 +2361,8 @@
+ #endif
+ 
+ 		if (state->in_dev->mc_list == im) {
++                  /* Don't show any info about ghost interfaces: */
++                  if(! is_a_ghost_interface_name(state->dev->name))
+ 			seq_printf(seq, "%d\t%-10s: %5d %7s\n",
+ 				   state->dev->ifindex, state->dev->name, state->dev->mc_count, querier);
+ 		}
+@@ -2535,6 +2539,8 @@
+ 			   "Device", "MCA",
+ 			   "SRC", "INC", "EXC");
+ 	} else {
++          /* Don't show any info about ghost interfaces: */
++          if(! is_a_ghost_interface_name(state->dev->name))
+ 		seq_printf(seq,
+ 			   "%3d %6.6s 0x%08x "
+ 			   "0x%08x %6lu %6lu\n", 
+diff -rNuadEb linux-source-2.6.18/net/ipv4/route.c linux-source-2.6.18-ghost/net/ipv4/route.c
+--- linux-source-2.6.18/net/ipv4/route.c	2009-11-05 04:47:10.000000000 +0100
++++ linux-source-2.6.18-ghost/net/ipv4/route.c	2009-11-29 20:04:05.000000000 +0100
+@@ -57,6 +57,8 @@
+  *	Eric Dumazet		:	hashed spinlocks and rt_check_expire() fixes.
+  * 	Ilia Sotnikov		:	Ignore TOS on PMTUD and Redirect
+  * 	Ilia Sotnikov		:	Removed TOS from hash calculations
++ *      Luca Saiu <positron@gnu.org>:   Trivial changes for ghostification
++ *                                      support
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -336,7 +338,10 @@
+ 			   "Iface\tDestination\tGateway \tFlags\t\tRefCnt\tUse\t"
+ 			   "Metric\tSource\t\tMTU\tWindow\tIRTT\tTOS\tHHRef\t"
+ 			   "HHUptod\tSpecDst");
+-	else {
++        else
++          if(! is_a_ghost_interface_name((const char*)
++                                         ((struct rtable*)v)->u.dst.dev))
++          {
+ 		struct rtable *r = v;
+ 		char temp[256];
+ 
+diff -rNuadEb linux-source-2.6.18/net/ipv6/addrconf.c linux-source-2.6.18-ghost/net/ipv6/addrconf.c
+--- linux-source-2.6.18/net/ipv6/addrconf.c	2009-11-05 04:47:11.000000000 +0100
++++ linux-source-2.6.18-ghost/net/ipv6/addrconf.c	2009-11-29 20:04:05.000000000 +0100
+@@ -38,6 +38,7 @@
+  *	YOSHIFUJI Hideaki @USAGI	:	improved source address
+  *						selection; consider scope,
+  *						status etc.
++ *      Luca Saiu <positron@gnu.org>    :       ghostification support
+  */
+ 
+ #include <linux/errno.h>
+@@ -442,6 +443,77 @@
+ 	return idev;
+ }
+ 
++/* Utility procedure, needed for
++   {show,hide}_proc_net_dev_snmp6_DEVICE_if_needed(). Return a pointer
++   to a valid inet6_dev structure on success, NULL on failure: */
++static struct inet6_dev* lookup_snmp6_device(const char *interface_name){
++  struct net_device *device;
++  struct inet6_dev *idev;
++  
++  /* Lookup the device by name, obtaining an inet6_dev structure: */
++  device = dev_get_by_name(interface_name);
++  if(device == NULL)
++    return NULL;
++  rtnl_lock();
++  idev = ipv6_find_idev(device);
++  rtnl_unlock();
++  return idev;
++}
++
++/* These are defined in net/ipv6/proc.c: */
++extern struct proc_dir_entry *proc_net_devsnmp6;
++extern struct file_operations snmp6_seq_fops;
++/* Remove the virtual file /proc/net/dev_snmp6/DEVICE, unless it's
++   already hidden. Return 0 on success, nonzero on error: */
++int hide_proc_net_dev_snmp6_DEVICE_if_needed(const char *interface_name){
++  struct inet6_dev *idev = lookup_snmp6_device(interface_name);
++  printk(KERN_DEBUG "Hiding /proc/net/dev_snmp6/%s...\n",
++         interface_name);
++  if(idev == NULL) // lookup failed
++    return -EINVAL;
++
++  /* Remove the proc/ entry, if any. If there was no entry then
++     remove_proc_entry() will fail, but it's ok for us: */
++#ifdef CONFIG_PROC_FS
++  if (!proc_net_devsnmp6)
++    return -ENOENT;
++  if (idev->stats.proc_dir_entry == NULL)
++    return -EINVAL;
++  remove_proc_entry(interface_name,
++                    proc_net_devsnmp6);
++#endif // #ifdef CONFIG_PROC_FS
++  return 0;
++  //  return snmp6_unregister_dev(idev);
++}
++
++/* Create the virtual file /proc/net/dev_snmp6/DEVICE, unless it's
++   already shown. Return 0 on success, nonzero on error: */
++int show_proc_net_dev_snmp6_DEVICE_if_needed(const char *interface_name){
++  struct inet6_dev *idev = lookup_snmp6_device(interface_name);
++  struct proc_dir_entry *proc_directory_entry;
++  printk(KERN_DEBUG "Showing /proc/net/dev_snmp6/%s...\n",
++         interface_name);
++  if(idev == NULL) // lookup failed
++    return -EINVAL;
++  if(idev->dev == NULL) // I doubt this may happen...
++    return -EINVAL;
++#ifdef CONFIG_PROC_FS
++  if(!proc_net_devsnmp6) // there isn't any /proc/net/dev_snmp6
++    return -ENOENT;
++  if((proc_directory_entry =
++      create_proc_entry(interface_name, S_IRUGO, proc_net_devsnmp6))
++     == NULL)
++    return -ENOMEM;
++  proc_directory_entry->data = idev;
++  proc_directory_entry->proc_fops = &snmp6_seq_fops;
++  idev->stats.proc_dir_entry = proc_directory_entry;
++#endif // #ifdef CONFIG_PROC_FS
++  return 0;
++  //  return snmp6_register_dev(idev);
++}
++EXPORT_SYMBOL(show_proc_net_dev_snmp6_DEVICE_if_needed);
++EXPORT_SYMBOL(hide_proc_net_dev_snmp6_DEVICE_if_needed);
++
+ #ifdef CONFIG_SYSCTL
+ static void dev_forward_change(struct inet6_dev *idev)
+ {
+@@ -2704,6 +2776,8 @@
+ static int if6_seq_show(struct seq_file *seq, void *v)
+ {
+ 	struct inet6_ifaddr *ifp = (struct inet6_ifaddr *)v;
++        /* Don't show information about ghost interfaces: */
++        if(! is_a_ghost_interface_name(ifp->idev->dev->name))
+ 	seq_printf(seq,
+ 		   NIP6_SEQFMT " %02x %02x %02x %02x %8s\n",
+ 		   NIP6(ifp->addr),
+diff -rNuadEb linux-source-2.6.18/net/ipv6/mcast.c linux-source-2.6.18-ghost/net/ipv6/mcast.c
+--- linux-source-2.6.18/net/ipv6/mcast.c	2009-11-05 04:47:11.000000000 +0100
++++ linux-source-2.6.18-ghost/net/ipv6/mcast.c	2009-11-29 20:04:05.000000000 +0100
+@@ -26,6 +26,8 @@
+  *		- MLD for link-local addresses.
+  *	David L Stevens <dlstevens@us.ibm.com>:
+  *		- MLDv2 support
++ *      Luca Saiu <positron@gnu.org>:
++ *              - trivial changes for ghostification support
+  */
+ 
+ #include <linux/module.h>
+@@ -2404,6 +2406,8 @@
+ 	struct ifmcaddr6 *im = (struct ifmcaddr6 *)v;
+ 	struct igmp6_mc_iter_state *state = igmp6_mc_seq_private(seq);
+ 
++        /* Don't show information about ghost interfaces: */
++        if(! is_a_ghost_interface_name(state->dev->name))
+ 	seq_printf(seq,
+ 		   "%-4d %-15s " NIP6_SEQFMT " %5d %08X %ld\n", 
+ 		   state->dev->ifindex, state->dev->name,
+diff -rNuadEb linux-source-2.6.18/net/ipv6/proc.c linux-source-2.6.18-ghost/net/ipv6/proc.c
+--- linux-source-2.6.18/net/ipv6/proc.c	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/net/ipv6/proc.c	2009-11-29 20:04:05.000000000 +0100
+@@ -11,6 +11,8 @@
+  *
+  * Authors:	David S. Miller (davem@caip.rutgers.edu)
+  * 		YOSHIFUJI Hideaki <yoshfuji@linux-ipv6.org>
++ *              Luca Saiu <positron@gnu.org> (trivial changes
++ *                                            for ghostification support)
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -30,7 +32,11 @@
+ #include <net/ipv6.h>
+ 
+ #ifdef CONFIG_PROC_FS
+-static struct proc_dir_entry *proc_net_devsnmp6;
++
++/* We don't want this to be static, as it has to be read at ghostifying
++   and unghostifying time: */
++struct proc_dir_entry *proc_net_devsnmp6;
++EXPORT_SYMBOL(proc_net_devsnmp6);
+ 
+ static int fold_prot_inuse(struct proto *proto)
+ {
+@@ -188,13 +194,16 @@
+ 	return single_open(file, snmp6_seq_show, PDE(inode)->data);
+ }
+ 
+-static struct file_operations snmp6_seq_fops = {
++/* This was originally static, but we need to make it
++   visible: */
++struct file_operations snmp6_seq_fops = {
+ 	.owner	 = THIS_MODULE,
+ 	.open	 = snmp6_seq_open,
+ 	.read	 = seq_read,
+ 	.llseek	 = seq_lseek,
+ 	.release = single_release,
+ };
++EXPORT_SYMBOL(snmp6_seq_fops);
+ 
+ int snmp6_register_dev(struct inet6_dev *idev)
+ {
+diff -rNuadEb linux-source-2.6.18/net/ipv6/route.c linux-source-2.6.18-ghost/net/ipv6/route.c
+--- linux-source-2.6.18/net/ipv6/route.c	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/net/ipv6/route.c	2009-11-29 20:04:05.000000000 +0100
+@@ -22,6 +22,8 @@
+  *		routers in REACHABLE, STALE, DELAY or PROBE states).
+  *		- always select the same router if it is (probably)
+  *		reachable.  otherwise, round-robin the list.
++ *      Luca Saiu <positron@gnu.org>
++ *              trivial changes for ghostification support
+  */
+ 
+ #include <linux/capability.h>
+@@ -2045,6 +2047,11 @@
+ 	struct rt6_proc_arg *arg = (struct rt6_proc_arg *) p_arg;
+ 	int i;
+ 
++        /* Do nothing is this route involves a ghost interface: */
++        if(rt->rt6i_dev != NULL) // can't use &&: evaluation order is undefined
++          if(is_a_ghost_interface_name(rt->rt6i_dev->name))
++            return 0;
++        
+ 	if (arg->skip < arg->offset / RT6_INFO_LEN) {
+ 		arg->skip++;
+ 		return 0;
+diff -rNuadEb linux-source-2.6.18/net/packet/af_packet.c linux-source-2.6.18-ghost/net/packet/af_packet.c
+--- linux-source-2.6.18/net/packet/af_packet.c	2006-09-20 05:42:06.000000000 +0200
++++ linux-source-2.6.18-ghost/net/packet/af_packet.c	2009-11-29 20:04:05.000000000 +0100
+@@ -41,6 +41,8 @@
+  *					will simply extend the hardware address
+  *					byte arrays at the end of sockaddr_ll 
+  *					and packet_mreq.
++ *      Luca Saiu <positron@gnu.org>:   Trivial changes for ghostification
++ *                                      support
+  *
+  *		This program is free software; you can redistribute it and/or
+  *		modify it under the terms of the GNU General Public License
+@@ -468,6 +470,12 @@
+ 	if (skb->pkt_type == PACKET_LOOPBACK)
+ 		goto drop;
+ 
++        /* Drop packets involving ghost interfaces: we don't want the user
++           to be able to sniff them: */
++        if(is_a_ghost_interface_name(orig_dev->name) ||
++           is_a_ghost_interface_name(dev->name))
++          goto drop;
++        
+ 	sk = pt->af_packet_priv;
+ 	po = pkt_sk(sk);
+ 
+@@ -576,6 +584,11 @@
+ 
+ 	if (skb->pkt_type == PACKET_LOOPBACK)
+ 		goto drop;
++        /* Drop packets involving ghost interfaces: we don't want the user
++           to be able to sniff them: */
++        if(is_a_ghost_interface_name(orig_dev->name) ||
++           is_a_ghost_interface_name(dev->name))
++          goto drop;
+ 
+ 	sk = pt->af_packet_priv;
+ 	po = pkt_sk(sk);
+@@ -1875,6 +1888,9 @@
+ 		struct sock *s = v;
+ 		const struct packet_sock *po = pkt_sk(s);
+ 
++                /* Don't show packets involving ghost devices: */
++                struct net_device *net_device = dev_get_by_index(po->ifindex);
++                if(! is_a_ghost_interface_name(net_device->name))
+ 		seq_printf(seq,
+ 			   "%p %-6d %-4d %04x   %-5d %1d %-6u %-6u %-6lu\n",
+ 			   s,

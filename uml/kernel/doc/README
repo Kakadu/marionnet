@@ -1,0 +1,24 @@
+# Written by Jonathan Roudiere in 2009.
+# To do: add copyright notice.
+
+Ghost-kernel-2.0
+================
+
+Ghost-kernel-2.0 is a part of the Marionnet project, Ghostification
+sub-project has been initiated by Luca Saiu <Luca.Saiu@lipn.univ-paris13.fr>
+and taken back Jonathan Roudiere <roudiere@lipn.univ-paris13.fr>.
+
+Ghost-kernel-2.0 is just a shell encapsulating the pathing and 
+building a ghostified Kernel (and providing the ghost2 user tool).
+
+It allows to help user to build Ghost kernel for Marionnet/UML or to 
+your host and that all ;).
+
+For more information about ghostification see README.Ghostification.
+
+For more information about Marionnet project see its website at 
+<http://www.marionnet.org>.
+
+Copyright and license precised in this archive are just relative to
+the Ghost patch and the ghost2 utility, about kernel copyright or
+documentation, etc ... see kernel archive or kernel.org website.

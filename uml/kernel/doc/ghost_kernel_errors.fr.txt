@@ -1,0 +1,39 @@
+Kernel code error :
+===================
+
+La partie du code noyau qui a en charge les opérations de ghostification
+peut renvoyer  différents code de retour lorsqu'elle rencontre un erreur.
+
+La (un)ghostification  d'une  interface  ce  fait à  travers une  requète
+ioctl(2), lors  d'un  echec l'appel  ioctl place  dans errno le numéro de
+l'erreur en question.
+
+Les différents code de retour sont :
+------------------------------------
+
+Lors d'une ghostification d'interface (fonct ghostify) :
+--------------------------------------------------------
+
+EINVAL : Cette erreur est renvoyée lors le nom de l'interface que l'on
+	 désire ghostifier est trop long (plus grand que IFNAMSIZ) où de
+	 longueur  nulle; cette erreur est  également celle renvoyée par
+	 une  requète ioctl() avec des paramètres incorrect donc lors de
+	 l'utilisation  du  binaire  ghost2  cela traduit le fait que le
+	 noyau  ne  supporte  pas les  opérations de Ghostification (les
+	 autres cas étant pris en charge par le logiciel).
+
+EEXIST : Cette erreur est renvoyée lorsque l'interface est déjà ghostifiée.
+
+ENODEV : Cette erreur est renvoyée lorsque l'interface spécifiée n'existe
+	 pas (n'existe réellement pas ;).
+
+ENOMEM : Cette erreur est renvoyée lorsque le nombre maximum d'interfaces
+	 ghostifiées a été atteint.
+
+Lors de la dé-ghostification d'interface (fonct unghostify) :
+-------------------------------------------------------------
+
+ENODEV : Cette erreur est renvoyée lorsque l'interface spécifiée n'existe
+	 pas (n'existe réellement pas ;).
+
+ESRCH  : L'interface réseau n'est pas ghostifée. 

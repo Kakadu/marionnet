@@ -1,0 +1,39 @@
+Kernel code error :
+===================
+
+Part  of  the kernel  which  has in charge the Ghost operations can
+return several error code when an error occurs.
+
+Ghostify or Unghostify a network interface (card) is done through a
+ioctl(2) request, on error  ioctl  request use errno to provide the 
+number of the error.
+
+The differents error code which can be returned are :
+-----------------------------------------------------
+
+During Ghostify operation :
+---------------------------
+
+EINVAL - This error is returned  when the name of the specified
+	 network  card is too long (greater than IFNAMSIZ) or  when
+	 the name has a null length. This error is also returned by
+	 a incorrect ioctl() request. With ghost2 this reflects the
+	 fact that the kernel doesn't supports the Ghost operations
+     (because the other cases are handled by the program).
+
+EEXIST - This error occurs when the network card is already ghostified.
+
+ENODEV - This error is returned when the specified network card
+	 doesn't exist (really doesn't exist ;).
+
+ENOMEM - This error is returned when the max number of ghostified
+	 network cards has been reached.
+
+During Unghostify operation :
+-----------------------------
+
+ENODEV - This error is returned when the specified network card 
+	 doesn't exist (really doesn't exist ;).
+
+ESRCH - The network card is not ghositified.
+

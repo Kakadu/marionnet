@@ -1,0 +1,334 @@
+# Written by Jonathan Roudiere in 2009.
+# To do: add copyright notice.
+
+GHOST-KERNEL-2.0
+================
+
+Abstract : Ghost-kernel contain a patch to some versions of the Linux Kernel
+and  a tool called ghost2. This patch is  intended to provide the ability to
+hide  network  interfaces to userspace from kernel space. The utility ghost2
+is used to ghostify or unghostify  network interfaces from userspace. To get
+more informations about Ghostification see README.Ghostification.
+
+1. Standard build
+2. Building using a config file
+3. Adapt Build or Install
+4. Building packages
+
+
+1. Standard build
+=================
+
+To build Linux Ghost Kernel and Ghost2, you need to have standard tools
+as those provided by binutils, coreutils, libc-dev, make, gcc, bzip2, tar,
+strip, some development library as ncurses, vde and libpcap ... but most
+systems provided them or packages to installed them.
+
+There aren't configuration script to build Kernel and Ghost2, all needs
+information must be provided on the make command line (or through a 
+config file, see approriate section about it).
+
+NOte : this tarball cann't help you if you wish to build a Linux Ghost 
+Kernel with modules (maybe next release will allow it).
+
+---
+
+To know what are the available targets run :
+
+$> make help
+
+or 
+
+$> make targets
+
+And you will seeing a list a targets with a comment for each.
+
+---
+
+To know what is the default configuration (as path, etc ...)
+just run :
+
+$> make show-default-config
+
+But you can also use :
+
+$> make show-config
+
+In this case you see the same configuration (by default) but variables
+content are interpreted (ex : CONFIG_FILE=CONFIG-$(KERNEL_VERSION) will
+be shown like that : CONFIG_FILE=CONFIG-2.6.31).
+
+Some variables which will displayed are no used by the build system,
+they will be used for a next release ;), it most case variables that
+you could have needs are :
+
+- KERNEL_VERSION=2.6.x 
+
+If you wish to built a particular version of the Ghost Kernel (patch
+for this version  must be exist (look vs in kernel-patch if dir exist),
+by default the latest version of the kernel for which  a patch exist
+will be built.
+
+- PREFIX=/path/to/usr 
+
+standard option to change /usr directory (by /usr/local for example). 
+
+- DESTDIR=/path 
+
+To make installation in another root directory (for example, you can 
+use DESTDIR variable in order to install ghost2 in a VM (for marionnet)
+which could be "mounted" in a directory on your host, to do that, run :
+
+$> mount -o loop /usr/share/marionnet/filesystem/vm.img /mnt
+$> make install-ghost2 DESTDIR=/mnt
+$> umount /mnt 
+
+And the ghost2 is now installed on the VM.
+
+All others relevant variables are relative to the path of the installation
+and start by PATH_*, look for your needs with :
+
+$> make make show-config |grep PATH
+
+Generally their names are explicit (if not, their default definition can
+help you to know what their purpose).
+
+---
+
+This tarball is intended to build two things : 
+
+- The Linux Kernel patched for Ghotification and
+- the Ghost2 user tool
+
+But the Kernel is intended to be installed to your host, to Marionnet
+or as a UML kernel (User-Mode-Linux, a simple binary), it is need to
+use appropriate targets to do that.
+
+Standard step to build Kernel and user tool are the following (to build 
+and install a kernel to Marionnet, adapt to your needs) :
+
+$> make download-kernel
+$> make untar-kernel
+$> make apply-patch
+$> make configure-kernel-marionnet
+$> make build-kernel-marionnet
+$> make pack-kernel-marionnet
+$> make install-kernel-marionnet
+$> make ghost2
+$> make install-ghost2
+
+If you don't use configuration file you can specify some information on 
+the make commande line :
+
+$> make _TARGET_ KERNEL_VERSION=2.6.XX OTHER_VAR1=... OTHER_VAR2=...
+
+Remplace _TARGET_ by any target (build-*, install-*, pack*..).
+
+---
+
+In fact, targets "all" and "install" are sufficient in most case, if it is
+need those targets will run all intermediary targets for you, so you can
+just use them like that :
+
+$> make all GHOST_TARGET=_target_
+
+$> make install GHOST_TARGET=_target_
+
+Just change "_target_" by "host", "marionnet" or "uml" according you wish
+to build a kernel for you host (interactive configuration), to  Marionnet 
+or to UML architecture (Marionnet is just an UML kernel with differents
+name and installing path).
+
+---
+
+You must have an Internet connection to build Kernel (exept if Kernel
+sources have already be donwloaded). If you don't have Internet connection
+but you already have Kernel tarball then you can lie to the system by :
+
+Creating a directory called ./kernel-src in at the root of the sources 
+of ghost-kernel-2.0 :
+
+$> mkdir kernel-src
+
+Move or copy the Kernel tarball in :
+
+$> cp /path/to/tarball/linux-2.6.XX.tar.bz2 ./kernel-src/
+
+And created a directory called ./build with a file as shown below :
+
+$> mkdir build
+$> touch build/download-kernel-2.6.XX-done
+
+(Change XX by the kernel version that you wish used).
+
+---
+
+Pack : when you built something - before installing a Linux Ghost Kernel
+or the Ghost2 usertool - a directory called "pack" is created and it contains
+all files which will be installed after. 
+
+You can check in sub-directories of the pack directory files which
+will be installed and where they will be install (but path can be
+changed during installation by specify it on the make commande line).
+
+Pack directory contains subdirs to keep separate targets, and differents
+versions build (for kernels), the following directories (a part for example)
+are created :
+
+--- ghost2
+`-- kernel-host-pack
+    `-- 2.6.26
+    `-- 2.6.30
+         `-- usr ... <skip> ...
+`-- kernel-marionnet-pack
+    `-- 2.6.26  ...
+`-- kernel-uml-pack
+    `-- 2.6.26  ...
+
+Advantages to use a intermediary directories before installing files
+is that you can built (for example) several kernel versions and install
+them after. Example to install the Ghost Kernel version 2.6.30 to
+marionnet :
+
+$> make KERNEL_VERSION=2.6.27 install-kernel-marionnet
+
+If it is built then it will be build by running the previous command
+line.
+
+You can use "pack*" targets to create sereval binaries tarballs (but
+dist-binary-* do the same).
+
+
+2. Build with a config file
+============================
+
+You can use a config file called CONFIGME in order to specify some variables
+definition. This file must be put on the root directory of this tarball. You
+can specify any variables (if some are not used by the build system then they
+will just be ignored).
+
+If you use a configuration file then at any time you can check your
+current configuration by running :
+
+$> make show-config
+
+---
+
+If you modify Makefile to add, remove variables then run after :
+
+$> ./Makefile.d/update.sh 
+
+to update part of the Makefile which read the CONFIGME configuration file, 
+and that 's all.
+
+
+3. Adapt Build or Install
+=========================
+
+Modify Kernel default configuration :
+-------------------------------------
+
+If you need to modify the configuration of the kernel which will be 
+build for Marionnet or UML architecture then run :
+
+$> make configure-kernel-marionnet 
+or
+$> make configure-kernel-uml
+
+this targets just copy a default config file in kernel tree, and 
+run after :
+
+$> make configure-kernel KERN_ARCH=um
+
+Some messages will be displayed (to warn you because the kernel is already 
+configured but no important things, just wait a little) and after the standard
+Kernel configuration interface will open and you can modify or adapt to your 
+needs the default configuration provide for Marionnet or UML. When you have 
+finished, just save, exit and build the kernel with :
+
+$> make build-kernel-marionnet
+or
+$> make build-kernel-uml
+
+
+Installing Kernel or ghost2 tool in a particular directory
+----------------------------------------------------------
+
+To install the product of any target in another directory you can
+use DESTDIR variable as below :
+
+$> make install* DESTDIR=/path/to/rootdir/
+
+And all files will be installed under the specified directory
+(of course this doesn't change path where files are installed like
+/usr, /usr/doc/man, etc ...).
+
+
+Build a kernel 2.6.XX with a path to the kernel 2.6.YY
+------------------------------------------------------
+
+You can simply use KERNEL_VERSION and PATCH_VERSION to specify
+what is the version of the kernel that you want used and what
+is the patch version which you wish used ;) as below :
+
+$> make KERNEL_VERSION=2.6.XX PATCH_VERSION=2.6.YY build-kernel*
+
+Of course, you can have error or echec but it can be useful to
+adapt the patch for a newer version of the kernel.
+
+
+4. Building packages
+====================
+
+To build Debian package you must install dpkg-dev and debhelper packages
+before (and dependancies). To build RPM package you must have rpmbuild. 
+
+When you build packages the three following will be built :
+
+- marionnet-kernel-2.6.X
+- uml-kernel-2.6.X-ghost
+- ghost2
+
+
+Build Debian packages
+---------------------
+
+To build a Debian package just run (remplace XX by a version for which 
+a patch exit) :
+
+$> make deb KERNEL_VERSION=2.6.XX
+
+And package will be build in the parent (../) directory. Packages build using
+this way will use a Kernel source from kernel.org (vanilla). If KERNEL_VERSION
+is not specified the Kernel build will be the latest for which a patch exist 
+(like for other targets).
+
+Or you can also build package using Kernel sources provide by Debian
+(linux-source-2.6.XX package) by running :
+
+$> ./debian/rules binary 
+
+or 
+
+$> dpkg-buildpackage 
+
+Kernel available by this second method are : 2.6.26 (lenny), 2.6.30 (squeeze)
+and 2.6.31 (sid). Apt sources.list file must contain appropriate url to 
+donwload corresponding debian package.
+
+Build RPMs packages
+-------------------
+
+To build RPMs packages just run :
+
+$> make c-rpm  KERNEL_VERSION=2.6.XX
+
+or 
+
+$> make c-rpm 
+
+And package will be built in the parent (../) directory. Packages built using 
+this way will use a Kernel sources from kernel.org (vanilla). If KERNEL_VERSION
+is not specified the Kernel built will be the latest for which a patch exist 
+(like for other targets).
+

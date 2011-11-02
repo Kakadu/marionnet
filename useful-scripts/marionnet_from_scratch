@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.10
-# 2011.10.31
+# Script version: 0.90.11
+# 2011.11.02
 
 set -e
 shopt -s nullglob
@@ -1211,8 +1211,8 @@ cat >$TMPFILE <<EOF
 
 ### BEGIN INIT INFO
 # Provides: marionnet-daemon
-# Required-Start: $local_fs $network
-# Required-Stop: $local_fs $remote_fs
+# Required-Start: \$local_fs \$remote_fs \$network
+# Required-Stop: 
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
 # Short-Description: Support daemon for marionnet
@@ -1402,7 +1402,7 @@ esac
 # This is needed, for instance, for ubuntu 10.10
 function ensure_DisallowTCP_false_to_gdm_custom_dot_conf {
 # global SUDO CHANGED_FILES
-local custom=/etc/gdm/custom.conf
+local custom=${1:-/etc/gdm/custom.conf}
 local TMPFILE=$(tmpfile)
 cp $custom $TMPFILE
 ensure_section_and_binding "security" "DisallowTCP" "false" $TMPFILE 
@@ -1435,10 +1435,14 @@ FILES=$([[ -n $DIRS ]] && $SUDO find $DIRS -name "*rc" -o -name "*.conf")
 FILES=$(for i in $FILES; do grep -l "^[a-zA-Z0-9/_\-= ]*[-]nolisten tcp" $i; done)
 for i in $FILES; do apply_all_filters $i; done
 rm -f $BACKUP
-# A special case:
+# A special case: gdm/gdm3 :
 if [[ -d /etc/gdm ]]; then
   $SUDO touch /etc/gdm/custom.conf
   ensure_DisallowTCP_false_to_gdm_custom_dot_conf
+elif [[ -d /etc/gdm? ]]; then
+  $SUDO touch /etc/gdm?/custom.conf /etc/gdm?/daemon.conf
+  ensure_DisallowTCP_false_to_gdm_custom_dot_conf /etc/gdm?/custom.conf
+  ensure_DisallowTCP_false_to_gdm_custom_dot_conf /etc/gdm?/daemon.conf
 fi
 [[ -n $CHANGED_FILES ]]
 }

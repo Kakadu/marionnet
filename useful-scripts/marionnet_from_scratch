@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.11
-# 2011.11.02
+# Script version: 0.90.12
+# 2011.11.07
 
 set -e
 shopt -s nullglob
@@ -671,6 +671,7 @@ function are_we_in_debian_or_derived {
   $(which dpkg) -L apt  2>/dev/null | grep -q $(which apt-get)
 }
 
+# Useless now (since 2011-11-07)
 function are_we_in_ubuntu_11_or_greater {
  if [[ -f /etc/issue ]]; then
    local A=$(head -n 1 /etc/issue)
@@ -759,16 +760,16 @@ function echo_required_debian_packages {
 # =============================================================
 
 # Ubuntu 11.x workaround:
-if are_we_in_debian_or_derived; then
-  if [[ $USING_GODI = no ]] && are_we_in_ubuntu_11_or_greater ; then
-    echo "* Warning: some OCaml/Ubuntu (>= 11.x) combinations may require the option -g"
-    echo -n "  Shall I do as if you chose -g (compile OCaml with Godi) ([y]/n)? "; read z
-    if [[ $z != n && $z != N ]]; then
-        USING_GODI="yes"
-        REQUIRED_MB=380
-    fi
-  fi
-fi
+# if are_we_in_debian_or_derived; then
+#   if [[ $USING_GODI = no ]] && are_we_in_ubuntu_11_or_greater ; then
+#     echo "* Warning: some OCaml/Ubuntu (>= 11.x) combinations may require the option -g"
+#     echo -n "  Shall I do as if you chose -g (compile OCaml with Godi) ([y]/n)? "; read z
+#     if [[ $z != n && $z != N ]]; then
+#         USING_GODI="yes"
+#         REQUIRED_MB=380
+#     fi
+#   fi
+# fi
 
 PATH_BACKUP=$PATH
 cd "$TMPDIR"

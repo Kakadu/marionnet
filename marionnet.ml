@@ -30,6 +30,8 @@ open Gettext
 open State
 open Talking
 
+module S = Serial
+
 let () = Random.self_init ()
 
 (** The global state containing the main window (st#mainwin) and all relevant dynamic

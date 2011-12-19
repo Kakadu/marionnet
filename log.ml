@@ -55,6 +55,7 @@ let system_or_fail ?on_error ?hide_output ?hide_errors command_line =
     );
     raise e
    end
+
 (** Equivalent to [ignore (Unix.system command_line)] but with
     logging features. Notice that if the command_line terminates
     with '&' (background), no exceptions will be raised.

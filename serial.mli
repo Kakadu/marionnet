@@ -16,13 +16,15 @@
 
 
 val send_command :
-  pts:string ->
-  cmd:string ->
-  unit -> unit
+  ?umid:string ->
+  ?con:string ->
+  ?pts:string ->
+  string -> unit
 
 val send_command_and_wait_answer :
   ?timeout:float ->
   ?buffer_size:int ->
-  pts:string ->
-  cmd:string ->
-  unit -> StringExtra.Text.t
+  ?umid:string ->
+  ?con:string ->
+  ?pts:string ->
+  string -> (StringExtra.Text.t * int)

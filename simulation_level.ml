@@ -890,12 +890,25 @@ class uml_process =
       None ->
         command_line_arguments
     | Some keyboard_layout ->
-        ("keyboard_layout="^keyboard_layout) :: command_line_arguments in
-  let command_line_arguments =
+        ("keyboard_layout="^keyboard_layout) :: command_line_arguments
+  in
+(*  let command_line_arguments =
     command_line_arguments @
     ["con0=none"; "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none";
      "ssl0="^console; "ssl1=none"; "ssl2=none"; "ssl3=none"; "ssl4=none"; "ssl5=none"; "ssl6=none";
-     "console=ttyS0"] in
+     "console=ttyS0"]*)
+  let command_line_arguments =
+    command_line_arguments @
+    [(*"con0=none"; "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none"; *)
+(* "con6=port:9000"; *)
+     "ssl1=port:9001";
+     "con13=xterm";
+     "con14=xterm";
+     "con15=xterm";
+     "con=pts";
+     "ssl="^console;
+     "console=ttyS0"]
+  in
 object(self)
   inherit process
       kernel_file_name

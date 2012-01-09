@@ -27,6 +27,10 @@ include Log_builder.Make (struct
   let synchronized = true          (* using threads *)
  end);;
 
+(* Setting the ocamlbricks log verbosity to the same value: *)
+let () = Ocamlbricks_log.Tuning.Set.verbosity   (Tuning.verbosity ())
+;;
+ 
 (* Wrappers providing a logged version of functions defined elsewhere. *)
 
 (** Wrapper for [UnixExtra.system_or_fail]: run system with the given argument,

@@ -99,8 +99,12 @@ module Debug_level = struct
 
 end
 
-(** Link the function used by Log with Debug_mode.get: *)
-let () = Log.Tuning.Set.debug_level Debug_level.get;;
+(** Link the function used by the marionnet's and the ocamlbricks's logs with Debug_mode.get: *)
+let () =
+  Log.Tuning.Set.debug_level Debug_level.get;
+  Ocamlbricks_log.Tuning.Set.debug_level Debug_level.get
+;;
+
 Log.printf
   "MARIONNET_DEBUG is %b (debug level %d)\n" 
   (Debug_level.are_we_debugging ()) (* is true iff you read the message *)

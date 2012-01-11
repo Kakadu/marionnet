@@ -63,6 +63,7 @@ let _last_used_local_display_index =
 
 let mutex = Mutex.create ();;
 
+(* Useful for xnest: *)
 let get_unused_local_display () =
   Mutex.lock mutex;
   let index_to_socket_file index =
@@ -81,11 +82,99 @@ let get_unused_local_display () =
   Mutex.unlock mutex;
   Printf.sprintf ":%i" !i;;
 
+
+(* Note that this function really tries to establish a connection (which is immediately closed).
+   Do not use with a one-shot service (it must accept more than one connection): *)
+let is_local_service_open ?(host_addr:string option) ~(port:int) () =
+  let host_addr = match host_addr with
+    | None     -> Unix.inet_addr_loopback
+    | Some str -> Unix.inet_addr_of_string str
+  in
+  try
+    let (in_channel, out_channel) = Unix.open_connection (Unix.ADDR_INET(host_addr, port)) in
+    Unix.shutdown_connection in_channel;
+    true
+  with
+    Unix.Unix_error (Unix.ECONNREFUSED, _,_) -> false
+  ;;
+
+
+(* Global variables: *)
+let host_addr = Unix.string_of_inet_addr ((Unix.gethostbyname host).Unix.h_addr_list.(0))
+and port = 6000 + (try (int_of_string display) with _ -> 0)
+;;
+
+(* Global variable: *)
+let is_X_server_listening_TCP_connections =
+  is_local_service_open ~host_addr ~port ()
+;;
+
 Log.printf
-  "-------------------------------------\nHost X data from $DISPLAY:\n\nHost: %s\nDisplay: %s\nScreen: %s\n\n"
-  host
+  "---\nHost X data from $DISPLAY:\nHost: %s\nHost address: %s\nDisplay: %s\nScreen: %s\nListening on port %d: %b\n---\n"
+  host host_addr
   display
-  screen;;
+  screen
+  port
+  is_X_server_listening_TCP_connections
+;;
+
+exception No_problem ;;
+exception No_listening_server ;;
+
+(*
+$ socat TCP-LISTEN:6000,fork,reuseaddr,bind=172.23.0.254 UNIX-CONNECT:/tmp/.X11-unix/X0  & # local connection
+$ socat TCP-LISTEN:6000,fork,reuseaddr,bind=172.23.0.254 TCP:202.54.1.5:6003             & # DISPLAY=202.54.1.5:3
+*)
+let fix_X_problems : unit =
+  let socketfile = Printf.sprintf "/tmp/.X11-unix/X%s" display in
+  let socketfile_exists = Sys.file_exists socketfile in
+  let no_fork = None (* Yes, fork for each connections *) in
+  match is_X_server_listening_TCP_connections, host_addr with
+
+  (* Case n°1: an X server runs on localhost:0 and accepts TCP connection: *)
+  | true,  "127.0.0.1" when port=6000 ->
+      Log.printf "No X problems have to be fixed: connection seems working fine. Ok.\n"
+
+  (* Case n°2: an X server runs on localhost and accepts TCP connection,
+      but on a display Y<>0. We morally set up a PAT (Port Address Translation)
+      172.23.0.254:6000 -> 127.0.0.1:(6000+Y) simply using the unix socket.
+      In this way, the virtual machines setting DISPLAY=172.23.0.254:0 will be
+      able to connect to the host X server: *)
+  | true,  "127.0.0.1" when port<>6000 && socketfile_exists ->
+      (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr UNIX-CONNECT:/tmp/.X11-unix/X? *)
+      Log.printf "Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
+      ignore (Network.Socat.inet4_of_unix_stream_server ?no_fork ~port:6000 ~socketfile ())
+
+  (* Case n°3: an X server seems to run on localhost accepting TCP connection,
+      but the display is Y<>0 and there isn't a corresponding unix socket.
+      This is quite unusual: we are probably in a ssh -X connection.
+      We have to pay attention to the fact that processes asking for a connexion
+      are not from the machine 127.0.0.1 but are from the virtual machines 172.23.0.0/24.
+      Note that the following command doesn't solve completely the problem: we have also to
+      provide the X cookies in ~/.Xauthority to the virtual machines. *)
+  | true,  "127.0.0.1" when port<>6000 && (not socketfile_exists) ->
+      (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr TCP:host_addr:port *)
+      Log.printf "Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
+      ignore (Network.Socat.inet4_of_inet_stream_server ?no_fork ~port:6000 ~ipv4_or_v6:host_addr ~dport:port ())
+
+  (* Case n°4: probably a telnet or a ssh -X connection.
+      Idem: the following command doesn't solve completely the problem: we have also to
+      provide the X cookies in ~/.Xauthority to the virtual machines.    *)
+  | true,  _  (* when host_addr<>"127.0.0.1" *) ->
+      (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr TCP:host_addr:port *)
+      Log.printf "Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
+      ignore (Network.Socat.inet4_of_inet_stream_server ?no_fork ~port:6000 ~ipv4_or_v6:host_addr ~dport:port ())
+
+  (* Case n°5: an X server seems to run on localhost but it doesn't accept TCP connections.
+      We simply redirect connection requests to the unix socket: *)
+  | false, "127.0.0.1" when socketfile_exists ->
+      (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr UNIX-CONNECT:/tmp/.X11-unix/X? *)
+      Log.printf "Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
+      ignore (Network.Socat.inet4_of_unix_stream_server ?no_fork ~port:6000 ~socketfile ())
+
+  | false, _ ->
+      Log.printf "Warning: X connections are not available for virtual machines.\n"
+;;
 
 (** This has to be performed *early* in the initialization process: *)
 let _ = GtkMain.Main.init ();;

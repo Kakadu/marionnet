@@ -62,7 +62,7 @@ let configuration_variable_or ?k ?(default="") variable_name =
   let fallback e x = Log.printf ~force:true "Warning: %s not declared.\n" x in
   let result =
     Log.printf "Searching for variable %s:\n" variable_name;
-    match Option.of_fallible_application ~fallback configuration#string variable_name
+    match Option.apply_or_catch ~fallback configuration#string variable_name
     with
     | None
     | Some "" ->

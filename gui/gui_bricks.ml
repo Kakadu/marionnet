@@ -593,10 +593,10 @@ module Reactive_widget = struct
 
  let guess_humanly_speaking_enpoints xys n0 p0 n1 p1 =
   let ((xs0,_),(ys0,_),(xs1,_),(ys1,_)) = partition ~loopback:false xys n0 p0 n1 p1 in
-  let x0 = Option.catch List.hd xs0 in
-  let y0 = Option.catch List.hd ys0 in
-  let x1 = Option.catch List.hd xs1 in
-  let y1 = Option.catch List.hd ys1 in
+  let x0 = Option.apply_or_catch List.hd xs0 in
+  let y0 = Option.apply_or_catch List.hd ys0 in
+  let x1 = Option.apply_or_catch List.hd xs1 in
+  let y1 = Option.apply_or_catch List.hd ys1 in
   ((x0,y0),(x1,y1))
  
  chip partition_chip (xys:(string * string) list) : (x0,y0,x1,y1) -> (w1,w2,w3,w4)

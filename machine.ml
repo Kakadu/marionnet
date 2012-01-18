@@ -488,6 +488,7 @@ class machine
   method to_forest =
    Forest.leaf ("machine", [
     ("name"     ,  self#get_name );
+    ("label"    ,  self#get_label );
     ("memory"   ,  (string_of_int self#get_memory));
     ("distrib"  ,  self#get_epithet  );
     ("variant"  ,  self#get_variant_as_string);
@@ -499,6 +500,7 @@ class machine
  (** A machine has just attributes (no childs) in this version. *)
  method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x
+  | ("label"    , x ) -> self#set_label x
   | ("memory"   , x ) -> self#set_memory (int_of_string x)
   | ("distrib"  , x ) -> self#set_epithet x
   | ("variant"  , "aucune" ) -> self#set_variant None (* backward-compatibility *)

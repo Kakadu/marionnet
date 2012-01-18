@@ -179,7 +179,7 @@ let router_port0_default_ipv4_config  =
  let variable_name = "MARIONNET_ROUTER_PORT0_DEFAULT_IPV4_CONFIG" in
  let default = "192.168.1.254/24" in
  let value = configuration_variable_or ~default variable_name in
- let parse arg = Ipv4.config_of_string ~strict:true arg in
+ let parse arg = Ipv4.config_of_string arg in
  try parse value
  with _ -> begin
    Log.printf ~force:true "Warning: ill-formed value for %s\n" variable_name;

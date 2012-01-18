@@ -443,9 +443,9 @@ class router
   (* The ifconfig treeview wants a port 0 configuration at creation time:*)
   let ifconfig_port_row_completions =
      let (ipv4,cidr) = port_0_ip_config in (* the class parameter *)
-     let netmask_string = (Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr)) in
+     let netmask_string = (Ipv4.to_string (Ipv4.netmask_of_cidr cidr)) in
      [ ("port0",
-	    [ "IPv4 address", Row_item.String (Ipv4.string_of_ipv4 ipv4);
+	    [ "IPv4 address", Row_item.String (Ipv4.to_string ipv4);
 	      "IPv4 netmask", Row_item.String netmask_string; ])
      ]
   in
@@ -583,25 +583,26 @@ class router
  method get_port_0_ip_config =
   let name = self#get_name in
   let ipv4 =
-    Ipv4.ipv4_of_string
+    Ipv4.of_string
       (network#ifconfig#get_port_attribute_by_index
          name 0 "IPv4 address")
   in
-  let (_,cidr) =
-    Ipv4.netmask_with_cidr_of_string
-      (network#ifconfig#get_port_attribute_by_index
-         name 0 "IPv4 netmask")
-  in
-  (ipv4,cidr)
+  let cidr =
+    Ipv4.cidr_of_netmask
+      (Ipv4.netmask_of_string
+	 (network#ifconfig#get_port_attribute_by_index
+	  name 0 "IPv4 netmask"))
+    in
+  (ipv4, cidr)
 
 
- method set_port_0_ipv4_address (ipv4:Ipv4.ipv4) =
+ method set_port_0_ipv4_address (ipv4:Ipv4.t) =
    network#ifconfig#set_port_string_attribute_by_index
      self#get_name 0 "IPv4 address"
-     (Ipv4.string_of_ipv4 ipv4);
+     (Ipv4.to_string ipv4);
 
  method set_port_0_ipv4_netmask_by_cidr cidr =
-   let netmask_as_string = Ipv4.string_of_ipv4 (Ipv4.netmask_of_cidr cidr) in
+   let netmask_as_string = Ipv4.to_string (Ipv4.netmask_of_cidr cidr) in
    network#ifconfig#set_port_string_attribute_by_index
      self#get_name 0 "IPv4 netmask"
      netmask_as_string

@@ -116,7 +116,7 @@ module Make_menus (Params : sig
      (* With the current version of slirpvde i4 is always 1 and cidr is 24 *)
      let network_config =
        let fixed_cidr = 24 in
-       ((Ipv4.ipv4_of_string g#get_network_address), fixed_cidr)
+       ((Ipv4.of_string g#get_network_address), fixed_cidr)
      in
      let dhcp_enabled = g#get_dhcp_enabled in
      let port_no = g#get_port_no in
@@ -401,16 +401,16 @@ class world_gateway =
 
   (** Redefined:*)
   method gw_ipv4_address =
-    let (b1,b2,b3,_) = Ipv4.ipv4_of_string self#get_network_address in
+    let (b1,b2,b3,_) = Ipv4.of_string self#get_network_address in
     let last_byte = 2 in
     (b1,b2,b3, last_byte)
 
   method gw_ipv4_address_as_string : string =
-    Ipv4.string_of_ipv4 self#gw_ipv4_address
+    Ipv4.to_string self#gw_ipv4_address
   
   (** Redefined:*)
   method label_for_dot =
-    let ip_gw = Ipv4.string_of_ipv4 ~cidr:24 self#gw_ipv4_address in
+    let ip_gw = Ipv4.string_of_config (self#gw_ipv4_address, 24) in
     match self#get_label with
     | "" -> ip_gw
     | _  -> Printf.sprintf "%s <br/> %s" ip_gw self#get_label

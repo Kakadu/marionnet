@@ -1257,6 +1257,7 @@ class virtual ['parent] device
       other.
       Note that hublets are *not* involved in this. *)
   method virtual spawn_processes : unit
+  
   method virtual terminate_processes : unit
   method virtual stop_processes : unit
   method virtual continue_processes : unit
@@ -1291,6 +1292,7 @@ object(self)
     | None -> assert false
 
   val internal_cable_processes = ref []
+  method get_internal_cable_processes = !internal_cable_processes
 
   (** Switches and hubs are stateless from the point of view of the user, and it makes no
       sense to "suspend" them. This also helps implementation :-) *)
@@ -1298,39 +1300,48 @@ object(self)
     (* Spawn the main switch process, and wait to be sure it's started: *)
     self#get_main_process#spawn;
     (* Create internal cable processes from main switch to hublets, and spawn them: *)
-    (internal_cable_processes :=
-      let hublets = self#get_hublet_process_list in
-      let name = parent#get_name in
-      Log.printf "spawn_processes: device=%s hublet_no=%d last_user_visible_port_index=%d\n" name hublet_no last_user_visible_port_index;
-      List.map
-        (fun (i, hublet_process) ->
-           if i <= last_user_visible_port_index then
-            make_ethernet_cable_process
-	      ~left_end:self#get_main_process
-	      ~right_end:hublet_process
-	      ~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index i)
-	      ~rightward_defects:(parent#ports_card#get_my_outward_defects_by_index i)
-	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-              ()
-            else (* Hidden ports have no defects: *)
-            begin
-            new ethernet_cable_process
-	      ~left_end:self#get_main_process
-	      ~right_end:hublet_process
-	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-              ()
-            end
-            )
-        (List.combine
-           (ListExtra.range 0 (hublet_no-1))
-           hublets));
-    (* WARNING: cables must be created sequentially in order to make the mapping
-       between VDE and marionnet port numbering deterministic. *)
-    (* So, do not perform Task_runner.do_in_parallel but simply iter: *)
+    let () =
+      internal_cable_processes :=
+	let hublets = self#get_hublet_process_list in
+	let name = parent#get_name in
+	Log.printf "spawn_processes: device=%s hublet_no=%d last_user_visible_port_index=%d\n" name hublet_no last_user_visible_port_index;
+	List.map
+	  (fun (i, hublet_process) ->
+	    if i <= last_user_visible_port_index then
+	      make_ethernet_cable_process
+		~left_end:self#get_main_process
+		~right_end:hublet_process
+		~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index i)
+		~rightward_defects:(parent#ports_card#get_my_outward_defects_by_index i)
+		~unexpected_death_callback:self#execute_the_unexpected_death_callback
+		()
+	      else (* Hidden ports have no defects: *)
+	      begin
+	      new ethernet_cable_process
+		~left_end:self#get_main_process
+		~right_end:hublet_process
+		~unexpected_death_callback:self#execute_the_unexpected_death_callback
+		()
+	      end
+	      )
+	  (List.combine
+	    (ListExtra.range 0 (hublet_no-1))
+	    hublets)
+    in
+    (* Now we can spawn the internal cables: *)
+    self#spawn_internal_cables
+
+  (* WARNING: cables must be created sequentially in order to make the mapping
+     between VDE and marionnet port numbering deterministic.
+     So, do not perform Task_runner.do_in_parallel but simply iter.
+     Note that this method *must be refined* for switches in order to have the same port
+     numbering in the vde_switch internal state (relevant for the VLAN management). *)
+  method spawn_internal_cables =
     List.iter (fun thunk -> thunk ())
       (List.map (* Here map returns a list of thunks *)
          (fun internal_cable_process () -> internal_cable_process#spawn)
          !internal_cable_processes)
+
 
   method terminate_processes =
     (* Terminate internal cables and the main switch process: *)
@@ -1568,20 +1579,25 @@ object(self)
       Task_runner.the_task_runner#schedule
         (fun () -> self#get_xnest_process#spawn(* ; Thread.delay 0.5 *)));
     (* Create internal cable processes connecting the inner layer to the outer layer: *)
-    (internal_cable_processes :=
-      List.map
-        (fun (i, inner_hublet_process, outer_hublet_process) ->
-          make_ethernet_cable_process
-	      ~left_end:inner_hublet_process
-	      ~right_end:outer_hublet_process
-	      ~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index i)
-	      ~rightward_defects:(parent#ports_card#get_my_outward_defects_by_index i)
-	      ~unexpected_death_callback:self#execute_the_unexpected_death_callback
-              ())
-        (ListExtra.combine3
-           (ListExtra.range 0 (half_hublet_no - 1))
-           self#get_inner_hublet_processes
-           self#get_outer_hublet_processes));
+    let () = 
+      (internal_cable_processes :=
+	List.map
+	  (fun (i, inner_hublet_process, outer_hublet_process) ->
+	    make_ethernet_cable_process
+		~left_end:inner_hublet_process
+		~right_end:outer_hublet_process
+		~leftward_defects:(parent#ports_card#get_my_inward_defects_by_index i)
+		~rightward_defects:(parent#ports_card#get_my_outward_defects_by_index i)
+		~unexpected_death_callback:self#execute_the_unexpected_death_callback
+		())
+	  (ListExtra.combine3
+	    (ListExtra.range 0 (half_hublet_no - 1))
+	    self#get_inner_hublet_processes
+	    self#get_outer_hublet_processes))
+    in
+    self#spawn_internal_cables
+
+  method private spawn_internal_cables =         
     (* Spawn internal cables processes and the UML process: *)
     Task_runner.do_in_parallel
       ((fun () -> self#get_uml_process#spawn)

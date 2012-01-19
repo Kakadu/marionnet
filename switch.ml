@@ -380,6 +380,32 @@ end (* module User_level *)
 
 module Simulation_level_switch = struct
 
+let ask_vde_switch_for_current_numports ~socketfile () =
+  let protocol (ch:Network.stream_channel) =
+    ch#output_line "port/showinfo";
+    let rec loop () =
+      let answer = ch#input_line () in
+      match Option.apply_or_catch (Scanf.sscanf answer "Numports=%d") (fun i -> i) with
+      | None -> loop ()
+      | Some i -> i
+    in
+    loop ()
+  in
+  Network.stream_unix_client ~socketfile ~protocol ()
+
+let wait_vde_switch_until_numports_will_be_allocated ~numports ~socketfile () =
+  let rec protocol (ch:Network.stream_channel) =
+    ch#output_line "port/showinfo";
+    let rec loop () =
+      let answer = ch#input_line () in
+      match Option.apply_or_catch (Scanf.sscanf answer "Numports=%d") (fun i -> i) with
+      | None -> loop ()
+      | Some i -> if i>=numports then i else (Thread.delay 0.2; (protocol ch))
+    in
+    loop ()
+  in
+  Network.stream_unix_client ~socketfile ~protocol ()
+
 (** A switch: just a [hub_or_switch] with [hub = false] *)
 class ['parent] switch =
   fun ~(parent:'parent)
@@ -399,6 +425,34 @@ object(self)
       ()
       as super
   method device_type = "switch"
+
+  method spawn_internal_cables =
+    match show_vde_terminal with
+    | false -> super#spawn_internal_cables
+    | true ->
+        (* If the user want to configure VLANs etc, we must be sure that
+           the port numbering will be the same for marionnet and vde_switch: *)
+        let socketfile = Option.extract self#get_management_socket_name in
+        let numports = ref (Either.extract (ask_vde_switch_for_current_numports ~socketfile ())) in
+        (* For a strange reason vde_switch answer with the limit (option -n) instead of giving the
+           number of really allocated ports: *)
+        numports := !numports - (hublet_no + 1);
+        let name = parent#get_name in
+        Log.printf "Spawning internal cables for switch %s...\n" name;
+	List.iter (fun thunk -> thunk ())
+	  (List.map (* Here map returns a list of thunks *)
+	     begin fun internal_cable_process () ->
+	       (* The protocol implemented here should ensure that vde_switch will not be solicited
+	          before having accepted the previously asked connection. However, in practice, vde_switch
+	          often continues to "invert" ports (as when super#spawn_internal_cables is called)...
+	          So the following delay seems necessary: *)
+	       Thread.delay 0.5;
+	       internal_cable_process#spawn;
+	       incr numports;
+	       ignore (wait_vde_switch_until_numports_will_be_allocated ~numports:(!numports) ~socketfile);
+	       Log.printf "Ok, the vde_switch %s has now %d allocated ports.\n" name !numports;
+	       end
+	     self#get_internal_cable_processes)
 
   initializer
 

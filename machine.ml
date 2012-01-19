@@ -462,8 +462,7 @@ class machine
 
   (** Get the full host pathname to the directory containing the guest hostfs filesystem: *)
   method hostfs_directory_pathname =
-    let d = ((Option.extract !simulated_device) :> User_level.node Simulation_level.machine) in
-    d#hostfs_directory_pathname
+    (Option.extract !simulated_device)#hostfs_directory_pathname
 
   (** A machine will be started with a certain amount of memory *)
   val mutable memory : int = memory

@@ -380,6 +380,7 @@ class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_pro
     method get_hublet_process_of_port : int -> hublet_process
     method get_hublet_process_list : hublet_process list
     method get_hublet_no : int
+    method get_internal_cable_processes : ethernet_cable_process list
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
@@ -387,6 +388,7 @@ class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_pro
     method resume : unit
     method shutdown : unit
     method spawn_processes : unit
+    method spawn_internal_cables : unit
     method startup : unit
     method stop_processes : unit
     method suspend : unit
@@ -417,6 +419,7 @@ class virtual ['parent] hub_or_switch :
     method get_hublet_process_of_port : int -> hublet_process
     method get_hublet_process_list : hublet_process list
     method get_hublet_no : int
+    method get_internal_cable_processes : ethernet_cable_process list
     method get_state : device_state
     method gracefully_shutdown : unit
     method gracefully_terminate_processes : unit
@@ -424,6 +427,7 @@ class virtual ['parent] hub_or_switch :
     method resume : unit
     method shutdown : unit
     method spawn_processes : unit
+    method spawn_internal_cables : unit
     method startup : unit
     method stop_processes : unit
     method suspend : unit

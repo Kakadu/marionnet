@@ -380,29 +380,27 @@ end (* module User_level *)
 
 module Simulation_level_switch = struct
 
-let ask_vde_switch_for_current_numports ~socketfile () =
+(* The question is "port/print" *) 
+let scan_vde_switch_answer (ch:Network.stream_channel) : int =
+  let rec loop n =
+    let answer = ch#input_line () in
+    try (Scanf.sscanf answer "Port %d %s ACTIVE") (fun i _ -> ()); loop (n+1) with _ ->
+    try (Scanf.sscanf answer ".") (); n with _ -> loop n
+  in
+  loop 0
+    
+let ask_vde_switch_for_current_active_ports ~socketfile () =
   let protocol (ch:Network.stream_channel) =
-    ch#output_line "port/showinfo";
-    let rec loop () =
-      let answer = ch#input_line () in
-      match Option.apply_or_catch (Scanf.sscanf answer "Numports=%d") (fun i -> i) with
-      | None -> loop ()
-      | Some i -> i
-    in
-    loop ()
+    ch#output_line "port/print";
+    scan_vde_switch_answer ch
   in
   Network.stream_unix_client ~socketfile ~protocol ()
 
-let wait_vde_switch_until_numports_will_be_allocated ~numports ~socketfile () =
+let wait_vde_switch_until_ports_will_be_allocated ~numports ~socketfile () =
   let rec protocol (ch:Network.stream_channel) =
-    ch#output_line "port/showinfo";
-    let rec loop () =
-      let answer = ch#input_line () in
-      match Option.apply_or_catch (Scanf.sscanf answer "Numports=%d") (fun i -> i) with
-      | None -> loop ()
-      | Some i -> if i>=numports then i else (Thread.delay 0.2; (protocol ch))
-    in
-    loop ()
+    ch#output_line "port/print";
+    let active_ports = scan_vde_switch_answer ch in
+    if active_ports >= numports then active_ports else (Thread.delay 0.2; (protocol ch))
   in
   Network.stream_unix_client ~socketfile ~protocol ()
 
@@ -433,23 +431,22 @@ object(self)
         (* If the user want to configure VLANs etc, we must be sure that
            the port numbering will be the same for marionnet and vde_switch: *)
         let socketfile = Option.extract self#get_management_socket_name in
-        let numports = ref (Either.extract (ask_vde_switch_for_current_numports ~socketfile ())) in
-        (* For a strange reason vde_switch answer with the limit (option -n) instead of giving the
-           number of really allocated ports: *)
-        numports := !numports - (hublet_no + 1);
+        let numports = ref (Either.extract (ask_vde_switch_for_current_active_ports ~socketfile ())) in
         let name = parent#get_name in
+        Log.printf "The vde_switch %s has currently %d active ports.\n" name !numports;
         Log.printf "Spawning internal cables for switch %s...\n" name;
 	List.iter (fun thunk -> thunk ())
 	  (List.map (* Here map returns a list of thunks *)
 	     begin fun internal_cable_process () ->
 	       (* The protocol implemented here should ensure that vde_switch will not be solicited
-	          before having accepted the previously asked connection. However, in practice, vde_switch
-	          often continues to "invert" ports (as when super#spawn_internal_cables is called)...
-	          So the following delay seems necessary: *)
-	       Thread.delay 0.5;
+	          before having accepted the previously asked connection. However, for safety we add
+	          a little delay in order to give to vde_switch the time to allocate the previous port: *)
+	       Thread.delay 0.1;
+	       (* Now we launch the process that will ask vde_switch to obtain a new port: *)
 	       internal_cable_process#spawn;
 	       incr numports;
-	       ignore (wait_vde_switch_until_numports_will_be_allocated ~numports:(!numports) ~socketfile);
+	       let answer = Either.extract (wait_vde_switch_until_ports_will_be_allocated ~numports:(!numports) ~socketfile ()) in
+	       (if answer <> !numports then Log.printf "Unexpected vde_switch %s answer: %d instead of the expected value %d. Ignoring.\n" name answer !numports);
 	       Log.printf "Ok, the vde_switch %s has now %d allocated ports.\n" name !numports;
 	       end
 	     self#get_internal_cable_processes)

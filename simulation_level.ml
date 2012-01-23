@@ -901,12 +901,14 @@ class uml_process =
     command_line_arguments @
     [(*"con0=none"; "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none"; *)
 (* "con6=port:9000"; *)
-     "ssl1=port:9001";
+(* "ssl1=port:9001"; *)
      "con13=xterm";
      "con14=xterm";
      "con15=xterm";
      "con=pts";
      "ssl="^console;
+(*  "ssl2=tty:/dev/tty42";
+    "ssl3=pts"; *)
      "console=ttyS0"]
   in
 object(self)

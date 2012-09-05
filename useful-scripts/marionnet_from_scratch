@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.12
-# 2011.11.07
+# Script version: 0.90.13
+# 2012.09.05
 
 set -e
 shopt -s nullglob
@@ -315,7 +315,7 @@ if [[ -n ${option_c} ]]; then
    echo "Error: ${option_c_arg} doesn't exist or is not a directory."
    echo "Exiting."
    exit 1
-  fi 
+  fi
 fi
 
 # Option -V, --no-vde
@@ -540,7 +540,7 @@ function launch_and_log {
   echo "Exiting."
  else
   echo
-  echo "$MSG DONE" >> $ALREADY_DONE 
+  echo "$MSG DONE" >> $ALREADY_DONE
  fi
  return $RETURN_CODE
 }
@@ -561,7 +561,7 @@ LATEST=$(grep <$TGZ -o "${VERSION}[.]tar[.]gz" | tr '.' ' '| sort -n | tr ' ' '.
 if [[ -z "$LATEST" ]]; then
   echo "No latest version of $BASENAME found looking into $URL."
   return 2
-else   
+else
   echo "Ok, latest version $LATEST of $BASENAME found looking into $URL."
 fi 1>&2
 TGZ=$(grep <$TGZ -o ".*${BASENAME}-${LATEST}[0-9A-Za-z/_-]*")
@@ -704,7 +704,7 @@ function is_aptitude_installed  {
 
 
 function is_package_installed {
- local L==en_US.UTF-8 
+ local L==en_US.UTF-8
  LANG=$L LC_ALL=$L LC_MESSAGES=$L LANGUAGE=$L dpkg -s $1 2>/dev/null | \grep -q 'Status: install ok installed';
 }
 
@@ -722,12 +722,12 @@ function echo_required_debian_packages {
  if [[ $USING_GODI = yes ]]; then
   EXTRA_FOR_GODI="gtkgl-dev freeglut3-dev tk8.4-dev libxmu-dev"
  fi
- 
+
  for i in \
    libgtk2.0-dev libglade2-dev $EXTRA_FOR_GODI \
    bridge-utils coreutils debianutils diffutils \
    net-tools uml-utilities util-linux x11-xserver-utils \
-   coreutils findutils login procps \
+   coreutils findutils login procps gettext \
    rlfe; # alternatives are rlwrap and ledit
    do
    if ! is_package_installed $i; then
@@ -831,7 +831,7 @@ if are_we_in_debian_or_derived; then
       launch_and_log --sudo "$MSG" "aptitude $APTITUDE_OPTIONS -q -y install $DEBIAN_PACKAGE_LIST"
       DISABLE_libc6_i386_WARNING=yes
     fi # answered yes
-  fi # package list not empty 
+  fi # package list not empty
 fi # are_we_in_debian_or_derived
 
 launch_and_log "Downloading marionnet" download_latest_marionnet 22400
@@ -852,9 +852,9 @@ if type uname 1>&2 && [[ $(uname -m) = "x86_64" ]]; then
       return 1
   echo "Applying the ocaml 3.11 patch ($BUGFIX_FILE) for x86_64"
   patch -p1 < $BUGFIX_FILE
-# Download and apply the patch 0007-Fix-ocamlopt-w.r.t.-binutils-2.21.patch
-# for ocaml 3.11 on a 32 bits architecture with binutils version=2.21.x
-elif type ld 1>&2 && ld -v | \grep -q '[ ]2[.]21[.]'; then
+# Download and apply the patch 0007-Fix-ocamlopt-w.r.t.-binutils-2.2[1-9].patch
+# for ocaml 3.11 on a 32 bits architecture with binutils version=2.2[1-9].x
+elif type ld 1>&2 && ld -v | \grep -q '[ ]2[.]2[1-9][.]'; then
   local BUGFIX_FILE="bugfix-5237-i386.diff"
   echo "Downloading the ocaml 3.11 patch ($BUGFIX_FILE) for i386"
   wget -O $BUGFIX_FILE "$OUR_MIRROR/$BUGFIX_FILE" || \
@@ -909,13 +909,13 @@ case $USING_GODI in
   LIB_OCAML=$OCAML_PREFIX/lib/ocaml/
   launch_and_log "Downloading ocaml" download_latest_ocaml 83000
   launch_and_log "Downloading lablgtk" download_latest_lablgtk 17800
-  launch_and_log "Compiling ocaml" compile_ocaml 382000 
+  launch_and_log "Compiling ocaml" compile_ocaml 382000
   launch_and_log "Compiling lablgtk" compile_lablgtk 56000
  ;;
 
  yes)
   export GODI_PREFIX=$PWD/godi
-  launch_and_log "Downloading ocaml (godi)" download_latest_godi 37342 
+  launch_and_log "Downloading ocaml (godi)" download_latest_godi 37342
   launch_and_log "Compiling ocaml with godi" compile_godi 990130
   # Tuning using godi
   export PATH=$GODI_PREFIX/bin:$GODI_PREFIX/sbin:$PATH
@@ -953,9 +953,9 @@ cp ../ocamlbricks/CONFIGME .
 case $GENERATE_BYTECODE in
  yes)
   MARIONNET_MAKE_COMMAND='make clean byte'
-  WEIGHT=2460914 
+  WEIGHT=2460914
   ;;
- no) 
+ no)
   MARIONNET_MAKE_COMMAND='make clean native'
   WEIGHT=2780316
   ;;
@@ -1213,7 +1213,7 @@ cat >$TMPFILE <<EOF
 ### BEGIN INIT INFO
 # Provides: marionnet-daemon
 # Required-Start: \$local_fs \$remote_fs \$network
-# Required-Stop: 
+# Required-Stop:
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
 # Short-Description: Support daemon for marionnet
@@ -1388,12 +1388,12 @@ AWK_PROGRAM="
    END {if (x==0) print \"[$SECTION]\"; if (x==0 || x==1) print \"$VARIABLE=$VALUE\n\";}"
 case $# in
  0) awk "$AWK_PROGRAM" ;;
- *) 
+ *)
   local i
   local TMPFILE=$(tmpfile)
   for i in "$@"; do
-    awk 0<"$i" 1>$TMPFILE "$AWK_PROGRAM" 
-    cat $TMPFILE 1>"$i"   
+    awk 0<"$i" 1>$TMPFILE "$AWK_PROGRAM"
+    cat $TMPFILE 1>"$i"
   done
   rm $TMPFILE
   ;;
@@ -1406,9 +1406,9 @@ function ensure_DisallowTCP_false_to_gdm_custom_dot_conf {
 local custom=${1:-/etc/gdm/custom.conf}
 local TMPFILE=$(tmpfile)
 cp $custom $TMPFILE
-ensure_section_and_binding "security" "DisallowTCP" "false" $TMPFILE 
+ensure_section_and_binding "security" "DisallowTCP" "false" $TMPFILE
 ensure_section_and_binding "xdmcp" "Enable" "true" $TMPFILE
-if ! diff -q $custom $TMPFILE >/dev/null; then 
+if ! diff -q $custom $TMPFILE >/dev/null; then
   CHANGED_FILES+="$custom "
   $SUDO bash -c "cat $TMPFILE >$custom"
 fi

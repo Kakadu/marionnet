@@ -454,10 +454,10 @@ class virtual cable_dot_zone ?(reversed=false) ~(motherboard:Motherboard.t) () =
       let (n1,r1,n2,r2) = if self#is_reversed then (n2,r2,n1,r1) else (n1,r1,n2,r2)
       in
       match (n1#get_label, n2#get_label) with
-      | "", "" -> (n1#get_name^":img"), (n2#get_name^":img"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-      | "", l2 -> (n1#get_name^":img"), (n2#get_name)       , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-      | l1, "" -> (n1#get_name)       , (n2#get_name^":img"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-      | l1, l2 -> (n1#get_name)       , (n2#get_name)       , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+      | "", "" -> (n1#get_name^":img:c"), (n2#get_name^":img:c"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+      | "", l2 -> (n1#get_name^":img:c"), (n2#get_name)         , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+      | l1, "" -> (n1#get_name)         , (n2#get_name^":img:c"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+      | l1, l2 -> (n1#get_name)         , (n2#get_name)         , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
     in
     let edgeoptions = if edgeoptions = "" then "" else (edgeoptions^",") in
     let cable_label = self#get_name ^ (if self#get_label = "" then "" else ("  "^self#get_label)) in

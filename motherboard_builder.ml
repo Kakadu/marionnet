@@ -127,7 +127,7 @@ module Make (S : sig val st:State.globalState end) = struct
       output_string ch (st#network#dotTrad ());
       close_out ch;
       let command_line =
-	"dot -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
+	"dot -Gsplines=line -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
       self#tracing#message "The dot command line is";
       self#tracing#message command_line;
       let exit_code = Sys.command command_line in

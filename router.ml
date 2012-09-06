@@ -431,7 +431,6 @@ class router
   ?label
   ?epithet
   ?variant
-  ?variant_realpath (* used just for creating the filesystem history device *)
   ?kernel
   ?(show_unix_terminal=false)
   ?terminal
@@ -494,7 +493,9 @@ class router
   (** Create the simulated device *)
   method private make_simulated_device =
     let id = self#id in
-    let cow_file_name = self#create_cow_file_name in
+    let cow_file_name, dynamically_get_the_cow_file_name_source =
+      self#create_cow_file_name_and_thunk_to_get_the_source
+    in
     let () =
      Log.printf
        "About to start the router %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n"
@@ -507,7 +508,9 @@ class router
       ~parent:self
       ~kernel_file_name:self#get_kernel_file_name
       ~filesystem_file_name:self#get_filesystem_file_name
+      ~dynamically_get_the_cow_file_name_source
       ~cow_file_name
+      ~states_directory:(self#get_states_directory)
       ~ethernet_interface_no:self#get_port_no
       ~umid:self#get_name
       ~id
@@ -632,7 +635,9 @@ module Simulation_level = struct
 (** A router: just a [machine_or_router] with [router = true] *)
 class ['parent] router =
   fun ~(parent:'parent)
+      ~dynamically_get_the_cow_file_name_source
       ~(cow_file_name)
+      ~states_directory
       ~(kernel_file_name)
       ~(filesystem_file_name)
       ~(ethernet_interface_no)
@@ -647,9 +652,11 @@ object(self)
       ~router:true
       ~filesystem_file_name(* :"/usr/marionnet/filesystems/router.debian.lenny.sid.fs" *)
       ~kernel_file_name
+      ~dynamically_get_the_cow_file_name_source
       ~cow_file_name
+      ~states_directory
       ~ethernet_interface_no
-      ~memory:Const.memory_default 
+      ~memory:Const.memory_default
       ?umid
       (* Change this when debugging the router device *)
       ~console:"none" (* To do: this should be "none" for releases and "xterm" for debugging *)

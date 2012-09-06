@@ -123,7 +123,7 @@ object(self)
   (* Used importing hub/switch/.. for backward compatibility: *)
   method change_port_user_offset ~device_name ~user_port_offset =
     let offset = user_port_offset in
-    let update name = 
+    let update name =
       try  Scanf.sscanf name "eth%i"  (fun i -> Printf.sprintf "eth%d"  (i+offset)) with _ ->
       try  Scanf.sscanf name "port%i" (fun i -> Printf.sprintf "port%d" (i+offset)) with _ ->
       name

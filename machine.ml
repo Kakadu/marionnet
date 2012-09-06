@@ -33,7 +33,9 @@ module Const = struct
 
  let memory_default = 48
  let memory_min = 8
- let memory_max = 256
+ (* let memory_max = 256 *)
+ (* In order to test with selinux: *)
+ let memory_max = 1024
 end
 
 (* The type of data returned by the dialog: *)
@@ -321,7 +323,7 @@ let make
     (memory, port_no, distribution, variant, kernel, terminal)
   in
   (* TODO: to be fully implemented or removed: *)
-  terminal#box#misc#set_sensitive false; 
+  terminal#box#misc#set_sensitive false;
   let get_widget_data () :'result =
     let name = name#text in
     let label = label#text in
@@ -421,7 +423,6 @@ class machine
   ?(memory=Const.memory_default)
   ?epithet
   ?variant
-  ?variant_realpath (* used just for creating the filesystem history device *)
   ?kernel
   ?terminal
   ~port_no
@@ -515,7 +516,9 @@ class machine
  (** Create the simulated device *)
  method private make_simulated_device =
     let id = self#id in
-    let cow_file_name = self#create_cow_file_name in
+    let cow_file_name, dynamically_get_the_cow_file_name_source =
+      self#create_cow_file_name_and_thunk_to_get_the_source
+    in
     let () =
      Log.printf
        "About to start the machine %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n  xnest: %b\n"
@@ -529,7 +532,9 @@ class machine
       ~parent:self
       ~kernel_file_name:self#get_kernel_file_name
       ~filesystem_file_name:self#get_filesystem_file_name
+      ~dynamically_get_the_cow_file_name_source
       ~cow_file_name
+      ~states_directory:(self#get_states_directory)
       ~ethernet_interface_no:self#get_port_no
       ~memory:self#get_memory
       ~umid:self#get_name
@@ -553,7 +558,7 @@ class machine
         ~machine_or_router_name:self#name
         ~pathname:(hostfs_directory_pathname ^ "/report.html")
         ();
-      Log.printf "Added the report on %s to the texts interface\n" self#name; 
+      Log.printf "Added the report on %s to the texts interface\n" self#name;
       Log.printf "Adding the history on %s to the texts interface\n" self#name;
       treeview_documents#import_history
         ~machine_or_router_name:self#name
@@ -595,7 +600,9 @@ class ['parent] machine =
   fun ~(parent:'parent)
       ~(filesystem_file_name)
       ~(kernel_file_name)
+      ~dynamically_get_the_cow_file_name_source
       ~(cow_file_name)
+      ~states_directory
       ~(ethernet_interface_no)
       ?memory:(memory=40) (* in megabytes *)
       ?umid
@@ -608,7 +615,9 @@ object(self)
       ~parent
       ~router:false
       ~filesystem_file_name
+      ~dynamically_get_the_cow_file_name_source
       ~cow_file_name
+      ~states_directory
       ~kernel_file_name
       ~ethernet_interface_no
       ~memory

@@ -282,7 +282,9 @@ val random_ghost_mac_address : unit -> string
 class uml_process :
   kernel_file_name:process_name ->
   filesystem_file_name:string ->
+  dynamically_get_the_cow_file_name_source:(unit -> string option) ->
   cow_file_name:string ->
+  states_directory:string ->
   ?swap_file_name:string ->
   ethernet_interface_no:int ->
   hublet_processes:< get_socket_name : string; .. > list ->
@@ -443,7 +445,9 @@ class virtual ['parent] machine_or_router :
   router:bool ->
   kernel_file_name:process_name ->
   filesystem_file_name:string ->
+  dynamically_get_the_cow_file_name_source:(unit -> string option) ->
   cow_file_name:string ->
+  states_directory:string ->
   ethernet_interface_no:int ->
   memory:int ->
   console:string ->

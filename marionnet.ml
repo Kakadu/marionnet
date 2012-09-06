@@ -60,13 +60,13 @@ let filesystem_history_interface =
     ()
 
 (** See the comment in states_interface.ml for why we need this ugly kludge: *)
-let () = 
+let () =
  let can_startup =
    (fun name ->
       let node = st#network#get_node_by_name name in
       node#can_startup)
  in
- let startup = 
+ let startup =
    (fun name ->
       let node = st#network#get_node_by_name name in
       node#startup)
@@ -95,7 +95,7 @@ let after_user_edit_callback x =
     st#set_project_not_already_saved;
     shutdown_or_restart_relevant_device x
   end
- 
+
 (** Make the ifconfig treeview: *)
 let treeview_ifconfig =
   Treeview_ifconfig.make

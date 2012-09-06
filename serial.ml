@@ -15,7 +15,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
-(* Examples: 
+(* Examples:
 
 # get_info_by_shell_command "uml_mconsole m1 config con8" ;;
   : string = "OK pts:/dev/pts/29"
@@ -52,7 +52,7 @@ let get_info_by_shell_command ?exn ?shell ?input ?pattern cmd =
  "collisions:0"; "lg"; "file"; "transmission:1000"; "Octets";
  "re\195\167us:672198706"; "(672.1"; "MB)"; "Octets"; "transmis:138468927";
  "(138.4"; "MB)"; "Interruption:19"; "Adresse"; "de"; "base:0x6000"]
- 
+
 # get_infos_by_shell_command ~patterns:["MTU:[0-9]+"; "HWaddr [A-Fa-f0-9:]+"] "ifconfig eth1" ;;
 - : StringExtra.word list = ["MTU:1500"; "HWaddr 00:1e:8c:cc:4d:50"]
 *)
@@ -170,7 +170,7 @@ let send_command_and_wait_answer ?(timeout=10.) ?(buffer_size=1024) ?umid ?con ?
   let _ = Unix.write fd echo_command 0 (String.length echo_command) in
   let rec loop ?blocking () =
        (* Wait a bit for the answer: *)
-       Thread.delay 0.1; 
+       Thread.delay 0.1;
     let _ = get_unread_chars_from ?blocking ~buffer ~fd () in
     (* Get now the last 80 chars (approximatively a line): *)
     let (current_trailer, current_trailer_starting_offset) =

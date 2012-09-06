@@ -95,6 +95,6 @@ let _ =
     match kind with
     | Pulse  -> progress_bar#pulse ()
     | Fill f -> progress_bar#set_fraction (f ())
-  in  
+  in
   GMain.Timeout.add ~ms:update_interval ~callback:(fun () -> (List.iter action !progress_bars); true)
 ;; (* call this again at the next interval *)

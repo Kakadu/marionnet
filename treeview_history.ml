@@ -30,60 +30,6 @@ module Startup_functions = Stateful_modules.Variable (struct
   let name = Some "startup_functions"
 end)
 
-(** Create a fresh filename, without making the file (empty cow files are not allowed) *)
-let make_temporary_file_name () =
-  Printf.sprintf
-    "%i-%i-%i.cow"
-    (Random.int 65536)
-    (Random.int 65536)
-    (Random.int 65536);;
-
-let make_fresh_state_file_name () =
-  make_temporary_file_name ();;
-
-exception Cp_failed;;
-
-(** Make a sparse copy of the given file, and return the name of the copy. Note that this
-    also succeeds when the source file does not exist, as it's the case with 'fresh' states *)
-let duplicate_file ?(is_path_full=false) ~states_directory path_name  =
-  let name_of_the_copy = make_temporary_file_name () in
-  let command_line =
-    if is_path_full then
-      (Printf.sprintf "if [ -e %s ]; then cp --sparse=always %s %s%s; else true; fi"
-         path_name
-         path_name
-         states_directory
-         name_of_the_copy)
-    else
-      (Printf.sprintf "if [ -e %s%s ]; then cp --sparse=always %s%s %s%s; else true; fi"
-         states_directory
-         path_name
-         states_directory
-         path_name
-         states_directory
-         name_of_the_copy)  in
-  (Log.printf "Making a copy of a cow file: the command line is: %s\n" command_line);
-  try
-    (match Unix.system command_line with
-      (Unix.WEXITED 0) ->
-        name_of_the_copy
-    | _ -> begin
-        raise Cp_failed;
-    end)
-  with Cp_failed -> begin
-    Simple_dialogs.error
-      "This is a serious problem"
-      "The disc is probably full. A disaster is about to happen..."
-      ();
-    Log.printf "To do: react in some reasonable way\n";
-    failwith "cp failed";
-  end
-  | _ -> begin
-      Log.printf "To do: this look harmless.\n";
-      name_of_the_copy;
-  end;;
-
-
 (** Principal exported treeview type: *)
 class t =
 fun ~packing
@@ -117,32 +63,25 @@ object(self)
     in
     self#add_row ?parent_row_id:parent row
 
-  method add_device ~name ~prefixed_filesystem ?variant ?variant_realpath ~icon () =
-  (* If we're using a non-clean variant then copy it so that it becomes
-     the first cow file: *)
-  let (file_name, variant_name, comment_suffix) =
-    (match variant, variant_realpath with
-     | None, _ -> (make_fresh_state_file_name (), "", "")
-     | Some variant_name, Some variant_realpath ->
-         let file_name =
-           duplicate_file
-             ~is_path_full:true
-             ~states_directory:(Option.extract directory#get)
-             variant_realpath
-         in (file_name, variant_name, (Printf.sprintf " : variant \"%s\"" variant_name))
-     | Some _, None -> assert false
-     )
-  in
-  Log.printf "Filesystem history.add_device: adding the device %s with variant name=\"%s\"\n" name variant_name;
-  let row_id =
-    self#add_row_with ~name ~icon
-      ~comment:(prefixed_filesystem ^ comment_suffix)
-      ~file_name
-      ~prefixed_filesystem
-      ~date:"-"
-      ~scenario:"[no scenario]"
-      () in
-  self#highlight_row row_id
+  method add_device ~name ~prefixed_filesystem ?variant ~icon () =
+    let states_directory = (Option.extract directory#get) in
+    let file_name = Cow_files.make_temporary_cow_file_name ~states_directory () in
+    let (variant_name, comment_suffix) =
+      (match variant with
+      | None -> ("", "")
+      | Some variant_name -> (variant_name, (Printf.sprintf " : variant \"%s\"" variant_name))
+      )
+    in
+    Log.printf "Treeview_history.t#add_device: adding the device %s with variant name=\"%s\"\n" name variant_name;
+    let row_id =
+      self#add_row_with ~name ~icon
+	~comment:(prefixed_filesystem ^ comment_suffix)
+	~file_name
+	~prefixed_filesystem
+	~date:"-"
+	~scenario:"[no scenario]"
+	() in
+    self#highlight_row row_id
 
   method remove_device_tree device_name =
   let root_id = self#unique_root_row_id_of_name device_name in
@@ -157,11 +96,28 @@ object(self)
    );
    self#remove_subtree root_id;
 
+  (* This method is udeful to understand which source file has
+     to be copied into the cow_file_name assigned to an UML device. *)
+  method get_parent_cow_file_name ~(cow_file_name:string) () : string option =
+    let cow_file_name = Filename.basename cow_file_name in
+    let complete_row =
+      self#unique_complete_row_such_that
+        (fun row -> (Assoc.find "File name" row) = String cow_file_name)
+    in
+    let row_id = self#id_of_complete_row complete_row in
+    match (self#parent_of row_id) with
+    | None -> None
+    | Some parent_row_id ->
+        let parent_cow_filename =
+          item_to_string (self#get_row_item parent_row_id "File name")
+        in
+        Some parent_cow_filename
+
   method add_substate_of parent_file_name =
-  let copied_file_name =
-    duplicate_file
+  let cow_file_name =
+    Cow_files.make_temporary_cow_file_name
       ~states_directory:(Option.extract directory#get)
-      parent_file_name
+      ()
   in
   let complete_row_to_copy =
     self#unique_complete_row_such_that
@@ -183,7 +139,7 @@ object(self)
              ~name:parent_name
              ~icon:(item_to_string (Assoc.find "Type" row_to_copy))
              ~comment:"[no comment]"
-             ~file_name:copied_file_name
+             ~file_name:cow_file_name
              ~parent:parent_id
              ~date:(UnixExtra.date ~dot:" " ())
              ~scenario:"[no scenario]"
@@ -197,9 +153,9 @@ object(self)
      effect on the children it doesn't yet have), and on the other hand it does not
      bother the user undoing his/her expansions: *)
   (if sibling_no = 0 then self#collapse_row parent_id);
-  copied_file_name
+  cow_file_name
 
-  method add_state_for_device device_name =
+  method add_state_for_device device_name (* "m1" *) =
     let most_recent_file_name =
       item_to_string
         (Assoc.find "File name" (self#get_the_most_recent_state_with_name device_name))
@@ -216,7 +172,7 @@ object(self)
     Task_runner.the_task_runner#schedule
       (fun () ->
         self#set_row_item row_id "Timestamp" (String correct_date));
-    
+
 
   method delete_state row_id =
     let name = item_to_string (self#get_row_item row_id "Name") in
@@ -240,7 +196,7 @@ object(self)
           else
             self#unhighlight_row (item_to_string an_id)))
       (self#get_complete_forest);
-    
+
 
   method get_the_most_recent_state_with_name name =
     let forest = self#get_complete_forest in

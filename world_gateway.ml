@@ -80,7 +80,7 @@ module Make_menus (Params : sig
       let name = st#network#suggestedName "G" in
       Dialog_add_or_update.make
         ~title:(s_ "Add world gateway") ~name ~ok_callback ()
-   
+
     let reaction {
          name = name;
          label = label;
@@ -407,7 +407,7 @@ class world_gateway =
 
   method gw_ipv4_address_as_string : string =
     Ipv4.to_string self#gw_ipv4_address
-  
+
   (** Redefined:*)
   method label_for_dot =
     let ip_gw = Ipv4.string_of_config (self#gw_ipv4_address, 24) in

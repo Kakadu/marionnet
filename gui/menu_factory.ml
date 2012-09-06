@@ -136,7 +136,7 @@ module Side_effects_of
       in
       (Log.printf "%s" msg)
  end
- 
+
 let compose ?none_effect ?some_effect (heuristic:'a -> 'b option) (procedure:'b -> unit) =
   fun x -> match (heuristic x), none_effect, some_effect with
   | None   , None  , _      -> ()
@@ -153,7 +153,7 @@ module Make_entry =
       let key = match E.key with None -> 0 | Some k -> k in
       F.add_stock_item ~key E.text ~stock:E.stock ()
 
-    include Side_effects_of (E)  
+    include Side_effects_of (E)
     let callback = compose ~none_effect ~some_effect (E.dialog) (E.reaction)
     let connect  = item#connect#activate ~callback
    end

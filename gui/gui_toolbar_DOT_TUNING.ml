@@ -63,7 +63,7 @@ let () = begin
  * ******************************* *)
 
 (** Handlers for reading or setting related widgets in a more abstract way. *)
-class high_level_toolbar_driver () = 
+class high_level_toolbar_driver () =
 
   (* The iconsize converter float -> string *)
  let iconsize_of_float x =
@@ -151,7 +151,7 @@ st#dotoptions#set_toolbar_driver (new high_level_toolbar_driver ())
 
 
 (* ******************************* *
-        Callbacks definition 
+        Callbacks definition
  * ******************************* *)
 
 let (opt,net) = (st#dotoptions, st#network)
@@ -263,6 +263,6 @@ let _ =
   connect_rotate_menu
      ~widget:st#mainwin#imagemenuitem_DOT_TUNING_INVERT_CROSSOVER
      ~widget_menu:st#mainwin#imagemenuitem_DOT_TUNING_INVERT_CROSSOVER_menu
-     ~dynList:(fun () -> st#network#get_crossover_cable_names) 
+     ~dynList:(fun () -> st#network#get_crossover_cable_names)
 
 end (* Make *)

@@ -25,9 +25,9 @@ Log.printf ~v:0 ~banner:false
  Ocamlbricks revision : %s - %s
 
  Built in date %s on system:
- 
+
 %s
- 
+
  For bug reporting, please get a launchpad account and
  either:
   - report bugs at https://bugs.launchpad.net/marionnet
@@ -42,7 +42,7 @@ Log.printf ~v:0 ~banner:false
   Meta_ocamlbricks.revision Meta_ocamlbricks.source_date
   Meta.build_date
   (StringExtra.fmt ~tab:8 ~width:40 Meta.uname)
-;;  
+;;
 
 (* Seed the random number generator: *)
 Random.self_init ();;
@@ -83,16 +83,16 @@ module Debug_level = struct
   let of_bool = function
     | false -> 0
     | true  -> 1
-  
+
   let default_level = of_bool (configuration#bool "MARIONNET_DEBUG")
-  
+
   let current = ref default_level
   let set x = (current := x)
   let get () = !current
 
   let are_we_debugging () = ((get ())>0)
   let set_from_bool b = set (of_bool b)
-  
+
   (** Interpret the current state as suffix to append to shell commands. *)
   let redirection () =
     if are_we_debugging () then "" else " >/dev/null 2>/dev/null "
@@ -106,9 +106,9 @@ let () =
 ;;
 
 Log.printf
-  "MARIONNET_DEBUG is %b (debug level %d)\n" 
+  "MARIONNET_DEBUG is %b (debug level %d)\n"
   (Debug_level.are_we_debugging ()) (* is true iff you read the message *)
-  (Debug_level.get ()) 
+  (Debug_level.get ())
 ;;
 
 (* Used as continuation (~k) calling configuration_variable_or: *)

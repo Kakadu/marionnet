@@ -1331,7 +1331,7 @@ class virtual treeview_with_a_Name_column = fun
   ?hide_reserved_fields
   () ->
  object(self)
-  inherit t ~packing ?hide_reserved_fields () 
+  inherit t ~packing ?hide_reserved_fields ()
 
   method rename old_name new_name =
     let row_ids = self#row_ids_of_name old_name in

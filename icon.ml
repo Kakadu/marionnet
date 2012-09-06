@@ -16,8 +16,8 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-let icon_pixbuf = 
-  GdkPixbuf.from_file  
+let icon_pixbuf =
+  GdkPixbuf.from_file
     (if Command_line.are_we_in_exam_mode then
       Initialization.Path.images^"launcher-icons/marionnet-exam-launcher.png"
     else

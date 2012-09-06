@@ -304,12 +304,12 @@ class hub =
       ~user_port_offset:1 (* in order to have a perfect mapping with VDE *)
       ~port_prefix:"port"
       ()
-    as self_as_node_with_ledgrid_and_defects 
+    as self_as_node_with_ledgrid_and_defects
   method ledgrid_label = "Hub"
   method defects_device_type = "hub"
   method polarity = User_level.MDI_X
   method string_of_devkind = "hub"
-  
+
   method dotImg iconsize =
    let imgDir = Initialization.Path.images in
    (imgDir^"ico.hub."^(self#string_of_simulated_device_state)^"."^iconsize^".png")

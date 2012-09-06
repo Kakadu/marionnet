@@ -268,7 +268,7 @@ class cloud =
   method defects_device_type = "cloud"
   method polarity = User_level.Intelligent (* Because it is didactically meaningless *)
   method string_of_devkind = "cloud"
-  
+
   method dotImg iconsize =
    let imgDir = Initialization.Path.images in
    (imgDir^"ico.cloud."^(self#string_of_simulated_device_state)^"."^iconsize^".png")

@@ -41,7 +41,7 @@ class terminal_manager :
    method is_xnest        : string -> bool
    method is_nox          : string -> bool
    method is_hostxserver  : string -> bool
- end  
+ end
 
 
 class epithet_manager :
@@ -51,21 +51,21 @@ class epithet_manager :
   unit ->
   object
     (* Constructor's arguments: *)
-    
+
     method directory_searching_list : dirname list
     method prefix : string
 
     (* Public interface: *)
-    
+
     method get_epithet_list    : epithet list
     method get_default_epithet : epithet option
     method epithet_exists      : epithet -> bool
     method realpath_of_epithet : epithet -> realpath
-  
+
     method resolve_epithet_symlink : epithet -> epithet
 
     (* Morally private methods: *)
-    
+
     method epithets_of_filename : ?no_symlinks:unit ->
       filename -> epithet list
 
@@ -82,20 +82,20 @@ class virtual_machine_installations :
   ?root_filesystem_searching_list:string list ->
   ?kernel_searching_list:string list ->
   ?kernel_prefix:string ->
-  ?kernel_default_epithet:string -> 
+  ?kernel_default_epithet:string ->
   ?filesystem_default_epithet:string ->
   prefix:string ->
   unit ->
   object
     (* Constructor's arguments: *)
-    
+
     method filesystem_searching_list : dirname list
     method kernel_searching_list     : dirname list
     method kernel_prefix : string
     method prefix : string
-    
+
     (* Public interface: *)
-    
+
     method filesystems : epithet_manager
     method kernels     : epithet_manager
     method variants_of : epithet -> epithet_manager
@@ -127,7 +127,7 @@ val get_router_installations :
 
 val vm_installations_and_epithet_of_prefixed_filesystem :
   string -> virtual_machine_installations * epithet
-  
+
 val user_export_dirname_of_prefixed_filesystem : string -> dirname
 val root_export_dirname_of_prefixed_filesystem : string -> dirname
- 
+

@@ -25,7 +25,7 @@
     The implementation should be reasonably efficient, but remove_node can be
     optimized. remove_edge is difficult to make better because of a (gratuitous,
     in my opinion) restriction in Hashtbl: it's not allowed to remove a pair
-    <key, value>, but only to blindly remove the "current" binding of key. 
+    <key, value>, but only to blindly remove the "current" binding of key.
     So I have to get all bindings, filter them out, remove all bindings from the
     table, and reinsert the surviving ones. *)
 
@@ -125,14 +125,14 @@ let get_backward_edges (graph : 'a graph) =
     [];;
 
 (** Remove the edge (from_id |-> to_id), if it exists, otherwise do nothing.
-    In any case *don't* remove any node. 
+    In any case *don't* remove any node.
     Yes, this implementation sucks: see the comment at the beginning to
     understand why I had to do it this way. *)
 let remove_edge from_id to_id (graph : 'a graph) =
   let _, forward_edges, backward_edges = graph in
   (* Get the current forward star of from_id and the current backward star of
      to_id: the edge we want to remove, if it exists, is in both: *)
-  let forward_star = get_forward_star from_id graph in 
+  let forward_star = get_forward_star from_id graph in
   let backward_star = get_backward_star to_id graph in
   (* Temporarily remove all the edges from from_id and all the edges to to_id: *)
   List.iter

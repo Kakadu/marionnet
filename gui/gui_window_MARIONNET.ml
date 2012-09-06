@@ -47,7 +47,7 @@ module Created_menubar_MARIONNET = Gui_menubar_MARIONNET.Make (State)
 
 
 (* ***************************************** *
-             notebook_CENTRAL 
+             notebook_CENTRAL
  * ***************************************** *)
 
 (* Tool -> ocamlbricks widget.ml ? *)
@@ -55,8 +55,8 @@ let get_tab_labels_of notebook =
  let mill widget = (GMisc.label_cast (notebook#get_tab_label widget))
  in List.map mill notebook#children
 
-let tuple2_of_list = function [l1;l2]       -> (l1,l2)       | _ -> assert false 
-let tuple4_of_list = function [l1;l2;l3;l4] -> (l1,l2,l3,l4) | _ -> assert false 
+let tuple2_of_list = function [l1;l2]       -> (l1,l2)       | _ -> assert false
+let tuple4_of_list = function [l1;l2;l3;l4] -> (l1,l2,l3,l4) | _ -> assert false
 
 let () = begin
  let labels = get_tab_labels_of w#notebook_CENTRAL in
@@ -67,7 +67,7 @@ let () = begin
 end
 
 (* ***************************************** *
-             notebook_INTERNAL 
+             notebook_INTERNAL
  * ***************************************** *)
 
 let () = begin
@@ -82,13 +82,13 @@ let () = begin
 end
 
 (* ***************************************** *
-             toolbar_DOT_TUNING 
+             toolbar_DOT_TUNING
  * ***************************************** *)
 
 module Created_toolbar_DOT_TUNING = Gui_toolbar_DOT_TUNING. Make (State)
 
 (* ***************************************** *
-                BASE BUTTONS 
+                BASE BUTTONS
  * ***************************************** *)
 
 (* Labels for base buttons *)
@@ -102,7 +102,7 @@ set w#label_button_BASE_POWEROFF_EVERYTHING (s_ "Power-off all");
 set w#label_button_BASE_SHUTDOWN_EVERYTHING (s_ "Shutdown all"))
 
 (* Tooltips for base buttons *)
-let () = 
+let () =
  let set = (GData.tooltips ())#set_tip in begin
   set w#button_BASE_STARTUP_EVERYTHING#coerce  ~text:(s_ "Start the virtual network (machines, switch, hub, etc) locally on this machine");
   set w#button_BASE_BROADCAST#coerce           ~text:(s_ "Broadcast the specification of the virtual network on a real network");
@@ -113,7 +113,7 @@ let () =
 (* Hide this never implemented feature! *)
 let () =
  w#button_BASE_BROADCAST#misc#hide ()
- 
+
 
 (* Connections *)
 let () =

@@ -65,7 +65,7 @@ exception Kill_task_runner;;
     created at initialization time. *)
 class task_runner = object(self)
   val queue : (string * (unit -> unit)) queue = new queue
-  
+
   val run_again = ref true
 
   initializer
@@ -132,7 +132,7 @@ class task_runner = object(self)
         List.iter
           (fun (name, thread) ->
             Log.printf "Joining \"%s\"...\n" name;
-            (try 
+            (try
               Thread.join thread;
             with e -> begin
               Log.printf
@@ -174,14 +174,14 @@ class task_runner = object(self)
         let name, thunk = get_node id g in
         self#schedule ~name thunk)
       (topological_sort g)
-  
+
 (*  method terminate =
     self#prepend
       ~name:"Destroying the task runner"
       (fun () -> raise Kill_task_runner)*)
 end;;
 
-let the_task_runner = 
+let the_task_runner =
   new task_runner;;
 
 (*

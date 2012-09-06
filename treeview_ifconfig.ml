@@ -37,7 +37,7 @@ object(self)
   method private currently_used_mac_addresses : string list =
     let xs = List.flatten (Forest.linearize self#get_forest) in
     let xs = ListExtra.filter_map
-      (function 
+      (function
        | "MAC address", (Row_item.String s) -> Some s
        | _ -> None
        )
@@ -125,7 +125,7 @@ object(self)
     self#children_no_of ~parent_name:device_name
 
   method private add_port ?port_row_completions device_name =
-    let device_row_id = self#unique_row_id_of_name device_name in 
+    let device_row_id = self#unique_row_id_of_name device_name in
     let current_port_no =
       self#port_no_of device_name in
     let port_type =
@@ -203,7 +203,7 @@ object(self)
   (** Return all the non-reserved data of a given port *index* (for example
       2 stands for "eth2" or "port2", in our usual <name, item> alist
       format: *)
-  (* TODO: remove it *)    
+  (* TODO: remove it *)
   method get_port_data_by_index device_name port_index =
     (* First try with the "eth" prefix: *)
     let port_name = Printf.sprintf "eth%i" port_index in
@@ -260,7 +260,7 @@ object(self)
     (* ...but also save the counters used for generating fresh addresses: *)
     let counters_file_name = (Option.extract filename#get)^"-counters" in
     (* For forward compatibility: *)
-    let _OBSOLETE_mac_address_as_int = Random.int (256*256*256) in 
+    let _OBSOLETE_mac_address_as_int = Random.int (256*256*256) in
     counters_marshaler#to_file
       (_OBSOLETE_mac_address_as_int, !next_ipv4_address_as_int, !next_ipv6_address_as_int)
       counters_file_name;

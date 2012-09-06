@@ -324,7 +324,7 @@ class switch =
       ~user_port_offset:1 (* in order to have a perfect mapping with VDE *)
       ~port_prefix:"port"
       ()
-    as self_as_node_with_ledgrid_and_defects 
+    as self_as_node_with_ledgrid_and_defects
   method ledgrid_label = "Switch"
   method defects_device_type = "switch"
   method polarity = User_level.MDI_X
@@ -333,7 +333,7 @@ class switch =
   val mutable show_vde_terminal : bool = show_vde_terminal
   method get_show_vde_terminal = show_vde_terminal
   method set_show_vde_terminal x = show_vde_terminal <- x
-  
+
   method dotImg iconsize =
    let imgDir = Initialization.Path.images in
    (imgDir^"ico.switch."^(self#string_of_simulated_device_state)^"."^iconsize^".png")
@@ -380,7 +380,7 @@ end (* module User_level *)
 
 module Simulation_level_switch = struct
 
-(* The question is "port/print" *) 
+(* The question is "port/print" *)
 let scan_vde_switch_answer (ch:Network.stream_channel) : int =
   let rec loop n =
     let answer = ch#input_line () in
@@ -388,7 +388,7 @@ let scan_vde_switch_answer (ch:Network.stream_channel) : int =
     try (Scanf.sscanf answer ".") (); n with _ -> loop n
   in
   loop 0
-    
+
 let ask_vde_switch_for_current_active_ports ~socketfile () =
   let protocol (ch:Network.stream_channel) =
     ch#output_line "port/print";

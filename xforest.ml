@@ -17,7 +17,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
-(** A forest concretization very close to XML. The type of nodes is 
+(** A forest concretization very close to XML. The type of nodes is
     [string * (string * string list)] where the first element is the
     tag and the second is the list of attributes, i.e. bindings in the
     form (key,value) where both key and value are strings. *)
@@ -38,44 +38,44 @@ type tree   = forest ;;
 
 (* *************************** *
         Class interpreter
- * *************************** *) 
+ * *************************** *)
 
-(** An Xforest interpreter is an object able to update itself 
-    reading an Xforest and, conversely, able to encode itself 
+(** An Xforest interpreter is an object able to update itself
+    reading an Xforest and, conversely, able to encode itself
     into an Xforest *)
 class virtual interpreter () = object (self)
 
  (** Interpret a tree. The tag is ignored here. *)
- method from_forest ((tag,attrs):node) (childs:forest) = 
+ method from_forest ((tag,attrs):node) (childs:forest) =
   begin
    (* Interpret attributes *)
    List.iter self#eval_forest_attribute attrs;
-  
+
    (* Interpret childs *)
    let l = Forest.to_treelist childs in
      List.iter (self#eval_forest_child) l
   end
 
  (** The default interpretation of an attribute is ignore. *)
- method eval_forest_attribute : (attribute -> unit) = 
+ method eval_forest_attribute : (attribute -> unit) =
    fun attr -> ()
 
  (** The default interpretation of a child is ignore. *)
- method eval_forest_child : (tree -> unit) = 
+ method eval_forest_child : (tree -> unit) =
   fun tree -> ()
 
- (** Encode self into an xforest. Typically this method calls 
+ (** Encode self into an xforest. Typically this method calls
      recursively the same method of its childs in order to construct
       its representation as forest. *)
  method virtual to_forest : forest
- 
+
 end;; (* class interpreter *)
 
 
 (** print_forest specialization for xforest *)
-let rec print_forest ?level:(level=0) forest = 
+let rec print_forest ?level:(level=0) forest =
  let string_of_attr (name,value) = (name^"="^"\""^value^"\"") in
- let fold_strings = function 
+ let fold_strings = function
   | []   -> ""
   | [x]  -> x
   | x::r -> List.fold_left (fun a b -> a ^ " " ^ b) x r  in
@@ -93,29 +93,29 @@ let decode y = Marshal.from_string y 0 ;;
 
 (* In a class, just add method like:
 
-method to_forest = 
+method to_forest =
  Forest.leaf ("cable",[("name","xxx");("label","xxx")]);;
 
 method eval_forest_attribute : (string * string) -> unit = function
- | ("name",name) -> self#set_name name 
+ | ("name",name) -> self#set_name name
  | ("kind",kind) -> self#set_kind kind
  | _ -> () *)
 
 (** EXAMPLE 2 *)
 
-(*method to_forest = 
+(*method to_forest =
  let name = Forest.tree ("name",[]) (Forest.leaf ("xxx",[]))
  let kind = Forest.tree ("kind",[]) (Forest.leaf ("yyy",[]))
  in Forest.node ("cable",[]) (Forest.of_treelist [name; kind])
 
 (** EXAMPLE 2 *)
 method eval_forest_child x = match x with
- | Forest.NonEmpty (("name", attrs) , childs , Forest.Empty) -> 
+ | Forest.NonEmpty (("name", attrs) , childs , Forest.Empty) ->
      let name = new name () in (* nel new senza argomenti l'essenza della backward-compatibility *)
      name#from_forest x;       (* chiamata ricorsiva al from_forest *)
      self#set_name = name;     (* oppure potrei accumulare... *)
  ...
- | _ -> ()  
+ | _ -> ()
  *)
 
 

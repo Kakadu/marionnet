@@ -118,7 +118,7 @@ class globalState = fun () ->
   (** The project name. *)
   val mutable project_name = Chip.wref ~name:"project_name" None
   method project_name = project_name
-  
+
   (** by default, the name of the project is the basename of filename without the extension. *)
   method private default_project_name_of ~filename =
     let base = (Filename.basename filename) in
@@ -149,10 +149,10 @@ class globalState = fun () ->
   method private complete_dir dir =
     let pwd = Option.extract project_working_directory#get in
     let prn = Option.extract project_name#get in
-    FilenameExtra.concat_list [pwd; prn; dir] 
+    FilenameExtra.concat_list [pwd; prn; dir]
 
   method private get_project_subdirs_prefix =  self#complete_dir ""
-  
+
   method tmpDir         = self#complete_dir "tmp"
   method patchesDir     = self#complete_dir "states"
   method netmodelDir    = self#complete_dir "netmodel"
@@ -201,7 +201,7 @@ class globalState = fun () ->
       self#network#ledgrid_manager#reset;
       (match app_state#get with
        | NoActiveProject -> Log.printf "state#close_project_sync: no project opened.\n"
-       | _ -> 
+       | _ ->
         begin
          self#network#reset ~scheduled:true ();
          (* Unset the project filename. *)
@@ -299,7 +299,7 @@ class globalState = fun () ->
         | [x] ->
           let skel = (SysExtra.readdir_as_list (Filename.concat pwd x)) in
           if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"]
-          then x 
+          then x
           else failwith "state#open_project: no expected content in the project root directory."
         |  _  ->
           failwith "state#open_project: no rootname found in the project directory."
@@ -362,7 +362,7 @@ class globalState = fun () ->
      method history   = Treeview_history.extract ()
      method defects   = Treeview_defects.extract ()
      method documents = Treeview_documents.extract ()
-   end      
+   end
 
   method private get_treeview_list : Treeview.t list =
    begin
@@ -387,7 +387,7 @@ class globalState = fun () ->
     List.iter (fun (treeview : Treeview.t) -> treeview#clear) self#get_treeview_list
 
   method private get_treeview_complete_forest_list =
-    List.map 
+    List.map
       (fun (treeview : Treeview.t) -> treeview#get_complete_forest)
        self#get_treeview_list
 
@@ -401,7 +401,7 @@ class globalState = fun () ->
 
   method project_already_saved =
     (match refresh_sketch_counter_value_after_last_save, self#refresh_sketch_counter#get with
-     (* Efficient test: *)    
+     (* Efficient test: *)
     | Some x, y when x=y ->
         Log.printf "The project *seems* already saved.\n";
         (* Potentially expensive test: *)
@@ -417,7 +417,7 @@ class globalState = fun () ->
     | Some x, y -> (Log.printf "The project seems not already saved (x=%d, y=%d).\n" x y; false)
     | None, y   -> (Log.printf "The project seems not already saved (x=None, y=%d).\n" y; false)
     )
-    
+
   (*** END: this part of code try to understand if the project must be really saved before exiting. *)
 
   (** Rewrite the compressed archive prj_filename with the content of the project working directory (pwdir). *)
@@ -465,7 +465,7 @@ class globalState = fun () ->
 
     (* Save treeviews (just to play it safe, because treeview files should be automatically)
        re-written at every update): *)
-    self#save_treeviews;   
+    self#save_treeviews;
 
     (* (Re)write the .mar file *)
     let cmd =
@@ -518,7 +518,7 @@ class globalState = fun () ->
         (* Save the project *)
         self#save_project;
         (* Reset names ensuring synchronisation *)
-        Task_runner.the_task_runner#schedule ~name:"copy_project_into" 
+        Task_runner.the_task_runner#schedule ~name:"copy_project_into"
           (fun () ->
            (* Reset names to their old values: *)
            self#change_project_name original_project_name;
@@ -541,7 +541,7 @@ class globalState = fun () ->
         let new_pathname = Filename.concat pwd new_name in
         Printf.sprintf "mv %s %s" old_pathname new_pathname
       in
-      Log.system_or_ignore cmd; 
+      Log.system_or_ignore cmd;
     end
 
   val mutable sensitive_cables : GObj.widget list = []

@@ -37,7 +37,7 @@ type process_name = string;;
 type map = (process_name *  (* name of the executable program we're monitoring *)
             (int -> bool) * (* how to check whether we should invoke the callback *)
             (int -> process_name -> unit)) (* the callback *)
-            Map.t;; 
+            Map.t;;
 
 let linearize_map (map : map) =
   Map.fold
@@ -72,7 +72,7 @@ let default_predicate pid =
    not (UnixExtra.is_process_alive pid);;
 
 (** Start monitoring the process with the given pid. Call the given function if
-    it ever dies, using the pid and process name as its parameters. This is 
+    it ever dies, using the pid and process name as its parameters. This is
     thread-safe. *)
 let start_monitoring ?(predicate=default_predicate) pid name callback =
   lock death_monitor_mutex;
@@ -120,7 +120,7 @@ let stop_monitoring pid =
     Log.printf "stop_monitoring: re-raising %s.\n" (Printexc.to_string e);
     raise e;
   end;;
-      
+
 (** Check the status of all processes which were registered, and invoke callbacks
     if needed. Thread-safe, but only for internal use. *)
 let poll () =

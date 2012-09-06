@@ -23,12 +23,12 @@ open Gettext;;
 let utf8 x = x;; (* We currently don't use this. It works better :-) *)
 
 (** Generic constructor for message dialog *)
-let message win_title msg_title msg_content img_file () = 
+let message win_title msg_title msg_content img_file () =
   let d=new Gui.dialog_MESSAGE () in
   let _ = d#closebutton_MESSAGE#connect#clicked ~callback:(d#toplevel#destroy) in
   d#toplevel#set_icon (Some Icon.icon_pixbuf);
   d#toplevel#set_title (utf8 win_title);
-  d#title#set_use_markup true; 
+  d#title#set_use_markup true;
   d#title#set_label     ("<b>"^msg_title^"</b>");
   d#content#set_label msg_content;
   d#image#set_file (Initialization.Path.images ^ img_file);
@@ -36,19 +36,19 @@ let message win_title msg_title msg_content img_file () =
 ;;
 
 (** Specific constructor for help messages *)
-let help title msg () = 
-  message (s_ "Help") title msg "ico.help.orig.png" ();; 
+let help title msg () =
+  message (s_ "Help") title msg "ico.help.orig.png" ();;
 
 (** Specific constructor for error messages *)
-let error title msg () = 
-  message (s_ "Error") title msg "ico.error.orig.png" ();; 
+let error title msg () =
+  message (s_ "Error") title msg "ico.error.orig.png" ();;
 
 (** Specific constructor for warning messages *)
-let warning title msg () = 
-  message (s_ "Warning") title msg "ico.warning.orig.png" ();; 
+let warning title msg () =
+  message (s_ "Warning") title msg "ico.warning.orig.png" ();;
 
 (** Specific constructor for info messages *)
-let info title msg () = 
+let info title msg () =
   message (s_ "Information") title msg "ico.info.orig.png" ();;
 
 (** Show a new dialog displaying a progress bar *)
@@ -59,14 +59,14 @@ let make_progress_bar_dialog =
 let destroy_progress_bar_dialog dialog =
   Progress_bar.destroy_progress_bar_dialog dialog;;
 
-let confirm_dialog 
+let confirm_dialog
     ~question
     ?(cancel = false)
     () =
-  let dialog = new Gui.dialog_QUESTION () in 
+  let dialog = new Gui.dialog_QUESTION () in
   dialog#toplevel#set_icon (Some Icon.icon_pixbuf);
   dialog#toplevel#set_title (utf8 "Confirmation");
-  dialog#title_QUESTION#set_use_markup true; 
+  dialog#title_QUESTION#set_use_markup true;
   dialog#title_QUESTION#set_label question;
   ignore
     (dialog#toplevel#event#connect#delete
@@ -76,10 +76,10 @@ let confirm_dialog
   (if cancel then dialog#toplevel#add_button_stock `CANCEL `CANCEL);
   let result = (ref None) in
   let cont   = ref true in
-  while (!cont = true) do  
+  while (!cont = true) do
     begin match dialog#toplevel#run () with
     | `YES  -> begin
-        cont := false; 
+        cont := false;
         result := Some true;
       end
     | `NO   -> begin
@@ -93,7 +93,7 @@ let confirm_dialog
         (* The user tried to close the dialog. No, we refuse: let him/her try again *)
         (*assert false*)
         ()
-    end 
+    end
   done;
   dialog#toplevel#destroy ();
   !result;

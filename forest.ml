@@ -23,11 +23,11 @@
     unique representation). *)
 type 'a forest =
   | Empty
-  | NonEmpty of 'a           (** first tree root     *) 
+  | NonEmpty of 'a           (** first tree root     *)
              *  ('a forest)  (** first tree subtrees *)
              *  ('a forest)  (** other nodes         *)
 
-(** Returns the list of the 'a elements belong the forest. 
+(** Returns the list of the 'a elements belong the forest.
     The order is depth-first, left-to-right. *)
 let rec linearize (forest:'a forest) : 'a list  =
   match forest with
@@ -50,7 +50,7 @@ let concat = append
 (** Map the function over the 'a elements of the forest. *)
 let rec map f forest =
   match forest with
-    Empty -> 
+    Empty ->
       Empty
   | NonEmpty(root, subtrees, rest) ->
       let root = f root in
@@ -86,7 +86,7 @@ let rec filter p forest =
         append subtrees rest
 
 (** Return a list of all the nodes in the given forest satisfying the given predicate.
-    The order is as usual depth-first, left-to-right. *) 
+    The order is as usual depth-first, left-to-right. *)
 let rec nodes_such_that predicate forest =
   match forest with
     Empty ->
@@ -149,7 +149,7 @@ let rec forest_to_roots (forest : 'a forest) : 'a list =
 let roots_of_forest = forest_to_roots ;;
 
 (** Return a list of all the children of the given node in the given
-    forest, in some unspecified order. Note that the given node may 
+    forest, in some unspecified order. Note that the given node may
     appear in several positions in the forest. In this case the result
     is the catenation of childrens of these occurrences. *)
 let children_nodes node forest =
@@ -169,7 +169,7 @@ let children_nodes node forest =
   |[] -> failwith "children_nodes: node not existing"
   | _ -> children_nodes_of_existing_node node forest
 
-(** Return the root of the single child of the given node. 
+(** Return the root of the single child of the given node.
     Fail if the node has a number of children different from one. *)
 let child_node node forest =
   let singlet = children_nodes node forest in
@@ -195,14 +195,14 @@ let rec descendant_nodes node forest =
 (** Grandchildrens *)
 let grandchildren_nodes_with_repetitions node forest =
   let children_nodes_of_node = children_nodes node forest in
-  List.flatten 
+  List.flatten
     (List.map
        (fun node -> children_nodes node forest)
        children_nodes_of_node);;
-  
+
 
 (** An stdout printer for forests. *)
-let rec print_forest = 
+let rec print_forest =
 
  (* Support for indentation *)
  let indent = function level ->
@@ -287,20 +287,20 @@ let rec to_treelist (forest:'a forest) : ('a forest list) = match forest with
 | NonEmpty (root,childs,rest) -> (NonEmpty (root,childs,Empty))::(to_treelist rest)
 
 
-(** A list of forests may be viewed as a single big forest. 
+(** A list of forests may be viewed as a single big forest.
     The forests in the list are simply catenated. *)
-let rec of_forestlist (l:'a forest list) = match l with 
+let rec of_forestlist (l:'a forest list) = match l with
 | []                             -> Empty
 | Empty::l'                      -> of_forestlist l'
 | (NonEmpty (x,childs,rest))::l' -> NonEmpty (x,childs, (append rest (of_forestlist l')))
 ;;
 
 (** A list of trees may be recompacted into a single forest. This function
-    is similar to the [of_forestlist] but prevents the call to [append] and 
-    also checks if all elements are really trees. An exception [Failure "of_nodelist"] 
+    is similar to the [of_forestlist] but prevents the call to [append] and
+    also checks if all elements are really trees. An exception [Failure "of_nodelist"]
     is raised when a non tree element is encountered (use [of_forestlist] if you want
     flexibility). *)
-let rec of_treelist (l:'a forest list) = match l with 
+let rec of_treelist (l:'a forest list) = match l with
 | []                              -> Empty
 | (NonEmpty (x,childs,Empty))::l' -> NonEmpty (x,childs, (of_treelist l'))
 | _ -> failwith "of_nodelist" (* A run-time type checking *)

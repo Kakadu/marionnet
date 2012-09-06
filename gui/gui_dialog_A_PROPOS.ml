@@ -51,7 +51,7 @@ module Make (State:sig val st:State.globalState end) = struct
    in
    let title = Printf.sprintf "\n%s\n<small>%s</small>\n" text_title text_subtitle in
    set d#label_dialog_A_PROPOS_title title;
-    
+
    set d#label_dialog_A_PROPOS_a_propos_content (s_ "<b>Marionnet</b> is an environment for the simulation of a network composed of GNU/Linux machines. This software was thought for students to experiment with bulding and configuring networks, and for teachers to prepare excercises and tests.\n\nMarionnet is based on the UML features of the Linux kernel.\n<tt><u><span color=\"blue\">http://www.marionnet.org</span></u></tt>\n");
 
    set d#label_dialog_A_PROPOS_authors (s_ "Authors");

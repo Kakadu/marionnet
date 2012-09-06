@@ -19,7 +19,7 @@
 open Forest;;
 open Print_treeview;;
 
-let forest_file_name = 
+let forest_file_name =
   let arguments = Sys.argv in
   assert (Array.length arguments = 2);
   Array.get arguments 1;;

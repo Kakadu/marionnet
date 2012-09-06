@@ -22,7 +22,7 @@ open PervasivesExtra;; (* We want synchronous terminal output *)
     argument we support as of now. *)
 
 (** Command line arguments, without the initial executable name *)
-let command_line_arguments = 
+let command_line_arguments =
   List.tl (Array.to_list Sys.argv);;
 
 (** Are we in exam mode? *)

@@ -750,7 +750,7 @@ class ['parent] ports_card
       method min_delay   : float = get "Minimum delay (ms)"
       method max_delay   : float = get "Maximum delay (ms)"
     end
-    
+
   method get_my_inward_defects_by_index (port_index:int) =
     self#get_my_defects_by_index port_index Treeview_defects.OutToIn
 
@@ -801,10 +801,10 @@ class virtual node_with_ports_card = fun
      then
        ports_card <- Some (make_ports_card ~parent:self ~port_no:new_port_no)
      else invalid_arg "node_with_ports_card#set_port_no"
-     
+
    method port_no_min = port_no_min
    method port_no_max = port_no_max
-   
+
    method has_ledgrid = has_ledgrid
 
    method virtual destroy : unit
@@ -821,7 +821,7 @@ class virtual node_with_ports_card = fun
 
    (* This is a default, but could be redefined: *)
    method leds_relative_subdir = self#string_of_devkind
-   
+
    (** Returns an image representig the node with the given iconsize. *)
    method virtual dotImg : iconsize -> string
 
@@ -858,7 +858,7 @@ class virtual node_with_ports_card = fun
 
    (* Redefined in User_level_machine as "": *)
    method dot_fontsize_statement = "fontsize=8,"
-  
+
    (** Could be redefined. *)
    method label_for_dot = self#get_label
 
@@ -1274,7 +1274,6 @@ class virtual virtual_machine_with_history_and_ifconfig
           ~name
           ~prefixed_filesystem:self#prefixed_epithet
           ?variant:self#get_variant
-          ?variant_realpath:self#get_variant_realpath
           ~icon
           ()
 
@@ -1311,11 +1310,45 @@ class virtual virtual_machine_with_history_and_ifconfig
     network#history#rename  self#get_name name;
     self#set_kernel kernel;
 
-  method create_cow_file_name =
+  method get_states_directory =
     let history = (network#history:Treeview_history.t) in
-    Printf.sprintf "%s%s"
-      (Option.extract history#directory#get)
-      (network#history#add_state_for_device self#get_name)
+    (Option.extract history#directory#get)
+
+  method create_cow_file_name_and_thunk_to_get_the_source =
+    let history = (network#history:Treeview_history.t) in
+    let cow_file_name =
+      Printf.sprintf "%s%s"
+        (Option.extract history#directory#get)
+        (history#add_state_for_device self#get_name)
+    in
+    (* Thunk that will be used by the simulation level to retreive
+       the source cow file to be copied (if needed). The procedure
+       looks backward in the tree searching the first ancestor with
+       a cow_file_name corresponding to an existing file. If there
+       are no existing files, it looks for the optional variant_realpath.*)
+    let dynamically_get_the_cow_file_name_source =
+      let rec find_first_existing_ancestor cow_file_name =
+        match history#get_parent_cow_file_name ~cow_file_name () with
+          (* The state hasn't a parent with an existing cow_file_name: its a root.
+             The are now two subcases according to the presence of a variant:
+             if there is no variant, there is nothing to copy; otherwise the
+             file to copy is precisely the variant (its realpath): *)
+	  | None ->
+	      self#get_variant_realpath
+
+	   (* The state has a parent, but its cow_file_name could be fictive,
+	      so we have to distinguish two subcases: *)
+	  | Some cow_file_name_parent ->
+	      if Cow_files.cow_file_exists
+		  ~states_directory:(self#get_states_directory)
+		  ~cow_file_name:cow_file_name_parent
+		  ()
+		then (Some cow_file_name_parent)
+		else find_first_existing_ancestor cow_file_name_parent
+      in
+      fun () -> find_first_existing_ancestor cow_file_name
+    in
+    (cow_file_name, dynamically_get_the_cow_file_name_source)
 
 end;; (* class virtual_machine_with_history_and_ifconfig *)
 
@@ -1504,7 +1537,7 @@ class network () =
    let busy_port_indexes =
      ListExtra.substract (self#busy_port_indexes_of_node node) force_to_be_included
    in
-   ListExtra.substract node_port_indexes busy_port_indexes 
+   ListExtra.substract node_port_indexes busy_port_indexes
 
  method free_user_port_names_of_node ?(force_to_be_included=[]) node =
    (* force_to_be_included expressed now by indexes: *)
@@ -1559,7 +1592,7 @@ class network () =
   let port_no_lower = node#port_no_min in
   let min_port_no = (self#max_busy_port_index_of_node node + 1) in
   let k = float_of_int port_no_lower in
-  (* minimum multiple of k containing min_port_no: *) 
+  (* minimum multiple of k containing min_port_no: *)
   let min_multiple = (ceil ((float_of_int min_port_no) /. k)) *. k in
   int_of_float (max min_multiple k)
 

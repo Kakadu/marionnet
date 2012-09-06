@@ -49,7 +49,7 @@ module Make_menus
 
   open Params
   open Cablekind
-  
+
   module Toolbar_entry = struct
 
    let imagefile = match crossover with
@@ -90,7 +90,7 @@ module Make_menus
                  ~name:r.name
                  ~label:r.label
                  ~left_user_endpoint:r.left_user_endpoint
-                 ~right_user_endpoint:r.right_user_endpoint  
+                 ~right_user_endpoint:r.right_user_endpoint
                  ())
       in
       st#network_change action ();
@@ -110,7 +110,7 @@ module Make_menus
      let title = match crossover with
       | false -> ((s_ "Modify straight cable")^" "^name)
       | true  -> ((s_ "Modify crossover cable")^" "^name)
-     in 
+     in
      let label = c#get_label in
      let left_user_endpoint  = (c#get_left#node#get_name,  c#get_left#user_port_name) in
      let right_user_endpoint = (c#get_right#node#get_name, c#get_right#user_port_name) in
@@ -271,7 +271,7 @@ let make
     let decompose = function None -> (None,None) | Some (x,y) -> (Some x, Some y) in
     let (n0,p0) = decompose left_user_endpoint in
     let (n1,p1) = decompose right_user_endpoint in
-    let force_to_be_included : ((string*string) list) = 
+    let force_to_be_included : ((string*string) list) =
       ListExtra.filter_map (fun e->e) [left_user_endpoint; right_user_endpoint]
     in
     let updating = (force_to_be_included <> []) in
@@ -367,7 +367,7 @@ module Eval_forest_child = struct
 	let crossover =
  	  try (List.assoc "kind" attrs) = "crossover" (* backward-compatibility *)
  	  with Not_found -> bool_of_string (List.assoc "crossover" attrs)
- 	in  
+ 	in
 	let x =
 	  new User_level_cable.cable ~network ~crossover ~name
 	    ~left_user_endpoint:(ln,lr)
@@ -532,7 +532,7 @@ and virtual ledgrid_management_zone ~network () =
   initializer
     self#set_ports_connection_state true;
     self#add_destroy_callback (lazy (self#set_ports_connection_state false));
-  
+
 end
 
 
@@ -555,7 +555,7 @@ and endpoint
   val mutable owner : < get_name : string > option = None
   method set_owner x = owner <- Some x
   method owner = Option.extract owner
-  
+
   method user_port_name =
     node#ports_card#user_port_name_of_internal_index port_index
 
@@ -600,7 +600,7 @@ and cable =
     let node = network#get_node_by_name node_name in
     let port_index = node#ports_card#internal_index_of_user_port_name user_port_name in
     (new endpoint ~node ~port_index ~direction)
-  in  
+  in
   let left_endpoint  = make_endpoint_of ~node_name:n0 ~user_port_name:p0 ~direction:`leftward in
   let right_endpoint = make_endpoint_of ~node_name:n1 ~user_port_name:p1 ~direction:`rightward in
   let defects_cable_type = match crossover with
@@ -615,7 +615,7 @@ and cable =
   initializer
     left_endpoint#set_owner  (self :> <get_name:string>);
     right_endpoint#set_owner (self :> <get_name:string>);
-    
+
   inherit OoExtra.destroy_methods ()
   inherit User_level.component ~network ~name ?label ()
   inherit [cable] User_level.simulated_device () as self_as_simulated_device

@@ -207,7 +207,7 @@ module Created_entry_project_close = Menu_factory.Make_entry
    let stock = `CLOSE
    let key   = (Some _W)
 
-   let dialog () = 
+   let dialog () =
      EDialog.ask_question ~help:None ~cancel:true
        ~title:(s_ "Close" )
        ~question:(s_ "Do you want to save the current project?") ()
@@ -235,7 +235,7 @@ module Created_entry_project_export = Menu_factory.Make_entry
    let key   = None
 
    let dialog () =
-     let extra_widget = 
+     let extra_widget =
        let (combo_box, get_selected) = Dot_widget.combo_of_working_output_formats ~active:`png () in
        let widget_reader () =
 	 let frm = get_selected () in

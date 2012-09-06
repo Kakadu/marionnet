@@ -284,7 +284,7 @@ class world_bridge =
       ~user_port_offset:0
       ~port_prefix:"eth"
       ()
-    as self_as_node_with_defects 
+    as self_as_node_with_defects
   method defects_device_type = "world_bridge"
   method polarity = User_level.Intelligent (* Because is not pedagogic anyway. *)
   method string_of_devkind = "world_bridge"
@@ -358,7 +358,7 @@ object(self)
       ()
       as super
   method device_type = "world_bridge"
-  
+
   val the_hublet_process = ref None
   method private get_the_hublet_process =
     match !the_hublet_process with

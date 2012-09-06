@@ -40,6 +40,6 @@ let print_node node =
     node;
   print_string "]";;
 
-let print_treeview (next_identifier, forest) = 
+let print_treeview (next_identifier, forest) =
   Printf.printf "Next identifier: %i\n\n" next_identifier;
   print_forest forest print_node;;

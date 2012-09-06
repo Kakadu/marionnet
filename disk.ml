@@ -150,7 +150,7 @@ class epithet_manager
           ((self#realpath_of_epithet e) = realpath))
     in
     List.filter pred self#get_epithet_list
-    
+
   (* [machine-]default -> [machine-]debian-51426 *)
   method resolve_epithet_symlink epithet =
    let filename = self#filename_of_epithet epithet in
@@ -165,7 +165,7 @@ class epithet_manager
   method epithets_sharing_the_same_realpath_of ?no_symlinks epithet =
    let filename = self#filename_of_epithet epithet in
    self#epithets_of_filename ?no_symlinks filename
-   
+
   method realpath_exists filename =
     let xs = List.map (self#filename_of_epithet) self#get_epithet_list in
     List.mem filename xs
@@ -240,7 +240,7 @@ class virtual_machine_installations
   let terminal_manager =
     new terminal_manager ()
   in
-  
+
   object
   method filesystem_searching_list = filesystem_searching_list
   method kernel_searching_list = kernel_searching_list
@@ -307,13 +307,13 @@ let vm_installations_and_epithet_of_prefixed_filesystem prefixed_filesystem =
   in
   (vm_installations, epithet)
  with _ -> failwith (Printf.sprintf "vm_installations_and_epithet_of_prefixed_filesystem: %s" prefixed_filesystem)
- 
+
 let user_export_dirname_of_prefixed_filesystem prefixed_filesystem =
   let (vm_installations, epithet) =
     vm_installations_and_epithet_of_prefixed_filesystem prefixed_filesystem
   in
   vm_installations#user_export_dirname epithet
-  
+
 let root_export_dirname_of_prefixed_filesystem prefixed_filesystem =
   let (vm_installations, epithet) =
     vm_installations_and_epithet_of_prefixed_filesystem prefixed_filesystem

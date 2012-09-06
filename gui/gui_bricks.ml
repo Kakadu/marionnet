@@ -75,7 +75,7 @@ let make_form_with_labels ?(section_no=0) ?(row_spacings=10) ?(col_spacings=10) 
        )
 
    method add_section ?(fg="lightgray") ?(size="large") ?no_line markup =
-     let markup = 
+     let markup =
        Printf.sprintf "<span foreground='%s' size='%s'><b>%s</b></span>" fg size markup;
      in
      let label = GMisc.label ~xalign:0. ~markup () in
@@ -547,7 +547,7 @@ module Reactive_widget = struct
       in
       (match strings = strings_content with
       | true -> Option.iter ((fst content)#set_active) active
-      | false -> 
+      | false ->
          (fst content)#destroy ();
          content <- make_widget ?active strings;
 	 strings_content <- strings;
@@ -598,7 +598,7 @@ module Reactive_widget = struct
   let x1 = Option.apply_or_catch List.hd xs1 in
   let y1 = Option.apply_or_catch List.hd ys1 in
   ((x0,y0),(x1,y1))
- 
+
  chip partition_chip (xys:(string * string) list) : (x0,y0,x1,y1) -> (w1,w2,w3,w4)
     = (partition xys x0 y0 x1 y1) ;;
 
@@ -648,9 +648,9 @@ module Reactive_widget = struct
    object (self)
      method get_widget_data =
        ((n0_widget#get, p0_widget#get), (n1_widget#get, p1_widget#get))
-       
+
      method system = system
-     method destroy = 
+     method destroy =
        List.iter
          (fun w->w#destroy ())
          [n0_widget; p0_widget; n1_widget; p1_widget]
@@ -659,7 +659,7 @@ module Reactive_widget = struct
        ignore system#stabilize;
 
    end
-   
+
 end (* Reactive_widget *)
 
 let test () = Dialog.yes_or_cancel_question ~markup:"prova <b>bold</b>" ~context:'a' ()

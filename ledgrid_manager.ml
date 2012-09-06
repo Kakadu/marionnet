@@ -187,8 +187,8 @@ object (self)
 
   method set_port_connection_state ~id ~port ~value () =
     self#lock;
-    Log.printf 
-      "Making the port %d of device %d %s\n" 
+    Log.printf
+      "Making the port %d of device %d %s\n"
        port id (if value then " connected" else " disconnected");
     (try
       (self#id_to_device id)#set port value;

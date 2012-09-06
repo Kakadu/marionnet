@@ -27,13 +27,13 @@ let get_host_display_screen_from_string x =
    | [ display; screen ] -> (display, screen)
    | [ display ]         -> (display, "0")
    | _ -> fail x
- in 
+ in
  let host, (display, screen) =
    match (StringExtra.split ~d:':' x) with
-   | [ host; right_part ] -> host, (split_rigth_part right_part) 
+   | [ host; right_part ] -> host, (split_rigth_part right_part)
    | [ right_part ]       -> "localhost", (split_rigth_part right_part)
    | _ -> fail x
- in 
+ in
  let strip_and_use_default_if_empty ~default x=
    let x = StringExtra.strip x in
    if x = "" then default else x
@@ -181,7 +181,7 @@ let fix_X_problems : unit =
 let _ = GtkMain.Main.init ();;
 
 (** This is a workaround for some threading issues suggested by Jacques Garrigue;
-    it's needed to be able to use the 'run' method in GTK and Glade objects 
+    it's needed to be able to use the 'run' method in GTK and Glade objects
     without preventing other unrelated threads to run: *)
 let _ =
   GMain.Timeout.add ~ms:100 ~callback:(fun () -> Thread.delay 0.001; true);;

@@ -184,7 +184,7 @@ module Make (S : sig val st:State.globalState end) = struct
          (match (GdkEvent.Key.keyval k) = GdkKeysyms._F5 with
          | true ->
              Printf.kfprintf flush stdout
-               "%s\nYou are now in the toplevel.\nType:\nGMain.Main.main ();;\nto come back to the Marionnet window.\n%s\n\n" stars stars; 
+               "%s\nYou are now in the toplevel.\nType:\nGMain.Main.main ();;\nto come back to the Marionnet window.\n%s\n\n" stars stars;
              GtkMain.Main.quit ()
          | false -> ()
          );
@@ -193,7 +193,7 @@ module Make (S : sig val st:State.globalState end) = struct
 
   chip treeview_filenames : (pwd:string option, prn:string option) -> (h,i,d,t,d1,d2,d3,d4) =
     match pwd, prn with
-    | (Some pwd), (Some prn) -> 
+    | (Some pwd), (Some prn) ->
 	let prefix = FilenameExtra.concat_list [pwd; prn] in
 	let concat = Filename.concat in
 	let dir = Some (concat prefix "states/") in

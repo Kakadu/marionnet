@@ -811,7 +811,9 @@ let create_swap_file_name ~parent =
 class uml_process =
   fun ~(kernel_file_name)
       ~(filesystem_file_name)
+      ~(dynamically_get_the_cow_file_name_source:unit->string option)
       ~(cow_file_name)
+      ~states_directory
       ?swap_file_name
       ~(ethernet_interface_no)
       ~(hublet_processes)
@@ -909,7 +911,8 @@ class uml_process =
      "ssl="^console;
 (*  "ssl2=tty:/dev/tty42";
     "ssl3=pts"; *)
-     "console=ttyS0"]
+     "console=ttyS0" (* Franck: il faut virer! *)
+     ]
   in
 object(self)
   inherit process
@@ -1101,9 +1104,21 @@ object(self)
       Log.printf "WARNING: revoking host X server access to %s failed.\n" ip42
     end
 
+  method private copy_cow_file_if_needed =
+    match dynamically_get_the_cow_file_name_source () with
+    | None -> ()
+    | Some source_pathname ->
+        ignore
+	  (Cow_files.duplicate_cow_file_into_states_directory
+	    ~source_pathname
+	    ~states_directory
+	    ~cow_file_name
+	    ())
+
   (** When spawning the UML machine we automatically grant it access to the host X
       server and make the swap file for it: *)
   method spawn =
+    self#copy_cow_file_if_needed;
     self#grant_host_x_server_access;
     self#create_swap_file;
     super#spawn
@@ -1259,7 +1274,7 @@ class virtual ['parent] device
       other.
       Note that hublets are *not* involved in this. *)
   method virtual spawn_processes : unit
-  
+
   method virtual terminate_processes : unit
   method virtual stop_processes : unit
   method virtual continue_processes : unit
@@ -1488,7 +1503,9 @@ class virtual ['parent] machine_or_router =
       ~(router:bool)
       ~(kernel_file_name)
       ~(filesystem_file_name)
+      ~dynamically_get_the_cow_file_name_source
       ~(cow_file_name)
+      ~states_directory
       ~(ethernet_interface_no)
       ~(memory) (* in megabytes *)
       ~(console)
@@ -1554,7 +1571,9 @@ object(self)
       Some (new uml_process
               ~kernel_file_name
               ~filesystem_file_name
+              ~dynamically_get_the_cow_file_name_source
               ~cow_file_name
+              ~states_directory
               ~ethernet_interface_no
               ~hublet_processes:self#get_inner_hublet_processes
               ~memory
@@ -1581,7 +1600,7 @@ object(self)
       Task_runner.the_task_runner#schedule
         (fun () -> self#get_xnest_process#spawn(* ; Thread.delay 0.5 *)));
     (* Create internal cable processes connecting the inner layer to the outer layer: *)
-    let () = 
+    let () =
       (internal_cable_processes :=
 	List.map
 	  (fun (i, inner_hublet_process, outer_hublet_process) ->
@@ -1599,7 +1618,7 @@ object(self)
     in
     self#spawn_internal_cables
 
-  method private spawn_internal_cables =         
+  method private spawn_internal_cables =
     (* Spawn internal cables processes and the UML process: *)
     Task_runner.do_in_parallel
       ((fun () -> self#get_uml_process#spawn)

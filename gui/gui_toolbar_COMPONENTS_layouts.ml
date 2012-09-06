@@ -58,7 +58,7 @@ module Layout_for_network_component
   let menu_parent =
     match Toolbar_entry.packing with
     | `toolbar toolbar ->
-         let image_menu_item = 
+         let image_menu_item =
            Toolbar.append_image_menu toolbar Toolbar_entry.imagefile Toolbar_entry.tooltip
          in Menu_factory.Menuitem (image_menu_item :> GMenu.menu_item_skel)
     | `menu_parent p -> p
@@ -104,7 +104,7 @@ module Layout_for_network_node
  (Suspend    : Menu_factory.Entry_with_children_callbacks)
  (Resume     : Menu_factory.Entry_with_children_callbacks)
  = struct
- 
+
  module Startup' = struct
    include Startup
    let text  = (s_ "Start")
@@ -152,7 +152,7 @@ module Layout_for_network_node_with_state
  (Resume            : Menu_factory.Entry_with_children_callbacks)
  (Ungracefully_stop : Menu_factory.Entry_with_children_callbacks)
  = struct
- 
+
  module Ungracefully_stop' = struct
    include Ungracefully_stop
    let text  = (s_ "Power-off")
@@ -176,7 +176,7 @@ module Layout_for_network_edge
  (Disconnect : Menu_factory.Entry_with_children_callbacks)
  (Reconnect  : Menu_factory.Entry_with_children_callbacks)
  = struct
- 
+
  module Disconnect' = struct
    include Disconnect
    let text  = (s_ "Disconnect")

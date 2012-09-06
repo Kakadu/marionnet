@@ -58,7 +58,7 @@ module Make (State : sig val st:State.globalState end) = struct
    let world_bridge_menu_parent =
       let filename = Filename.concat Initialization.Path.images "ico.world_bridge.palette.png" in
       F.add_imagefile_item ~label:"Bridge" filename ()
- 
+
    end
 
  module Params_for_world_gateway = struct

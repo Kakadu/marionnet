@@ -218,7 +218,7 @@ let get_filter_by_name = function
 ;;
 
 (* (`vmlz, "vmlz", "Compressed Vector Markup Language (VML)", "XML  document text (gzip compressed data, from Unix)"); *)
-  
+
 (** The edialog asking for file or folder. It returns a simple environment with an unique identifier
     [gen_id] bound to the selected name *)
 let ask_for_file

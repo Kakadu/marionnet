@@ -290,8 +290,14 @@ class globalState = fun () ->
     let pwd = self#make_the_project_working_directory in
 
     (* Extract the mar file into the pwdir *)
-    Shell.tgz_extract (Option.extract project_filename#get) pwd;
-
+(*  Shell.tgz_extract (Option.extract project_filename#get) pwd; *)
+    let command_line =
+      Printf.sprintf "tar -xSvzf %s -C %s"
+        (Option.extract project_filename#get)
+        pwd
+    in
+    Log.system_or_fail command_line;
+    
     (* Look for the name of the root directory of the mar file. Some checks here. *)
     let mar_inner_dir =
       try

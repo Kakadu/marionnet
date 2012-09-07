@@ -325,12 +325,12 @@ module Created_entry_options_cwd = Menu_factory.Make_entry
  (struct
    type t = env
    let to_string = env_to_string
-   let text  = (s_ "Change working directory")
+   let text  = (s_ "Change the temporary working directory")
    let stock = `DIRECTORY
    let key   = None
    let dialog () =
     Talking.EDialog.ask_for_existing_writable_folder_pathname_supporting_sparse_files
-       ~title:(s_ "Choose working directory")
+       ~title:(s_ "Choose the temporary working directory")
        ~help:(Some Msg.help_repertoire_de_travail) ()
    let reaction r = st#temporary_directory#set (r#get "foldername")
   end) (F)

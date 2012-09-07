@@ -23,6 +23,28 @@
 #load "include_as_string_p4.cmo"
 ;;
 
+(** Return the given pathname as it is, if it doesn't contain funny characters
+    we don't want to bother supporting, like ' ', otherwise raise an exception.
+    No check is performed on the pathname actual existence or permissions: *)
+let check_pathname_validity pathname =
+  if StrExtra.First.matchingp (Str.regexp "^[.a-zA-Z0-9_\\/\\-]+$") pathname then
+    pathname
+  else
+    failwith "The pathname "^ pathname ^" contains funny characters, and we don't support it";;
+
+(** Return true iff the the given directory exists and is on a filesystem supporting
+    sparse files. This function doesn't check whether the directory is writable: *)
+let does_directory_support_sparse_files pathname =
+  (* All the intelligence of this method lies in the external script, loaded
+     at preprocessing time: *)
+  let content = INCLUDE_AS_STRING "scripts/can-directory-host-sparse-files.sh" in
+  try
+    match UnixExtra.script content [(check_pathname_validity pathname)] with
+    | (0,_,_) -> true
+    |   _     -> false
+  with _ -> false
+;;
+
 (* Shortcuts *)
 let mkenv = Environment.make_string_env ;;
 
@@ -42,7 +64,7 @@ module Msg = struct
 
  (** Why you have to choose a folder to work *)
  let help_repertoire_de_travail =
-   let title = (s_ "CHOOSE A WORKING DIRECTORY") in
+   let title = (s_ "CHOOSE A TEMPORARY WORKING DIRECTORY") in
    let msg   = (s_ "Marionnet can use a directory of your choice for its temporary files. \
 Every file created in the directory will be deleted at exit time. \
 If the program is run from the Marionnet live DVD, you are advised to \
@@ -65,15 +87,6 @@ Marionnet saves every files belonging to a project in a file with extension .mar
 It is a standard gzipped tarball which can also be opened with standard tools.")
    in Simple_dialogs.help title msg ;;
 end;; (* module Msg *)
-
-(** Return the given pathname as it is, if it doesn't contain funny characters
-    we don't want to bother supporting, like ' ', otherwise raise an exception.
-    No check is performed on the pathname actual existence or permissions: *)
-let check_pathname_validity pathname =
-  if StrExtra.First.matchingp (Str.regexp "^[.a-zA-Z0-9_\\/\\-]+$") pathname then
-    pathname
-  else
-    failwith "The pathname "^ pathname ^" contains funny characters, and we don't support it";;
 
 (** Check that the given pathname is acceptable, and that it has the correct extension or
     no extension; if the argument has the corret extension then just return it; it it's
@@ -282,19 +295,6 @@ let ask_for_file
   !result
 ;;
 
-(** Return true iff the the given directory exists and is on a filesystem supporting
-    sparse files. This function doesn't check whether the directory is writable: *)
-let does_directory_support_sparse_files pathname =
-  (* All the intelligence of this method lies in the external script, loaded
-     at preprocessing time: *)
-  let content = INCLUDE_AS_STRING "scripts/can-directory-host-sparse-files.sh" in
-  try
-    match UnixExtra.script content [(check_pathname_validity pathname)] with
-    | (0,_,_) -> true
-    |   _     -> false
-  with _ -> false
-;;
-
 
 (** The edialog asking for an existing and writable directory. *)
 let ask_for_existing_writable_folder_pathname_supporting_sparse_files
@@ -309,7 +309,7 @@ let ask_for_existing_writable_folder_pathname_supporting_sparse_files
         begin
          Simple_dialogs.error
            (s_ "Invalid directory")
-           (s_ "Choose a directory which is existing, modifiable and hosted on a filesystem supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)")
+           (s_ "Choose a directory which is existing, modifiable and hosted on a filesystem supporting sparse files (ext2, ext3, ext4, reiserfs, NTFS, ...)")
           ();
          false;
         end

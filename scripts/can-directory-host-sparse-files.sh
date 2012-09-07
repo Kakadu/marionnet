@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.                                                                   
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 DIR=${1:-$PWD}
 
 [[ -d "$DIR" ]] || {
@@ -34,8 +34,9 @@ FSTYPE=$(mount -l | grep "^${DEV} " | awk '{print $5}' | head -n 1)
  exit 2
 } >&2
 
-# Check if the filesystem type belongs the white list 
-WHITE_LIST="reiserfs ext3 ext2 udf xfs ntfs jfs ufs vxfs"
+# Check if the filesystem type belongs the white list.
+# Note that apparently xfs no longer supports sparse files in Ubuntu 12.04 (kernel 3.2).
+WHITE_LIST="reiserfs reiser4 ext4 ext4dev ext3 ext2 udf ntfs jfs ufs vxfs xiafs"
 echo "$WHITE_LIST" | grep -qw "$FSTYPE"
 
 exit $?

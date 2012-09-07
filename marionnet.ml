@@ -117,6 +117,15 @@ let treeview_documents =
     ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
     ()
 
+module Just_for_testing = struct
+
+  let get_machine_by_name name =
+     let m = (st#network#get_device_by_name name) in
+     let ul_m = ((Obj.magic m):> Machine.User_level_machine.machine) in
+     ul_m
+
+end (* Just_for_testing *)
+
 (* ***************************************** *
                    M A I N
  * ***************************************** *)
@@ -152,12 +161,49 @@ end)
 let () = Splash.show_splash (* ~timeout:15000 *) ()
 
 (** Choose a reasonable temporary working directory: *)
-let () = (if Shell.dir_comfortable "/tmp" then
-  st#temporary_directory#set "/tmp"
-else if Shell.dir_comfortable "~/tmp" then
-  st#temporary_directory#set "~/tmp"
-else
-  failwith "Please create either /tmp or your home directory on some reasonable modern filesystem supporting sparse files")
+let () =
+ let suitable_tmp pathname =
+   (Shell.dir_comfortable pathname) &&
+   (Talking.does_directory_support_sparse_files pathname)
+ in
+ let defined_and_suitable_tmp x =
+    (Option.map suitable_tmp x) = Some true
+ in
+ let warning_tmp_automatically_set_for_you ~dir =
+   if not (Initialization.Disable_warnings.temporary_working_directory_automatically_set)
+   then
+    Simple_dialogs.warning
+      (s_ "Temporary working directory automatically set")
+      (Printf.sprintf (f_ "We chose %s as the temporary working directory, because the default candidates were not suitable (file rights and sparse files support).") dir)
+      ()
+   else () (* do nothing *)
+ in
+ let set_but_warning dir =
+   st#temporary_directory#set dir;
+   warning_tmp_automatically_set_for_you dir
+ in
+ let tmpdir = try Sys.getenv "TMPDIR" with _ -> "/tmp" in
+ let home   = try Some (Sys.getenv "HOME") with _ -> None in
+ let d1 = if tmpdir="" then "/tmp" else tmpdir in                (* ${TMPDIR:-/tmp} *)
+ let d2 = "/tmp"                               in                (*  /tmp  *)
+ let d3 = Initialization.cwd_at_startup_time   in                (*  $PWD  *)
+ let d4 = Option.map (fun h -> Filename.concat h "tmp") home in  (*  ~/tmp *)
+ let d5 = home                                 in                (*  ~/    *)
+ begin
+  if suitable_tmp d1             then st#temporary_directory#set d1 else
+  if suitable_tmp d2             then st#temporary_directory#set d2 else
+  if suitable_tmp d3             then set_but_warning d3 else
+  if defined_and_suitable_tmp d4 then set_but_warning (Option.extract d4) else
+  if defined_and_suitable_tmp d5 then set_but_warning (Option.extract d5) else
+    begin
+      Simple_dialogs.warning
+	(s_ "Sparse files not supported!")
+	(s_ "You should probably create one of /tmp, ~/tmp and ~/ into a modern filesystem supporting sparse files (ext2, ext3, ext4, reiserfs, NTFS, ...), or set another suitable temporary working directory (menu Options). Marionnet will work with the current settings, but performance will be low and disk usage very high.")
+	();
+      (* Set anyway the value to "/tmp": *)
+      st#temporary_directory#set "/tmp"
+    end
+  end
 
 (* Check that we're *not* running as root. Yes, this has been reversed
    since the last version: *)

@@ -15,6 +15,9 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+val check_pathname_validity : string -> string
+val does_directory_support_sparse_files : string -> bool
+
 module Msg :
   sig
     val help_repertoire_de_travail : unit -> unit
@@ -22,8 +25,9 @@ module Msg :
     val help_nom_pour_le_projet : unit -> unit
   end
 
-val check_pathname_validity : string -> string
-val check_path_name_validity_and_add_extension_if_needed : ?extension:string -> string -> string
+val check_path_name_validity_and_add_extension_if_needed :
+  ?extension:string ->
+  string -> string
 
 module EDialog :
   sig
@@ -75,8 +79,6 @@ module EDialog :
       ?gen_id:string ->
       ?help:(unit -> unit) option ->
       unit -> string Environment.string_env option
-
-    val does_directory_support_sparse_files : string -> bool
 
     val ask_for_existing_writable_folder_pathname_supporting_sparse_files :
       ?enrich:Shell.filexpr Environment.string_env ->

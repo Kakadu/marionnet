@@ -57,13 +57,17 @@ let cwd_at_startup_time =
 (*Ex: ~mthd:configuration#bool *)
 let polymorphic_configuration_variable_or
   ?(k:('a -> 'a) option)
+  ?dont_warning_if_undeclared
   ?(unsuitable_value=(fun y -> false)) (* values are suitable by default *)
   ~(to_string:'a -> string)
   ~(default:'a)
   ~(mthd:string -> 'a)
   (variable_name:string)
   =
-  let fallback e x = Log.printf ~force:true "Warning: %s not declared.\n" x in
+  let fallback e x = 
+    let force = if dont_warning_if_undeclared=None then true else false in
+    Log.printf ~force "Warning: %s not declared.\n" x 
+  in
   let use_default () =
     Log.printf " - using default \"%s\"\n" (to_string default);
     default
@@ -88,7 +92,7 @@ let polymorphic_configuration_variable_or
     a non-empty string; otherwise return the default.
     The third argument is a continuation that may be useful, for instance,
     to add a slash if it is a pathname. *)
-let configuration_variable_or ?k ?(default="") variable_name =
+let configuration_variable_or ?k ?dont_warning_if_undeclared ?(default="") variable_name =
   polymorphic_configuration_variable_or
     ?k
     ~unsuitable_value:((=)"")
@@ -201,6 +205,7 @@ module Disable_warnings = struct
 
 let temporary_working_directory_automatically_set =
   polymorphic_configuration_variable_or
+    ~dont_warning_if_undeclared:()
     ~to_string:(string_of_bool)
     ~default:false
     ~mthd:configuration#bool

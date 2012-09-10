@@ -36,7 +36,7 @@ FSTYPE=$(mount -l | grep "^${DEV} " | awk '{print $5}' | head -n 1)
 
 # Check if the filesystem type belongs the white list.
 # Note that apparently xfs no longer supports sparse files in Ubuntu 12.04 (kernel 3.2).
-WHITE_LIST="reiserfs reiser4 ext4 ext4dev ext3 ext2 udf ntfs jfs ufs vxfs xiafs"
+WHITE_LIST="reiserfs reiser4 ext4 ext4dev ext3 ext2 udf ntfs jfs ufs tmpfs vxfs xiafs"
 echo "$WHITE_LIST" | grep -qw "$FSTYPE"
 
 exit $?

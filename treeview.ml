@@ -25,7 +25,8 @@ open Row_item;;
 open Gettext;;
 module Assoc = ListExtra.Assoc;;
 
-let highlight_foreground_color = "White";;
+(* let highlight_foreground_color = "White";; *)
+let highlight_foreground_color = "Black";;
 
 (* To do: move this into identifier. It's good and useful. *)
 class identifier_generator =
@@ -781,8 +782,8 @@ object(self)
   method private bind_or_replace_in_row column_name column_value row =
     Assoc.add column_name column_value row
 
-  (* Add non-specified columns with default values. If any constraint is violated raise
-     an exception *)
+  (* Add non-specified columns with default values.
+     If any constraint is violated raise an exception *)
   method private complete_row ?(ignore_constraints=false) row =
     let unspecified_columns =
       List.filter
@@ -1162,6 +1163,7 @@ object(self)
   method for_all_rows f =
     let iter_first = self#store#get_iter_first in
     self#iter_on_forest f iter_first
+
   method iter_on_forest f (iter:(Gtk.tree_iter option)) =
     match iter with
       None ->
@@ -1206,14 +1208,13 @@ object(self)
     let highlight_color_column = self#get_column "_highlight-color" in
     highlight_color_column#set row_id (String color)
 
+  method get_row_list =
+    Forest.linearize self#get_complete_forest
+
   (* Return a list of row_ids such that the complete rows they identify enjoy the
      given property *)
   method row_ids_such_that predicate =
-    let row_list =
-      List.filter
-        predicate
-        (Forest.linearize self#get_complete_forest)
-    in
+    let row_list = List.filter predicate self#get_row_list in
     List.map self#id_of_complete_row row_list
 
   method unique_root_row_id_such_that predicate =
@@ -1297,7 +1298,7 @@ object(self)
       self#add_editable_string_column
         ~header:"_highlight-color"
         ~reserved:true
-        ~default:(fun () -> String "dark red")
+        ~default:(fun () -> String "beige")
         ~hidden:hide_reserved_fields
         () in
     let _ =
@@ -1360,6 +1361,13 @@ class virtual treeview_with_a_Name_column = fun
     let grandparent_row_id = Option.extract (self#parent_of parent_row_id) in
     self#name_of_row_id grandparent_row_id
 
+  method get_name_list =
+    let forest = self#get_complete_forest in
+    let forest_of_names = Forest.map (ListExtra.Assoc.find "Name") forest in
+    let name_list = ListExtra.remove_duplicates (Forest.linearize forest_of_names) in
+    let name_list = List.map (function Row_item.String x -> x | _ -> assert false) name_list in
+    name_list
+
   initializer
     let _ =
       self#add_string_column
@@ -1368,7 +1376,7 @@ class virtual treeview_with_a_Name_column = fun
         ()
      in ()
 
- end
+ end (* treeview_with_a_Name_column *)
 
 (* Name is here a primary key: *)
 class virtual treeview_with_a_primary_key_Name_column

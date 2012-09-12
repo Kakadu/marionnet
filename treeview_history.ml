@@ -1,7 +1,7 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007, 2008, 2009  Luca Saiu
-   Copyright (C) 2010  Jean-Vincent Loddo
-   Copyright (C) 2007, 2008, 2009, 2010  Université Paris 13
+   Copyright (C) 2010, 2011, 2012  Jean-Vincent Loddo
+   Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012  Université Paris 13
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -198,6 +198,14 @@ object(self)
       (self#get_complete_forest);
 
 
+  method delete_states_except_this row_id =
+    let name = item_to_string (self#get_row_item row_id "Name") in
+    let row_ids = self#row_ids_of_name name in
+    let root_id = self#unique_root_row_id_of_name name in
+    let row_ids_to_remove = ListExtra.substract row_ids [root_id; row_id] in
+    List.iter self#delete_state row_ids_to_remove
+
+
   method get_the_most_recent_state_with_name name =
     let forest = self#get_complete_forest in
     let relevant_forest =
@@ -223,6 +231,27 @@ object(self)
       ((*List.tl*) relevant_states) in
     result
 
+  method remove_all_states_except_the_most_recent_of_name name =
+    let row_ids = self#row_ids_of_name name in
+    let root_id = self#unique_root_row_id_of_name name in
+    let most_recent_id = self#id_of_complete_row (self#get_the_most_recent_state_with_name name) in
+    let row_ids_to_remove = ListExtra.substract row_ids [root_id; most_recent_id] in
+    List.iter self#delete_state row_ids_to_remove
+
+  method remove_all_states_except_the_most_recent_ones =
+    let names = self#get_name_list in
+    List.iter (self#remove_all_states_except_the_most_recent_of_name) names
+
+  method remove_all_states_of_name name =
+    let row_ids = self#row_ids_of_name name in
+    let root_id = self#unique_root_row_id_of_name name in
+    let row_ids_to_remove = ListExtra.substract row_ids [root_id] in
+    List.iter self#delete_state row_ids_to_remove
+
+  method remove_all_states =
+    let names = self#get_name_list in
+    List.iter (self#remove_all_states_of_name) names
+
   method number_of_states_such_that predicate =
     let linearized_complete_forest = Forest.linearize self#get_complete_forest in
     List.length (List.filter predicate linearized_complete_forest)
@@ -231,6 +260,10 @@ object(self)
     self#number_of_states_such_that
       (fun complete_row ->
         (Assoc.find "Name" complete_row) = String name)
+
+  method number_of_states =
+    let linearized_complete_forest = Forest.linearize self#get_complete_forest in
+    List.length linearized_complete_forest
 
   method export_as_machine_variant row_id =
     self#export_as_variant ~router:false row_id
@@ -352,6 +385,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
 
     (* Make the contextual menu: *)
     self#set_contextual_menu_title "Filesystem history operations";
+
     self#add_menu_item
      (s_  "Export as machine variant")
       (fun selected_rowid_if_any ->
@@ -362,6 +396,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
         self#export_as_machine_variant row_id);
+
     self#add_menu_item
       (s_ "Export as router variant")
       (fun selected_rowid_if_any ->
@@ -372,7 +407,9 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
         self#export_as_router_variant row_id);
-(*     self#add_separator_menu_item; *)
+
+ (* self#add_separator_menu_item; *)
+
     self#add_menu_item
       (s_ "Start in this state")
       (fun selected_rowid_if_any ->
@@ -384,17 +421,66 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
         self#startup_in_state row_id);
-(*     self#add_separator_menu_item; *)
+
+    self#add_separator_menu_item;
+
+    let number_of_states_gt_1 =
+      fun selected_rowid_if_any ->
+	(self#number_of_states > 1)
+    in
+    let number_of_states_with_name_gt_1 =
+      fun selected_rowid_if_any ->
+	(Option.to_bool selected_rowid_if_any) &&
+	(let row_id = Option.extract selected_rowid_if_any in
+	let name = item_to_string (self#get_row_item row_id "Name") in
+	(self#number_of_states_with_name name) > 1)
+    in
+
     self#add_menu_item
       (s_ "Delete this state")
-      (fun selected_rowid_if_any ->
-        (Option.to_bool selected_rowid_if_any) &&
-        (let row_id = Option.extract selected_rowid_if_any in
-        let name = item_to_string (self#get_row_item row_id "Name") in
-        (self#number_of_states_with_name name) > 1))
+      number_of_states_with_name_gt_1
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
         self#delete_state row_id);
+
+    self#add_menu_item
+      (s_ "Delete all states except this")
+      number_of_states_with_name_gt_1
+      (fun selected_rowid_if_any ->
+        let row_id = Option.extract selected_rowid_if_any in
+        self#delete_states_except_this row_id);
+
+    self#add_separator_menu_item;
+
+    self#add_menu_item
+      (s_ "Delete all states of this machine except the most recent")
+      number_of_states_with_name_gt_1
+      (fun selected_rowid_if_any ->
+        let row_id = Option.extract selected_rowid_if_any in
+        let name = item_to_string (self#get_row_item row_id "Name") in
+        self#remove_all_states_except_the_most_recent_of_name name);
+
+    self#add_menu_item
+      (s_ "Delete all states of this machine")
+      number_of_states_with_name_gt_1
+      (fun selected_rowid_if_any ->
+        let row_id = Option.extract selected_rowid_if_any in
+        let name = item_to_string (self#get_row_item row_id "Name") in
+        self#remove_all_states_of_name name);
+
+    self#add_separator_menu_item;
+
+    self#add_menu_item
+      (s_ "Delete all states except the most recent ones")
+      number_of_states_gt_1
+      (fun selected_rowid_if_any ->
+        self#remove_all_states_except_the_most_recent_ones);
+
+    self#add_menu_item
+      (s_ "Delete all states")
+      number_of_states_gt_1
+      (fun selected_rowid_if_any ->
+        self#remove_all_states);
 
      (* J.V. *)
       self#set_after_update_callback after_user_edit_callback;

@@ -146,7 +146,8 @@ fun program
     let p =
       match !pid with
         Some p -> p
-      | None -> raise (ProcessIsntInTheRightState "kill_with_signal") in
+      | None -> raise (ProcessIsntInTheRightState "kill_with_signal")
+    in
     Log.printf "About to terminate the process with pid %d...\n" p;
     (try
       (* Send the signal: *)

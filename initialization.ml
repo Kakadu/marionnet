@@ -64,9 +64,9 @@ let polymorphic_configuration_variable_or
   ~(mthd:string -> 'a)
   (variable_name:string)
   =
-  let fallback e x = 
+  let fallback e x =
     let force = if dont_warning_if_undeclared=None then true else false in
-    Log.printf ~force "Warning: %s not declared.\n" x 
+    Log.printf ~force "Warning: %s not declared.\n" x
   in
   let use_default () =
     Log.printf " - using default \"%s\"\n" (to_string default);

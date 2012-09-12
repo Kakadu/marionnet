@@ -25,10 +25,12 @@ open Row_item;;
 open Gettext;;
 module Assoc = ListExtra.Assoc;;
 
-(* let highlight_foreground_color = "White";; *)
-let highlight_foreground_color = "Black";;
+module Defaults = struct
+ let highlight_foreground_color = "Black";;
+ let highlight_color = "Bisque";;
+end;;
 
-(* To do: move this into identifier. It's good and useful. *)
+(****** To do: move this into identifier. It's good and useful. *)
 class identifier_generator =
 let initial_next_identifier = 0 in
 object(self)
@@ -142,7 +144,7 @@ fun ~treeview
     let renderer =
       GTree.cell_renderer_text
         [ `EDITABLE false;
-          `FOREGROUND highlight_foreground_color;
+          `FOREGROUND treeview#get_highlight_foreground_color;
           `STYLE (if italic then `ITALIC else `NORMAL);
           `WEIGHT (if bold then `BOLD else `NORMAL); ] in
     let highlight_column = (treeview#get_column "_highlight" :> column) in
@@ -213,7 +215,7 @@ fun ~treeview
     let renderer =
       GTree.cell_renderer_text
         [ `EDITABLE true;
-          `FOREGROUND highlight_foreground_color;
+          `FOREGROUND treeview#get_highlight_foreground_color;
           `STYLE (if italic then `ITALIC else `NORMAL);
           `WEIGHT (if bold then `BOLD else `NORMAL); ] in
     let col = GTree.view_column
@@ -477,6 +479,8 @@ exception ColumnConstraintViolated of (* column header *)string;;
 class t = fun
   ~packing
   ?(hide_reserved_fields=true)
+  ?(highlight_foreground_color=Defaults.highlight_foreground_color)
+  ?(highlight_color=Defaults.highlight_color)
   () ->
 let gtree_column_list = new GTree.column_list in
 let vbox =
@@ -514,6 +518,14 @@ object(self)
   inherit identifier_generator
 
   method gtree_column_list : GTree.column_list = gtree_column_list
+
+  val mutable highlight_foreground_color = highlight_foreground_color
+  method get_highlight_foreground_color = highlight_foreground_color
+  method set_highlight_foreground_color x = highlight_foreground_color <- x
+
+  val mutable highlight_color = highlight_color
+  method get_highlight_color = highlight_color
+  method set_highlight_color x = highlight_color <- x
 
   val tree_store = ref None
 
@@ -1298,7 +1310,7 @@ object(self)
       self#add_editable_string_column
         ~header:"_highlight-color"
         ~reserved:true
-        ~default:(fun () -> String "beige")
+        ~default:(fun () -> String self#get_highlight_color)
         ~hidden:hide_reserved_fields
         () in
     let _ =
@@ -1330,9 +1342,11 @@ let row_name_is name =
 class virtual treeview_with_a_Name_column = fun
   ~packing
   ?hide_reserved_fields
+  ?highlight_foreground_color
+  ?highlight_color
   () ->
  object(self)
-  inherit t ~packing ?hide_reserved_fields ()
+  inherit t ~packing ?hide_reserved_fields ?highlight_foreground_color ?highlight_color ()
 
   method rename old_name new_name =
     let row_ids = self#row_ids_of_name old_name in
@@ -1382,9 +1396,11 @@ class virtual treeview_with_a_Name_column = fun
 class virtual treeview_with_a_primary_key_Name_column
   ~packing
   ?hide_reserved_fields
+  ?highlight_foreground_color
+  ?highlight_color
   () =
   object(self)
-  inherit treeview_with_a_Name_column ~packing ?hide_reserved_fields ()
+  inherit treeview_with_a_Name_column ~packing ?hide_reserved_fields ?highlight_foreground_color ?highlight_color ()
 
   method unique_row_id_of_name name = self#unique_row_id_such_that  (row_name_is name)
   method unique_row_of_name name    = self#unique_row_such_that     (row_name_is name)

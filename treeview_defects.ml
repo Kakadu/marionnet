@@ -50,6 +50,7 @@ object(self)
   inherit
     Treeview.treeview_with_a_primary_key_Name_column
       ~packing
+      ~highlight_color:"Light Coral"
       ~hide_reserved_fields:true
       ()
   as super
@@ -275,7 +276,6 @@ object(self)
     self#is_empty_or_a_number_between s 0.0 100000.0
 
   method private show_that_it_is_defective row_id =
-    self#set_row_highlight_color "rosy brown" row_id;
     self#highlight_row row_id
 
   method private show_that_it_is_not_defective row_id =

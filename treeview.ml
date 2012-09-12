@@ -30,24 +30,6 @@ module Defaults = struct
  let highlight_color = "Bisque";;
 end;;
 
-(****** To do: move this into identifier. It's good and useful. *)
-class identifier_generator =
-let initial_next_identifier = 0 in
-object(self)
-  val next_identifier = ref initial_next_identifier
-
-  method reset_identifier =
-    self#set_next_identifier initial_next_identifier
-  method get_next_identifier =
-    !next_identifier
-  method set_next_identifier the_next_identifier =
-    next_identifier := the_next_identifier
-  method make_identifier =
-    let result = !next_identifier in
-    next_identifier := result + 1;
-    result
-end;;
-
 type column_type =
   | StringColumnType
   | CheckBoxColumnType
@@ -514,10 +496,11 @@ let _ =
     ~adjustment:view#hadjustment
     ~packing:(vbox#pack ~expand:false ~padding:0)
     () in
+let counter = new Counter.c ~initial_value:0 () in
 object(self)
-  inherit identifier_generator
 
   method gtree_column_list : GTree.column_list = gtree_column_list
+  method counter = counter
 
   val mutable highlight_foreground_color = highlight_foreground_color
   method get_highlight_foreground_color = highlight_foreground_color
@@ -1022,7 +1005,7 @@ object(self)
     let file_name = Option.extract filename#get in
     Log.printf "treeview#save: saving into %s\n" file_name;
     next_identifier_and_content_forest_marshaler#to_file
-      (self#get_next_identifier, self#get_complete_forest)
+      (self#counter#get_next_fresh_value, self#get_complete_forest)
       file_name;
 
   method load =
@@ -1033,7 +1016,7 @@ object(self)
         try
           let next_identifier, complete_forest =
             (next_identifier_and_content_forest_marshaler#from_file file_name) in
-          self#set_next_identifier next_identifier;
+          self#counter#set_next_fresh_value_to next_identifier;
           self#set_complete_forest complete_forest;
           (if (Global_options.Debug_level.get ()) >= 3 then (* we are manually setting the verbosity 3 *)
             Forest.print_forest complete_forest pretty_print_row);
@@ -1303,7 +1286,7 @@ object(self)
       self#add_string_column
         ~header:"_id"
         ~reserved:true
-        ~default:(fun () -> String (string_of_int self#make_identifier))
+        ~default:(fun () -> String (string_of_int (self#counter#fresh ())))
         ~hidden:hide_reserved_fields
         () in
     let _ =

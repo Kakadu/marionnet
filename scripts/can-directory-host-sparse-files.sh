@@ -23,11 +23,12 @@ DIR=${1:-$PWD}
  exit 3
 } >&2
 
-# The device containing the directory
-DEV=$(df -P "$DIR" | tail -n -1 | grep "^[a-zA-Z/0-9]" | awk '{print $1}')
+# The mounted directory containing $DIR:
+# (note that df resolves symlinks, relative paths and paths not in normal form)
+MOUNTED_DIR=$(df -P "$DIR" | tail -n -1 | awk '{print $NF}')
 
-# The filesystem type of the device
-FSTYPE=$(mount -l | grep "^${DEV} " | awk '{print $5}' | head -n 1)
+# The related filesystem type:
+FSTYPE=$(mount -l | awk '$3 == "'${MOUNTED_DIR}'" {print $5}')
 
 [[ -n "$FSTYPE" ]] || {
  echo "Cannot determine the filesystem type. Exiting."

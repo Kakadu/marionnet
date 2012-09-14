@@ -47,5 +47,6 @@ let configuration =
                 "MARIONNET_MACHINE_KERNEL";
                 "MARIONNET_ROUTER_PORT0_DEFAULT_IPV4_CONFIG";
                 "MARIONNET_DISABLE_WARNING_TEMPORARY_WORKING_DIRECTORY_AUTOMATICALLY_SET";
+                "MARIONNET_TMPDIR";
               ]
     ();;

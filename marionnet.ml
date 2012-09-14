@@ -182,19 +182,26 @@ let () =
    st#temporary_directory#set dir;
    warning_tmp_automatically_set_for_you dir
  in
- let tmpdir = try Sys.getenv "TMPDIR" with _ -> "/tmp" in
- let home   = try Some (Sys.getenv "HOME") with _ -> None in
- let d1 = if tmpdir="" then "/tmp" else tmpdir in                (* ${TMPDIR:-/tmp} *)
- let d2 = "/tmp"                               in                (*  /tmp  *)
- let d3 = Initialization.cwd_at_startup_time   in                (*  $PWD  *)
- let d4 = Option.map (fun h -> Filename.concat h "tmp") home in  (*  ~/tmp *)
- let d5 = home                                 in                (*  ~/    *)
+ let marionnet_tmpdir = Initialization.Path.marionnet_tmpdir in
+ let tmpdir = (SysExtra.meaningful_getenv "TMPDIR")#existing_directory in
+ let home   = (SysExtra.meaningful_getenv "HOME")#existing_directory
+ in
+ let d1 = marionnet_tmpdir in                                    (*  ${MARIONNET_TMPDIR}  *)
+ let d2 = tmpdir in                                              (*  ${TMPDIR}  *)
+ let d3 = "/tmp" in                                              (*  /tmp  *)
+ let d4 = "/var/tmp" in                                          (*  /var/tmp *)
+ (* The following candidates will raise a warning: *)
+ let d5 = Initialization.cwd_at_startup_time in                  (*  $PWD  *)
+ let d6 = Option.map (fun h -> Filename.concat h "tmp") home in  (*  ~/tmp *)
+ let d7 = home in                                                (*  ~/    *)
  begin
-  if suitable_tmp d1             then st#temporary_directory#set d1 else
-  if suitable_tmp d2             then st#temporary_directory#set d2 else
-  if suitable_tmp d3             then set_but_warning d3 else
-  if defined_and_suitable_tmp d4 then set_but_warning (Option.extract d4) else
-  if defined_and_suitable_tmp d5 then set_but_warning (Option.extract d5) else
+  if defined_and_suitable_tmp d1 then st#temporary_directory#set (Option.extract d1) else
+  if defined_and_suitable_tmp d2 then st#temporary_directory#set (Option.extract d2) else
+  if suitable_tmp d3             then st#temporary_directory#set d3 else
+  if suitable_tmp d4             then st#temporary_directory#set d4 else
+  if suitable_tmp d5             then set_but_warning d5 else
+  if defined_and_suitable_tmp d6 then set_but_warning (Option.extract d6) else
+  if defined_and_suitable_tmp d7 then set_but_warning (Option.extract d7) else
     begin
       Simple_dialogs.warning
 	(s_ "Sparse files not supported!")

@@ -82,7 +82,7 @@ let polymorphic_configuration_variable_or
     with
     | None -> use_default ()
     | Some y when (unsuitable_value y) -> use_default ()
-    | Some y  -> use_found_value y
+    | Some y -> use_found_value y
    in
    (* Launch the continuation on the result: *)
    match k with None -> result | Some f -> (f result)
@@ -196,6 +196,11 @@ module Path = struct
 
  let user_filesystems = user_home^"/.marionnet/filesystems"
  let user_kernels = user_home^"/.marionnet/kernels"
+
+ let marionnet_tmpdir =
+   match (configuration_variable_or ~default:"" "MARIONNET_TMPDIR") with
+   | "" -> None
+   | v  -> Some v
 
 end (* Path *)
 ;;

@@ -344,23 +344,29 @@ let options_autogenerate_ip_addresses =
          Global_options.set_autogenerate_ip_addresses active)
    ()
 
-let options_debug_mode                =
+let options_debug_mode =
  add_check_item (s_ "Debug mode")
   ~active:(Global_options.Debug_level.are_we_debugging ())
   ~callback:(fun active ->
          Log.printf "You toggled the option (debug)\n";
          Global_options.Debug_level.set 1)
+ ()
 
+let options_keep_all_snapshots_when_saving =
+ add_check_item (s_ "Keep all snapshots when saving (not only the most recent ones)")
+  ~active:(Global_options.Keep_all_snapshots_when_saving.extract ())
+  ~callback:(fun active ->
+         Log.printf "You toggled the option (keep al snapshots)\n";
+         Global_options.Keep_all_snapshots_when_saving.set active)
  ()
 
 (** Hidden to user in this version. *)
-let workaround_wirefilter_problem      =
+let workaround_wirefilter_problem =
  add_check_item "Workaround wirefilter problem"
   ~active:Global_options.workaround_wirefilter_problem_default
   ~callback:(fun active ->
          Log.printf "You toggled the option (wirefilter)\n"; flush_all ();
          Global_options.set_workaround_wirefilter_problem active)
-
  ()
 
 let () = workaround_wirefilter_problem#coerce#misc#hide ()

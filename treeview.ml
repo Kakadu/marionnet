@@ -1001,11 +1001,12 @@ object(self)
   val next_identifier_and_content_forest_marshaler =
     new Oomarshal.marshaller;
 
-  method save =
+  method save ?(with_forest_treatment=fun x->x) () =
     let file_name = Option.extract filename#get in
     Log.printf "treeview#save: saving into %s\n" file_name;
+    let forest = with_forest_treatment (self#get_complete_forest) in
     next_identifier_and_content_forest_marshaler#to_file
-      (self#counter#get_next_fresh_value, self#get_complete_forest)
+      (self#counter#get_next_fresh_value, forest)
       file_name;
 
   method load =

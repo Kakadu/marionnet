@@ -211,9 +211,11 @@ object(self)
     let relevant_forest =
       Forest.filter
         (fun row -> ((Assoc.find "Name" row) = String name))
-      forest in
+      forest
+    in
     let relevant_states =
-      Forest.linearize relevant_forest in (* the forest should be a tree *)
+      Forest.linearize relevant_forest
+    in (* the forest should be a tree *)
     Log.printf "Relevant states for %s are %i\n" name (List.length relevant_states);
     assert ((List.length relevant_states) > 0);
     let result =
@@ -231,12 +233,48 @@ object(self)
       ((*List.tl*) relevant_states) in
     result
 
-  method remove_all_states_except_the_most_recent_of_name name =
+  method get_all_row_ids_except_root_and_the_most_recent_of_name name =
     let row_ids = self#row_ids_of_name name in
     let root_id = self#unique_root_row_id_of_name name in
     let most_recent_id = self#id_of_complete_row (self#get_the_most_recent_state_with_name name) in
-    let row_ids_to_remove = ListExtra.substract row_ids [root_id; most_recent_id] in
-    List.iter self#delete_state row_ids_to_remove
+    ListExtra.substract row_ids [root_id; most_recent_id]
+
+  method get_all_row_ids_except_root_and_the_most_recent_ones =
+    let names = self#get_name_list in
+    List.concat (List.map (self#get_all_row_ids_except_root_and_the_most_recent_of_name) names)
+
+  (* Returns the list of existing cow files except the most recent ones: *)
+  method get_files_may_not_be_saved =
+    if Global_options.Keep_all_snapshots_when_saving.extract () = true then [] else
+    let file_name_of row_id = item_to_string (self#get_row_item row_id "File name") in
+    let row_ids = self#get_all_row_ids_except_root_and_the_most_recent_ones in
+    let file_names = List.map (file_name_of) row_ids in
+    let file_exists cow_file_name =
+      Cow_files.cow_file_exists
+        ~states_directory:(Option.extract self#directory#get)
+        ~cow_file_name ()
+    in
+    List.filter (file_exists) file_names
+
+  (* Method redefinition. In this class we need to define a specific forest treatment
+     that consists in saving only the most recent states: *)
+  method save ?with_forest_treatment () =
+    let relevant_forest_of forest =
+      if Global_options.Keep_all_snapshots_when_saving.extract () = true then forest else
+      let excluded_row_ids = self#get_all_row_ids_except_root_and_the_most_recent_ones in
+      Forest.filter
+        (fun row -> not (List.mem (self#id_of_complete_row row) excluded_row_ids))
+      forest
+    in
+    let with_forest_treatment =
+      match with_forest_treatment with
+      | None   -> relevant_forest_of
+      | Some f -> (fun x -> relevant_forest_of (f x)) (* compose: relevant_forest_of°f *)
+    in
+    self_as_treeview#save ~with_forest_treatment ()
+
+  method remove_all_states_except_the_most_recent_of_name name =
+    List.iter self#delete_state (self#get_all_row_ids_except_root_and_the_most_recent_of_name name)
 
   method remove_all_states_except_the_most_recent_ones =
     let names = self#get_name_list in

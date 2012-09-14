@@ -72,3 +72,11 @@ let keyboard_layout =
   with Not_found ->
     default_layout;;
 
+
+module Keep_all_snapshots_when_saving =
+  Stateful_modules.Variable (struct
+    type t = bool
+    let name = Some "keep_all_snapshots_when_saving"
+  end);;
+let () = Keep_all_snapshots_when_saving.set Initialization.keep_all_snapshots_when_saving ;;
+

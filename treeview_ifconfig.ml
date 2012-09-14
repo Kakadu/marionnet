@@ -254,9 +254,9 @@ object(self)
 
   val counters_marshaler = new Oomarshal.marshaller
 
-  method save =
+  method save ?with_forest_treatment () =
     (* Save the forest, as usual: *)
-    super#save;
+    super#save ?with_forest_treatment ();
     (* ...but also save the counters used for generating fresh addresses: *)
     let counters_file_name = (Option.extract filename#get)^"-counters" in
     (* For forward compatibility: *)

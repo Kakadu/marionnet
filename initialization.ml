@@ -232,6 +232,14 @@ let router_port0_default_ipv4_config  =
    end
 ;;
 
+let keep_all_snapshots_when_saving =
+  polymorphic_configuration_variable_or
+    ~dont_warning_if_undeclared:()
+    ~to_string:(string_of_bool)
+    ~default:false
+    ~mthd:configuration#bool
+    "MARIONNET_KEEP_ALL_SNAPSHOTS_WHEN_SAVING"
+
 (* Enter the right directory: *)
 try
   Unix.chdir Path.marionnet_home;

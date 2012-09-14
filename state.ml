@@ -386,7 +386,7 @@ class globalState = fun () ->
     List.iter (fun (treeview : Treeview.t) -> treeview#load) self#get_treeview_list
 
   method private save_treeviews =
-    List.iter (fun (treeview : Treeview.t) -> treeview#save) self#get_treeview_list
+    List.iter (fun (treeview : Treeview.t) -> treeview#save ()) self#get_treeview_list
 
   method private clear_treeviews =
     List.iter (fun (treeview : Treeview.t) -> treeview#clear) self#get_treeview_list
@@ -454,12 +454,23 @@ class globalState = fun () ->
     in
 
     let window =
+      let text_about_saved_snapshots =
+        match Global_options.Keep_all_snapshots_when_saving.extract () with
+        | true  -> s_ "Project with all snapshots"
+        | false -> s_ "Project with the most recent snapshots"
+      in
+      let saving_word = (s_ "Saving") in
+      let text_on_label =
+        Printf.sprintf "<big><b>%s</b></big>\n<small>%s</small>"
+          saving_word
+          text_about_saved_snapshots
+      in
       Progress_bar.make_progress_bar_dialog
        ~modal:true
-       ~title:("Work in progress")
+       ~title:(s_ "Work in progress")
        ~kind:(Progress_bar.Fill fill)
-       ~text_on_label:("<big><b>Sauvegarde</b></big>")
-       ~text_on_sub_label:("<tt><small>"^filename^"</small></tt>")
+       ~text_on_label
+       ~text_on_sub_label:(Printf.sprintf (f_ "<tt><small>%s</small></tt>") filename)
        ()
     in
     (* Write the network xml file *)
@@ -474,9 +485,15 @@ class globalState = fun () ->
 
     (* (Re)write the .mar file *)
     let cmd =
-      Printf.sprintf "tar -cSvzf %s -C %s --exclude tmp %s"
+      let exclude_command_section =
+        let excluded_cows = self#treeview#history#get_files_may_not_be_saved in
+        let excluded_items = List.map (Printf.sprintf "--exclude states/%s") excluded_cows in
+        String.concat " " ("--exclude tmp"::excluded_items)
+      in
+      Printf.sprintf "tar -cSvzf %s -C %s %s %s"
         filename
         project_working_directory
+        exclude_command_section
         project_name
     in
     let _ =

@@ -289,6 +289,20 @@ class globalState = fun () ->
     project_filename#set (Some filename);
     let pwd = self#make_the_project_working_directory in
 
+    let opening_project_progress_bar =
+      let opening_word = (s_ "Opening") in
+      let text_on_label =
+        Printf.sprintf "<big><b>%s</b></big>"
+          opening_word
+      in
+      Progress_bar.make_progress_bar_dialog
+       ~modal:true
+       ~title:(s_ "Work in progress")
+       ~text_on_label
+       ~text_on_sub_label:(Printf.sprintf (f_ "<tt><small>%s</small></tt>") filename)
+       ()
+    in
+
     (* Extract the mar file into the pwdir *)
     let command_line =
       Printf.sprintf "tar -xSvzf %s -C %s"
@@ -351,11 +365,17 @@ class globalState = fun () ->
        Log.printf "Failed with exception %s\n" (Printexc.to_string e);
      );
 
+    (* Remove now the progress_bar: *)
+    let _ =
+      Task_runner.the_task_runner#schedule
+        ~name:"destroy saving progress bar"
+        (fun () -> Thread.delay 1.; Progress_bar.destroy_progress_bar_dialog (opening_project_progress_bar))
+    in
     self#register_state_after_save_or_open;
     ()
     end
 
-  (*** BEGIN: this part of code try to understand if the project must be really saved before exiting. *)
+  (*** BEGIN: this part of code tries to understand if the project must be really saved before exiting. *)
 
   val mutable refresh_sketch_counter_value_after_last_save = None
   method set_project_not_already_saved =
@@ -473,6 +493,7 @@ class globalState = fun () ->
        ~text_on_sub_label:(Printf.sprintf (f_ "<tt><small>%s</small></tt>") filename)
        ()
     in
+
     (* Write the network xml file *)
     User_level.Xml.save_network self#network self#networkFile ;
 

@@ -26,26 +26,15 @@ let text_title =
     (s_ "Marionnet, a virtual network laboratory")
 ;;
 
-let user_intelligible_version, released =
- match StrExtra.First.matchingp (Str.regexp "^[0-9]+[.][0-9]+[.][0-9]+$") Version.version with
- | true  ->
-     (* it's a released version *)
-     (Version.version, true)
- | false ->
-     (* It's just the name of the branch *)
-     let str = Printf.sprintf "%s revno %s" Version.version Meta.revision in
-     (str, false)
-;;
-
-let text_subtitle = match released with
- | true  -> "<small><i>Version " ^ user_intelligible_version ^ "</i> - " ^ Meta.source_date_utc_yy_mm_dd ^ "</small>"
- | false -> "<small><i>Version " ^ user_intelligible_version ^ "</i> - " ^ Meta.source_date ^ "</small>"
+let text_subtitle = match Initialization.released with
+ | true  -> "<small><i>Version " ^ Initialization.user_intelligible_version ^ "</i> - " ^ Meta.source_date_utc_yy_mm_dd ^ "</small>"
+ | false -> "<small><i>Version " ^ Initialization.user_intelligible_version ^ "</i> - " ^ Meta.source_date ^ "</small>"
 ;;
 
 let text =
-"<small>Copyright (C) 2007, 2008, 2009, 2010 Jean-Vincent Loddo
-Copyright (C) 2007, 2008, 2009, 2010 Luca Saiu
-Copyright (C) 2007, 2008, 2009, 2010 Université Paris 13
+"<small>Copyright (C) 2007-2012 Jean-Vincent Loddo
+Copyright (C) 2007-2012 Luca Saiu
+Copyright (C) 2007-2012 Université Paris 13
 
 <i>Marionnet comes with <b>absolutely no warranty</b>.
 This is free software, covered by the GNU GPL.

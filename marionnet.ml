@@ -32,8 +32,6 @@ open Talking
 
 module S = Serial
 
-let () = Random.self_init ()
-
 (** The global state containing the main window (st#mainwin) and all relevant dynamic
     attributes of the application *)
 let st = new globalState ()
@@ -157,8 +155,11 @@ with e -> begin
     ();
 end)
 
-(** Show the splash: *)
-let () = Splash.show_splash (* ~timeout:15000 *) ()
+(** Show the splash (only when there is no project to open): *)
+let () =
+ if !Initialization.optional_file_to_open = None
+   then Splash.show_splash (* ~timeout:15000 *) ()
+   else ()
 
 (** Choose a reasonable temporary working directory: *)
 let () =
@@ -296,6 +297,28 @@ Motherboard.set_treeview_filenames_invariant ();
 
 st#sensitive_when_Active#add   st#mainwin#notebook_CENTRAL#coerce;
 st#sensitive_when_Runnable#add st#mainwin#hbuttonbox_BASE#coerce ;
+
+(* Open the project specified at command line, if any: *)
+let () =
+  match !Initialization.optional_file_to_open with
+  | None -> ()
+  | Some filename ->
+      begin
+	let filename =
+	  FilenameExtra.to_absolute
+	    ~parent:Initialization.cwd_at_startup_time
+	    filename
+	in
+	try
+	  st#open_project ~filename
+	with
+	  _ ->
+	  begin
+	    Printf.kfprintf flush stderr (f_ "Error: something goes wrong opening the file %s\nExiting.\n") filename;
+	    exit 2
+	  end
+      end
+in
 
 (* st#mainwin#notebook_CENTRAL#coerce#misc#set_sensitive false; *)
 (** Enter the GTK+ main loop: *)

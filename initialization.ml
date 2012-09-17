@@ -16,6 +16,63 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext
+
+(* ***************************************** *
+             Get basic infos
+ * ***************************************** *)
+
+let user_intelligible_version, released =
+ match StrExtra.First.matchingp (Str.regexp "^[0-9]+[.][0-9]+[.][0-9]+$") Version.version with
+ | true  ->
+     (* it's a released version *)
+     (Version.version, true)
+ | false ->
+     (* It's just the name of the branch *)
+     let str = Printf.sprintf "%s revno %s" Version.version Meta.revision in
+     (str, false)
+;;
+
+(* ***************************************** *
+               Parse argv
+ * ***************************************** *)
+
+let () =
+  Argv.register_usage_msg
+    (Printf.sprintf "Usage: %s [OPTIONS] [FILE]\nOptions:" Sys.argv.(0))
+;;
+
+(* Registering options: *)
+let option_v = Argv.register_unit_option "v" ~aliases:["-version"] ~doc:"print version and exit" () ;;
+let option_splash = Argv.register_unit_option "-splash" ~doc:"print splash message and exit" () ;;
+let () = Argv.register_h_option_as_help () ;;
+
+(* Registering arguments: *)
+let optional_file_to_open =
+  let error_msg =
+    Printf.sprintf
+      (f_ "%s: expected a readable regular file containing the marionnet project (.mar)")
+      Sys.argv.(0)
+  in
+  Argv.register_filename_optional_argument ~r:() ~f:() ~error_msg () ;;
+
+(* Argv.parse tuning: *)
+let () = Argv.tuning
+  ~no_error_location_parsing_arguments:()
+  ~no_usage_on_error_parsing_arguments:()
+  () ;;
+
+(* Parse now: *)
+let () = Argv.parse () ;;
+
+(* Now we may inspect the references: *)
+
+let () = if !option_v = Some () then begin
+  Printf.kfprintf flush stdout "marionnet version %s\n" (user_intelligible_version);
+  exit 0;
+ end;;
+
+(* else continue: *)
 
 Log.printf ~v:0 ~banner:false
   "=======================================================
@@ -43,6 +100,10 @@ Log.printf ~v:0 ~banner:false
   Meta.build_date
   (StringExtra.fmt ~tab:8 ~width:40 Meta.uname)
 ;;
+
+let () = if !option_splash = Some () then exit 0;;
+
+(* else continue: *)
 
 (* Seed the random number generator: *)
 Random.self_init ();;

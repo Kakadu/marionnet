@@ -302,6 +302,7 @@ class globalState = fun () ->
        ~text_on_sub_label:(Printf.sprintf (f_ "<tt><small>%s</small></tt>") filename)
        ()
     in
+    opening_project_progress_bar#show ();
 
     (* Extract the mar file into the pwdir *)
     let command_line =
@@ -309,69 +310,95 @@ class globalState = fun () ->
         (Option.extract project_filename#get)
         pwd
     in
-    Log.system_or_fail command_line;
 
-    (* Look for the name of the root directory of the mar file. Some checks here. *)
-    let mar_inner_dir =
-      try
-        (match (SysExtra.readdir_as_list pwd) with
-        | [x] ->
-          let skel = (SysExtra.readdir_as_list (Filename.concat pwd x)) in
-          if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"]
-          then x
-          else failwith "state#open_project: no expected content in the project root directory."
-        |  _  ->
-          failwith "state#open_project: no rootname found in the project directory."
-        )
-      with e -> begin
-        self#close_project;
-        raise e;
-      end;
-    in
+    let synchronous_loading () = begin
 
-    (* Set the project name *)
-    project_name#set (Some mar_inner_dir);
-    let prefix = self#get_project_subdirs_prefix in
+      Log.system_or_fail command_line;
 
-    (* Create the tmp subdirectory. *)
-    Unix.mkdir (prefix^"tmp") 0o755 ;
+      (* Look for the name of the root directory of the mar file. Some checks here. *)
+      let mar_inner_dir =
+	try
+	  (match (SysExtra.readdir_as_list pwd) with
+	  | [x] ->
+	    let skel = (SysExtra.readdir_as_list (Filename.concat pwd x)) in
+	    if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"]
+	    then x
+	    else failwith "state#open_project: no expected content in the project root directory."
+	  |  _  ->
+	    failwith "state#open_project: no rootname found in the project directory."
+	  )
+	with e -> begin
+	  self#close_project;
+	  raise e;
+	end;
+      in
 
-    (* Dot_tuning.network will be undumped after the network,
-       in order to support cable inversions. *)
-    let dotAction () = begin
+      (* Set the project name *)
+      project_name#set (Some mar_inner_dir);
+      let prefix = self#get_project_subdirs_prefix in
+
+      (* Create the tmp subdirectory. *)
+      Unix.mkdir (prefix^"tmp") 0o755 ;
+
+      (* Dot_tuning.network will be undumped after the network,
+	in order to support cable inversions. *)
+      let dotAction () = begin
+	(try
+	  self#dotoptions#load_from_file self#dotoptionsFile;
+	  Log.printf ("state#open_project: dotoptions recovered\n");
+	with e ->
+	  begin
+	    Log.printf ("state#open_project: cannot read the dotoptions file => resetting defaults\n");
+	    self#dotoptions#reset_defaults ()
+	  end);
+	self#dotoptions#set_toolbar_widgets ()
+	end
+      in
+
+      Log.printf ("state#open_project: calling import_network\n");
+      (* Undump treeview's data. Doing this action now we allow components
+	to modify the treeviews according to the marionnet version: *)
+      self#load_treeviews;
+
+      (* Second, read the xml file containing the network definition.
+	If something goes wrong, close the project. *)
       (try
-     	self#dotoptions#load_from_file self#dotoptionsFile;
-        Log.printf ("state#open_project: dotoptions recovered\n");
-       with e -> (Log.printf ("open_project: cannot read the dotoptions file => resetting defaults\n");
-                   self#dotoptions#reset_defaults ())) ;
-       self#dotoptions#set_toolbar_widgets ()
-      end in
-
-    Log.printf ("state#open_project: calling import_network\n");
-
-    (* Undump treeview's data. Doing this action now we allow components
-       to modify the treeviews according to the marionnet version: *)
-    self#load_treeviews;
-
-    (* Second, read the xml file containing the network definition.
-       If something goes wrong, close the project. *)
-    (try
-       self#import_network
-         ~emergency:(fun () -> self#close_project)
-         ~dotAction
-         self#networkFile
-     with e ->
-       self#clear_treeviews;
-       Log.printf "Failed with exception %s\n" (Printexc.to_string e);
-     );
-
+	self#import_network
+	  ~emergency:(fun () -> self#close_project)
+	  ~dotAction
+	  self#networkFile
+      with e ->
+	self#clear_treeviews;
+	Log.printf "Failed with exception %s\n" (Printexc.to_string e);
+      );
+      self#register_state_after_save_or_open;
+      ()
+    end (* synchronous_loading *)
+    in
+    let _ =
+      Task_runner.the_task_runner#schedule
+        ~name:"state#open_project.synchronous_loading"
+        (fun () ->
+	    try
+	      synchronous_loading ()
+	    with e ->
+	      begin
+		Log.printf "Failed loading the project `%s'. The next reported exception is harmless.\n" filename;
+		let error_msg =
+		  Printf.sprintf "<tt><small>%s</small></tt>\n\n%s"
+		    filename
+		    (s_ "Please ensure that the file be well-formed.")
+		in
+		Simple_dialogs.error (s_ "Failed loading the project") error_msg ();
+		raise e;
+	      end)
+    in
     (* Remove now the progress_bar: *)
     let _ =
       Task_runner.the_task_runner#schedule
-        ~name:"destroy saving progress bar"
-        (fun () -> Thread.delay 1.; Progress_bar.destroy_progress_bar_dialog (opening_project_progress_bar))
+        ~name:"destroy opening project progress bar"
+        (fun () -> Progress_bar.destroy_progress_bar_dialog (opening_project_progress_bar))
     in
-    self#register_state_after_save_or_open;
     ()
     end
 
@@ -458,7 +485,7 @@ class globalState = fun () ->
     (* Progress bar periodic callback. *)
     let fill =
       (* disk usage (in kb) with the unix command *)
-      let du x = match UnixExtra.run ~trace:true ("du -sk "^x) with
+      let du x = match UnixExtra.run ("du -sk "^x) with
        | kb, (Unix.WEXITED 0) -> (try Some (float_of_string (List.hd (StringExtra.split ~d:'\t' kb))) with _ -> None)
        | _,_                  -> None
       in

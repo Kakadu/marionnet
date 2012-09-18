@@ -25,12 +25,15 @@ let utf8 x = x;; (* We currently don't use this. It works better :-) *)
 (** Generic constructor for message dialog *)
 let message win_title msg_title msg_content img_file () =
   let d=new Gui.dialog_MESSAGE () in
+  d#toplevel#set_resizable true;
   let _ = d#closebutton_MESSAGE#connect#clicked ~callback:(d#toplevel#destroy) in
   d#toplevel#set_icon (Some Icon.icon_pixbuf);
   d#toplevel#set_title (utf8 win_title);
   d#title#set_use_markup true;
-  d#title#set_label     ("<b>"^msg_title^"</b>");
+  d#title#set_label ("<b>"^msg_title^"</b>");
+  d#title#set_selectable true;
   d#content#set_label msg_content;
+  d#content#set_selectable true;
   d#image#set_file (Initialization.Path.images ^ img_file);
   ()
 ;;

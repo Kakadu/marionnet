@@ -44,6 +44,7 @@ let () =
 
 (* Registering options: *)
 let option_v = Argv.register_unit_option "v" ~aliases:["-version"] ~doc:"print version and exit" () ;;
+let option_debug = Argv.register_unit_option "-debug" ~doc:"activate messages for debugging" () ;;
 let option_splash = Argv.register_unit_option "-splash" ~doc:"print splash message and exit" () ;;
 let () = Argv.register_h_option_as_help () ;;
 
@@ -62,8 +63,11 @@ let () = Argv.tuning
   ~no_usage_on_error_parsing_arguments:()
   () ;;
 
-(* Parse now: *)
-let () = Argv.parse () ;;
+(* Parse now (except if we are debugging with the toplevel): *)
+let () =
+  if (Array.get Sys.argv 0) <> "/tmp/marionnet-toplevel"
+    then Argv.parse ()
+;;
 
 (* Now we may inspect the references: *)
 
@@ -170,7 +174,8 @@ module Debug_level = struct
     | false -> 0
     | true  -> 1
 
-  let default_level = of_bool (configuration#bool "MARIONNET_DEBUG")
+  let default_level =
+    of_bool ((!option_debug=Some()) || (configuration#bool "MARIONNET_DEBUG"))
 
   let current = ref default_level
   let set x = (current := x)

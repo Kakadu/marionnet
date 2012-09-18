@@ -444,8 +444,8 @@ class router
      let (ipv4,cidr) = port_0_ip_config in (* the class parameter *)
      let netmask_string = (Ipv4.to_string (Ipv4.netmask_of_cidr cidr)) in
      [ ("port0",
-	    [ "IPv4 address", Row_item.String (Ipv4.to_string ipv4);
-	      "IPv4 netmask", Row_item.String netmask_string; ])
+	    [ "IPv4 address", Treeview.Row_item.String (Ipv4.to_string ipv4);
+	      "IPv4 netmask", Treeview.Row_item.String netmask_string; ])
      ]
   in
 

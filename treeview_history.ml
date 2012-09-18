@@ -18,9 +18,8 @@
 
 (* To do: rename 'state' into 'row' *)
 
-(*open Treeview;;*)
-open Row_item;;
 open Gettext;;
+module Row_item = Treeview.Row_item ;;
 module Assoc = ListExtra.Assoc;;
 
 (** A function to be called for starting up a given device in a given state. This very ugly
@@ -53,13 +52,13 @@ object(self)
     ~file_name
     () =
     let row =
-      [ "Name", String name;
-	"Comment", String comment;
-	"Type", Icon icon;
-	"Activation scenario", String scenario;
-	"Timestamp", String date;
-	"Prefixed filesystem", String prefixed_filesystem;
-	"File name", String file_name ]
+      [ "Name", Row_item.String name;
+	"Comment", Row_item.String comment;
+	"Type", Row_item.Icon icon;
+	"Activation scenario", Row_item.String scenario;
+	"Timestamp", Row_item.String date;
+	"Prefixed filesystem", Row_item.String prefixed_filesystem;
+	"File name", Row_item.String file_name ]
     in
     self#add_row ?parent_row_id:parent row
 
@@ -89,7 +88,7 @@ object(self)
   (* Remove cow files: *)
   (List.iter
     (fun row ->
-      let cow_filename = item_to_string (Assoc.find "File name" row) in
+      let cow_filename = Row_item.to_string (Assoc.find "File name" row) in
       let cow_pathname = Filename.concat (Option.extract directory#get) cow_filename in
       (try Unix.unlink cow_pathname with _ -> ()))
     rows_to_remove
@@ -102,14 +101,14 @@ object(self)
     let cow_file_name = Filename.basename cow_file_name in
     let complete_row =
       self#unique_complete_row_such_that
-        (fun row -> (Assoc.find "File name" row) = String cow_file_name)
+        (fun row -> (Assoc.find "File name" row) = Row_item.String cow_file_name)
     in
     let row_id = self#id_of_complete_row complete_row in
     match (self#parent_of row_id) with
     | None -> None
     | Some parent_row_id ->
         let parent_cow_filename =
-          item_to_string (self#get_row_item parent_row_id "File name")
+          Row_item.to_string (self#get_row_item parent_row_id "File name")
         in
         Some parent_cow_filename
 
@@ -121,7 +120,7 @@ object(self)
   in
   let complete_row_to_copy =
     self#unique_complete_row_such_that
-      (fun row -> (Assoc.find "File name" row) = String parent_file_name)
+      (fun row -> (Assoc.find "File name" row) = Row_item.String parent_file_name)
   in
   let parent_id   = self#id_of_complete_row complete_row_to_copy in
   let parent_name = self#name_of_row complete_row_to_copy in
@@ -137,13 +136,13 @@ object(self)
          let new_row_id =
            self#add_row_with
              ~name:parent_name
-             ~icon:(item_to_string (Assoc.find "Type" row_to_copy))
+             ~icon:(Row_item.to_string (Assoc.find "Type" row_to_copy))
              ~comment:"[no comment]"
              ~file_name:cow_file_name
              ~parent:parent_id
              ~date:(UnixExtra.date ~dot:" " ())
              ~scenario:"[no scenario]"
-             ~prefixed_filesystem:(item_to_string (Assoc.find "Prefixed filesystem" row_to_copy))
+             ~prefixed_filesystem:(Row_item.to_string (Assoc.find "Prefixed filesystem" row_to_copy))
              ()
           in
           self#highlight_row new_row_id)
@@ -157,26 +156,26 @@ object(self)
 
   method add_state_for_device device_name (* "m1" *) =
     let most_recent_file_name =
-      item_to_string
+      Row_item.to_string
         (Assoc.find "File name" (self#get_the_most_recent_state_with_name device_name))
     in
     self#add_substate_of most_recent_file_name
 
   method startup_in_state row_id =
-    let correct_date = item_to_string (self#get_row_item row_id "Timestamp") in
-    let _cow_file_name = item_to_string (self#get_row_item row_id "File name") in
-    let name = item_to_string (self#get_row_item row_id "Name") in
-    self#set_row_item row_id "Timestamp" (String (UnixExtra.date ~dot:" " ()));
+    let correct_date = Row_item.to_string (self#get_row_item row_id "Timestamp") in
+    let _cow_file_name = Row_item.to_string (self#get_row_item row_id "File name") in
+    let name = Row_item.to_string (self#get_row_item row_id "Name") in
+    self#set_row_item row_id "Timestamp" (Row_item.String (UnixExtra.date ~dot:" " ()));
     let _, startup_function = Startup_functions.extract () in
     let () = startup_function name in
     Task_runner.the_task_runner#schedule
       (fun () ->
-        self#set_row_item row_id "Timestamp" (String correct_date));
+        self#set_row_item row_id "Timestamp" (Row_item.String correct_date));
 
 
   method delete_state row_id =
-    let name = item_to_string (self#get_row_item row_id "Name") in
-    let file_name = item_to_string (self#get_row_item row_id "File name") in
+    let name = Row_item.to_string (self#get_row_item row_id "Name") in
+    let file_name = Row_item.to_string (self#get_row_item row_id "File name") in
     (* Remove the full row: *)
     self#remove_row row_id;
     (* Remove the cow file: *)
@@ -190,16 +189,16 @@ object(self)
       (fun a_row _ ->
         let an_id = Assoc.find "_id" a_row in
         let a_name = Assoc.find "Name" a_row in
-        if a_name = String name then
+        if a_name = Row_item.String name then
           (if an_id = id_of_the_most_recent_row_for_name then
-            self#highlight_row (item_to_string an_id)
+            self#highlight_row (Row_item.to_string an_id)
           else
-            self#unhighlight_row (item_to_string an_id)))
+            self#unhighlight_row (Row_item.to_string an_id)))
       (self#get_complete_forest);
 
 
   method delete_states_except_this row_id =
-    let name = item_to_string (self#get_row_item row_id "Name") in
+    let name = Row_item.to_string (self#get_row_item row_id "Name") in
     let row_ids = self#row_ids_of_name name in
     let root_id = self#unique_root_row_id_of_name name in
     let row_ids_to_remove = ListExtra.substract row_ids [root_id; row_id] in
@@ -210,7 +209,7 @@ object(self)
     let forest = self#get_complete_forest in
     let relevant_forest =
       Forest.filter
-        (fun row -> ((Assoc.find "Name" row) = String name))
+        (fun row -> ((Assoc.find "Name" row) = Row_item.String name))
       forest
     in
     let relevant_states =
@@ -222,9 +221,9 @@ object(self)
     List.fold_left
       (fun maximum row ->
         let timestamp_maximum =
-          item_to_string (Assoc.find "Timestamp" maximum) in
+          Row_item.to_string (Assoc.find "Timestamp" maximum) in
         let timestamp_row =
-          item_to_string (Assoc.find "Timestamp" row) in
+          Row_item.to_string (Assoc.find "Timestamp" row) in
         if timestamp_maximum > timestamp_row then
           maximum
         else
@@ -246,7 +245,7 @@ object(self)
   (* Returns the list of existing cow files except the most recent ones: *)
   method get_files_may_not_be_saved =
     if Global_options.Keep_all_snapshots_when_saving.extract () = true then [] else
-    let file_name_of row_id = item_to_string (self#get_row_item row_id "File name") in
+    let file_name_of row_id = Row_item.to_string (self#get_row_item row_id "File name") in
     let row_ids = self#get_all_row_ids_except_root_and_the_most_recent_ones in
     let file_names = List.map (file_name_of) row_ids in
     let file_exists cow_file_name =
@@ -297,7 +296,7 @@ object(self)
   method number_of_states_with_name name =
     self#number_of_states_such_that
       (fun complete_row ->
-        (Assoc.find "Name" complete_row) = String name)
+        (Assoc.find "Name" complete_row) = Row_item.String name)
 
   method number_of_states =
     let linearized_complete_forest = Forest.linearize self#get_complete_forest in
@@ -310,7 +309,7 @@ object(self)
     self#export_as_variant ~router:true row_id
 
   method private export_as_variant ~router row_id =
-    let device_name = item_to_string (self#get_row_item row_id "Name") in
+    let device_name = Row_item.to_string (self#get_row_item row_id "Name") in
     let can_startup, _ = Startup_functions.extract () in
     (* We can only export the cow file if we are not running the device: *)
     if not (can_startup device_name) then
@@ -319,12 +318,12 @@ object(self)
         (s_ "You have to shut it down first.") (* TODO *)
         ()
     else
-    let cow_name = item_to_string (self#get_row_item row_id "File name") in
+    let cow_name = Row_item.to_string (self#get_row_item row_id "File name") in
     let variant_dir =
       (* For backward compatibility I can't change the treeview structure
          to store these informations once. On the contrary, I re-calculate
 	 them at each export; *)
-      let prefixed_filesystem = item_to_string (self#get_row_item row_id "Prefixed filesystem") in
+      let prefixed_filesystem = Row_item.to_string (self#get_row_item row_id "Prefixed filesystem") in
       Disk.user_export_dirname_of_prefixed_filesystem prefixed_filesystem
     in
     (* Just show the dialog window, and bind a method which does all the real work to the
@@ -390,7 +389,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       self#add_string_column
         ~header:"Activation scenario"
         ~shown_header:(s_ "Activation scenario")
-        ~default:(fun () -> String "[No scenario]")
+        ~default:(fun () -> Row_item.String "[No scenario]")
         ~hidden:true
         ~italic:true
         () in
@@ -398,14 +397,14 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       self#add_string_column
         ~header:"Timestamp"
         ~shown_header:(s_ "Timestamp")
-        ~default:(fun () -> String (UnixExtra.date ~dot:" " ()))
+        ~default:(fun () -> Row_item.String (UnixExtra.date ~dot:" " ()))
         () in
     let _ =
       self#add_editable_string_column
         ~header:"Comment"
         ~shown_header:(s_ "Comment")
         ~italic:true
-        ~default:(fun () -> String "[no comment]")
+        ~default:(fun () -> Row_item.String "[no comment]")
         () in
     let _ =
       self#add_string_column
@@ -429,7 +428,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       (fun selected_rowid_if_any ->
         (Option.to_bool selected_rowid_if_any) &&
         (let row_id = Option.extract selected_rowid_if_any in
-        let type_ = item_to_string (self#get_row_item row_id "Type") in
+        let type_ = Row_item.to_string (self#get_row_item row_id "Type") in
         type_ = "machine"))
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
@@ -440,7 +439,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       (fun selected_rowid_if_any ->
         (Option.to_bool selected_rowid_if_any) &&
         (let row_id = Option.extract selected_rowid_if_any in
-        let type_ = item_to_string (self#get_row_item row_id "Type") in
+        let type_ = Row_item.to_string (self#get_row_item row_id "Type") in
         type_ = "router"))
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
@@ -453,7 +452,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       (fun selected_rowid_if_any ->
         (Option.to_bool selected_rowid_if_any) &&
         (let row_id = Option.extract selected_rowid_if_any in
-        let name = item_to_string (self#get_row_item row_id "Name") in
+        let name = Row_item.to_string (self#get_row_item row_id "Name") in
         let can_startup, _ = Startup_functions.extract () in
         can_startup name))
       (fun selected_rowid_if_any ->
@@ -470,7 +469,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       fun selected_rowid_if_any ->
 	(Option.to_bool selected_rowid_if_any) &&
 	(let row_id = Option.extract selected_rowid_if_any in
-	let name = item_to_string (self#get_row_item row_id "Name") in
+	let name = Row_item.to_string (self#get_row_item row_id "Name") in
 	(self#number_of_states_with_name name) > 1)
     in
 
@@ -495,7 +494,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       number_of_states_with_name_gt_1
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
-        let name = item_to_string (self#get_row_item row_id "Name") in
+        let name = Row_item.to_string (self#get_row_item row_id "Name") in
         self#remove_all_states_except_the_most_recent_of_name name);
 
     self#add_menu_item
@@ -503,7 +502,7 @@ the machine itself (you should expand the tree).") new_variant_pathname)
       number_of_states_with_name_gt_1
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
-        let name = item_to_string (self#get_row_item row_id "Name") in
+        let name = Row_item.to_string (self#get_row_item row_id "Name") in
         self#remove_all_states_of_name name);
 
     self#add_separator_menu_item;

@@ -31,7 +31,7 @@ type node   = tag * attributes ;;
 
 (** The forest concretization and its aliases. *)
 
-type forest = node Forest.forest ;;
+type forest = node Forest.t ;;
 type t      = forest ;;
 type tree   = forest ;;
 
@@ -73,15 +73,15 @@ end;; (* class interpreter *)
 
 
 (** print_forest specialization for xforest *)
-let rec print_forest ?level:(level=0) forest =
+let rec print_xforest ?level ~channel forest =
  let string_of_attr (name,value) = (name^"="^"\""^value^"\"") in
  let fold_strings = function
   | []   -> ""
   | [x]  -> x
   | x::r -> List.fold_left (fun a b -> a ^ " " ^ b) x r  in
  let string_of_attrs attrs = fold_strings (List.map string_of_attr attrs) in
- let print_node (tag,attrs) = print_string ("<" ^ tag ^ "[" ^ (string_of_attrs attrs) ^ "]>") in
- Forest.print_forest ~level forest print_node
+ let string_of_node (tag,attrs) = ("<" ^ tag ^ "[" ^ (string_of_attrs attrs) ^ "]>") in
+ Forest.print_forest ?level ~string_of_node ~channel forest
 ;;
 
 (** Facilities for encoding/decoding fields in an object which are not strings. *)

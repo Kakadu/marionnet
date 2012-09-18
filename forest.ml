@@ -21,15 +21,15 @@
 
 (** This definition prevents equivalences (each forest as a
     unique representation). *)
-type 'a forest =
+type 'a t =
   | Empty
-  | NonEmpty of 'a           (** first tree root     *)
-             *  ('a forest)  (** first tree subtrees *)
-             *  ('a forest)  (** other nodes         *)
+  | NonEmpty of 'a      (** first tree root     *)
+             *  ('a t)  (** first tree subtrees *)
+             *  ('a t)  (** other nodes         *)
 
 (** Returns the list of the 'a elements belong the forest.
     The order is depth-first, left-to-right. *)
-let rec linearize (forest:'a forest) : 'a list  =
+let rec linearize (forest:'a t) : 'a list  =
   match forest with
     Empty ->
       []
@@ -61,7 +61,7 @@ let rec map f forest =
 (** Iterate calling f on all nodes. The order is depth-first, left-to-right.
     f has the node as its first parameter, and its "parent-tree-node-option" as
     its second parameter *)
-let rec iter ?parent (f : 'a -> 'a option -> unit) (forest : 'a forest) =
+let rec iter ?parent (f : 'a -> 'a option -> unit) (forest : 'a t) =
   match forest with
     Empty ->
       ()
@@ -138,7 +138,7 @@ let parent_of node forest =
 ;;
 
 (** Return the first-level nodes (similar to 'find -maxdepth 1'). *)
-let rec forest_to_roots (forest : 'a forest) : 'a list =
+let rec forest_to_roots (forest : 'a t) : 'a list =
   match forest with
     Empty ->
       []
@@ -200,25 +200,39 @@ let grandchildren_nodes_with_repetitions node forest =
        (fun node -> children_nodes node forest)
        children_nodes_of_node);;
 
-
-(** An stdout printer for forests. *)
-let rec print_forest =
+let printable_string_of_forest
+ ?(level=0)
+ ?(string_of_node=(fun _ ->"<NODE>"))
+ forest
+ =
+ let buffer = Buffer.create 100 in
+ let print_string x = Buffer.add_string buffer x in
+ let print_node x   = Buffer.add_string buffer (string_of_node x) in
 
  (* Support for indentation *)
  let indent = function level ->
    for i = 1 to level do print_string "  "; done;
-   if level = 0 then print_string "* " else print_string "`-" in
-
- fun ?level:(level=0) forest print_node ->
-  match forest with
-    Empty ->
-      ()
+   if level = 0 then print_string "* " else print_string "`-"
+ in
+ let rec loop ~level = function
+  | Empty -> ()
   | NonEmpty(root, subtrees, rest) ->
-      indent level;
-      print_node root;
-      print_string "\n";
-      print_forest ~level:(level + 1) subtrees print_node;
-      print_forest ~level rest print_node
+      begin
+	indent level;
+	print_node root;
+	print_string "\n";
+	loop ~level:(level + 1) subtrees;
+	loop ~level rest;
+      end
+ in
+ loop ~level forest;
+ Buffer.contents buffer
+;;
+
+(** A printer for forests: *)
+let rec print_forest ?level ?string_of_node ~channel forest =
+  let s = printable_string_of_forest ?level ?string_of_node forest in
+  Printf.kfprintf flush channel "%s" s
 ;;
 
 (** Add the given tree to the given forest, as a new child of every
@@ -264,7 +278,7 @@ let add_tree_to_forest predicate tree_root tree_subtrees forest =
 (* --- Jean --- facilities using forests to encode trees: *)
 
 (** Make a tree with a root element and its childs. *)
-let tree (x:'a) (childs:'a forest) = NonEmpty (x,childs,Empty)
+let tree (x:'a) (childs:'a t) = NonEmpty (x,childs,Empty)
 
 (** Make a leaf containing the given element. *)
 let leaf (x:'a) = NonEmpty (x,Empty,Empty)
@@ -282,14 +296,15 @@ let is_leaf = function
 
 
 (** A forest may be viewed as a list of trees. *)
-let rec to_treelist (forest:'a forest) : ('a forest list) = match forest with
+let rec to_treelist (forest:'a t) : ('a t list) =
+match forest with
 | Empty -> []
 | NonEmpty (root,childs,rest) -> (NonEmpty (root,childs,Empty))::(to_treelist rest)
 
 
 (** A list of forests may be viewed as a single big forest.
     The forests in the list are simply catenated. *)
-let rec of_forestlist (l:'a forest list) = match l with
+let rec of_forestlist (l:'a t list) = match l with
 | []                             -> Empty
 | Empty::l'                      -> of_forestlist l'
 | (NonEmpty (x,childs,rest))::l' -> NonEmpty (x,childs, (append rest (of_forestlist l')))
@@ -300,7 +315,7 @@ let rec of_forestlist (l:'a forest list) = match l with
     also checks if all elements are really trees. An exception [Failure "of_nodelist"]
     is raised when a non tree element is encountered (use [of_forestlist] if you want
     flexibility). *)
-let rec of_treelist (l:'a forest list) = match l with
+let rec of_treelist (l:'a t list) = match l with
 | []                              -> Empty
 | (NonEmpty (x,childs,Empty))::l' -> NonEmpty (x,childs, (of_treelist l'))
 | _ -> failwith "of_nodelist" (* A run-time type checking *)

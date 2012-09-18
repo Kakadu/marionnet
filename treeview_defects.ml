@@ -16,9 +16,9 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Row_item;;
 open Gettext;;
 module Assoc = ListExtra.Assoc ;;
+module Row_item = Treeview.Row_item ;;
 
 (** The direction in which data flow in a single port; this is the 'resolution'
     of each defect, for each port: *)
@@ -56,18 +56,18 @@ object(self)
   as super
 
   val non_defective_defaults =
-    [ "Loss %", String "0";
-      "Duplication %", String "0";
-      "Flipped bits %", String "0";
-      "Minimum delay (ms)", String "0";
-      "Maximum delay (ms)", String "0"; ]
+    [ "Loss %", Row_item.String "0";
+      "Duplication %", Row_item.String "0";
+      "Flipped bits %", Row_item.String "0";
+      "Minimum delay (ms)", Row_item.String "0";
+      "Maximum delay (ms)", Row_item.String "0"; ]
 
   val defective_defaults =
-    [ "Loss %", String "5";
-      "Duplication %", String "5";
-      "Flipped bits %", String "0.01";
-      "Minimum delay (ms)", String "50";
-      "Maximum delay (ms)", String "100"; ]
+    [ "Loss %", Row_item.String "5";
+      "Duplication %", Row_item.String "5";
+      "Flipped bits %", Row_item.String "0.01";
+      "Minimum delay (ms)", Row_item.String "50";
+      "Maximum delay (ms)", Row_item.String "100"; ]
 
   method add_device
     ?(defective_by_default=false)
@@ -83,9 +83,9 @@ object(self)
       device_type device_name port_no port_prefix user_port_offset;
     let row_id =
       self#add_row
-        [ "Name", String device_name;
-          "Type", Icon device_type;
-          "_uneditable", CheckBox true; ] in
+        [ "Name", Row_item.String device_name;
+          "Type", Row_item.Icon device_type;
+          "_uneditable", Row_item.CheckBox true; ] in
     self#update_port_no ~defective_by_default ~device_name ~port_no ~port_prefix ~user_port_offset ();
     self#collapse_row row_id;
 (*
@@ -102,22 +102,22 @@ object(self)
       | _ -> assert false in
     let cable_row_id =
       self#add_row
-        [ "Name", String cable_name;
-          "Type", Icon cable_type;
-          "_uneditable", CheckBox true; ] in
+        [ "Name", Row_item.String cable_name;
+          "Type", Row_item.Icon cable_type;
+          "_uneditable", Row_item.CheckBox true; ] in
     ignore
       (self#add_row
          ~parent_row_id:cable_row_id
          (List.append
-            ["Name", String left_name;
-             "Type", Icon "leftward"]
+            ["Name", Row_item.String left_name;
+             "Type", Row_item.Icon "leftward"]
             non_defective_defaults));
     ignore
       (self#add_row
          ~parent_row_id:cable_row_id
          (List.append
-            ["Name", String right_name;
-             "Type", Icon "rightward"]
+            ["Name", Row_item.String right_name;
+             "Type", Row_item.Icon "rightward"]
             non_defective_defaults));
     self#collapse_row cable_row_id;
 
@@ -135,10 +135,10 @@ object(self)
       (fun row_id ->
          let name =
            match self#get_row_item row_id "Name" with
-           | String x -> x
+           | Row_item.String x -> x
            | _ -> assert false
          in
-         self#set_row_item row_id "Name" (String (update name)))
+         self#set_row_item row_id "Name" (Row_item.String (update name)))
       port_row_ids
 
   method private add_port
@@ -154,29 +154,29 @@ object(self)
     let current_port_no = self#children_no_of ~parent_name:device_name in
     let current_user_port_index = current_port_no + user_port_offset in
     let port_type =
-      match item_to_string (self#get_row_item device_row_id "Type") with
+      match Row_item.to_string (self#get_row_item device_row_id "Type") with
       | "machine" (*| "world_bridge"*) -> "machine-port"
       | "gateway" (* retro-compatibility *) -> "machine-port"
       | _ -> "other-device-port" in
     let port_row_id =
       self#add_row
         ~parent_row_id:device_row_id
-        [ "Name", String (Printf.sprintf "%s%i" port_prefix current_user_port_index);
-          "Type", Icon port_type;
-          "_uneditable", CheckBox true; ] in
+        [ "Name", Row_item.String (Printf.sprintf "%s%i" port_prefix current_user_port_index);
+          "Type", Row_item.Icon port_type;
+          "_uneditable", Row_item.CheckBox true; ] in
     let _inward_row_id =
       (self#add_row
          ~parent_row_id:port_row_id
          (List.append
-            ["Name", String "inward";
-             "Type", Icon "inward"]
+            ["Name", Row_item.String "inward";
+             "Type", Row_item.Icon "inward"]
             non_defective_defaults)) in
     let outward_row_id =
       (self#add_row
          ~parent_row_id:port_row_id
          (List.append
-            ["Name", String "outward";
-             "Type", Icon "outward"]
+            ["Name", Row_item.String "outward";
+             "Type", Row_item.Icon "outward"]
             defaults)) in
     if defective_by_default then begin
       (* In a single direction suffice: *)
@@ -202,7 +202,7 @@ object(self)
     let port_id = self#id_of_complete_row port_row in
     let port_direction_ids = self#children_of port_id in
     List.find
-      (fun row -> Assoc.find "Type" row = Icon (string_of_port_direction port_direction))
+      (fun row -> Assoc.find "Type" row = Row_item.Icon (string_of_port_direction port_direction))
       (List.map self#get_row port_direction_ids)
 
   method get_cable_data cable_name cable_direction =
@@ -210,7 +210,7 @@ object(self)
     let cable_direction_ids = self#children_of cable_row_id in
     let filtered_cable_directions =
       List.filter
-        (fun row -> Assoc.find "Type" row = Icon (string_of_cable_direction cable_direction))
+        (fun row -> Assoc.find "Type" row = Row_item.Icon (string_of_cable_direction cable_direction))
         (List.map self#get_row cable_direction_ids) in
     assert(List.length filtered_cable_directions = 1);
     List.hd filtered_cable_directions
@@ -220,21 +220,21 @@ object(self)
     let cable_direction_ids = self#children_of cable_row_id in
     assert (List.length cable_direction_ids = 2);
     let directions = List.map self#get_complete_row cable_direction_ids in
-    let leftward_direction  = List.find (fun row -> Assoc.find "Type" row = Icon "leftward")  directions in
-    let rightward_direction = List.find (fun row -> Assoc.find "Type" row = Icon "rightward") directions in
+    let leftward_direction  = List.find (fun row -> Assoc.find "Type" row = Row_item.Icon "leftward")  directions in
+    let rightward_direction = List.find (fun row -> Assoc.find "Type" row = Row_item.Icon "rightward") directions in
     self#set_row_item
-      (item_to_string (Assoc.find "_id" leftward_direction))
+      (Row_item.to_string (Assoc.find "_id" leftward_direction))
       "Name"
-      (String left_endpoint_name);
+      (Row_item.String left_endpoint_name);
     self#set_row_item
-      (item_to_string (Assoc.find "_id" rightward_direction))
+      (Row_item.to_string (Assoc.find "_id" rightward_direction))
       "Name"
-      (String right_endpoint_name);
+      (Row_item.String right_endpoint_name);
 
   (** Return a single port attribute as an item: *)
   method get_port_attribute device_name port_name port_direction column_header =
     float_of_string
-      (item_to_string
+      (Row_item.to_string
          (Assoc.find
             column_header
             (self#get_port_data device_name port_name port_direction)))
@@ -255,7 +255,7 @@ object(self)
   (** Return a single cable attribute as an item: *)
   method get_cable_attribute cable_name cable_direction column_header =
     float_of_string
-      (item_to_string
+      (Row_item.to_string
          (Assoc.find
             column_header
             (self#get_cable_data cable_name cable_direction)))
@@ -299,7 +299,7 @@ object(self)
         (self#get_row row_id) in
     let values =
       List.map
-        (fun (_, i) -> let s = item_to_string i in try float_of_string s with _ -> 0.0)
+        (fun (_, i) -> let s = Row_item.to_string i in try float_of_string s with _ -> 0.0)
         row in
     let values =
       match maximum_delay with None -> values | Some x -> x :: values in
@@ -325,7 +325,7 @@ object(self)
       self#add_checkbox_column
         ~header:"_uneditable"
         ~hidden:true
-        ~default:(fun () -> CheckBox false)
+        ~default:(fun () -> Row_item.CheckBox false)
         () in
     let _ =
       self#add_icon_column
@@ -354,8 +354,8 @@ object(self)
       self#add_editable_string_column
         ~header:"Loss %"
         ~shown_header:(s_ "Loss %")
-        ~default:(fun () -> String "")
-        ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_percentage i)
+        ~default:(fun () -> Row_item.String "")
+        ~constraint_predicate:(fun i -> let i = Row_item.to_string i in self#is_a_valid_percentage i)
         () in
     loss#set_after_edit_commit_callback
       (fun row_id _ _ ->
@@ -364,8 +364,8 @@ object(self)
       self#add_editable_string_column
         ~header:"Duplication %"
         ~shown_header:(s_ "Duplication %")
-        ~default:(fun () -> String "")
-        ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_non_100_percentage i)
+        ~default:(fun () -> Row_item.String "")
+        ~constraint_predicate:(fun i -> let i = Row_item.to_string i in self#is_a_valid_non_100_percentage i)
         () in
     duplication#set_after_edit_commit_callback
       (fun row_id _ _ ->
@@ -374,8 +374,8 @@ object(self)
       self#add_editable_string_column
         ~header:"Flipped bits %"
         ~shown_header:(s_ "Flipped bits %")
-        ~default:(fun () -> String "")
-        ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_percentage i)
+        ~default:(fun () -> Row_item.String "")
+        ~constraint_predicate:(fun i -> let i = Row_item.to_string i in self#is_a_valid_percentage i)
         () in
     flipped_bits#set_after_edit_commit_callback
       (fun row_id _ content ->
@@ -390,16 +390,16 @@ object(self)
       self#add_editable_string_column
         ~header:"Minimum delay (ms)"
         ~shown_header:(s_ "Minimum delay (ms)")
-        ~default:(fun () -> String "")
-        ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_delay i)
+        ~default:(fun () -> Row_item.String "")
+        ~constraint_predicate:(fun i -> let i = Row_item.to_string i in self#is_a_valid_delay i)
         () in
     minimum_delay#set_after_edit_commit_callback
       (fun row_id _ new_content ->
         let minimum_delay = if new_content = "" then 0.0 else float_of_string new_content in
-        let maximum_delay = item_to_string (self#get_row_item row_id "Maximum delay (ms)") in
+        let maximum_delay = Row_item.to_string (self#get_row_item row_id "Maximum delay (ms)") in
         let maximum_delay = if maximum_delay = "" then 0.0 else float_of_string maximum_delay in
         (if minimum_delay > maximum_delay then
-          self#set_row_item row_id "Maximum delay (ms)" (String (string_of_float minimum_delay)));
+          self#set_row_item row_id "Maximum delay (ms)" (Row_item.String (string_of_float minimum_delay)));
         self#show_defectiveness
           ~maximum_delay:(max minimum_delay maximum_delay)
           row_id);
@@ -407,16 +407,16 @@ object(self)
       self#add_editable_string_column
         ~header:"Maximum delay (ms)"
         ~shown_header:(s_ "Maximum delay (ms)")
-        ~default:(fun () -> String "")
-        ~constraint_predicate:(fun i -> let i = item_to_string i in self#is_a_valid_delay i)
+        ~default:(fun () -> Row_item.String "")
+        ~constraint_predicate:(fun i -> let i = Row_item.to_string i in self#is_a_valid_delay i)
         () in
     maximum_delay#set_after_edit_commit_callback
       (fun row_id _ new_content ->
         let maximum_delay = if new_content = "" then 0.0 else float_of_string new_content in
-        let minimum_delay = item_to_string (self#get_row_item row_id "Minimum delay (ms)") in
+        let minimum_delay = Row_item.to_string (self#get_row_item row_id "Minimum delay (ms)") in
         let minimum_delay = if minimum_delay = "" then 0.0 else float_of_string minimum_delay in
         (if minimum_delay > maximum_delay then
-           self#set_row_item row_id "Minimum delay (ms)" (String (string_of_float maximum_delay)));
+           self#set_row_item row_id "Minimum delay (ms)" (Row_item.String (string_of_float maximum_delay)));
         self#show_defectiveness
           ~minimum_delay:(min minimum_delay maximum_delay)
           row_id);
@@ -424,14 +424,14 @@ object(self)
   self#add_row_constraint
     ~name:(s_ "you should choose a direction to define this parameter")
     (fun row ->
-      let uneditable = item_to_bool (Assoc.find "_uneditable" row) in
+      let uneditable = Row_item.to_bool (Assoc.find "_uneditable" row) in
       (not uneditable) or
       (List.for_all (fun (name, value) ->
                        name = "Name" or
                        name = "Type" or
                        name = "_uneditable" or
                        self#is_column_reserved name or
-                       value = String "")
+                       value = Row_item.String "")
                     row));
 
     self#set_after_update_callback

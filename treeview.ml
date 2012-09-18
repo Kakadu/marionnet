@@ -16,14 +16,72 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-
 (* To do: this could be moved to WIDGET/ *)
 
 (* open GTree;; *)
-open Forest;;
-open Row_item;;
 open Gettext;;
 module Assoc = ListExtra.Assoc;;
+
+module Row_item = struct
+  type t =
+  | String of string
+  | CheckBox of bool
+  | Icon of string;; (* Ugly, but this avoids that OCaml bitches about
+			parametric polymorphism and classes *)
+
+  let failwith x = failwith ("Treeview.Row_item."^x)
+
+  let to_string = function
+  | String s | Icon s -> s
+  | CheckBox _ -> failwith "to_string: the parameter is a checkbox";;
+
+  let to_bool = function
+  | CheckBox b -> b
+  | String _ -> failwith "to_bool: the parameter is a string"
+  | Icon _   -> failwith "to_bool: the parameter is an icon";;
+
+  (** Return a written representation of the given item, suitable for debugging,
+      which also includes the constructor: *)
+  let to_pretty_string = function
+  | String s   -> Printf.sprintf "#string<%s>" s
+  | CheckBox b -> Printf.sprintf "#checkbox<%s>" (if b then "true" else "false")
+  | Icon s     -> Printf.sprintf "#icon<%s>" s;;
+
+end (* module Row_item *)
+
+(** A row is simply a list of non-conflicting pairs <column_name, row items>. We
+    implement it in this way to make it easy to marshal, and realatively easy
+    to manipulate at runtime. Of course by using lists instead of tuples we're
+    avoiding potentially helpful type checks here, but here flexibility is more
+    important *)
+module Row = struct
+
+ type t = (string * Row_item.t) list
+
+ (** Print a written representation of the given row, suitable for debugging;
+    the printed string also includes the constructor: *)
+ let to_pretty_string row =
+    let buffer = Buffer.create 100 in
+    let print_string x = Buffer.add_string buffer x in
+    let rec loop row =
+      match row with
+      | [] -> ()
+      | (name, value) :: rest -> begin
+	  print_string (Printf.sprintf "%s=%s " name (Row_item.to_pretty_string value));
+	  loop rest;
+      end in
+    print_string "{ ";
+    loop row;
+    print_string "}";
+    let result = Buffer.contents buffer in
+    result
+
+  let pretty_print ~channel row =
+    Printf.kfprintf flush channel "%s\n" (to_pretty_string row)
+
+end (* module Row *)
+
+type row_id = int;;
 
 module Defaults = struct
  let highlight_foreground_color = "Black";;
@@ -35,24 +93,15 @@ type column_type =
   | CheckBoxColumnType
   | IconColumnType;;
 
-(** A row is simply a list of non-conflicting pairs <column_name, row items>. We
-    implement it in this way to make it easy to marshal, and realatively easy
-    to manipulate at runtime. Of course by using lists instead of tuples we're
-    avoiding potentially helpful type checks here, but here flexibility is more
-    important *)
-type row = (string * row_item) list;;
-
-type row_id = int;;
-
 class virtual column =
 let last_used_id = ref 0 in
 fun ~treeview
     ~(hidden:bool)
     ~(reserved:bool)
-    ?(default:(unit -> row_item) option)
+    ?(default:(unit -> Row_item.t) option)
     ~(header:string)
     ?(shown_header=header)
-    ?constraint_predicate:(constraint_predicate = (fun (_ : row_item) -> true))
+    ?constraint_predicate:(constraint_predicate = (fun (_ : Row_item.t) -> true))
     () ->
 let () = last_used_id := !last_used_id + 1 in
 let _ =
@@ -81,12 +130,12 @@ object(self)
     match default with
       Some default -> default
     | None -> failwith (self#header ^ " has no default value, hence it must be specified")
-  method virtual can_contain : row_item -> bool
+  method virtual can_contain : Row_item.t -> bool
   method virtual gtree_column : 'a . 'a GTree.column
 (*   method virtual gtree_column : 'a. 'a GTree.column *)
   method virtual append_to_view : GTree.view -> unit
-  method virtual get : string -> row_item
-  method virtual set : ?initialize:bool -> ?row_iter:Gtk.tree_iter -> ?ignore_constraints:bool -> string -> row_item -> unit
+  method virtual get : string -> Row_item.t
+  method virtual set : ?initialize:bool -> ?row_iter:Gtk.tree_iter -> ?ignore_constraints:bool -> string -> Row_item.t -> unit
 
   val gtree_view_column = ref None
 
@@ -110,7 +159,7 @@ fun ~treeview
     ?bold:(bold=false)
     ~(header:string)
     ?(shown_header)
-    ?constraint_predicate:(constraint_predicate = (fun (_ : row_item) -> true))
+    ?constraint_predicate:(constraint_predicate = (fun (_ : Row_item.t) -> true))
     () -> object(self)
   inherit column ~hidden ~reserved ?default ~treeview ~header ?shown_header ~constraint_predicate () as super
 
@@ -145,7 +194,7 @@ fun ~treeview
   method get row_id =
     let tree_iter = treeview#id_to_iter row_id in
     let store = (treeview#store :> GTree.tree_store) in
-    String(store#get ~row:tree_iter ~column:self#gtree_column)
+    Row_item.String(store#get ~row:tree_iter ~column:self#gtree_column)
 
   method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id item =
     (if not (self#header = "_id") then
@@ -164,7 +213,7 @@ fun ~treeview
         | Some row_iter -> row_iter in
     let store = (treeview#store :> GTree.tree_store) in
     match item with
-      String s ->
+      Row_item.String s ->
         store#set
           ~row:tree_iter
           ~column:self#gtree_column
@@ -180,7 +229,7 @@ fun ~treeview
     ?default
     ~(header:string)
     ?(shown_header)
-    ?constraint_predicate:(constraint_predicate = (fun (_ : row_item) -> true))
+    ?constraint_predicate:(constraint_predicate = (fun (_ : Row_item.t) -> true))
     ?italic:(italic=false)
     ?bold:(bold=false)
     () -> object(self)
@@ -220,11 +269,11 @@ fun ~treeview
     let id = treeview#path_to_id path in
     let old_content =
       match self#get id with
-        String s -> s
+        Row_item.String s -> s
       | _ -> assert false in
     (try
       (!before_edit_commit_callback) id old_content new_content;
-      self#set id (String new_content);
+      self#set id (Row_item.String new_content);
       (!after_edit_commit_callback) id old_content new_content;
       treeview#run_after_update_callback id;
     with e -> begin
@@ -254,7 +303,7 @@ fun ~treeview
     ?default
     ~(header:string)
     ?(shown_header)
-    ?constraint_predicate:(constraint_predicate = (fun (_ : row_item) -> true))
+    ?constraint_predicate:(constraint_predicate = (fun (_ : Row_item.t) -> true))
     () -> object(self)
   inherit column ~hidden ~reserved ?default ~treeview ~header ?shown_header
                  ~constraint_predicate () as super
@@ -281,9 +330,9 @@ fun ~treeview
   method get row_id =
     let tree_iter = treeview#id_to_iter row_id in
     let store = (treeview#store :> GTree.tree_store) in
-    CheckBox(store#get ~row:tree_iter ~column:self#gtree_column)
+    Row_item.CheckBox(store#get ~row:tree_iter ~column:self#gtree_column)
 
-  method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id (item : row_item) =
+  method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id (item : Row_item.t) =
     (if not initialize then begin
        let current_row = treeview#get_complete_row row_id in
        let new_row = Assoc.add self#header item current_row in
@@ -298,7 +347,7 @@ fun ~treeview
         | Some row_iter -> row_iter in
     let store = (treeview#store :> GTree.tree_store) in
     match item with
-      CheckBox value ->
+      Row_item.CheckBox value ->
         store#set
           ~row:tree_iter
           ~column:self#gtree_column
@@ -320,12 +369,12 @@ fun ~treeview
     let id = treeview#path_to_id path in
     let old_content =
       match self#get id with
-        CheckBox value -> value
+        Row_item.CheckBox value -> value
       | _ -> assert false in
     let new_content = not old_content in
     (try
       (!before_toggle_commit_callback) id old_content new_content;
-      self#set id (CheckBox new_content);
+      self#set id (Row_item.CheckBox new_content);
       (!after_toggle_commit_callback) id old_content new_content;
       treeview#run_after_update_callback id;
     with _ -> begin
@@ -386,7 +435,7 @@ object(self)
   method can_contain x =
     (* If lookup_by_string doesn't fail then x is safe: *)
     match x with
-      (Icon icon) ->
+      (Row_item.Icon icon) ->
         (try
           ignore (self#lookup_by_string icon);
           true;
@@ -429,9 +478,9 @@ object(self)
   method get row_id =
     let tree_iter = treeview#id_to_iter row_id in
     let store = (treeview#store :> GTree.tree_store) in
-    Icon(store#get ~row:tree_iter ~column:self#gtree_column)
+    Row_item.Icon(store#get ~row:tree_iter ~column:self#gtree_column)
 
-  method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id (item : row_item) =
+  method set ?(initialize=false) ?row_iter ?(ignore_constraints=false) row_id (item : Row_item.t) =
     (if not initialize then begin
        let current_row = treeview#get_complete_row row_id in
        let new_row = Assoc.add self#header item current_row in
@@ -446,7 +495,7 @@ object(self)
         | Some row_iter -> row_iter in
     let store = (treeview#store :> GTree.tree_store) in
     match item with
-      Icon name ->
+      Row_item.Icon name ->
         store#set
           ~row:tree_iter
           ~column:self#gtree_column
@@ -513,7 +562,7 @@ object(self)
   val tree_store = ref None
 
   val id_forest =
-    ref Empty
+    ref Forest.Empty
 
   val get_column =
     Hashtbl.create 100
@@ -797,24 +846,24 @@ object(self)
 
   method id_of_complete_row row =
     match Assoc.find "_id" row with
-    | String row_id -> row_id
+    | Row_item.String row_id -> row_id
     | _ -> assert false
 
-  method private forest_to_id_forest (forest : row forest) =
+  method private forest_to_id_forest (forest : Row.t Forest.t) =
     match forest with
-    | Empty ->
-        Empty
-    | NonEmpty(row, subtrees, rest) ->
+    | Forest.Empty ->
+        Forest.Empty
+    | Forest.NonEmpty(row, subtrees, rest) ->
         let id = self#id_of_complete_row row in
-        NonEmpty(id,
+        Forest.NonEmpty(id,
                  self#forest_to_id_forest subtrees,
                  self#forest_to_id_forest rest)
 
-  method private forest_to_row_list ~call_complete_row (forest : row forest) =
+  method private forest_to_row_list ~call_complete_row (forest : Row.t Forest.t) =
     match forest with
-    | Empty ->
+    | Forest.Empty ->
         []
-    | NonEmpty(row, subtrees, rest) ->
+    | Forest.NonEmpty(row, subtrees, rest) ->
         let id = self#id_of_complete_row row in
         let row = if call_complete_row then
                     self#complete_row ~ignore_constraints:true row
@@ -822,7 +871,7 @@ object(self)
                     row
         in
         (* Make the row *start* with the id: *)
-        let row = ("_id", (String id)) :: (Assoc.remove "_id" row) in
+        let row = ("_id", (Row_item.String id)) :: (Assoc.remove "_id" row) in
         (id, row) ::
         (self#forest_to_row_list ~call_complete_row subtrees) @
         (self#forest_to_row_list ~call_complete_row rest)
@@ -831,14 +880,14 @@ object(self)
     (self#forest_to_id_forest forest),
     (self#forest_to_row_list ~call_complete_row forest)
 
-  method private add_complete_row_with_no_checking ?parent_row_id (row:row) =
+  method private add_complete_row_with_no_checking ?parent_row_id (row: Row.t) =
     (* Add defaults for unspecified fields: *)
     let row = self#complete_row ~ignore_constraints:true row in
     (* Be sure that we set the _id as the *first* column, so that we can make searches by
        id even when setting all the other columns [To do: this may not be needed
        anymore. --L.]: *)
     let row_id = self#id_of_complete_row row in
-    let row = ("_id", (String row_id)) :: (Assoc.remove "_id" row) in
+    let row = ("_id", (Row_item.String row_id)) :: (Assoc.remove "_id" row) in
     let store = self#store in
     let parent_iter_option =
       match parent_row_id with
@@ -846,14 +895,13 @@ object(self)
       | (Some parent_row_id) -> Some(self#id_to_iter parent_row_id) in
     (* Update our internal structures holding the forest data: *)
     id_forest :=
-      add_tree_to_forest
+      Forest.add_tree_to_forest
         (fun some_id ->
            match parent_row_id with
              None -> false
            | Some parent_row_id -> some_id = parent_row_id)
-        row_id Empty
+        row_id Forest.Empty
         !id_forest;
-(*     print_forest !id_forest Log.print_string; *)
     (* Update the hash table, adding the complete row: *)
     Hashtbl.add id_to_row row_id row;
     let new_row_iter = store#append ?parent:parent_iter_option () in
@@ -862,22 +910,15 @@ object(self)
     List.iter
       (fun (column_header, datum) ->
         try
-(*           Log.printf "  * looking up the column %s: begin\n" column_header; flush_all (); *)
           let column = self#get_column column_header in
-(*           Log.printf "  * looking up the column %s: end\n" column_header; flush_all (); *)
           (if column_header = "_id" then begin
-(*             Log.printf "  * store#set (it should be the _id) %s: begin\n" column_header; flush_all (); *)
             store#set ~row:new_row_iter ~column:column#gtree_column row_id;
-(*             Log.printf "  * store#set (it should be the _id) %s: end\n" column_header; flush_all (); *)
            end else begin
-(*             Log.printf "  * column#set %s: begin\n" column_header; flush_all (); *)
             column#set
               row_id
               ~ignore_constraints:true
               datum;
-(*             Log.printf "  * column#set %s: end\n" column_header; flush_all (); *)
            end);
-          (* Log.printf "  + OK     for column %s\n" column_header; flush_all (); *)
         with e -> begin
           Log.printf "  - WARNING: unknown column %s (%s)\n" column_header (Printexc.to_string e); flush_all ();
         end)
@@ -890,7 +931,7 @@ object(self)
       | None -> ())); *)
 (*     Log.printf "Added the row %s\n" row_id; flush_all () *)
 
-  method add_row ?parent_row_id (row:row) =
+  method add_row ?parent_row_id (row:Row.t) =
     (* Check that no reserved fields are specified: *)
     List.iter
       (fun (column_header, _) ->
@@ -914,7 +955,7 @@ object(self)
   (** Return a row forest (not the internally-used id forest), containing the
       non-reserved fields *)
   method get_forest =
-    map
+    Forest.map
       (fun row_id ->
          self#get_row row_id)
       !id_forest;
@@ -922,20 +963,20 @@ object(self)
   (** Return a row forest (not the internally-used id forest), containing all
       the fields *)
   method get_complete_forest =
-    map
+    Forest.map
       (fun row_id ->
          self#get_complete_row row_id)
       !id_forest;
 
   (** Completely clear the state, and set it to the given forest. *)
-  method set_forest (forest : row forest) =
+  method set_forest (forest : Row.t Forest.t) =
     self#set_complete_forest
-      (map
+      (Forest.map
         (fun row -> self#complete_row row)
         forest)
 
   (** Completely clear the state, and set it to the given complete forest. *)
-  method private set_complete_forest (new_forest : row forest) =
+  method private set_complete_forest (new_forest : Row.t Forest.t) =
     (* Clear our structures and Gtk structures: *)
     self#clear;
     (* Compute our new structures: *)
@@ -988,7 +1029,7 @@ object(self)
   method private expanded_row_ids =
     List.filter
       (fun row_id -> self#is_row_expanded row_id)
-      (linearize !id_forest)
+      (Forest.linearize !id_forest)
 
   (** Expand exactly the rows with the ids in row_id_list, and collapse
       everything else *)
@@ -1000,6 +1041,34 @@ object(self)
 
   val next_identifier_and_content_forest_marshaler =
     new Oomarshal.marshaller;
+
+  (* For debugging: *)
+  method print =
+    let string_of_node node =
+      let buffer = Buffer.create 100 in
+      let print_string x = Buffer.add_string buffer x in
+      print_string "[ ";
+      List.iter
+	(fun (s, row_item) ->
+	  print_string (Printf.sprintf "%s: " s);
+	  match row_item with
+	  | Row_item.String s ->
+	      print_string (Printf.sprintf "%s; " s)
+	  | Row_item.CheckBox b ->
+	      print_string
+		(Printf.sprintf "%s; " (if b then "T" else "F"))
+	  | Row_item.Icon i ->
+	      print_string (Printf.sprintf "icon:%s; " i))
+	node;
+      print_string "]\n";
+      let result = Buffer.contents buffer in
+      result
+    in (* end of string_of_node *)
+    let forest = self#get_complete_forest in
+    let next_identifier = (self#counter#get_next_fresh_value) in
+    Printf.kfprintf flush stderr "Next identifier: %i\n" next_identifier;
+    Forest.print_forest ~string_of_node ~channel:stderr forest
+
 
   method save ?(with_forest_treatment=fun x->x) () =
     let file_name = Option.extract filename#get in
@@ -1020,7 +1089,7 @@ object(self)
           self#counter#set_next_fresh_value_to next_identifier;
           self#set_complete_forest complete_forest;
           (if (Global_options.Debug_level.get ()) >= 3 then (* we are manually setting the verbosity 3 *)
-            Forest.print_forest complete_forest pretty_print_row);
+            Forest.print_forest ~string_of_node:Row.to_pretty_string ~channel:stderr complete_forest);
         with e -> begin
           Log.printf "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e);
         end);
@@ -1044,7 +1113,7 @@ object(self)
 
   method unique_row_exists_with_binding ~(key:string) ~(value:string) =
    try
-    ignore (self#unique_row_id_such_that (fun row -> (Assoc.find key row) = String value));
+    ignore (self#unique_row_id_such_that (fun row -> (Assoc.find key row) = Row_item.String value));
     true
    with _ -> false
 
@@ -1078,11 +1147,11 @@ object(self)
        to work with than our internal data structures. *)
      (* Ok, save the updated state we want to restore later: *)
      let updated_id_forest =
-       filter
+       Forest.filter
          (fun an_id -> not (an_id = row_id))
          !id_forest in
      let updated_content_forest =
-       map (fun id -> self#get_complete_row id) updated_id_forest in
+       Forest.map (fun id -> self#get_complete_row id) updated_id_forest in
      let _updated_expanded_row_ids_as_list =
        List.fold_left
          (fun list an_id ->
@@ -1091,11 +1160,11 @@ object(self)
             else
               list)
          []
-         (linearize updated_id_forest) in
+         (Forest.linearize updated_id_forest) in
      (* Clear the full state, which of course includes the GUI: *)
      self#clear;
      (* Restore the state we have set apart before: *)
-     iter
+     Forest.iter
        (fun row parent_tree ->
          let parent_row_id =
            match parent_tree with
@@ -1109,12 +1178,12 @@ object(self)
     let row_iter = self#id_to_iter row_id in
     (* First find out which rows we have to remove: *)
     let ids_of_the_rows_to_be_removed =
-      row_id :: (descendant_nodes row_id !id_forest) in
+      row_id :: (Forest.descendant_nodes row_id !id_forest) in
     (* Ok, now update id_forest, id_to_row and expanded_row_ids: *)
     List.iter
       (fun row_id ->
          id_forest :=
-           filter
+           Forest.filter
              (fun a_row_id ->
                 not (row_id = a_row_id))
              !id_forest)
@@ -1128,8 +1197,7 @@ object(self)
     ignore (self#store#remove row_iter);
 
   method clear =
-(*     Log.printf "Clearing a treeview\n"; flush_all (); *)
-    id_forest := Empty;
+    id_forest := Forest.Empty;
     Hashtbl.clear id_to_row;
     Hashtbl.clear expanded_row_ids;
     self#store#clear ();
@@ -1189,20 +1257,20 @@ object(self)
 
   method is_row_highlighted row_id =
     match self#get_row_item row_id "_highlight" with
-      CheckBox b -> b
+      Row_item.CheckBox b -> b
   | _ -> assert false
 
   method highlight_row row_id =
     let highlight_color_column = self#get_column "_highlight" in
-    highlight_color_column#set row_id (CheckBox true)
+    highlight_color_column#set row_id (Row_item.CheckBox true)
 
   method unhighlight_row row_id =
     let highlight_color_column = self#get_column "_highlight" in
-    highlight_color_column#set row_id (CheckBox false)
+    highlight_color_column#set row_id (Row_item.CheckBox false)
 
   method set_row_highlight_color color row_id =
     let highlight_color_column = self#get_column "_highlight-color" in
-    highlight_color_column#set row_id (String color)
+    highlight_color_column#set row_id (Row_item.String color)
 
   method get_row_list =
     Forest.linearize self#get_complete_forest
@@ -1287,21 +1355,21 @@ object(self)
       self#add_string_column
         ~header:"_id"
         ~reserved:true
-        ~default:(fun () -> String (string_of_int (self#counter#fresh ())))
+        ~default:(fun () -> Row_item.String (string_of_int (self#counter#fresh ())))
         ~hidden:hide_reserved_fields
         () in
     let _ =
       self#add_editable_string_column
         ~header:"_highlight-color"
         ~reserved:true
-        ~default:(fun () -> String self#get_highlight_color)
+        ~default:(fun () -> Row_item.String self#get_highlight_color)
         ~hidden:hide_reserved_fields
         () in
     let _ =
       self#add_checkbox_column
         ~header:"_highlight"
         ~reserved:true
-        ~default:(fun () -> CheckBox false)
+        ~default:(fun () -> Row_item.CheckBox false)
         ~hidden:hide_reserved_fields
         () in
     ();
@@ -1321,7 +1389,7 @@ end;;
 
 (* useful predicate: *)
 let row_name_is name =
-   (fun row -> (Assoc.find "Name" row) = String name)
+   (fun row -> (Assoc.find "Name" row) = Row_item.String name)
 
 class virtual treeview_with_a_Name_column = fun
   ~packing
@@ -1335,7 +1403,7 @@ class virtual treeview_with_a_Name_column = fun
   method rename old_name new_name =
     let row_ids = self#row_ids_of_name old_name in
     List.iter
-      (fun row_id -> self#set_row_item row_id "Name" (String new_name))
+      (fun row_id -> self#set_row_item row_id "Name" (Row_item.String new_name))
       row_ids
 
   method unique_root_row_id_of_name name = self#unique_root_row_id_such_that (row_name_is name)
@@ -1343,11 +1411,11 @@ class virtual treeview_with_a_Name_column = fun
   method rows_of_name name               = self#rows_such_that    (row_name_is name)
 
   method name_of_row_id row_id =
-    item_to_string (self#get_row_item row_id "Name")
+    Row_item.to_string (self#get_row_item row_id "Name")
 
   method name_of_row row =
     match Assoc.find "Name" row with
-    | String name -> name
+    | Row_item.String name -> name
     | _ -> assert false
 
   method parent_name_of row_id =
@@ -1419,7 +1487,7 @@ class virtual treeview_with_a_primary_key_Name_column
     let row_ids = self#children_of row_id in
     let filtered_data =
       List.filter
-        (fun row -> Assoc.find "Name" row = String child_name)
+        (fun row -> Assoc.find "Name" row = Row_item.String child_name)
         (List.map self#get_complete_row row_ids)
     in
     assert((List.length filtered_data) = 1);

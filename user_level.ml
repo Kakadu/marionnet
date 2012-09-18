@@ -177,7 +177,8 @@ class network =
 
   (** Dump the current state of [self] into the given file. *)
   method save_to_file (file_name : string) =
-    Xforest.print_forest network#to_forest;
+    (* we are manually setting the verbosity 3 *)
+    (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr network#to_forest);
     network_marshaller#to_file self#to_forest file_name
 
   (** This method is used just for undumping dotoptions, so is not strict.
@@ -188,7 +189,8 @@ class network =
   (** Undump the state of [self] from the given file. *)
   method load_from_file (file_name : string) =
    let forest = network_marshaller#from_file file_name in
-   Xforest.print_forest forest;
+   (* we are manually setting the verbosity 3 *)
+   (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr forest);
    match forest with
    | Forest.NonEmpty (("dotoptions", attrs) , childs , Forest.Empty) ->
       self#from_forest ("dotoptions", attrs) childs
@@ -1776,7 +1778,8 @@ module Xml = struct
     The given network is updated during the parsing. *)
  let load_network (net:network) (fname:string) =
   let (forest:Xforest.t) = network_marshaller#from_file fname in
-  Xforest.print_forest forest;
+  (* we are manually setting the verbosity 3 *)
+  (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr forest);
   match forest with
   | Forest.NonEmpty  (("network", attrs) , childs , Forest.Empty) ->
       net#from_forest ("network", attrs) childs
@@ -1786,7 +1789,8 @@ module Xml = struct
 (** Save the xforest representation of the network. *)
 let save_network (net:network) (fname:string) =
  Log.printf "Netmodel.Xml.save_network: begin\n";
- Xforest.print_forest net#to_forest;
+ (* we are manually setting the verbosity 3 *)
+ (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr net#to_forest);
  network_marshaller#to_file net#to_forest fname;
  Log.printf "Netmodel.Xml.save_network: end (success)\n";;
 

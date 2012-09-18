@@ -22,8 +22,8 @@
      calls, and some other minor changes
  *)
 
-open Row_item;;
 open Gettext;;
+module Row_item = Treeview.Row_item ;;
 
 class t =
 fun ~packing
@@ -39,9 +39,9 @@ object(self)
 
   (** Display the document at the given row, in an asynchronous process: *)
   method private display row_id =
-    let format = item_to_string (self#get_row_item row_id "Format") in
+    let format = Row_item.to_string (self#get_row_item row_id "Format") in
     let reader = self#format_to_reader format in
-    let file_name = item_to_string (self#get_row_item row_id "FileName") in
+    let file_name = Row_item.to_string (self#get_row_item row_id "FileName") in
     let command_line =
       Printf.sprintf "%s '%s/%s'&" reader (Option.extract directory#get) file_name in
     (* Here ~force:true would be useless, because of '&' (the shell well exit in any case). *)
@@ -166,25 +166,25 @@ object(self)
   method import_report ~machine_or_router_name ~pathname () =
     let title = (s_ "Report on ") ^ machine_or_router_name in
     let row_id = self#import_document ~move:true pathname in
-    self#set_row_item row_id "Title" (String title);
-    self#set_row_item row_id "Author" (String "-");
-    self#set_row_item row_id "Type" (String (s_ "Report"));
-    self#set_row_item row_id "Comment" (String ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ())));
+    self#set_row_item row_id "Title" (Row_item.String title);
+    self#set_row_item row_id "Author" (Row_item.String "-");
+    self#set_row_item row_id "Type" (Row_item.String (s_ "Report"));
+    self#set_row_item row_id "Comment" (Row_item.String ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ())));
 
   method import_history ~machine_or_router_name ~pathname () =
     let title = (s_ "History of ") ^ machine_or_router_name in
     let row_id = self#import_document ~move:true pathname in
-    self#set_row_item row_id "Title" (String title);
-    self#set_row_item row_id "Author" (String "-");
-    self#set_row_item row_id "Type" (String (s_ "History"));
-    self#set_row_item row_id "Comment" (String ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ())));
+    self#set_row_item row_id "Title" (Row_item.String title);
+    self#set_row_item row_id "Author" (Row_item.String "-");
+    self#set_row_item row_id "Type" (Row_item.String (s_ "History"));
+    self#set_row_item row_id "Comment" (Row_item.String ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ())));
 
   method import_document ?(move=false) user_path_name =
     let internal_file_name, format = self#import_file user_path_name in
     let row_id =
       self#add_row
-        [ "FileName", String internal_file_name;
-          "Format", String format ] in
+        [ "FileName", Row_item.String internal_file_name;
+          "Format", Row_item.String format ] in
     row_id
 
   initializer
@@ -193,35 +193,35 @@ object(self)
         ~shown_header:(s_ "Icon")
         ~header:"Icon"
         ~strings_and_pixbufs:[ "text", Initialization.Path.images^"treeview-icons/text.xpm"; ]
-        ~default:(fun () -> Icon "text")
+        ~default:(fun () -> Row_item.Icon "text")
         () in
     let _ =
       self#add_editable_string_column
         ~shown_header:(s_ "Title")
         ~header:"Title"
         ~italic:true
-        ~default:(fun () -> String "Please edit this")
+        ~default:(fun () -> Row_item.String "Please edit this")
         () in
     let _ =
       self#add_editable_string_column
         ~shown_header:(s_ "Author")
         ~header:"Author"
         ~italic:false
-        ~default:(fun () -> String "Please edit this")
+        ~default:(fun () -> Row_item.String "Please edit this")
         () in
     let _ =
       self#add_editable_string_column
         ~shown_header:(s_ "Type")
         ~header:"Type"
         ~italic:false
-        ~default:(fun () -> String "Please edit this")
+        ~default:(fun () -> Row_item.String "Please edit this")
         () in
     let _ =
       self#add_editable_string_column
         ~shown_header:(s_ "Comment")
         ~header:"Comment"
         ~italic:true
-        ~default:(fun () -> String "Please edit this")
+        ~default:(fun () -> Row_item.String "Please edit this")
         () in
     let _ =
       self#add_string_column
@@ -231,7 +231,7 @@ object(self)
     let _ =
       self#add_string_column
         ~header:"Format"
-        ~default:(fun () -> String "auto") (* unknown format; this is usefule for
+        ~default:(fun () -> Row_item.String "auto") (* unknown format; this is usefule for
                                               backward-compatibility, as this column
                                               didn't exist in older Marionnet versions *)
         ~hidden:true
@@ -260,7 +260,7 @@ object(self)
       Option.to_bool
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
-        let file_name = item_to_string (self#get_row_item row_id "FileName") in
+        let file_name = Row_item.to_string (self#get_row_item row_id "FileName") in
         let pathname = Printf.sprintf "%s/%s" (Option.extract directory#get) file_name in
         UnixExtra.apply_ignoring_Unix_error Unix.unlink pathname;
         self#remove_row row_id;

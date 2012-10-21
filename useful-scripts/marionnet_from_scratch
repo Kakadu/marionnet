@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.13
-# 2012.09.05
+# Script version: 0.90.14
+# 2012.10.21
 
 set -e
 shopt -s nullglob
@@ -854,7 +854,7 @@ if type uname 1>&2 && [[ $(uname -m) = "x86_64" ]]; then
   patch -p1 < $BUGFIX_FILE
 # Download and apply the patch 0007-Fix-ocamlopt-w.r.t.-binutils-2.2[1-9].patch
 # for ocaml 3.11 on a 32 bits architecture with binutils version=2.2[1-9].x
-elif type ld 1>&2 && ld -v | \grep -q '[ ]2[.]2[1-9][.]'; then
+elif type ld 1>&2 && ld -v | \grep -q '[ ]2[.]2[1-9]'; then
   local BUGFIX_FILE="bugfix-5237-i386.diff"
   echo "Downloading the ocaml 3.11 patch ($BUGFIX_FILE) for i386"
   wget -O $BUGFIX_FILE "$OUR_MIRROR/$BUGFIX_FILE" || \

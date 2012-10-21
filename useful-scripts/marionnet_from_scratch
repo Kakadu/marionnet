@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.14
+# Script version: 0.90.15
 # 2012.10.21
 
 set -e
@@ -1414,6 +1414,20 @@ if ! diff -q $custom $TMPFILE >/dev/null; then
 fi
 }
 
+# This is needed, for instance, for ubuntu 12.04
+function ensure_xserver_allow_tcp_in_lightdm_dot_conf {
+# global SUDO CHANGED_FILES
+local custom=${1:-/etc/lightdm/lightdm.conf}
+local TMPFILE=$(tmpfile)
+cp $custom $TMPFILE
+ensure_section_and_binding "SeatDefaults" "xserver-allow-tcp" "true" $TMPFILE
+if ! diff -q $custom $TMPFILE >/dev/null; then
+  CHANGED_FILES+="$custom "
+  $SUDO bash -c "cat $TMPFILE >$custom"
+fi
+}
+
+
 function apply_all_filters {
 # global CHANGED_FILES
 local i=$1
@@ -1445,6 +1459,11 @@ elif [[ -d /etc/gdm? ]]; then
   ensure_DisallowTCP_false_to_gdm_custom_dot_conf /etc/gdm?/custom.conf
   ensure_DisallowTCP_false_to_gdm_custom_dot_conf /etc/gdm?/daemon.conf
 fi
+# Another special case: lightdm
+if [[ -d /etc/lightdm ]]; then
+  $SUDO touch /etc/lightdm/lightdm.conf
+  ensure_xserver_allow_tcp_in_lightdm_dot_conf
+fi
 [[ -n $CHANGED_FILES ]]
 }
 
@@ -1462,6 +1481,30 @@ if ps -A -o cmd | grep -q '^[a-zA-Z0-9/]*X.*[-]nolisten tcp'; then
      echo "     Sorry, no change performed: you must edit your configuration manually."
    fi
  fi
+fi
+
+# =============================================================
+#                  Fix problems in ubuntu
+# =============================================================
+
+if are_we_in_ubuntu_11_or_greater ; then
+  echo "* Warning: Ubuntu (>= 11.x) systems require to launch marionnet with UBUNTU_MENUPROXY=0"
+  echo "  => The problem may be solved defining an alias in your shell configuration:"
+  echo "     alias marionnet='UBUNTU_MENUPROXY=0 marionnet'" 
+  case $USER in
+   root)
+     DEST='/etc/profile'
+     echo -n "     Shall I add this line to $DEST ([y]/n)? "
+     ;;
+   *)
+     DEST=~/.bashrc
+     echo -n "     Shall I add this line to your ~/.bashrc ([y]/n)? "
+     ;;
+  esac
+  read z
+  if [[ $z != n && $z != N ]]; then
+    append_line_if_needed "alias marionnet='UBUNTU_MENUPROXY=0 marionnet'" $DEST
+  fi
 fi
 
 # =============================================================

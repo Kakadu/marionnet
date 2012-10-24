@@ -33,7 +33,7 @@ type node   = tag * attributes ;;
 
 type forest = node Forest.t ;;
 type t      = forest ;;
-type tree   = forest ;;
+type tree   = node * forest ;; (* the root and its childs *)
 
 
 (* *************************** *
@@ -46,14 +46,14 @@ type tree   = forest ;;
 class virtual interpreter () = object (self)
 
  (** Interpret a tree. The tag is ignored here. *)
- method from_forest ((tag,attrs):node) (childs:forest) =
+ method from_tree ((tag,attrs):node) (childs:forest) =
   begin
    (* Interpret attributes *)
    List.iter self#eval_forest_attribute attrs;
 
    (* Interpret childs *)
    let l = Forest.to_treelist childs in
-     List.iter (self#eval_forest_child) l
+   List.iter (self#eval_forest_child) l
   end
 
  (** The default interpretation of an attribute is ignore. *)
@@ -64,10 +64,15 @@ class virtual interpreter () = object (self)
  method eval_forest_child : (tree -> unit) =
   fun tree -> ()
 
- (** Encode self into an xforest. Typically this method calls
+ (** Encode self into an xtree. Typically this method calls
      recursively the same method of its childs in order to construct
       its representation as forest. *)
- method virtual to_forest : forest
+ method virtual to_tree : tree
+ 
+ (** May be redefined. Otherwise, by default, is simply a call to the method constructing
+     the tree which is transformed in a forest (singleton). *)
+ method to_forest : forest =
+   Forest.of_tree self#to_tree
 
 end;; (* class interpreter *)
 
@@ -93,7 +98,7 @@ let decode y = Marshal.from_string y 0 ;;
 
 (* In a class, just add method like:
 
-method to_forest =
+method to_tree =
  Forest.leaf ("cable",[("name","xxx");("label","xxx")]);;
 
 method eval_forest_attribute : (string * string) -> unit = function
@@ -103,16 +108,16 @@ method eval_forest_attribute : (string * string) -> unit = function
 
 (** EXAMPLE 2 *)
 
-(*method to_forest =
+(*method to_tree =
  let name = Forest.tree ("name",[]) (Forest.leaf ("xxx",[]))
  let kind = Forest.tree ("kind",[]) (Forest.leaf ("yyy",[]))
  in Forest.node ("cable",[]) (Forest.of_treelist [name; kind])
 
 (** EXAMPLE 2 *)
-method eval_forest_child x = match x with
- | Forest.NonEmpty (("name", attrs) , childs , Forest.Empty) ->
+method eval_forest_child (root,childs) = match root with
+ | ("name", attrs) ->
      let name = new name () in (* nel new senza argomenti l'essenza della backward-compatibility *)
-     name#from_forest x;       (* chiamata ricorsiva al from_forest *)
+     name#from_tree x;       (* chiamata ricorsiva al from_forest *)
      self#set_name = name;     (* oppure potrei accumulare... *)
  ...
  | _ -> ()

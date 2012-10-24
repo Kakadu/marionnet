@@ -353,10 +353,10 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_cable (network:User_level.network) (f:Xforest.tree) =
+ let try_to_add_cable (network:User_level.network) ((root,childs):Xforest.tree) =
   try
-   (match f with
-   | Forest.NonEmpty (("cable", attrs) , childs , Forest.Empty) ->
+   (match root with
+   | ("cable", attrs) ->
 	(* Cables represent a special case: they must be builded knowing their endpoints. *)
 	let name = List.assoc "name"    attrs in
         Log.printf "Importing cable \"%s\"...\n" name;
@@ -374,7 +374,7 @@ module Eval_forest_child = struct
 	    ~right_user_endpoint:(rn,rr)
 	    ()
         in
-        x#from_forest ("cable", attrs) childs ;
+        x#from_tree ("cable", attrs) childs ;
         Log.printf "Cable \"%s\" successfully imported.\n" name;
         true
    | _ ->
@@ -670,16 +670,16 @@ and cable =
     " ["^left_endpoint#node#name ^","^left_endpoint#user_port_name^"] -> "^
     " ["^right_endpoint#node#name^","^right_endpoint#user_port_name^"]")
 
-  method to_forest =
-    Forest.leaf ("cable",
-		    [ ("name"            ,  self#get_name )  ;
-		      ("label"           ,  self#get_label)  ;
-		      ("crossover"       , (string_of_bool self#crossover)) ;
-		      ("leftnodename"    ,  self#get_left#node#name)    ;
-		      ("leftreceptname"  ,  self#get_left#user_port_name)  ;
-		      ("rightnodename"   ,  self#get_right#node#name)   ;
-		      ("rightreceptname" ,  self#get_right#user_port_name) ;
-		    ])
+  method to_tree =
+    Forest.tree_of_leaf ("cable",
+      [ ("name"            ,  self#get_name )  ;
+	("label"           ,  self#get_label)  ;
+	("crossover"       , (string_of_bool self#crossover)) ;
+	("leftnodename"    ,  self#get_left#node#name)    ;
+	("leftreceptname"  ,  self#get_left#user_port_name)  ;
+	("rightnodename"   ,  self#get_right#node#name)   ;
+	("rightreceptname" ,  self#get_right#user_port_name) ;
+      ])
 
   (** A cable has just attributes (no childs) in this version. The attribute "kind" cannot be set,
       must be considered as a constant field of the class. *)

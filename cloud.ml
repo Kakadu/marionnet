@@ -221,14 +221,14 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_cloud (network:User_level.network) (f:Xforest.tree) =
+ let try_to_add_cloud (network:User_level.network) ((root,childs):Xforest.tree) =
   try
-   (match f with
-    | Forest.NonEmpty (("cloud", attrs) , childs , Forest.Empty) ->
+   (match root with
+    | ("cloud", attrs) ->
     	let name  = List.assoc "name"  attrs in
         Log.printf "Importing cloud \"%s\"...\n" name;
         let x = new User_level_cloud.cloud ~network ~name () in
-	x#from_forest ("cloud", attrs) childs  ;
+	x#from_tree ("cloud", attrs) childs  ;
         Log.printf "Cloud \"%s\" successfully imported.\n" name;
         true
    | _ ->
@@ -283,11 +283,11 @@ class cloud =
         ~unexpected_death_callback:self#destroy_because_of_unexpected_death
         ()) :> User_level.node Simulation_level.device)
 
-  method to_forest =
-   Forest.leaf ("cloud", [
-                   ("name"     ,  self#get_name );
-                   ("label"    ,  self#get_label);
-	           ])
+  method to_tree =
+   Forest.tree_of_leaf ("cloud", [
+     ("name"     ,  self#get_name );
+     ("label"    ,  self#get_label);
+     ])
 
   method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x

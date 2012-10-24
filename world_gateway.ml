@@ -326,17 +326,17 @@ end
 (*-----*)
 
 module Eval_forest_child = struct
- let try_to_add_world_gateway (network:User_level.network) (f:Xforest.tree) =
+ let try_to_add_world_gateway (network:User_level.network) ((root,childs):Xforest.tree) =
   try
-   (match f with
-    | Forest.NonEmpty (("world_gateway", attrs) , childs , Forest.Empty) ->
+   (match root with
+    | ("world_gateway", attrs) ->
     	let name  = List.assoc "name" attrs in
     	let port_no  =
 	  try int_of_string (List.assoc "port_no" attrs) with _ -> Const.port_no_default
 	in
         Log.printf "Importing world gateway \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_world_gateway.world_gateway ~network ~name ~port_no () in
-	x#from_forest ("world_gateway", attrs) childs;
+	x#from_tree ("world_gateway", attrs) childs;
         Log.printf "World gateway \"%s\" successfully imported.\n" name;
         true
    | _ ->
@@ -415,14 +415,14 @@ class world_gateway =
     | "" -> ip_gw
     | _  -> Printf.sprintf "%s <br/> %s" ip_gw self#get_label
 
-  method to_forest =
-   Forest.leaf ("world_gateway", [
-                  ("name",  self#get_name);
-                  ("label", self#get_label);
-                  ("network_address", self#get_network_address);
-                  ("dhcp_enabled", (string_of_bool self#get_dhcp_enabled));
-                  ("port_no", (string_of_int self#get_port_no));
-                  ])
+  method to_tree =
+   Forest.tree_of_leaf ("world_gateway", [
+                    ("name",  self#get_name);
+                    ("label", self#get_label);
+                    ("network_address", self#get_network_address);
+                    ("dhcp_enabled", (string_of_bool self#get_dhcp_enabled));
+                    ("port_no", (string_of_int self#get_port_no));
+                    ])
 
   (** A world_bridge has just attributes (no childs) in this version. *)
   method eval_forest_attribute = function

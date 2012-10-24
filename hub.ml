@@ -243,20 +243,20 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_hub (network:User_level.network) (f:Xforest.tree) =
+ let try_to_add_hub (network:User_level.network) ((root,childs):Xforest.tree) =
   try
-   (match f with
-    | Forest.NonEmpty (("hub", attrs) , childs , Forest.Empty) ->
+   (match root with
+    | ("hub", attrs) ->
     	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
         Log.printf "Importing hub \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_hub.hub ~network ~name ~port_no () in
-	x#from_forest ("hub", attrs) childs;
+	x#from_tree ("hub", attrs) childs;
         Log.printf "Hub \"%s\" successfully imported.\n" name;
         true
 
     (* backward compatibility *)
-    | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
+    | ("device", attrs) ->
 	let name  = List.assoc "name" attrs in
 	let port_no = try int_of_string (List.assoc "eth" attrs) with _ -> Const.port_no_default in
 	let kind = List.assoc "kind" attrs in
@@ -264,7 +264,7 @@ module Eval_forest_child = struct
 	| "hub" ->
             Log.printf "Importing hub \"%s\" with %d ports...\n" name port_no;
 	    let x = new User_level_hub.hub ~network ~name ~port_no () in
-	    x#from_forest ("device", attrs) childs; (* Just for the label... *)
+	    x#from_tree ("device", attrs) childs; (* Just for the label... *)
             Log.printf "This is an old project: we set the user port offset to 1...\n";
 	    network#defects#change_port_user_offset ~device_name:name ~user_port_offset:1;
 	    Log.printf "Hub \"%s\" successfully imported.\n" name;
@@ -324,12 +324,12 @@ class hub =
         ~unexpected_death_callback
         ()) :> User_level.node Simulation_level.device)
 
-  method to_forest =
-   Forest.leaf ("hub", [
-                   ("name"     ,  self#get_name );
-                   ("label"    ,  self#get_label);
-                   ("port_no"  ,  (string_of_int self#get_port_no))  ;
-	           ])
+  method to_tree =
+   Forest.tree_of_leaf ("hub", [
+     ("name"     ,  self#get_name );
+     ("label"    ,  self#get_label);
+     ("port_no"  ,  (string_of_int self#get_port_no))  ;
+     ])
 
   method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x

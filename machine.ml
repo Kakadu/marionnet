@@ -392,16 +392,16 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_machine (network:User_level.network) (f:Xforest.tree) =
+ let try_to_add_machine (network:User_level.network) ((root,childs):Xforest.tree) =
   try
-   (match f with
-    | Forest.NonEmpty (("machine", attrs) , childs , Forest.Empty) ->
+   (match root with
+    | ("machine", attrs) ->
     	let name  = List.assoc "name" attrs in
 	(* The key "eth" is also tried for backward-compatibility: *)
 	let port_no = int_of_string (ListExtra.Assoc.find_first ["port_no"; "eth"] attrs) in
         Log.printf "Importing machine \"%s\" with %d ethernet cards...\n" name port_no;
 	let x = new User_level_machine.machine ~network ~name ~port_no () in
-	x#from_forest ("machine", attrs) childs;
+	x#from_tree ("machine", attrs) childs;
         Log.printf "Machine \"%s\" successfully imported.\n" name;
         true
    | _ -> false
@@ -485,17 +485,17 @@ class machine
    let imgDir = Initialization.Path.images in
    (imgDir^"ico.machine."^(self#string_of_simulated_device_state)^"."^iconsize^".png")
 
-  method to_forest =
-   Forest.leaf ("machine", [
-    ("name"     ,  self#get_name );
-    ("label"    ,  self#get_label );
-    ("memory"   ,  (string_of_int self#get_memory));
-    ("distrib"  ,  self#get_epithet  );
-    ("variant"  ,  self#get_variant_as_string);
-    ("kernel"   ,  self#get_kernel   );
-    ("terminal" ,  self#get_terminal );
-    ("port_no"  ,  (string_of_int self#get_port_no))  ;
-    ])
+  method to_tree =
+   Forest.tree_of_leaf ("machine", [
+      ("name"     ,  self#get_name );
+      ("label"    ,  self#get_label );
+      ("memory"   ,  (string_of_int self#get_memory));
+      ("distrib"  ,  self#get_epithet  );
+      ("variant"  ,  self#get_variant_as_string);
+      ("kernel"   ,  self#get_kernel   );
+      ("terminal" ,  self#get_terminal );
+      ("port_no"  ,  (string_of_int self#get_port_no))  ;
+      ])
 
  (** A machine has just attributes (no childs) in this version. *)
  method eval_forest_attribute = function

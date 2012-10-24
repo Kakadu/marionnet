@@ -191,23 +191,22 @@ class network =
    let forest = network_marshaller#from_file file_name in
    (* we are manually setting the verbosity 3 *)
    (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr forest);
-   match forest with
-   | Forest.NonEmpty (("dotoptions", attrs) , childs , Forest.Empty) ->
-      self#from_forest ("dotoptions", attrs) childs
+   match Forest.to_tree forest with
+   | (("dotoptions", attrs), childs) -> self#from_tree ("dotoptions", attrs) childs
    | _ -> assert false
 
  (** Dot_tuning to forest encoding. *)
-  method to_forest =
-   Forest.leaf ("dotoptions", [
-    		   ("iconsize"      , iconsize#get                   ) ;
-    		   ("shuffler"      , (Xforest.encode shuffler#get)  ) ;
-                   ("rankdir"       , rankdir#get                    ) ;
-                   ("nodesep"       , (string_of_float nodesep#get)      ) ;
-                   ("labeldistance" , (string_of_float labeldistance#get)) ;
-                   ("extrasize"     , (string_of_float extrasize#get)    ) ;
-                   ("gui_callbacks_disable", (string_of_bool gui_callbacks_disable)) ;
-                   ("invertedCables", (Xforest.encode network#reversed_cables)) ;
-	           ])
+  method to_tree : (string * (string * string) list) Forest.tree =
+   Forest.tree_of_leaf ("dotoptions", [
+     ("iconsize"      , iconsize#get                   ) ;
+     ("shuffler"      , (Xforest.encode shuffler#get)  ) ;
+     ("rankdir"       , rankdir#get                    ) ;
+     ("nodesep"       , (string_of_float nodesep#get)      ) ;
+     ("labeldistance" , (string_of_float labeldistance#get)) ;
+     ("extrasize"     , (string_of_float extrasize#get)    ) ;
+     ("gui_callbacks_disable", (string_of_bool gui_callbacks_disable)) ;
+     ("invertedCables", (Xforest.encode network#reversed_cables)) ;
+     ])
 
  (** A Dotoption.network has just attributes (no childs) in this version.
      The Dotoption.network must be undumped AFTER the Netmodel.network in
@@ -1474,10 +1473,15 @@ class network () =
    cables_buffer   <- cables
   end
 
- method to_forest =
-   let l = List.map (fun x->x#to_forest) self#components in
-   Forest.tree ("network",[]) (Forest.of_treelist l)
+ method to_tree =
+   let l = List.map (fun x->x#to_tree) self#components in
+   let root = ("network",[]) in
+   let childs = Forest.of_treelist l in
+   (root, childs)
 
+ method to_forest =
+   Forest.of_tree self#to_tree
+   
  val try_to_add_procedure_list= ref []
  method subscribe_a_try_to_add_procedure p =
    try_to_add_procedure_list := p::(!try_to_add_procedure_list)
@@ -1490,17 +1494,10 @@ class network () =
   match result with
   | true -> ()
   | false ->
-    (match f with
-    | Forest.NonEmpty ((nodename, attrs) , _ , _)
-     -> let name  = List.assoc "name" attrs in
+      let ((nodename, attrs), _) = f in
+        let name  = List.assoc "name" attrs in
         (Log.printf "network#eval_forest_child: I can't interpret this \"%s\" name \"%s\".\n" nodename name)
         (* Forward-compatibility *)
-
-    | Forest.Empty
-     -> (Log.printf "network#eval_forest_child: I can't interpret the empty forest.\n")
-        (* Forward-compatibility *)
-    )
-
 
  (* Just an alias for devices: *)
  method nodes : (node list) = devices
@@ -1780,9 +1777,8 @@ module Xml = struct
   let (forest:Xforest.t) = network_marshaller#from_file fname in
   (* we are manually setting the verbosity 3 *)
   (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr forest);
-  match forest with
-  | Forest.NonEmpty  (("network", attrs) , childs , Forest.Empty) ->
-      net#from_forest ("network", attrs) childs
+  match Forest.to_tree forest with
+  | (("network", attrs), childs) -> net#from_tree ("network", attrs) childs
   | _ -> assert false
  ;;
 

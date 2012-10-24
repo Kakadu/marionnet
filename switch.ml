@@ -262,20 +262,20 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_switch (network:User_level.network) (f:Xforest.tree) =
+ let try_to_add_switch (network:User_level.network) ((root,childs):Xforest.tree) =
   try
-   (match f with
-    | Forest.NonEmpty (("switch", attrs) , childs , Forest.Empty) ->
+   (match root with
+    | ("switch", attrs) ->
     	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
         Log.printf "Importing switch \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_switch.switch ~network ~name ~port_no () in
-	x#from_forest ("switch", attrs) childs;
+	x#from_tree ("switch", attrs) childs;
         Log.printf "Switch \"%s\" successfully imported.\n" name;
         true
 
     (* backward compatibility *)
-    | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
+    | ("device", attrs) ->
 	let name  = List.assoc "name" attrs in
 	let port_no = try int_of_string (List.assoc "eth" attrs) with _ -> Const.port_no_default in
 	let kind = List.assoc "kind" attrs in
@@ -283,7 +283,7 @@ module Eval_forest_child = struct
 	| "switch" ->
             Log.printf "Importing switch \"%s\" with %d ports...\n" name port_no;
 	    let x = new User_level_switch.switch ~network ~name ~port_no () in
-	    x#from_forest ("device", attrs) childs; (* Just for the label... *)
+	    x#from_tree ("device", attrs) childs; (* Just for the label... *)
             Log.printf "This is an old project: we set the user port offset to 1...\n";
 	    network#defects#change_port_user_offset ~device_name:name ~user_port_offset:1;
 	    Log.printf "Switch \"%s\" successfully imported.\n" name;
@@ -355,13 +355,13 @@ class switch =
        ~unexpected_death_callback
        ()) :> User_level.node Simulation_level.device)
 
-  method to_forest =
-   Forest.leaf ("switch", [
-                   ("name"     ,  self#get_name );
-                   ("label"    ,  self#get_label);
-                   ("port_no"  ,  (string_of_int self#get_port_no))  ;
-                   ("show_vde_terminal" , string_of_bool (self#get_show_vde_terminal));
-	           ])
+  method to_tree =
+   Forest.tree_of_leaf ("switch", [
+      ("name"     ,  self#get_name );
+      ("label"    ,  self#get_label);
+      ("port_no"  ,  (string_of_int self#get_port_no))  ;
+      ("show_vde_terminal" , string_of_bool (self#get_show_vde_terminal));
+      ])
 
   method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x

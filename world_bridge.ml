@@ -240,15 +240,15 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_world_bridge (network:User_level.network) (f:Xforest.tree) =
+ let try_to_add_world_bridge (network:User_level.network) ((root,childs):Xforest.tree) =
   try
-   (match f with
-    | Forest.NonEmpty (("world_bridge", attrs) , childs , Forest.Empty)
-    | Forest.NonEmpty (("gateway" (* retro-compatibility *) , attrs) , childs , Forest.Empty) ->
+   (match root with
+    | ("world_bridge", attrs)
+    | ("gateway" (* retro-compatibility *), attrs) ->
     	let name  = List.assoc "name"  attrs in
         Log.printf "Importing world bridge \"%s\"...\n" name;
         let x = new User_level_world_bridge.world_bridge ~network ~name () in
-	x#from_forest ("world_bridge", attrs) childs  ;
+	x#from_tree ("world_bridge", attrs) childs  ;
         Log.printf "World bridge \"%s\" successfully imported.\n" name;
         true
    | _ ->
@@ -304,11 +304,11 @@ class world_bridge =
         ~unexpected_death_callback:self#destroy_because_of_unexpected_death
         ()) :> User_level.node Simulation_level.device)
 
-  method to_forest =
-   Forest.leaf ("world_bridge", [
-                   ("name"     ,  self#get_name );
-                   ("label"    ,  self#get_label);
-	           ])
+  method to_tree =
+   Forest.tree_of_leaf ("world_bridge", [
+     ("name"     ,  self#get_name );
+     ("label"    ,  self#get_label);
+     ])
 
   method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x

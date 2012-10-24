@@ -384,20 +384,20 @@ end
 (*-----*)
 
 module Eval_forest_child = struct
- let try_to_add_router (network:User_level.network) (f:Xforest.tree) =
+ let try_to_add_router (network:User_level.network) ((root,childs):Xforest.tree) =
   try
-   (match f with
-    | Forest.NonEmpty (("router", attrs) , childs , Forest.Empty) ->
+   (match root with
+    | ("router", attrs) ->
     	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
         Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_router.router ~network ~name ~port_no () in
-	x#from_forest ("router", attrs) childs;
+	x#from_tree ("router", attrs) childs;
         Log.printf "Router \"%s\" successfully imported.\n" name;
         true
 
    (* backward compatibility *)
-   | Forest.NonEmpty (("device", attrs) , childs , Forest.Empty) ->
+   | ("device", attrs) ->
       let name  = List.assoc "name" attrs in
       let port_no = int_of_string (List.assoc "eth" attrs) in
       let kind = List.assoc "kind" attrs in
@@ -406,7 +406,7 @@ module Eval_forest_child = struct
           Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
 	  let r = new User_level_router.router ~network ~name ~port_no () in
 	  let x = (r :> User_level.node_with_ledgrid_and_defects) in
-	  x#from_forest ("device", attrs) childs ;
+	  x#from_tree ("device", attrs) childs ;
           Log.printf "Router \"%s\" successfully imported.\n" name;
           true
       | _ -> false
@@ -549,17 +549,17 @@ class router
        and we start with a new cow: *)
     self#destroy_right_now
 
-  method to_forest =
-   Forest.leaf ("router", [
-                   ("name"     ,  self#get_name );
-                   ("label"   ,   self#get_label);
-                   ("distrib"  ,  self#get_epithet  );
-                   ("variant"  ,  self#get_variant_as_string);
-                   ("kernel"   ,  self#get_kernel   );
-                   ("show_unix_terminal" , string_of_bool (self#get_show_unix_terminal));
-                   ("terminal" ,  self#get_terminal );
-                   ("port_no"  ,  (string_of_int self#get_port_no))  ;
-	           ])
+  method to_tree =
+   Forest.tree_of_leaf ("router", [
+      ("name"     ,  self#get_name );
+      ("label"   ,   self#get_label);
+      ("distrib"  ,  self#get_epithet  );
+      ("variant"  ,  self#get_variant_as_string);
+      ("kernel"   ,  self#get_kernel   );
+      ("show_unix_terminal" , string_of_bool (self#get_show_unix_terminal));
+      ("terminal" ,  self#get_terminal );
+      ("port_no"  ,  (string_of_int self#get_port_no))  ;
+      ])
 
  (** A machine has just attributes (no childs) in this version. *)
  method eval_forest_attribute = function

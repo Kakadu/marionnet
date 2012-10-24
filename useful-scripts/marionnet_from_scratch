@@ -16,19 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.15
-# 2012.10.21
+# Script version: 0.90.16
+# 2012.10.24
 
 set -e
 shopt -s nullglob
 shopt -s expand_aliases
 
-# By default SUDO is 'sudo' for the normal user:
+# By default SUDO_OR_EVAL and SUDO_OR_NOTHING are set to 'sudo' for normal users:
 if [[ $USER = root ]]; then
-  export SUDO=eval
+  export SUDO_OR_EVAL=eval
   export SUDO_OR_NOTHING=
 else
-  export SUDO=sudo
+  export SUDO_OR_EVAL=sudo
   export SUDO_OR_NOTHING=sudo
 fi
 
@@ -434,10 +434,10 @@ fi
 
 
 function append_line_if_needed {
-# global SUDO
+# global SUDO_OR_NOTHING
 local LINE="$1"
 local FILE="$2"
-{ test -f "$FILE" && grep -q "${LINE}" "$FILE"; } || $SUDO echo "$LINE" >> "$FILE"
+{ test -f "$FILE" && grep -q "${LINE}" "$FILE"; } || $SUDO_OR_NOTHING echo "$LINE" >> "$FILE"
 }
 
 function wait_printing_dots {
@@ -490,7 +490,7 @@ function wait_printing_percent_progress {
 }
 
 function launch_and_log {
- # global COMMAND_RESULT ALREADY_DONE SUDO
+ # global COMMAND_RESULT ALREADY_DONE SUDO_OR_EVAL
  # The option --as-root implies --as-script if the user in not root (in order to
  # prevent sudo to re-ask the password)
  # The option --as-script implies that the command will be launched
@@ -499,7 +499,7 @@ function launch_and_log {
  local AS_SCRIPT
  # By default EVAL_OR_SUDO is equal to eval
  EVAL_OR_SUDO=eval
- if [[ $1 = --as-root   || $1 = --sudo   ]]; then shift; EVAL_OR_SUDO=$SUDO; fi
+ if [[ $1 = --as-root   || $1 = --sudo   ]]; then shift; EVAL_OR_SUDO=$SUDO_OR_EVAL; fi
  if [[ $1 = --as-script || $1 = --script ]]; then shift; AS_SCRIPT=yes; fi
  if [[ $EVAL_OR_SUDO = sudo ]]; then
    AS_SCRIPT=yes
@@ -970,9 +970,9 @@ launch_and_log \
 
 if [[ $USER = root ]]; then
   MAKE_INSTALL='make install'
-  # Redefine SUDO:
-  SUDO=eval
-  unset AS_ROOT
+  # Reset SUDO_OR_EVAL and SUDO_OR_NOTHING:
+  SUDO_OR_EVAL=eval
+  unset AS_ROOT SUDO_OR_NOTHING
 elif [[ -w "$PREFIX" ]]; then
   MAKE_INSTALL='make install'
   unset AS_ROOT
@@ -1000,7 +1000,7 @@ if ! type marionnet 1>&2; then
  pushd $PREFIX/bin/
  for i in marionnet.{native,byte}; do
    if [[ -x $i ]]; then
-     $SUDO ln -sf $i marionnet
+     $SUDO_OR_NOTHING ln -sf $i marionnet
      break
    fi
  done
@@ -1121,7 +1121,7 @@ function download_our_pinocchio_filesystems {
 }
 
 ensure_sudo -p "* Required the [sudo] password for %u:"
-$SUDO mkdir -p $PREFIX/share/marionnet/
+$SUDO_OR_NOTHING mkdir -p $PREFIX/share/marionnet/
 pushd $PREFIX/share/marionnet/ 1>&2
 
 if [[ $IGNORE_KERNELS = yes ]]; then
@@ -1169,15 +1169,13 @@ MARIONNET_TEXT_EDITOR=$(first_installed_binary_of_list emacs gedit kate kwrite x
 
 for i in MARIONNET_{PDF,POSTSCRIPT,DVI,HTML}_READER MARIONNET_TEXT_EDITOR MARIONNET_KEYBOARD_LAYOUT; do
  v=$(eval echo \$$i);
- # Workaround for a strange problem of the couple eval-sed:
- # $SUDO_OR_NOTHING instead of $SUDO as usual:
  $SUDO_OR_NOTHING sed -i -e "s/$i=\(.*\)/$i=$v/" $MARIONNET_DOT_CONF
 done
 
 if [[ ! -f /etc/marionnet/marionnet.conf ]]; then
   echo -n "* Installing /etc/marionnet/marionnet.conf ..."
-  $SUDO mkdir -p /etc/marionnet/
-  $SUDO cp $MARIONNET_DOT_CONF /etc/marionnet/
+  $SUDO_OR_NOTHING mkdir -p /etc/marionnet/
+  $SUDO_OR_NOTHING cp $MARIONNET_DOT_CONF /etc/marionnet/
   echo_at_right_side --newline "ok"
 fi
 
@@ -1272,7 +1270,7 @@ case "\$1" in
 esac
 EOF
 chmod +x $TMPFILE
-$SUDO mv -f $TMPFILE $1
+$SUDO_OR_NOTHING mv -f $TMPFILE $1
 }
 
 function install_the_marionnet_daemon_script {
@@ -1286,19 +1284,19 @@ done | sort -u --key=1,1 | { while read _ b _; do echo $b; done })
 for i in $RC_DIRS; do
  pushd $i
  if [[ "$(realpath ../init.d)" = "$INIT_DIR" ]]; then
-   $SUDO ln -sf ../init.d/marionnet-daemon S90marionnet-daemon
+   $SUDO_OR_NOTHING ln -sf ../init.d/marionnet-daemon S90marionnet-daemon
  elif [[ "$(realpath ../../init.d)" = "$INIT_DIR" ]]; then
-   $SUDO ln -sf ../../init.d/marionnet-daemon S90marionnet-daemon
+   $SUDO_OR_NOTHING ln -sf ../../init.d/marionnet-daemon S90marionnet-daemon
  else
-   $SUDO ln -sf $INIT_DIR/marionnet-daemon S90marionnet-daemon
+   $SUDO_OR_NOTHING ln -sf $INIT_DIR/marionnet-daemon S90marionnet-daemon
  fi
  popd
 done 1>&2
 }
 
 function launch_the_marionnet_daemon_script {
-# global INIT_DIR SUDO
-$SUDO $INIT_DIR/marionnet-daemon start 1>&2
+# global INIT_DIR SUDO_OR_NOTHING
+$SUDO_OR_NOTHING $INIT_DIR/marionnet-daemon start 1>&2
 }
 
 function define_global_INIT_DIR {
@@ -1332,11 +1330,11 @@ else
     ensure_sudo -p "  Required the [sudo] password for %u:"
     echo -n "  Installing the marionnet daemon ..."
     install_the_marionnet_daemon_script
-    [[ -e /dev/net/tun ]] || $SUDO mknod /dev/net/tun c 10 200
-    $SUDO chmod a+rw /dev/net/tun
+    [[ -e /dev/net/tun ]] || $SUDO_OR_NOTHING mknod /dev/net/tun c 10 200
+    $SUDO_OR_NOTHING chmod a+rw /dev/net/tun
     if [[ -f /etc/modules.conf ]]; then
       append_line_if_needed "alias char-major-10-200 tun" /etc/modules.conf
-      $SUDO depmod -a
+      $SUDO_OR_NOTHING depmod -a
     fi 1>&2
     echo_at_right_side --newline "ok"
     echo -n "  Launching the marionnet daemon ..."
@@ -1351,23 +1349,23 @@ fi
 # =============================================================
 
 function remove_nolisten_assignment_from {
-# global SUDO
+# global SUDO_OR_NOTHING
 local i=$1
-$SUDO sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*[-]nolisten tcp.*\)$/#\1\n\1/g' $i
-$SUDO sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*\)[-]nolisten tcp\(.*\)$/\1 \2/g' $i
+$SUDO_OR_NOTHING sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*[-]nolisten tcp.*\)$/#\1\n\1/g' $i
+$SUDO_OR_NOTHING sed -i -e 's/\(^[a-ZA-Z0-9]*[=].*\)[-]nolisten tcp\(.*\)$/\1 \2/g' $i
 }
 
 function remove_nolisten_X_or_startx_actuals_from {
-# global SUDO
+# global SUDO_OR_NOTHING
 local i=$1
-$SUDO sed -i -e 's/\(^[a-ZA-Z0-9/: ]*X.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
-$SUDO sed -i -e 's/\(^[a-ZA-Z0-9/: ]*startx.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
+$SUDO_OR_NOTHING sed -i -e 's/\(^[a-ZA-Z0-9/: ]*X.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
+$SUDO_OR_NOTHING sed -i -e 's/\(^[a-ZA-Z0-9/: ]*startx.*\)[-]nolisten tcp\(.*\)$/\1\2/g' $i
 }
 
 function remove_DisallowTCP_from {
-# global SUDO
+# global SUDO_OR_NOTHING
 local i=$1
-$SUDO sed -i -e 's/\(^DisallowTCP=true.*\)$/#\1\nDisallowTCP=false/g' $i
+$SUDO_OR_NOTHING sed -i -e 's/\(^DisallowTCP=true.*\)$/#\1\nDisallowTCP=false/g' $i
 }
 
 # Sections in file have the form "[security]"
@@ -1402,7 +1400,7 @@ esac
 
 # This is needed, for instance, for ubuntu 10.10
 function ensure_DisallowTCP_false_to_gdm_custom_dot_conf {
-# global SUDO CHANGED_FILES
+# global SUDO_OR_NOTHING CHANGED_FILES
 local custom=${1:-/etc/gdm/custom.conf}
 local TMPFILE=$(tmpfile)
 cp $custom $TMPFILE
@@ -1410,20 +1408,20 @@ ensure_section_and_binding "security" "DisallowTCP" "false" $TMPFILE
 ensure_section_and_binding "xdmcp" "Enable" "true" $TMPFILE
 if ! diff -q $custom $TMPFILE >/dev/null; then
   CHANGED_FILES+="$custom "
-  $SUDO bash -c "cat $TMPFILE >$custom"
+  $SUDO_OR_NOTHING bash -c "cat $TMPFILE >$custom"
 fi
 }
 
 # This is needed, for instance, for ubuntu 12.04
 function ensure_xserver_allow_tcp_in_lightdm_dot_conf {
-# global SUDO CHANGED_FILES
+# global SUDO_OR_NOTHING CHANGED_FILES
 local custom=${1:-/etc/lightdm/lightdm.conf}
 local TMPFILE=$(tmpfile)
 cp $custom $TMPFILE
 ensure_section_and_binding "SeatDefaults" "xserver-allow-tcp" "true" $TMPFILE
 if ! diff -q $custom $TMPFILE >/dev/null; then
   CHANGED_FILES+="$custom "
-  $SUDO bash -c "cat $TMPFILE >$custom"
+  $SUDO_OR_NOTHING bash -c "cat $TMPFILE >$custom"
 fi
 }
 
@@ -1442,26 +1440,26 @@ diff -q $BACKUP $i >/dev/null || {
 }
 
 function adjust_X_display_manager {
-# global CHANGED_FILES
+# global SUDO_OR_NOTHING CHANGED_FILES
 local BACKUP=$(tmpfile)
-DIRS=$($SUDO find /etc/ -type d -name "?dm")
+DIRS=$($SUDO_OR_NOTHING find /etc/ -type d -name "?dm")
 if [[ -d /etc/X11/xinit ]]; then DIRS+=" /etc/X11/xinit/"; fi
-FILES=$([[ -n $DIRS ]] && $SUDO find $DIRS -name "*rc" -o -name "*.conf")
+FILES=$([[ -n $DIRS ]] && $SUDO_OR_NOTHING find $DIRS -name "*rc" -o -name "*.conf")
 FILES=$(for i in $FILES; do grep -l "^[a-zA-Z0-9/_\-= ]*[-]nolisten tcp" $i; done)
 for i in $FILES; do apply_all_filters $i; done
 rm -f $BACKUP
 # A special case: gdm/gdm3 :
 if [[ -d /etc/gdm ]]; then
-  $SUDO touch /etc/gdm/custom.conf
+  $SUDO_OR_NOTHING touch /etc/gdm/custom.conf
   ensure_DisallowTCP_false_to_gdm_custom_dot_conf
 elif [[ -d /etc/gdm? ]]; then
-  $SUDO touch /etc/gdm?/custom.conf /etc/gdm?/daemon.conf
+  $SUDO_OR_NOTHING touch /etc/gdm?/custom.conf /etc/gdm?/daemon.conf
   ensure_DisallowTCP_false_to_gdm_custom_dot_conf /etc/gdm?/custom.conf
   ensure_DisallowTCP_false_to_gdm_custom_dot_conf /etc/gdm?/daemon.conf
 fi
 # Another special case: lightdm
 if [[ -d /etc/lightdm ]]; then
-  $SUDO touch /etc/lightdm/lightdm.conf
+  $SUDO_OR_NOTHING touch /etc/lightdm/lightdm.conf
   ensure_xserver_allow_tcp_in_lightdm_dot_conf
 fi
 [[ -n $CHANGED_FILES ]]

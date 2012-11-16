@@ -18,7 +18,7 @@
 (** A purely functional data structure for tree forests.
     For all iterators, the order of visit is always depth-first, left-to-right. *)
 
-type 'a t = Empty | NonEmpty of 'a * 'a t * 'a t
+type 'a t
 
 type 'a tree = 'a * 'a t (** a tree is a root with the forest of its childs *)
 type 'a leaf = 'a        (** a leaf is a tree without childs *)
@@ -27,7 +27,7 @@ val empty : 'a t
 
 val add_tree : 'a tree -> 'a t -> 'a t
 val add_leaf : 'a leaf -> 'a t -> 'a t
-             
+
 val of_tree : 'a tree -> 'a t
 val to_tree : 'a t -> 'a tree
 
@@ -47,6 +47,7 @@ val parent_of_node_such_that : ('a -> bool) -> 'a t -> 'a option
 
 val find   : ('a -> bool) -> 'a t -> 'a
 val search : ('a -> bool) -> 'a t -> 'a option
+val search_and_replace : ('a -> bool) -> ('a -> 'a) -> 'a t -> 'a t
 
 val parent_of : 'a -> 'a t -> 'a option
 val roots_of  : 'a t -> 'a list

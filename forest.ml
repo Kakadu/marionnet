@@ -37,17 +37,17 @@ let add_tree ((x,childs):'a tree) t = NonEmpty (x,childs,t)
 
 (** Add to a forest a tree which is a leaf. *)
 let add_leaf (x:'a) t = NonEmpty (x,Empty,t)
-             
+
 (** Make a forest with a single tree. *)
 let of_tree ((x,childs):'a tree) = NonEmpty (x,childs,Empty)
 
-let to_tree = function 
+let to_tree = function
 | NonEmpty(root, childs, Empty) -> (root, childs)
 | _ -> invalid_arg "Forest.to_tree: the forest is not a singleton"
 
 (** Make a forest with a single tree which is a leaf. *)
 let of_leaf (x:'a leaf) = NonEmpty (x,Empty,Empty)
-             
+
 let tree_of_leaf (x:'a leaf) : 'a tree = (x, Empty)
 
 (** Returns the list of the 'a elements belong the forest.
@@ -128,6 +128,10 @@ let rec search predicate forest =
       match (search predicate subtrees) with
       | None -> search predicate rest
       | x -> x
+;;
+
+let search_and_replace pred repl t =
+  map (fun a -> if pred a then repl a else a) t
 ;;
 
 (** Return the node in the given forest satisfying the given predicate.

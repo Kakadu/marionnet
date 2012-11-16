@@ -37,11 +37,39 @@ object(self)
       ()
   as super
 
+  val icon_header = "Icon"
+  method get_row_icon = self#get_Icon_field (icon_header)
+  method set_row_icon = self#set_Icon_field (icon_header)
+
+  val title_header = "Title"
+  method get_row_title = self#get_String_field (title_header)
+  method set_row_title = self#set_String_field (title_header)
+
+  val author_header = "Author"
+  method get_row_author = self#get_String_field (author_header)
+  method set_row_author = self#set_String_field (author_header)
+
+  val type_header = "Type"
+  method get_row_type = self#get_String_field (type_header)
+  method set_row_type = self#set_String_field (type_header)
+
+  val comment_header = "Comment"
+  method get_row_comment = self#get_String_field (comment_header)
+  method set_row_comment = self#set_String_field (comment_header)
+
+  val filename_header = "FileName"
+  method get_row_filename = self#get_String_field (filename_header)
+  method set_row_filename = self#set_String_field (filename_header)
+
+  val format_header = "Format"
+  method get_row_format = self#get_String_field (format_header)
+  method set_row_format = self#set_String_field (format_header)
+
   (** Display the document at the given row, in an asynchronous process: *)
   method private display row_id =
-    let format = Row_item.to_string (self#get_row_item row_id "Format") in
-    let reader = self#format_to_reader format in
-    let file_name = Row_item.to_string (self#get_row_item row_id "FileName") in
+    let frmt = self#get_row_format (row_id) in
+    let reader = self#format_to_reader frmt in
+    let file_name = self#get_row_filename row_id in
     let command_line =
       Printf.sprintf "%s '%s/%s'&" reader (Option.extract directory#get) file_name in
     (* Here ~force:true would be useless, because of '&' (the shell well exit in any case). *)
@@ -166,53 +194,53 @@ object(self)
   method import_report ~machine_or_router_name ~pathname () =
     let title = (s_ "Report on ") ^ machine_or_router_name in
     let row_id = self#import_document ~move:true pathname in
-    self#set_row_item row_id "Title" (Row_item.String title);
-    self#set_row_item row_id "Author" (Row_item.String "-");
-    self#set_row_item row_id "Type" (Row_item.String (s_ "Report"));
-    self#set_row_item row_id "Comment" (Row_item.String ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ())));
+    self#set_row_title   row_id title;
+    self#set_row_author  row_id "-";
+    self#set_row_type    row_id (s_ "Report");
+    self#set_row_comment row_id ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ()));
 
   method import_history ~machine_or_router_name ~pathname () =
     let title = (s_ "History of ") ^ machine_or_router_name in
     let row_id = self#import_document ~move:true pathname in
-    self#set_row_item row_id "Title" (Row_item.String title);
-    self#set_row_item row_id "Author" (Row_item.String "-");
-    self#set_row_item row_id "Type" (Row_item.String (s_ "History"));
-    self#set_row_item row_id "Comment" (Row_item.String ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ())));
+    self#set_row_title   row_id title;
+    self#set_row_author  row_id "-";
+    self#set_row_type    row_id (s_ "History");
+    self#set_row_comment row_id ((s_ "created on ") ^ (UnixExtra.date ~dot:" " ()));
 
   method import_document ?(move=false) user_path_name =
     let internal_file_name, format = self#import_file user_path_name in
     let row_id =
       self#add_row
-        [ "FileName", Row_item.String internal_file_name;
-          "Format", Row_item.String format ] in
+        [ filename_header, Row_item.String internal_file_name;
+          format_header,   Row_item.String format ] in
     row_id
 
   initializer
     let _ =
       self#add_icon_column
+        ~header:icon_header
         ~shown_header:(s_ "Icon")
-        ~header:"Icon"
         ~strings_and_pixbufs:[ "text", Initialization.Path.images^"treeview-icons/text.xpm"; ]
         ~default:(fun () -> Row_item.Icon "text")
         () in
     let _ =
       self#add_editable_string_column
+        ~header:title_header
         ~shown_header:(s_ "Title")
-        ~header:"Title"
         ~italic:true
         ~default:(fun () -> Row_item.String "Please edit this")
         () in
     let _ =
       self#add_editable_string_column
+        ~header:author_header
         ~shown_header:(s_ "Author")
-        ~header:"Author"
         ~italic:false
         ~default:(fun () -> Row_item.String "Please edit this")
         () in
     let _ =
       self#add_editable_string_column
+        ~header:type_header
         ~shown_header:(s_ "Type")
-        ~header:"Type"
         ~italic:false
         ~default:(fun () -> Row_item.String "Please edit this")
         () in
@@ -260,7 +288,7 @@ object(self)
       Option.to_bool
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
-        let file_name = Row_item.to_string (self#get_row_item row_id "FileName") in
+        let file_name = (self#get_row_filename row_id) in
         let pathname = Printf.sprintf "%s/%s" (Option.extract directory#get) file_name in
         UnixExtra.apply_ignoring_Unix_error Unix.unlink pathname;
         self#remove_row row_id;

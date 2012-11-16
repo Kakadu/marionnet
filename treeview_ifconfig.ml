@@ -18,7 +18,7 @@
 
 open Gettext;;
 module Row_item = Treeview.Row_item ;;
-module Assoc = ListExtra.Assoc;;
+module Row = Treeview.Row ;;
 
 type port_row_completions = (string * (string * Row_item.t) list) list
 
@@ -34,11 +34,42 @@ object(self)
       ()
   as super
 
+  val uneditable_header = "_uneditable"
+  method get_row_uneditable = self#get_CheckBox_field (uneditable_header)
+
+  val type_header = "Type"
+  method get_row_type = self#get_Icon_field (type_header)
+  method set_row_type = self#set_Icon_field (type_header)
+
+  val mac_address_header = "MAC address"
+  method get_row_mac_address = self#get_String_field (mac_address_header)
+  method set_row_mac_address = self#set_String_field (mac_address_header)
+
+  val mtu_header = "MTU"
+  method get_row_mtu = self#get_String_field (mtu_header)
+  method set_row_mtu = self#set_String_field (mtu_header)
+
+  val ipv4_address_header = "IPv4 address"
+  method get_row_ipv4_address = self#get_String_field (ipv4_address_header)
+  method set_row_ipv4_address = self#set_String_field (ipv4_address_header)
+
+  val ipv4_broadcast_header = "IPv4 broadcast"
+  method get_row_ipv4_broadcast = self#get_String_field (ipv4_broadcast_header)
+  method set_row_ipv4_broadcast = self#set_String_field (ipv4_broadcast_header)
+
+  val ipv4_netmask_header = "IPv4 netmask"
+  method get_row_ipv4_netmask = self#get_String_field (ipv4_netmask_header)
+  method set_row_ipv4_netmask = self#set_String_field (ipv4_netmask_header)
+
+  val ipv6_address_header = "IPv6 address"
+  method get_row_ipv6_address = self#get_String_field (ipv6_address_header)
+  method set_row_ipv6_address = self#set_String_field (ipv6_address_header)
+
   method private currently_used_mac_addresses : string list =
-    let xs = List.flatten (Forest.linearize self#get_forest) in
+    let xs = List.flatten (Forest.to_list self#get_forest) in
     let xs = ListExtra.filter_map
       (function
-       | "MAC address", (Row_item.String s) -> Some s
+       | header, (Row_item.String s) when header=mac_address_header -> Some s
        | _ -> None
        )
        xs
@@ -107,15 +138,15 @@ object(self)
   method add_device ?port_row_completions device_name device_type port_no =
     let row_id =
       self#add_row
-        [ "Name", Row_item.String device_name;
-          "Type", Row_item.Icon device_type;
-          "_uneditable", Row_item.CheckBox true;
-          "MTU", Row_item.String "";
-          "MAC address", Row_item.String "";
-          "IPv4 address", Row_item.String "";
-          "IPv4 netmask", Row_item.String "";
-          "IPv4 broadcast", Row_item.String "";
-          "IPv6 address", Row_item.String "";
+        [ name_header,           Row_item.String device_name;
+          type_header,           Row_item.Icon device_type;
+          uneditable_header,     Row_item.CheckBox true;
+          mtu_header,            Row_item.String "";
+          mac_address_header,    Row_item.String "";
+          ipv4_address_header,   Row_item.String "";
+          ipv4_netmask_header,   Row_item.String "";
+          ipv4_broadcast_header, Row_item.String "";
+          ipv6_address_header,   Row_item.String "";
          ]
     in
     self#update_port_no ?port_row_completions device_name port_no;
@@ -129,20 +160,22 @@ object(self)
     let current_port_no =
       self#port_no_of device_name in
     let port_type =
-      match Row_item.to_string (self#get_row_item device_row_id "Type") with
+      match self#get_row_type (device_row_id) with
       | "machine" | "world_bridge" -> "machine-port"
       | "gateway" (* retro-compatibility *) -> "machine-port"
       | "router"             -> "router-port"
       | _                    -> "other-device-port" in
     let port_prefix =
-      match Row_item.to_string (self#get_row_item device_row_id "Type") with
+      match self#get_row_type (device_row_id) with
         "machine" | "world_bridge" -> "eth"
       | "gateway" (* retro-compatibility *) -> "eth"
-      | _ -> "port" in
+      | _ -> "port"
+    in
     let port_name = (Printf.sprintf "%s%i" port_prefix current_port_no) in
     let port_row_standard =
-      [ "Name", Row_item.String port_name;
-        "Type", Row_item.Icon port_type; ] in
+      [ name_header, Row_item.String port_name;
+        type_header, Row_item.Icon port_type; ]
+    in
     let port_row = match port_row_completions with
       | None     -> port_row_standard
       | Some lst ->
@@ -185,10 +218,9 @@ object(self)
            o5 < 65536 && o6 < 65536 && o7 < 65536 && o8 < 65536)
     with _ ->
       false *)
-  method private is_a_valid_ipv6_netmask x =
-    self#is_a_valid_ipv6_address x
-  method private is_a_valid_ipv6_broadcast x =
-    self#is_a_valid_ipv6_address x
+  method private is_a_valid_ipv6_netmask   x = self#is_a_valid_ipv6_address x
+  method private is_a_valid_ipv6_broadcast x = self#is_a_valid_ipv6_address x
+
   method private is_a_valid_mtu x =
     if x = "" then
       true
@@ -197,14 +229,14 @@ object(self)
     with _ ->
       false
 
-  method get_port_data device_name port_name =
+  method get_port_data ~device_name ~port_name =
     self#get_row_of_child ~parent_name:device_name ~child_name:port_name
 
   (** Return all the non-reserved data of a given port *index* (for example
       2 stands for "eth2" or "port2", in our usual <name, item> alist
       format: *)
   (* TODO: remove it *)
-  method get_port_data_by_index device_name port_index =
+  method get_port_data_by_index ~device_name ~port_index =
     (* First try with the "eth" prefix: *)
     let port_name = Printf.sprintf "eth%i" port_index in
     try
@@ -212,39 +244,34 @@ object(self)
     with _ ->
       (* We failed. Ok, now try with the "port" prefix, before bailing out: *)
       let port_name = Printf.sprintf "port%i" port_index in
-      self#get_port_data device_name port_name
+      self#get_port_data ~device_name ~port_name
 
   (** Return a single port attribute as an item: *)
-  method get_port_attribute device_name port_name column_header =
-    Row_item.to_string (Assoc.find column_header (self#get_port_data device_name port_name))
+
+  method get_port_attribute ~device_name ~port_name ~field =
+    let row = (self#get_port_data ~device_name ~port_name) in
+    (Row.String_field.get ~field row)
 
   (** Return a single port attribute as an item: *)
   (* TODO: remove it and remove also get_port_data_by_index *)
-  method get_port_attribute_by_index device_name port_index column_header =
-    Row_item.to_string (Assoc.find column_header (self#get_port_data_by_index device_name port_index))
+  method get_port_attribute_by_index ~device_name ~port_index ~field =
+    let row = (self#get_port_data_by_index ~device_name ~port_index) in
+    (Row.String_field.get ~field row)
 
   (** Update a single port attribute: *)
-  method set_port_attribute_by_index device_name port_index column_header value =
-    let device_row_id = self#unique_row_id_of_name device_name in
-    let device_port_ids = self#children_of device_row_id in
+  method set_port_attribute_by_index ~device_name ~port_index ~field value =
     let port_name = Printf.sprintf "port%i" port_index in
-    let filtered_port_data =
-      List.filter
-        (fun row -> Assoc.find "Name" row = Row_item.String port_name)
-        (List.map self#get_complete_row device_port_ids) in
-    let current_row =
-      match filtered_port_data with
-        | [ complete_row ] -> complete_row
-        | _ -> assert false (* either zero or more than one row matched *) in
-    let row_id =
-      match Assoc.find "_id" current_row with
-        Row_item.String row_id -> row_id
-      | _ -> assert false in
-    self#set_row_item row_id column_header value
+    let row =
+      self#get_complete_row_of_child
+        ~parent_name:device_name
+        ~child_name:port_name
+    in
+    let row_id = Row.get_id row in
+    self#set_row_field row_id field value;
 
   (** Update a single port attribute of type string: *)
-  method set_port_string_attribute_by_index device_name port_index column_header value =
-    self#set_port_attribute_by_index device_name port_index column_header (Row_item.String value)
+  method set_port_string_attribute_by_index ~device_name ~port_index ~field value =
+    self#set_port_attribute_by_index ~device_name ~port_index ~field (Row_item.String value)
 
   (** Clear the interface and set the full internal state back to its initial value: *)
   method clear =
@@ -279,13 +306,13 @@ object(self)
   initializer
     let _ =
       self#add_checkbox_column
-        ~header:"_uneditable"
+        ~header:uneditable_header
         ~hidden:true
         ~default:(fun () -> Row_item.CheckBox false)
         () in
     let _ =
       self#add_icon_column
-        ~header:"Type"
+        ~header:type_header
         ~shown_header:(s_ "Type")
         ~strings_and_pixbufs:[
            "machine", Initialization.Path.images^"treeview-icons/machine.xpm";
@@ -297,65 +324,65 @@ object(self)
         () in
     let _ =
       self#add_editable_string_column
-        ~header:"MAC address"
+        ~header:mac_address_header
         ~shown_header:(s_ "MAC address")
         ~default:(fun () -> Row_item.String self#generate_mac_address)
-        ~constraint_predicate:(fun i -> let s = Row_item.to_string i in
+        ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
                                           (self#is_a_valid_mac_address s) or s = "")
         () in
     let _ =
       self#add_editable_string_column
-        ~header:"MTU"
+        ~header:mtu_header
         ~default:(fun () -> Row_item.String "1500")
-        ~constraint_predicate:(fun i -> let s = Row_item.to_string i in
+        ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
                                           (self#is_a_valid_mtu s) or s = "")
         () in
     let _ =
       self#add_editable_string_column
-        ~header:"IPv4 address"
+        ~header:ipv4_address_header
         ~shown_header:(s_ "IPv4 address")
         ~default:(fun () ->
                     if Global_options.get_autogenerate_ip_addresses () then
                       Row_item.String self#generate_ipv4_address
                     else
                       Row_item.String "")
-        ~constraint_predicate:(fun i -> let s = Row_item.to_string i in
+        ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
                                           (Ipv4.String.is_valid_ipv4 s) or s = "")
         () in
     let _ =
       self#add_editable_string_column
-        ~header:"IPv4 broadcast"
+        ~header:ipv4_broadcast_header
         ~shown_header:(s_ "IPv4 broadcast")
         ~default:(fun () ->
                     if Global_options.get_autogenerate_ip_addresses () then
                       Row_item.String "10.10.255.255"
                     else
                       Row_item.String "")
-        ~constraint_predicate:(fun i -> let s = Row_item.to_string i in
+        ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
                                           (self#is_a_valid_ipv4_broadcast s) or s = "")
         () in
     let _ =
       self#add_editable_string_column
-        ~header:"IPv4 netmask"
+        ~header:ipv4_netmask_header
         ~shown_header:(s_ "IPv4 netmask")
         ~default:(fun () ->
                     if Global_options.get_autogenerate_ip_addresses () then
                       Row_item.String "255.255.0.0"
                     else
                       Row_item.String "")
-        ~constraint_predicate:(fun i -> let s = Row_item.to_string i in
+        ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
                                           (Ipv4.String.is_valid_netmask s) or s = "")
         () in
     let _ =
       self#add_editable_string_column
-        ~header:"IPv6 address"
+        ~header:ipv6_address_header
         ~shown_header:(s_ "IPv6 address")
         ~default:(fun () ->
                     if Global_options.get_autogenerate_ip_addresses () then
                       Row_item.String self#generate_ipv6_address
                     else
                       Row_item.String "")
-        ~constraint_predicate:(fun i -> let s = Row_item.to_string i in
+        ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
                                           (self#is_a_valid_ipv6_address s) or s = "")
         () in
 
@@ -363,12 +390,12 @@ object(self)
   self#add_row_constraint
     ~name:(s_ "you should choose a port to define this parameter")
     (fun row ->
-      let uneditable = Row_item.to_bool (Assoc.find "_uneditable" row) in
+      let uneditable = Row.CheckBox_field.get ~field:uneditable_header row in
       (not uneditable) or
       (List.for_all (fun (name, value) ->
-                       name = "Name" or
-                       name = "Type" or
-                       name = "_uneditable" or
+                       name = name_header or
+                       name = type_header or
+                       name = uneditable_header or
                        self#is_column_reserved name or
                        value = Row_item.String "")
                     row));
@@ -376,10 +403,10 @@ object(self)
   self#add_row_constraint
     ~name:(s_ "the router first port must always have a valid configuration address")
     (fun row ->
-      let port_name = Row_item.to_string (Assoc.find "Name" row) in
-      let port_type = Row_item.to_string (Assoc.find "Type" row) in
-      let address   = Row_item.to_string (Assoc.find "IPv4 address" row) in
-      let netmask   = Row_item.to_string (Assoc.find "IPv4 netmask" row) in
+      let port_name = (Row.get_name row) in
+      let port_type = (Row.Icon_field.get ~field:type_header row) in
+      let address   = (Row.String_field.get ~field:ipv4_address_header row) in
+      let netmask   = (Row.String_field.get ~field:ipv4_netmask_header row) in
       (port_name <> "port0") or
       (port_type <> "router-port") or
       ((address <> "") && (netmask <> "")));
@@ -387,7 +414,7 @@ object(self)
     (* In this treeview the involved device is the parent: *)
     self#set_after_update_callback
       (fun row_id ->
-        after_user_edit_callback (self#parent_name_of row_id));
+        after_user_edit_callback (self#get_row_parent_name row_id));
 
     (* Make internal data structures: no more columns can be added now: *)
     self#create_store_and_view;

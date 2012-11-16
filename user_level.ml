@@ -1481,7 +1481,7 @@ class network () =
 
  method to_forest =
    Forest.of_tree self#to_tree
-   
+
  val try_to_add_procedure_list= ref []
  method subscribe_a_try_to_add_procedure p =
    try_to_add_procedure_list := p::(!try_to_add_procedure_list)

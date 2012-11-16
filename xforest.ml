@@ -68,7 +68,7 @@ class virtual interpreter () = object (self)
      recursively the same method of its childs in order to construct
       its representation as forest. *)
  method virtual to_tree : tree
- 
+
  (** May be redefined. Otherwise, by default, is simply a call to the method constructing
      the tree which is transformed in a forest (singleton). *)
  method to_forest : forest =

@@ -1500,23 +1500,6 @@ end;;
 
 (** {2 machine and router implementation} *)
 
-(** To do: move this into ListExtra.
-    Return a sublist of the given list containing all the elements with indices
-    between first_index and last_index, both included: *)
-let rec from_to first_index last_index list =
-  match first_index, list with
-    _, [] ->
-      failwith "from_to: out of bounds"
-  | 0, (x::xs) ->
-      if last_index < 0 then
-        failwith "from_to: out of bounds"
-      else if last_index = 0 then
-        [x]
-      else
-        x :: (from_to 0 (last_index - 1) xs)
-  | n, (_::xs) ->
-      from_to (first_index - 1) (last_index - 1) xs;;
-
 (** This class implements {e either} an machine or a router; their implementation
     is nearly identical, so this is convenient. *)
 class virtual ['parent] machine_or_router =
@@ -1579,9 +1562,9 @@ object(self)
   initializer
     let all_hublets = self#get_hublet_process_list in
     outer_hublet_processes :=
-      from_to 0 (half_hublet_no - 1) all_hublets;
+      ListExtra.select_from_to all_hublets 0 (half_hublet_no - 1);
     inner_hublet_processes :=
-      from_to half_hublet_no (2 * half_hublet_no - 1) all_hublets;
+      ListExtra.select_from_to all_hublets (half_hublet_no) (2 * half_hublet_no - 1);
     (if xnest then
       xnest_process :=
         Some (new xnest_process

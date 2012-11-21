@@ -334,7 +334,7 @@ class world_bridge_hub_process =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit Simulation_level.hub_or_switch_process
+  inherit Simulation_level.vde_switch_process
       ~port_no:2
       ~hub:true
       ~tap_name

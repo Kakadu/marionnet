@@ -343,7 +343,7 @@ class virtual process_which_creates_a_socket_at_spawning_time =
   method private sockets_have_been_created =
     listening_socket#exists && self#management_socket_unused_or_exists
 
-  (** hub_or_switch_processes need to be up before we connect cables or UMLs to
+  (** vde_switch_processes need to be up before we connect cables or UMLs to
       them, so they have to be spawned in a *synchronous* way: *)
   method spawn =
     Log.printf "Spawning the process which will create the socket %s\n" self#get_socket_name;
@@ -374,12 +374,14 @@ end;; (* class process_which_creates_a_socket_at_spawning_time *)
 
 (** This is used to implement Switch, Hub, Hublet and Gateway Hub processes.
     Only Unix socket is used as a transport if no tap_name is specified: *)
-class hub_or_switch_process =
+class vde_switch_process =
  fun ?hub:(hub:bool=false)
      ?port_no:(port_no:int=32)
      ?tap_name
      ?socket_name_prefix
      ?management_socket
+     ?fstp
+     ?rcfile
      ~unexpected_death_callback
      () ->
  let socket_name_prefix = match socket_name_prefix with
@@ -389,17 +391,31 @@ class hub_or_switch_process =
  object(self)
   inherit process_which_creates_a_socket_at_spawning_time
       (Initialization.Path.vde_prefix ^ "vde_switch")
-      (List.append
-         (match tap_name with
-           None ->
-             []
-         | Some tap_name ->
-             ["-tap"; tap_name])
-         (List.append
-            (if hub then ["-x"] else [])
-            ["-n"; (string_of_int (port_no + 1));
-             "-mod"; "777" (* To do: find a reasonable value for this *);
-             ]))
+      (let arguments =
+         let tap_name_related =
+           match tap_name with
+           | None -> []
+           | Some tap_name -> ["-tap"; tap_name]
+         in
+         let hub_related = (if hub then ["-x"] else []) in
+         let port_no_related = [ "-n"; (string_of_int (port_no + 1)) ] in
+         (* TODO: find a reasonable value for this: *)
+         let permissions_related = [ "-mod"; "777" ] in
+         let fstp_related = (if fstp=Some () then ["--fstp"] else []) in
+         let rcfile_related =
+           match rcfile with
+           | None -> []
+           | Some rcfile -> ["--rcfile"; rcfile]
+         in
+         List.concat [
+           tap_name_related;
+           hub_related;
+           port_no_related;
+           permissions_related;
+           fstp_related;
+           rcfile_related;
+           ]
+      in arguments)
       ~stdin:an_input_descriptor_never_sending_anything
       ~stdout:dev_null_out
       ~stderr:dev_null_out
@@ -409,13 +425,13 @@ class hub_or_switch_process =
       ()
   initializer
     let optional_mgmt =
-      List.flatten
+      List.concat
         (Option.to_list
            (Option.map (fun name -> ["--mgmt"; name]) self#get_management_socket_name))
     in
     self#append_arguments ("-unix" :: self#get_socket_name :: optional_mgmt);
 
-end;; (* class hub_or_switch_process *)
+end;; (* class vde_switch_process *)
 
 (** A Swtich process is, well, a Switch or Hub process but not a hub: *)
 class switch_process =
@@ -425,7 +441,7 @@ class switch_process =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit hub_or_switch_process
+  inherit vde_switch_process
       ~hub:false
       ~port_no
       ?socket_name_prefix
@@ -443,7 +459,7 @@ class hub_process =
       ~unexpected_death_callback
       () ->
 object(self)
-  inherit hub_or_switch_process
+  inherit vde_switch_process
       ~hub:true
       ~port_no
       ?socket_name_prefix
@@ -1451,6 +1467,8 @@ class virtual ['parent] hub_or_switch =
       ?(last_user_visible_port_index:int option)
       ~(hub:bool)
       ?management_socket
+      ?fstp
+      ?rcfile
       ~unexpected_death_callback
       () ->
  object(self)
@@ -1465,10 +1483,12 @@ class virtual ['parent] hub_or_switch =
 
   initializer
     main_process <-
-      Some (new hub_or_switch_process
+      Some (new vde_switch_process
               ~hub
               ~port_no:hublet_no
               ?management_socket
+              ?fstp
+              ?rcfile
               ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ())
 

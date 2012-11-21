@@ -38,6 +38,7 @@ type t = {
   label             : string;
   port_no           : int;
   show_vde_terminal : bool;
+  activate_fstp     : bool;
   old_name          : string;
   }
 
@@ -68,10 +69,14 @@ module Make_menus (Params : sig
       let name = st#network#suggestedName "S" in
       Dialog_add_or_update.make ~title:(s_ "Add switch") ~name ~ok_callback ()
 
-    let reaction { name = name; label = label; port_no = port_no; show_vde_terminal = show_vde_terminal; } =
+    let reaction
+       { name = name; label = label; port_no = port_no;
+         show_vde_terminal = show_vde_terminal; activate_fstp = activate_fstp; }
+      =
       let action () =
         ignore
-          (new User_level_switch.switch ~network:st#network ~name ~label ~port_no ~show_vde_terminal ())
+          (new User_level_switch.switch
+                 ~network:st#network ~name ~label ~port_no ~show_vde_terminal ~activate_fstp ())
       in
       st#network_change action ();
 
@@ -89,14 +94,18 @@ module Make_menus (Params : sig
      let port_no = s#get_port_no in
      let port_no_min = st#network#port_no_lower_of (s :> User_level.node) in
      let show_vde_terminal = s#get_show_vde_terminal in
+     let activate_fstp = s#get_activate_fstp in
      Dialog_add_or_update.make
-       ~title ~name ~label ~port_no ~port_no_min ~show_vde_terminal ~ok_callback:Add.ok_callback ()
+       ~title ~name ~label ~port_no ~port_no_min
+       ~show_vde_terminal ~activate_fstp
+       ~ok_callback:Add.ok_callback ()
 
     let reaction { name = name; label = label; port_no = port_no; old_name = old_name;
-                   show_vde_terminal = show_vde_terminal; } =
+                   show_vde_terminal = show_vde_terminal;
+                   activate_fstp = activate_fstp; } =
       let d = (st#network#get_device_by_name old_name) in
       let s = ((Obj.magic d):> User_level_switch.switch) in
-      let action () = s#update_switch_with ~name ~label ~port_no ~show_vde_terminal in
+      let action () = s#update_switch_with ~name ~label ~port_no ~show_vde_terminal ~activate_fstp in
       st#network_change action ();
 
   end
@@ -182,6 +191,7 @@ let make
  ?(port_no_min=Const.port_no_min)
  ?(port_no_max=Const.port_no_max)
  ?(show_vde_terminal=false)
+ ?(activate_fstp=false)
  ?(help_callback=help_callback) (* defined backward with "WHERE" *)
  ?(ok_callback=(fun data -> Some data))
  ?(dialog_image_file=Initialization.Path.images^"ico.switch.dialog.png")
@@ -197,14 +207,14 @@ let make
       ?label
       ()
   in
-  let (port_no, show_vde_terminal) =
+  let (port_no, show_vde_terminal, activate_fstp) =
     let vbox = GPack.vbox ~homogeneous:false ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
     let form =
       Gui_bricks.make_form_with_labels
         ~packing:vbox#add
         [(s_ "Ports number");
          (s_ "Show VDE terminal");
-        ]
+         (s_ "Activate FSTP");        ]
     in
     let port_no =
       Gui_bricks.spin_byte
@@ -218,7 +228,13 @@ let make
         ~packing:(form#add_with_tooltip (s_ "Check to access the switch through a terminal" ))
         ()
     in
-    (port_no, show_vde_terminal)
+    let activate_fstp =
+      GButton.check_button
+        ~active:activate_fstp
+        ~packing:(form#add_with_tooltip (s_ "Check to activate the FSTP (Fast Spanning Tree Protocol)" ))
+        ()
+    in
+    (port_no, show_vde_terminal, activate_fstp)
   in
 
   let get_widget_data () :'result =
@@ -226,10 +242,12 @@ let make
     let label = label#text in
     let port_no = int_of_float port_no#value in
     let show_vde_terminal = show_vde_terminal#active in
+    let activate_fstp = activate_fstp#active in
       { Data.name = name;
         Data.label = label;
         Data.port_no = port_no;
         Data.show_vde_terminal = show_vde_terminal;
+        Data.activate_fstp = activate_fstp;
         Data.old_name = old_name;
         }
   in
@@ -311,6 +329,7 @@ class switch =
      ?label
      ~port_no
      ?(show_vde_terminal=false)
+     ?(activate_fstp=false)
      () ->
   object (self) inherit OoExtra.destroy_methods ()
 
@@ -334,24 +353,31 @@ class switch =
   method get_show_vde_terminal = show_vde_terminal
   method set_show_vde_terminal x = show_vde_terminal <- x
 
+  val mutable activate_fstp : bool = activate_fstp
+  method get_activate_fstp  = activate_fstp
+  method set_activate_fstp x = activate_fstp <- x
+
   method dotImg iconsize =
    let imgDir = Initialization.Path.images in
    (imgDir^"ico.switch."^(self#string_of_simulated_device_state)^"."^iconsize^".png")
 
-  method update_switch_with ~name ~label ~port_no ~show_vde_terminal =
+  method update_switch_with ~name ~label ~port_no ~show_vde_terminal ~activate_fstp =
    (* The following call ensure that the simulated device will be destroyed: *)
    self_as_node_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
-   self#set_show_vde_terminal show_vde_terminal;
+   self#set_show_vde_terminal (show_vde_terminal);
+   self#set_activate_fstp (activate_fstp);
 
   (** Create the simulated device *)
   method private make_simulated_device =
     let hublet_no = self#get_port_no in
     let show_vde_terminal = self#get_show_vde_terminal in
+    let fstp              = Option.of_bool (self#get_activate_fstp) in
     let unexpected_death_callback = self#destroy_because_of_unexpected_death in
     ((new Simulation_level_switch.switch
        ~parent:self
        ~hublet_no          (* TODO: why not accessible from parent? *)
        ~show_vde_terminal  (* TODO: why not accessible from parent? *)
+       ?fstp
        ~unexpected_death_callback
        ()) :> User_level.node Simulation_level.device)
 
@@ -361,6 +387,7 @@ class switch =
       ("label"    ,  self#get_label);
       ("port_no"  ,  (string_of_int self#get_port_no))  ;
       ("show_vde_terminal" , string_of_bool (self#get_show_vde_terminal));
+      ("activate_fstp" , string_of_bool (self#get_activate_fstp));
       ])
 
   method eval_forest_attribute = function
@@ -368,6 +395,7 @@ class switch =
   | ("label"    , x ) -> self#set_label x
   | ("port_no"  , x ) -> self#set_port_no (int_of_string x)
   | ("show_vde_terminal", x ) -> self#set_show_vde_terminal (bool_of_string x)
+  | ("activate_fstp", x )       -> self#set_activate_fstp (bool_of_string x)
   | _ -> () (* Forward-comp. *)
 
 end (* class switch *)
@@ -410,6 +438,8 @@ class ['parent] switch =
       ~hublet_no
       ?(last_user_visible_port_index:int option)
       ?(show_vde_terminal=false)
+      ?fstp
+      ?rcfile
       ~unexpected_death_callback
       () ->
 object(self)
@@ -419,6 +449,8 @@ object(self)
       ?last_user_visible_port_index
       ~hub:false
       ~management_socket:()
+      ?fstp
+      ?rcfile
       ~unexpected_death_callback
       ()
       as super

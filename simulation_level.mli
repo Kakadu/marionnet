@@ -89,12 +89,14 @@ class virtual process_which_creates_a_socket_at_spawning_time :
     method terminate : unit
   end
 
-class hub_or_switch_process :
+class vde_switch_process :
   ?hub:bool ->
   ?port_no:int ->
   ?tap_name:process_name ->
   ?socket_name_prefix:string ->
   ?management_socket:unit ->
+  ?fstp:unit ->
+  ?rcfile:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -405,6 +407,8 @@ class virtual ['parent] hub_or_switch :
   ?last_user_visible_port_index:int ->
   hub:bool ->
   ?management_socket:unit ->
+  ?fstp:unit ->
+  ?rcfile:string ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object

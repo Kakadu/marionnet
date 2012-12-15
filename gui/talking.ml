@@ -355,7 +355,7 @@ let ask_for_existing_filename ?(enrich=mkenv []) ~title ?(filter_names = allfilt
 (** Generic constructor for question dialogs.
     With the 'enrich' optional parameter the dialog can enrich a given environnement. Otherwise
     it creates a new one. *)
-let ask_question ?(enrich=mkenv []) ?(title="QUESTION") ?(gen_id="answer")  ?(help=None) ?(cancel=false) ~(question:string)  () =
+let ask_question ?(enrich=mkenv []) ?(title="QUESTION") ?(gen_id="answer") ?(help=None) ?(cancel=false) ~(question:string)  () =
 
    let dialog=new Gui.dialog_QUESTION () in
 

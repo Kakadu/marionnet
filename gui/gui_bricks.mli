@@ -100,7 +100,7 @@ module Dialog_run : sig
     context:'a ->
     unit -> ('a * bool) option
 
-end (* Dialog_loop *)
+end (* Dialog_run *)
 
 module Dialog : sig
 
@@ -122,7 +122,7 @@ module Dialog : sig
     context:'a ->
     unit -> ('a * bool) option
 
-end (* Dialog_loop *)
+end (* Dialog *)
 
 
 val set_marionnet_icon : [> ] GWindow.dialog -> unit

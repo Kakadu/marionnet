@@ -29,6 +29,22 @@ module Const = struct
  let port_no_default = 4
  let port_no_min = 4
  let port_no_max = 16
+
+ let initial_content_for_rcfiles =
+"# ===== FAST SPANNING TREE COMMANDS
+# fstp/setfstp 0/1             Fast spanning tree protocol 1=ON 0=OFF
+# fstp/setedge VLAN PORT 1/0   Define an edge port for a vlan 1=Y 0=N
+# fstp/bonus   VLAN PORT COST  set the port bonus for a vlan
+# ===== PORT STATUS COMMANDS
+# port/sethub  0/1             1=HUB 0=switch
+# port/setvlan PORT VLAN       assign PORT to VLAN (untagged port)
+# ===== VLAN MANAGEMENT COMMANDS
+# vlan/create  VLAN            create the vlan VLAN
+# vlan/remove  VLAN            remove the vlan VLAN
+# vlan/addport VLAN PORT       add PORT to the VLAN's trunk (tagged)
+# vlan/delport VLAN PORT       remove PORT from the VLAN's trunk
+" ;;
+
 end
 
 (* The type of data exchanged with the dialog: *)
@@ -39,6 +55,7 @@ type t = {
   port_no           : int;
   show_vde_terminal : bool;
   activate_fstp     : bool;
+  rc_config         : bool * string;
   old_name          : string;
   }
 
@@ -71,12 +88,13 @@ module Make_menus (Params : sig
 
     let reaction
        { name = name; label = label; port_no = port_no;
-         show_vde_terminal = show_vde_terminal; activate_fstp = activate_fstp; }
+         show_vde_terminal = show_vde_terminal; activate_fstp = activate_fstp;
+         rc_config = rc_config; }
       =
       let action () =
         ignore
           (new User_level_switch.switch
-                 ~network:st#network ~name ~label ~port_no ~show_vde_terminal ~activate_fstp ())
+                 ~network:st#network ~name ~label ~port_no ~show_vde_terminal ~activate_fstp ~rc_config ())
       in
       st#network_change action ();
 
@@ -95,17 +113,21 @@ module Make_menus (Params : sig
      let port_no_min = st#network#port_no_lower_of (s :> User_level.node) in
      let show_vde_terminal = s#get_show_vde_terminal in
      let activate_fstp = s#get_activate_fstp in
+     let rc_config = s#get_rc_config in
      Dialog_add_or_update.make
        ~title ~name ~label ~port_no ~port_no_min
-       ~show_vde_terminal ~activate_fstp
+       ~show_vde_terminal ~activate_fstp ~rc_config
        ~ok_callback:Add.ok_callback ()
 
-    let reaction { name = name; label = label; port_no = port_no; old_name = old_name;
+    let reaction { name = name; label = label; port_no = port_no;
+                   old_name = old_name;
                    show_vde_terminal = show_vde_terminal;
-                   activate_fstp = activate_fstp; } =
+                   activate_fstp = activate_fstp;
+                   rc_config = rc_config }
+      =
       let d = (st#network#get_device_by_name old_name) in
       let s = ((Obj.magic d):> User_level_switch.switch) in
-      let action () = s#update_switch_with ~name ~label ~port_no ~show_vde_terminal ~activate_fstp in
+      let action () = s#update_switch_with ~name ~label ~port_no ~show_vde_terminal ~activate_fstp ~rc_config in
       st#network_change action ();
 
   end
@@ -192,6 +214,7 @@ let make
  ?(port_no_max=Const.port_no_max)
  ?(show_vde_terminal=false)
  ?(activate_fstp=false)
+ ?(rc_config=(false, Const.initial_content_for_rcfiles))
  ?(help_callback=help_callback) (* defined backward with "WHERE" *)
  ?(ok_callback=(fun data -> Some data))
  ?(dialog_image_file=Initialization.Path.images^"ico.switch.dialog.png")
@@ -207,14 +230,16 @@ let make
       ?label
       ()
   in
-  let (port_no, show_vde_terminal, activate_fstp) =
+  let (port_no, show_vde_terminal, activate_fstp, rc_config) =
     let vbox = GPack.vbox ~homogeneous:false ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
     let form =
       Gui_bricks.make_form_with_labels
         ~packing:vbox#add
         [(s_ "Ports number");
          (s_ "Show VDE terminal");
-         (s_ "Activate FSTP");        ]
+         (s_ "Activate FSTP");
+         (s_ "Startup configuration");
+         ]
     in
     let port_no =
       Gui_bricks.spin_byte
@@ -234,7 +259,44 @@ let make
         ~packing:(form#add_with_tooltip (s_ "Check to activate the FSTP (Fast Spanning Tree Protocol)" ))
         ()
     in
-    (port_no, show_vde_terminal, activate_fstp)
+    let rc_config =
+      let hbox = GPack.hbox
+        ~packing:(form#add_with_tooltip (s_ "Check to activate a startup configuration" ))
+        ~homogeneous:true
+        ()
+      in
+      let check_button =
+	GButton.check_button
+	  ~active:(fst rc_config)
+	  ~packing:(hbox#add)
+	  ()
+      in
+      let edit_button =
+        GButton.button ~stock:`EDIT ~packing:hbox#add ()
+      in
+      let content = ref (snd rc_config) in
+      let make_editing_window () =
+        let result = Egg.create () in
+        let () =
+	  Gui_source_editing.window
+	    ~title:(Printf.sprintf (f_ "%s configuration file") old_name)
+	    ~language:(`id "vde_switch")
+	    ~modal:()
+	    ~content:(!content)
+	    ~result
+	    ~create_as_dialog:()
+	    ~draw_spaces:[]
+	    ~position:`MOUSE
+	    ()
+	in
+        ignore (Thread.create (fun () -> content := Option.extract_or (Egg.wait result) !content) ());
+      in
+      ignore (edit_button#connect#clicked (make_editing_window));
+      (edit_button#misc#set_sensitive check_button#active);
+      ignore (check_button#connect#toggled (fun () -> edit_button#misc#set_sensitive check_button#active));
+      object method active = check_button#active  method content = !content end
+    in
+    (port_no, show_vde_terminal, activate_fstp, rc_config)
   in
 
   let get_widget_data () :'result =
@@ -242,12 +304,14 @@ let make
     let label = label#text in
     let port_no = int_of_float port_no#value in
     let show_vde_terminal = show_vde_terminal#active in
+    let rc_config = (rc_config#active, rc_config#content) in
     let activate_fstp = activate_fstp#active in
       { Data.name = name;
         Data.label = label;
         Data.port_no = port_no;
         Data.show_vde_terminal = show_vde_terminal;
         Data.activate_fstp = activate_fstp;
+        Data.rc_config = rc_config;
         Data.old_name = old_name;
         }
   in
@@ -330,6 +394,7 @@ class switch =
      ~port_no
      ?(show_vde_terminal=false)
      ?(activate_fstp=false)
+     ?(rc_config=(false,""))
      () ->
   object (self) inherit OoExtra.destroy_methods ()
 
@@ -357,27 +422,55 @@ class switch =
   method get_activate_fstp  = activate_fstp
   method set_activate_fstp x = activate_fstp <- x
 
+  val mutable rc_config : bool * string  = rc_config
+  method get_rc_config = rc_config
+  method set_rc_config x = rc_config <- x
+
   method dotImg iconsize =
    let imgDir = Initialization.Path.images in
    (imgDir^"ico.switch."^(self#string_of_simulated_device_state)^"."^iconsize^".png")
 
-  method update_switch_with ~name ~label ~port_no ~show_vde_terminal ~activate_fstp =
+  method update_switch_with ~name ~label ~port_no
+   ~show_vde_terminal ~activate_fstp ~rc_config
+   =
    (* The following call ensure that the simulated device will be destroyed: *)
    self_as_node_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
    self#set_show_vde_terminal (show_vde_terminal);
    self#set_activate_fstp (activate_fstp);
+   self#set_rc_config (rc_config);
 
   (** Create the simulated device *)
   method private make_simulated_device =
     let hublet_no = self#get_port_no in
     let show_vde_terminal = self#get_show_vde_terminal in
-    let fstp              = Option.of_bool (self#get_activate_fstp) in
+    let fstp = Option.of_bool (self#get_activate_fstp) in
+(*    let rcfile =
+      match self#get_rc_config with
+      | false, _ -> None
+      | true, content ->
+          let filename =
+            let motherboard = Motherboard.extract () in
+            UnixExtra.temp_file
+              ~parent:motherboard#project_working_directory
+              ~prefix:(Printf.sprintf "switch_%s_rcfile." self#get_name)
+              ~content
+              ()
+          in
+          self#add_destroy_callback (lazy (Unix.unlink filename));
+          Some filename
+    in*)
+    let rcfile_content =
+      match self#get_rc_config with
+      | false, _ -> None
+      | true, content -> Some content
+    in
     let unexpected_death_callback = self#destroy_because_of_unexpected_death in
     ((new Simulation_level_switch.switch
        ~parent:self
        ~hublet_no          (* TODO: why not accessible from parent? *)
        ~show_vde_terminal  (* TODO: why not accessible from parent? *)
        ?fstp
+       ?rcfile_content
        ~unexpected_death_callback
        ()) :> User_level.node Simulation_level.device)
 
@@ -387,7 +480,8 @@ class switch =
       ("label"    ,  self#get_label);
       ("port_no"  ,  (string_of_int self#get_port_no))  ;
       ("show_vde_terminal" , string_of_bool (self#get_show_vde_terminal));
-      ("activate_fstp" , string_of_bool (self#get_activate_fstp));
+      ("activate_fstp"     , string_of_bool (self#get_activate_fstp));
+      ("rc_config"         , Marshal.to_string self#get_rc_config []);
       ])
 
   method eval_forest_attribute = function
@@ -395,7 +489,8 @@ class switch =
   | ("label"    , x ) -> self#set_label x
   | ("port_no"  , x ) -> self#set_port_no (int_of_string x)
   | ("show_vde_terminal", x ) -> self#set_show_vde_terminal (bool_of_string x)
-  | ("activate_fstp", x )       -> self#set_activate_fstp (bool_of_string x)
+  | ("activate_fstp", x )     -> self#set_activate_fstp (bool_of_string x)
+  | ("rc_config", x )         -> self#set_rc_config (Marshal.from_string x 0)
   | _ -> () (* Forward-comp. *)
 
 end (* class switch *)
@@ -409,7 +504,7 @@ end (* module User_level *)
 module Simulation_level_switch = struct
 
 (* The question is "port/print" *)
-let scan_vde_switch_answer (ch:Network.stream_channel) : int =
+let scan_vde_switch_answer_to_port_print (ch:Network.stream_channel) : int =
   let rec loop n =
     let answer = ch#input_line () in
     try (Scanf.sscanf answer "Port %d %s ACTIVE") (fun i _ -> ()); loop (n+1) with _ ->
@@ -420,17 +515,76 @@ let scan_vde_switch_answer (ch:Network.stream_channel) : int =
 let ask_vde_switch_for_current_active_ports ~socketfile () =
   let protocol (ch:Network.stream_channel) =
     ch#output_line "port/print";
-    scan_vde_switch_answer ch
+    scan_vde_switch_answer_to_port_print ch
   in
   Network.stream_unix_client ~socketfile ~protocol ()
 
 let wait_vde_switch_until_ports_will_be_allocated ~numports ~socketfile () =
   let rec protocol (ch:Network.stream_channel) =
     ch#output_line "port/print";
-    let active_ports = scan_vde_switch_answer ch in
+    let active_ports = scan_vde_switch_answer_to_port_print ch in
     if active_ports >= numports then active_ports else (Thread.delay 0.2; (protocol ch))
   in
   Network.stream_unix_client ~socketfile ~protocol ()
+
+(*let send_commands_to_vde_switch ~socketfile ~commands () =
+  Log.printf "Sending commands to a switch:\n---\n%s\n---\n" commands;
+  let protocol (ch:Network.stream_channel) = ch#send commands in
+  Network.stream_unix_client ~socketfile ~protocol ()*)
+
+let get_lines_removing_comments (commands:string) : string list =
+  let t = StringExtra.Text.of_string commands in
+  let result = StringExtra.Text.grep (Str.regexp "^[^#]") t in
+  result
+
+(* Currently unused, but useful for testing: *)
+let get_vde_switch_boolean_answer (ch:Network.stream_channel) : bool =
+  let ignore2 _ _ = () in
+  let rec loop () =
+    Log.printf "Waiting for an answer...\n";
+    let answer = ch#input_line () in
+    Log.printf "Received answer `%s'\n" answer;
+    try (Scanf.sscanf answer "vde$ 1000 Success" ignore); true with _ ->
+    try (Scanf.sscanf answer "vde$ %d %s" ignore2); false with _ ->
+    loop ()
+  in
+  loop ()
+
+(* Currently unused, but useful for testing: *)
+let send_commands_to_vde_switch_and_get_answers ~socketfile ~commands ()
+  : (exn, (string * bool) list) Either.t
+  =
+  let lines = get_lines_removing_comments commands in
+  Log.printf "Sending commands to a switch:\n---\n%s\n---\n" commands;
+  let protocol (ch:Network.stream_channel) =
+    List.map
+       (fun line ->
+          Log.printf "Sending line: %s\n" line;
+          ch#output_line line;
+          let answer = get_vde_switch_boolean_answer ch in
+          Log.printf "Received boolean answer: %b\n" (answer);
+          (line, answer))
+       lines
+  in
+  Network.stream_unix_client ~socketfile ~protocol ()
+
+let rec repeat_until_exception f x =
+ try ignore (f x); repeat_until_exception f x with _ -> ()
+
+let send_commands_to_vde_switch_ignoring_answers ~socketfile ~commands () =
+  let lines = get_lines_removing_comments commands in
+  let protocol (ch:Network.stream_channel) =
+    ignore (Thread.create (repeat_until_exception ch#input_line) ());
+    List.iter
+       (fun line ->
+          Log.printf "Sending line: %s\n" line;
+          ch#output_line line;
+          Thread.delay 0.01;
+          ())
+       lines
+  in
+  Network.stream_unix_client ~socketfile ~protocol ()
+
 
 (** A switch: just a [hub_or_switch] with [hub = false] *)
 class ['parent] switch =
@@ -439,7 +593,8 @@ class ['parent] switch =
       ?(last_user_visible_port_index:int option)
       ?(show_vde_terminal=false)
       ?fstp
-      ?rcfile
+      ?rcfile (* Unused: vde_switch doesn't interpret correctly commands provided in this way! *)
+      ?rcfile_content
       ~unexpected_death_callback
       () ->
 object(self)
@@ -457,7 +612,7 @@ object(self)
   method device_type = "switch"
 
   method spawn_internal_cables =
-    match show_vde_terminal with
+    match show_vde_terminal || (rcfile_content <> None) with
     | false -> super#spawn_internal_cables
     | true ->
         (* If the user want to configure VLANs etc, we must be sure that
@@ -477,11 +632,21 @@ object(self)
 	       (* Now we launch the process that will ask vde_switch to obtain a new port: *)
 	       internal_cable_process#spawn;
 	       incr numports;
-	       let answer = Either.extract (wait_vde_switch_until_ports_will_be_allocated ~numports:(!numports) ~socketfile ()) in
+	       let answer =
+	         Either.extract (wait_vde_switch_until_ports_will_be_allocated ~numports:(!numports) ~socketfile ())
+	       in
 	       (if answer <> !numports then Log.printf "Unexpected vde_switch %s answer: %d instead of the expected value %d. Ignoring.\n" name answer !numports);
 	       Log.printf "Ok, the vde_switch %s has now %d allocated ports.\n" name !numports;
 	       end
-	     self#get_internal_cable_processes)
+ 	     self#get_internal_cable_processes);
+ 	(* Now send rc commands to the switch: *)
+        match rcfile_content with
+        | None -> ()
+        | Some commands ->
+            ignore
+              (Thread.create
+                 (send_commands_to_vde_switch_ignoring_answers ~socketfile ~commands)              ())
+
 
   initializer
 

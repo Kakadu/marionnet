@@ -31,6 +31,7 @@ open State
 open Talking
 
 module S = Serial
+module G = Gui_source_editing
 
 (** The global state containing the main window (st#mainwin) and all relevant dynamic
     attributes of the application *)

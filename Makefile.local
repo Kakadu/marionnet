@@ -19,8 +19,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 COMPILE_OPTIONS += -g -w x
-DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade ocamlbricks
-LIBRARIES_TO_LINK = unix threads str lablgtk lablglade ocamlbricks
+DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade lablgtksourceview2 ocamlbricks
+LIBRARIES_TO_LINK = unix threads str lablgtk lablglade lablgtksourceview2 ocamlbricks
 C_OBJECTS_TO_LINK +=
 
 OCAMLBRICKS=$(LIBRARYPREFIX)/ocamlbricks

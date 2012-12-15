@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+ Author: Jean-Vincent Loddo
+ Copyright (C) 2012  Jean-Vincent Loddo
+ Copyright (C) 2012  Université Paris 13
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License as published by the Free Software Foundation; either
+ version 2 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+-->
+<language id="vde_switch" _name="vde_switch" version="2.0" _section="Others">
+  <metadata>
+    <property name="mimetypes">text/x-vde_switch</property>
+    <property name="globs">*.vde_switch;*.switch;switch*.conf;switch*.config;switch*.rc;switch*.rcfile;vde*.conf;vde*.config</property>
+    <property name="line-comment-start">#</property>
+  </metadata>
+
+  <styles>
+    <style id="keyword" _name="Keyword" map-to="def:keyword"/>
+  </styles>
+
+  <definitions>
+
+    <context id="keywords" style-ref="keyword">
+      <keyword>ds\/showinfo</keyword>
+      <keyword>help</keyword>
+      <keyword>logout</keyword>
+      <keyword>shutdown</keyword>
+      <keyword>showinfo</keyword>
+      <keyword>load</keyword>
+      <keyword>debug\/list</keyword>
+      <keyword>debug\/add</keyword>
+      <keyword>debug\/del</keyword>
+      <keyword>plugin\/list</keyword>
+      <keyword>plugin\/add</keyword>
+      <keyword>plugin\/del</keyword>
+      <keyword>hash\/showinfo</keyword>
+      <keyword>hash\/setsize</keyword>
+      <keyword>hash\/setgcint</keyword>
+      <keyword>hash\/setexpire</keyword>
+      <keyword>hash\/setminper</keyword>
+      <keyword>hash\/print</keyword>
+      <keyword>hash\/find</keyword>
+      <keyword>fstp\/showinfo</keyword>
+      <keyword>fstp\/setfstp</keyword>
+      <keyword>fstp\/setedge</keyword>
+      <keyword>fstp\/bonus</keyword>
+      <keyword>fstp\/print</keyword>
+      <keyword>pdump\/filename</keyword>
+      <keyword>pdump\/buffered</keyword>
+      <keyword>pdump\/active</keyword>
+      <keyword>port\/showinfo</keyword>
+      <keyword>port\/setnumports</keyword>
+      <keyword>port\/sethub</keyword>
+      <keyword>port\/setvlan</keyword>
+      <keyword>port\/create</keyword>
+      <keyword>port\/remove</keyword>
+      <keyword>port\/allocatable</keyword>
+      <keyword>port\/setuser</keyword>
+      <keyword>port\/setgroup</keyword>
+      <keyword>port\/epclose</keyword>
+      <keyword>port\/resetcounter</keyword>
+      <keyword>port\/print</keyword>
+      <keyword>port\/allprint</keyword>
+      <keyword>vlan\/create</keyword>
+      <keyword>vlan\/remove</keyword>
+      <keyword>vlan\/addport</keyword>
+      <keyword>vlan\/delport</keyword>
+      <keyword>vlan\/print</keyword>
+      <keyword>vlan\/allprint</keyword>
+    </context>
+
+    <context id="vde_switch">
+      <include>
+        <context ref="def:shell-like-comment"/>
+        <context ref="keywords"/>
+      </include>
+    </context>
+
+  </definitions>
+
+</language>

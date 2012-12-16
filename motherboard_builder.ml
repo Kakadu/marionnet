@@ -175,7 +175,7 @@ module Make (S : sig val st:State.globalState end) = struct
 
   (* Debugging: press F5 for immediately exiting the gtk main loop (only in the toplevel) *)
   let _ =
-    if (Array.get Sys.argv 0) = "/tmp/marionnet-toplevel"
+    if List.mem (Array.get Sys.argv 0) ["/tmp/marionnet-toplevel"; "/tmp/marionnet-utop"]  
     then
       let stars = "*************************************" in
       Printf.kfprintf flush stdout

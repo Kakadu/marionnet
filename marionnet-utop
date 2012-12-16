@@ -1,0 +1,133 @@
+#!/bin/bash
+
+# This file is part of Marionnet, a virtual network laboratory
+# Copyright (C) 2012  Jean-Vincent Loddo
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e
+
+if [[ $1 = "--help" || $1 = "-h" || $1 = "-help" ]]; then
+ echo "Usage: $(basename $0) [[<path>/]<filename>[.ml]] [OCAML_OPTIONS]"
+ echo '
+Launch marionnet in a toplevel or test a specific module.
+
+Internally, the script gets (from the ocamlbuild log) the correct command line
+for compiling marionnet.byte as defined by ocamlbuild, then it
+simply replaces "ocamlc.opt" by "ocamlmktop" and the target
+"marionnet.byte" by the temporary name of the toplevel.
+
+If a module pattern (ex: gui_router_dialog_widget) or a module
+filename (ex: gui/gui_router_dialog_widget.ml) is provided as
+argument, the script builds a toplevel that will load just the
+required modules for this argument (it deletes modules cited
+after the pattern in the command line defined by ocamlbuild).
+Furthermore, the toplevel will call a function called "make",
+with the actual (), supposed defined in the module. This is
+not a strict requirement: we can also test modules which have
+not this function. In this case, the call to "make" will simply
+fail, without any undesirable effect.' | fmt
+ echo
+ echo -e "Examples:
+\t./$(basename $0)
+\t./$(basename $0) gui/gui_router_dialog_widget.ml
+\t./$(basename $0) gui_hub
+\t./$(basename $0) splash"
+ exit 0
+fi
+
+TOP=/tmp/$(basename $0)
+
+make marionnet.byte
+
+MYUTOP_START=myutop_start.cmo
+ocamlfind ocamlc -c -linkpkg -package utop -o /tmp/$MYUTOP_START -impl /dev/stdin <<<"let () = UTop_main.main ()"
+
+# Get the correct command line for compiling marionnet.byte
+# then replace "ocamlc.opt" by "ocamlmktop"
+# and the target "marionnet.byte" by $TOP
+CMD=$(grep 'ocamlc.opt .*-o marionnet.byte'  _build/_build/_log \
+ | sed -e 's/\/usr\/bin\/ocamlc.opt/ocamlfind ocamlmktop -I _build/' \
+ | sed -e 's/ocamlbricks.cma/dynlink.cma ocamlbricks.cma lwt\-unix.cma \-linkpkg \-package react,lwt,utop/' \
+ | sed -e "s/\-o marionnet.byte/\/tmp\/$MYUTOP_START \-o \/tmp\/$(basename $0)/" )
+
+# Manage the optional argument (if it isn't an option)
+if [[ -n "$1" && "$1" = "${1#-}" ]]; then
+ MODULE_BASENAME=$(basename ${1%.*})
+ CMD=$(echo "$CMD" \
+   | tr ' ' '\n' \
+   | awk "/$MODULE_BASENAME/ {print; stop=1} (stop != 1) {print}" \
+   | tr '\n' ' ')
+ CMD+=" -o $TOP"
+ INIT="-init $TOP.init"
+ MODULE_NAME=$(echo "$MODULE_BASENAME" | sed 's/\<./\u&/')
+ if [[ -n "$2" ]]; then
+  FUNCTION_NAME=$2
+  shift
+ else
+  FUNCTION_NAME="test"
+ fi
+ cat >$TOP.init <<EOF
+module M=$MODULE_NAME;;
+Printf.printf "module M = $MODULE_NAME;;\n";;
+let result =
+  let result = $MODULE_NAME.$FUNCTION_NAME () in
+  Printf.printf "let result = $MODULE_NAME.$FUNCTION_NAME ();;\n";
+  result
+;;
+EOF
+shift
+else
+ PROGRAM="let history = Marionnet.st#network#history ;;
+let defects = Marionnet.st#network#defects ;;
+let ifconfig = Marionnet.st#network#ifconfig ;;
+let machine = Marionnet.Just_for_testing.get_machine_by_name ;;
+let main () = GMain.Main.main () ;;
+"
+ INIT="-init $TOP.init"
+ cat >$TOP.init <<EOF
+UTop.set_profile UTop.Light;;
+Printf.printf "$PROGRAM";;
+$PROGRAM
+EOF
+fi
+
+# Launch the toplevel creation:
+echo '==='
+echo "The ocamlmktop command line is:"
+echo
+echo "$CMD" | fmt -w 90 | while read z; do echo -e "  $z"; done
+echo
+eval "$CMD"
+
+# Prepare the arguments for the toplevel
+INCLUDES=$(echo $CMD | tr ' ' '\n' | /bin/grep '^-I$' -A1 | tr '\n' ' ' | sed -e 's/--//')
+
+# Get only existing directories and also remove the useless "-I build" (utop doesn't like unexisting paths):
+INCLUDES=$(echo "$INCLUDES" | sed 's/-I/\n-I/g' | \grep -v '^$' | while read i l; do [[ -d $l && $l != "_build" ]] && echo $i $l; done)
+
+# Add the current _build/ directory to include directories (very important):
+BUILD_DIRS=$(find _build/ -type d ! -name "_build" | while read d; do echo -I $PWD/$d; done)
+INCLUDES="$INCLUDES -I $PWD/_build $BUILD_DIRS"
+
+# This is probably what we want:
+export MARIONNET_DEBUG=true
+export OCAMLRUNPARAM=-b
+
+# Launch the toplevel:
+echo + $TOP $INCLUDES $INIT "$@"
+$TOP $INCLUDES $INIT "$@"
+
+# The executable is not removed from /tmp/ in order to reuse the history
+# of commands (managed by rlwrap and ledit)

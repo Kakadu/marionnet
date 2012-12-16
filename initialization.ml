@@ -65,8 +65,8 @@ let () = Argv.tuning
 
 (* Parse now (except if we are debugging with the toplevel): *)
 let () =
-  if (Array.get Sys.argv 0) <> "/tmp/marionnet-toplevel"
-    then Argv.parse ()
+  if not (List.mem (Array.get Sys.argv 0) ["/tmp/marionnet-toplevel"; "/tmp/marionnet-utop"])
+   then Argv.parse ()
 ;;
 
 (* Now we may inspect the references: *)

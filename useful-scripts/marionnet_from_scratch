@@ -930,6 +930,7 @@ esac
 
 cd ocamlbricks
 cat >CONFIGME <<EOF
+ocaml_libraryprefix=$LIB_OCAML
 libraryprefix=$LIB_OCAML
 prefix=$PREFIX
 configurationprefix=\$prefix/etc

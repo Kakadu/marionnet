@@ -62,16 +62,11 @@ let automatic_reboot_thread_interval =
 
 (** The name of the host bridge device used to implement network sockets: *)
 let ethernet_socket_bridge_name =
-  Initialization.configuration#string "MARIONNET_BRIDGE";;
+  let default = "br0" in
+  Configuration.extract_string_variable_or ~default "MARIONNET_BRIDGE";;
 
 (** Keyboard layout in Xnest sessions; `None' means `don't set anything' *)
-let keyboard_layout =
-  let default_layout = None (*Some "fr"*) in
-  try
-    Some (Initialization.configuration#string "MARIONNET_KEYBOARD_LAYOUT")
-  with Not_found ->
-    default_layout;;
-
+let keyboard_layout = Configuration.get_string_variable "MARIONNET_KEYBOARD_LAYOUT" ;;
 
 module Keep_all_snapshots_when_saving =
   Stateful_modules.Variable (struct

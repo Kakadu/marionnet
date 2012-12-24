@@ -144,18 +144,14 @@ object(self)
 
   method private format_to_reader format =
     match format with
-    | "pdf" ->
-        Initialization.configuration#string "MARIONNET_PDF_READER"
-    | "ps" ->
-        Initialization.configuration#string "MARIONNET_POSTSCRIPT_READER"
-    | "dvi" ->
-        Initialization.configuration#string "MARIONNET_DVI_READER"
-    | "html" -> (* 'file' may recognize (X)HTML as XML... *)
-        Initialization.configuration#string "MARIONNET_HTML_READER"
-    | "text" ->
-        Initialization.configuration#string "MARIONNET_TEXT_EDITOR"
-    | "auto" -> (* the file type in unknown: web browsers can open most everything... *)
-        Initialization.configuration#string "MARIONNET_HTML_READER"
+    | "pdf"  -> Configuration.extract_string_variable_or ~default:"evince" "MARIONNET_PDF_READER"
+    | "ps"   -> Configuration.extract_string_variable_or ~default:"evince" "MARIONNET_POSTSCRIPT_READER"
+    | "dvi"  -> Configuration.extract_string_variable_or ~default:"evince" "MARIONNET_DVI_READER"
+      (* 'file' may recognize (X)HTML as XML... *)
+    | "html" -> Configuration.extract_string_variable_or ~default:"galeon" "MARIONNET_HTML_READER"
+    | "text" -> Configuration.extract_string_variable_or ~default:"emacs"  "MARIONNET_TEXT_EDITOR"
+      (* the file type in unknown: web browsers can open most everything... *)
+    | "auto" -> Configuration.extract_string_variable_or ~default:"galeon" "MARIONNET_HTML_READER"
     | _ ->
       failwith ("The format \"" ^ format ^ "\" is not supported");
 

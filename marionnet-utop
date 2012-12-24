@@ -52,7 +52,7 @@ TOP=/tmp/$(basename $0)
 make marionnet.byte
 
 MYUTOP_START=myutop_start.cmo
-ocamlfind ocamlc -c -linkpkg -package utop -o /tmp/$MYUTOP_START -impl /dev/stdin <<<"let () = UTop_main.main ()"
+ocamlfind ocamlc -c -g -linkpkg -package utop -o /tmp/$MYUTOP_START -impl /dev/stdin <<<"let () = UTop_main.main ()"
 
 # Get the correct command line for compiling marionnet.byte
 # then replace "ocamlc.opt" by "ocamlmktop"

@@ -18,18 +18,13 @@
 
 
 open Daemon_language;;
-open Daemon_parameters;;
-open Thread;;
-open Hashmap;;
-open Hashmmap;;
 
 module Recursive_mutex = MutexExtra.Recursive ;;
 
-(* Read configuration files: *)
-include Configuration ;;
-
-let socket_name =
-  configuration#string "MARIONNET_SOCKET_NAME";;
+let socket_name      = Daemon_parameters.socket_name
+let timeout_interval = Daemon_parameters.timeout_interval
+let debug_interval   = Daemon_parameters.debug_interval
+let select_timeout   = Daemon_parameters.select_timeout
 
 (** Client identifiers are simply automatically-generated sequential
     integers: *)
@@ -46,16 +41,16 @@ let the_daemon_mutex =
 
 (** An associative structure mapping each client to its resources: *)
 let resource_map =
-  new hashmultimap ();;
+  new Hashmmap.hashmultimap ();;
 
 (** An associative structure mapping each client to the time of the death
     of its resources (unless they send messages, of course): *)
 let client_death_time_map =
-  new hashmap ();;
+  new Hashmap.hashmap ();;
 
 (** An associative structure mapping each client to its socket: *)
 let socket_map =
-  new hashmap ();;
+  new Hashmap.hashmap ();;
 
 (** Seed the random number generator: *)
 Random.self_init ();;

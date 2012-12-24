@@ -30,9 +30,9 @@ assert (select_timeout > 0.0);;
     frequency even when under load, without its resources being destroyed: *)
 let inter_keepalive_interval = timeout_interval /. 5.0;;
 
-(** To do: this should be extracted from the configuration file: *)
 let socket_name =
-  Initialization.configuration#string "MARIONNET_SOCKET_NAME";;
+  let default = "/tmp/my-marionnet-daemon-socket" in
+  Configuration.extract_string_variable_or ~default "MARIONNET_SOCKET_NAME";;
 
 (** How often we should print information about the currently allocated
     resources: *)

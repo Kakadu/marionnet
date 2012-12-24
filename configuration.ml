@@ -24,7 +24,7 @@ let configuration =
        Printf.sprintf "%s/etc/marionnet/marionnet.conf" Meta.prefix;
        "~/.marionnet/marionnet.conf" ]
   in
-  new Configuration_files.configuration
+  Configuration_files.make
     ~file_names
     ~variables:["MARIONNET_SOCKET_NAME";
                 "MARIONNET_BRIDGE";(* This is temporary: more than one bridge will be usable... *)
@@ -51,3 +51,17 @@ let configuration =
                 "MARIONNET_KEEP_ALL_SNAPSHOTS_WHEN_SAVING";
               ]
     ();;
+
+(* Convenient aliases: *)
+
+type varname = string
+
+let extract_bool_variable_or ~default varname = 
+  Configuration_files.Logging.extract_bool_variable_or ~default varname (configuration)  
+  
+let extract_string_variable_or ?k ?unsuitable_value ~default varname = 
+  Configuration_files.Logging.extract_string_variable_or ?k ?unsuitable_value ~default varname (configuration)
+
+let get_string_variable ?k ?unsuitable_value varname = 
+  Configuration_files.Logging.get_string_variable ?k ?unsuitable_value varname (configuration)
+  

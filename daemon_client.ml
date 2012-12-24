@@ -20,13 +20,11 @@
 (** This is the client side of the Marionnet-daemon support: *)
 
 open Daemon_language;;
-open Daemon_parameters;;
 open Gettext;;
 
 module Recursive_mutex = MutexExtra.Recursive ;;
-
-let socket_name =
-  Initialization.configuration#string "MARIONNET_SOCKET_NAME";;
+let socket_name = Daemon_parameters.socket_name;;
+let inter_keepalive_interval = Daemon_parameters.inter_keepalive_interval;;
 
 (** The mutex we use to avoid sending concurrent messages to the same socket
     from different threads: *)

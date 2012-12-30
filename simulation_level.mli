@@ -283,6 +283,7 @@ val random_ghost_mac_address : unit -> string
 
 class uml_process :
   kernel_file_name:process_name ->
+  ?kernel_console_arguments:string ->
   filesystem_file_name:string ->
   dynamically_get_the_cow_file_name_source:(unit -> string option) ->
   cow_file_name:string ->
@@ -448,6 +449,7 @@ class virtual ['parent] machine_or_router :
   parent:'parent ->
   router:bool ->
   kernel_file_name:process_name ->
+  ?kernel_console_arguments:string ->
   filesystem_file_name:string ->
   dynamically_get_the_cow_file_name_source:(unit -> string option) ->
   cow_file_name:string ->

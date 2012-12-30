@@ -21,7 +21,8 @@ val machine_prefix : string
 val router_prefix : string
 val kernel_prefix : string
 
-type epithet = string
+(* `epithet' is almost a phantom type: *)
+type 'a epithet = string
 type variant = string
 type filename = string
 type dirname = string
@@ -44,8 +45,10 @@ class terminal_manager :
  end
 
 
-class epithet_manager :
-  ?default_epithet:string ->
+class ['a] epithet_manager :
+  ?default_epithet:('a epithet) ->
+  ?filter:('a epithet -> bool) ->
+  kind: [> `distrib | `kernel | `variant ] ->
   directory_searching_list:string list ->
   prefix:string ->
   unit ->
@@ -57,23 +60,25 @@ class epithet_manager :
 
     (* Public interface: *)
 
-    method get_epithet_list    : epithet list
-    method get_default_epithet : epithet option
-    method epithet_exists      : epithet -> bool
-    method realpath_of_epithet : epithet -> realpath
+    method get_epithet_list    : 'a epithet list
+    method get_default_epithet : 'a epithet option
+    method epithet_exists      : 'a epithet -> bool
+    method realpath_of_epithet : 'a epithet -> realpath
 
-    method resolve_epithet_symlink : epithet -> epithet
+    method resolve_epithet_symlink : 'a epithet -> 'a epithet
 
     (* Morally private methods: *)
 
     method epithets_of_filename : ?no_symlinks:unit ->
-      filename -> epithet list
+      filename -> ('a epithet) list
 
     method epithets_sharing_the_same_realpath_of : ?no_symlinks:unit ->
-      epithet -> epithet list
+      ('a epithet) -> ('a epithet) list
 
-    method filename_of_epithet : epithet -> filename
+    method filename_of_epithet : ('a epithet) -> filename
     method realpath_exists : string -> bool
+
+    method filter : ('a epithet -> bool) -> unit
 
   end
 
@@ -96,14 +101,18 @@ class virtual_machine_installations :
 
     (* Public interface: *)
 
-    method filesystems : epithet_manager
-    method kernels     : epithet_manager
-    method variants_of : epithet -> epithet_manager
-    method terminal_manager_of : epithet -> terminal_manager
+    method filesystems : [`distrib] epithet_manager
+    method kernels     : [`kernel]  epithet_manager
+
+    method variants_of           : [`distrib] epithet -> [`variant] epithet_manager
+    method supported_kernels_of  : [`distrib] epithet -> ([`kernel] epithet * (string option)) list
+    method get_kernel_console_arguments : [`distrib] epithet -> [`kernel] epithet -> string option
+
+    method terminal_manager_of   : [`distrib] epithet -> terminal_manager
 
     (* filesystem epithet -> dirname *)
-    method root_export_dirname : epithet -> dirname
-    method user_export_dirname : epithet -> dirname
+    method root_export_dirname : [`distrib] epithet -> dirname
+    method user_export_dirname : [`distrib] epithet -> dirname
   end
 
 (** Final user's machines strictu sensu *)
@@ -126,7 +135,7 @@ val get_router_installations :
   unit -> virtual_machine_installations
 
 val vm_installations_and_epithet_of_prefixed_filesystem :
-  string -> virtual_machine_installations * epithet
+  string -> virtual_machine_installations * [`distrib] epithet
 
 val user_export_dirname_of_prefixed_filesystem : string -> dirname
 val root_export_dirname_of_prefixed_filesystem : string -> dirname

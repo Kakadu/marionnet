@@ -422,7 +422,7 @@ let make_combo_boxes_of_vm_installations
   ?kernel
   ?updating
   ~packing
-  vm_installations
+  (vm_installations : Disk.virtual_machine_installations)
   =
   (* Convert updating as boolean: *)
   let updating = (updating<>None) in
@@ -436,50 +436,55 @@ let make_combo_boxes_of_vm_installations
    | None   -> "none"
    | Some x -> x
   in
-  let (packing_distribution, packing_variant, packing_kernel) = packing in
-  let distribution_widget =
-     Widget.ComboTextTree.fromListWithSlave
-      ~masterCallback:None
-      ~masterPacking:(Some packing_distribution)
-      (* The user can't change filesystem and variant any more once the device has been created:*)
-      (match updating with
-      | false -> (vm_installations#filesystems#get_epithet_list)
-      | true  -> [distribution])
-      ~slaveCallback: None
-      ~slavePacking: (Some packing_variant)
-      (fun epithet ->
-        match updating with
-        | false ->
-            "none"::(vm_installations#variants_of epithet)#get_epithet_list
-        | true -> [variant]
-        )
-  in
-  let initial_variant_widget = distribution_widget#slave
-  in
   (* Resolve the initial choice for kernel: *)
   let kernel = match kernel with
-   | None -> Option.extract vm_installations#kernels#get_default_epithet
+   | None -> fst (List.hd (vm_installations#supported_kernels_of distribution))
    | Some x -> x
   in
-  let kernel_widget =
-    Widget.ComboTextTree.fromList
-      ~callback:None
-      ~packing:(Some packing_kernel)
-      (vm_installations#kernels#get_epithet_list)
-  in
-  (* Setting active values: *)
-  distribution_widget#set_active_value distribution;
-  initial_variant_widget#set_active_value variant;
-  kernel_widget#set_active_value kernel;
-  (* Blocking changes updating: *)
-  if updating then begin
-    distribution_widget#box#misc#set_sensitive false;
-    initial_variant_widget#box#misc#set_sensitive false;
-  end else ();
-
-  (* The result: *)
-  (distribution_widget, kernel_widget)
-
+  let (packing_distribution, packing_variant, packing_kernel) = packing in
+  (* The user can't change filesystem and variant any more once the device has been created.
+     TODO: release this constraint. *)
+  let distribution_widget =
+     let distribution_choices =
+       match updating with
+       | false -> (vm_installations#filesystems#get_epithet_list)
+       | true  -> [distribution]
+     in
+     let variant_choices =
+       fun epithet ->
+         match updating with
+         | false ->
+            "none"::(vm_installations#variants_of epithet)#get_epithet_list
+         | true -> [variant]
+     in
+     let kernel_choices =
+       fun epithet -> List.map fst (vm_installations#supported_kernels_of epithet)
+     in
+     Widget.ComboTextTree.fromListWithTwoSlaves
+       ~masterPacking:(Some packing_distribution)
+        distribution_choices
+       ~slave0Packing:(Some packing_variant)
+        variant_choices
+       ~slave1Packing:(Some packing_kernel)
+        kernel_choices
+    in
+    let initial_variant_widget = distribution_widget#slave0
+    and initial_kernel_widget = distribution_widget#slave1
+    in
+    (* Initialization: *)
+    let () =
+      (* Setting active values: *)
+      distribution_widget#set_active_value distribution;
+      initial_variant_widget#set_active_value variant;
+      initial_kernel_widget#set_active_value kernel;
+      (* Blocking changes updating: *)
+      if updating then begin
+	distribution_widget#box#misc#set_sensitive false;
+	initial_variant_widget#box#misc#set_sensitive false;
+      end else ()
+    in
+    (* The result: *)
+    distribution_widget
 
 module Dialog_add_or_update = struct
 

@@ -138,7 +138,6 @@ val make_combo_boxes_of_vm_installations:
   packing:(packing_function * packing_function * packing_function) ->
   Disk.virtual_machine_installations
   ->
-  Widget.ComboTextTree.comboTextTree *
   Widget.ComboTextTree.comboTextTree
 
 

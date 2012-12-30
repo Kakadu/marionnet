@@ -827,6 +827,7 @@ let create_swap_file_name ~parent =
 (** The UML process used to implement machines and routers: *)
 class uml_process =
   fun ~(kernel_file_name)
+      ?(kernel_console_arguments:string option)
       ~(filesystem_file_name)
       ~(dynamically_get_the_cow_file_name_source:unit->string option)
       ~(cow_file_name)
@@ -849,7 +850,8 @@ class uml_process =
     | Some f -> f
   in
   let debug_mode =
-    Global_options.Debug_level.are_we_debugging () in
+    Global_options.Debug_level.are_we_debugging ()
+  in
   let console =
     (* Always use an xterm in debug mode: *)
     if debug_mode || show_unix_terminal then
@@ -860,9 +862,11 @@ class uml_process =
         Some xnest_display_number -> "none"
       | None -> console in
   let hostfs_pathname =
-    Printf.sprintf "%s/hostfs/%i" (Filename.dirname (Filename.dirname cow_file_name)) id in
+    Printf.sprintf "%s/hostfs/%i" (Filename.dirname (Filename.dirname cow_file_name)) id
+  in
   let boot_parameters_pathname =
-    Printf.sprintf "%s/boot_parameters" hostfs_pathname in
+    Printf.sprintf "%s/boot_parameters" hostfs_pathname
+  in
   let truncated_id = id mod 65535 in
   let octet2 = truncated_id / 255 in
   let octet3 = truncated_id mod 254 in
@@ -911,27 +915,26 @@ class uml_process =
     | Some keyboard_layout ->
         ("keyboard_layout="^keyboard_layout) :: command_line_arguments
   in
-(*  let command_line_arguments =
-    command_line_arguments @
-    ["con0=none"; "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none";
-     "ssl0="^console; "ssl1=none"; "ssl2=none"; "ssl3=none"; "ssl4=none"; "ssl5=none"; "ssl6=none";
-     "console=ttyS0"]*)
-  let command_line_arguments =
-    command_line_arguments @
-    [(*"con0=none"; "con1=none"; "con2=none"; "con3=none"; "con4=none"; "con5=none"; "con6=none"; *)
-(* "con6=port:9000"; *)
-(* "ssl1=port:9001"; *)
-     "con13=xterm";
-     "con14=xterm";
-     "con15=xterm";
-     "con=pts";
-     "ssl="^console;
-(*  "ssl2=tty:/dev/tty42";
-    "ssl3=pts"; *)
-     "console=ttyS0" (* Franck: il faut virer! *)
-     ]
+  let console_related_arguments =
+    match kernel_console_arguments with
+    | Some args ->
+        let () = Log.printf "using specific console arguments: %s\n" args in
+        [args]
+    | None ->
+        let () = Log.printf "using default console arguments\n" in
+	[(* Other examples: "con=none"; "con6=port:9000"; "ssl1=port:9001"; "ssl2=tty:/dev/tty42"; "ssl3=pts"; *)
+	"con13=xterm";
+	"con14=xterm";
+	"con15=xterm";
+	"con=pts";
+	"ssl="^console;
+	"console=ttyS0" (* obsolete since filesystems built for release 0.91.x *)
+	]
   in
-object(self)
+  let command_line_arguments =
+    command_line_arguments @ console_related_arguments
+  in
+  object(self)
   inherit process
       kernel_file_name
       command_line_arguments
@@ -1506,6 +1509,7 @@ class virtual ['parent] machine_or_router =
   fun ~(parent:'parent)
       ~(router:bool)
       ~(kernel_file_name)
+      ?(kernel_console_arguments)
       ~(filesystem_file_name)
       ~dynamically_get_the_cow_file_name_source
       ~(cow_file_name)
@@ -1574,6 +1578,7 @@ object(self)
     uml_process :=
       Some (new uml_process
               ~kernel_file_name
+              ?kernel_console_arguments
               ~filesystem_file_name
               ~dynamically_get_the_cow_file_name_source
               ~cow_file_name

@@ -1164,9 +1164,9 @@ end;;
 
 class virtual virtual_machine_with_history_and_ifconfig
   ~network
-  ?epithet   (* Ex: "debian-lenny-42178" *)
+  ?epithet   (* An epithet, for instance "debian-lenny-42178" *)
   ?variant
-  ?kernel    (* Also en epithet, ex: "2.6.18-ghost" *)
+  ?kernel    (* Again an epithet, for instance "2.6.18-ghost" *)
   ?terminal
   ~(history_icon:string)
   ~(ifconfig_device_type:string)
@@ -1233,7 +1233,7 @@ class virtual virtual_machine_with_history_and_ifconfig
  method get_variant_realpath : string option =
    Option.map (vm_installations#variants_of self#get_epithet)#realpath_of_epithet self#get_variant
 
-  (** A machine has an associated linux kernel, expressed by en epithet: *)
+  (** A machine has an associated linux kernel, expressed by an epithet: *)
   val mutable kernel : string = kernel
   initializer ignore (self#check_kernel kernel)
   method get_kernel   = kernel
@@ -1254,13 +1254,16 @@ class virtual virtual_machine_with_history_and_ifconfig
     | false -> self#failwith "invalid terminal choice \"%s\"" x
 
   method get_filesystem_file_name =
-      vm_installations#filesystems#realpath_of_epithet self#get_epithet
+      vm_installations#filesystems#realpath_of_epithet (self#get_epithet)
 
   method get_kernel_file_name =
-      vm_installations#kernels#realpath_of_epithet self#get_kernel
+      vm_installations#kernels#realpath_of_epithet (self#get_kernel)
 
+  method get_kernel_console_arguments : string option =
+      vm_installations#get_kernel_console_arguments (self#get_epithet) (self#get_kernel)
+      
   method is_xnest_enabled =
-      (vm_installations#terminal_manager_of self#get_epithet)#is_xnest self#get_terminal
+      (vm_installations#terminal_manager_of self#get_epithet)#is_xnest (self#get_terminal)
 
   (* Used only to add a filesystem history device: *)
   method private prefixed_epithet = (vm_installations#prefix ^ self#get_epithet)

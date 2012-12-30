@@ -265,7 +265,7 @@ let make
       ?label
       ()
   in
-  let (memory, port_no, distribution, variant, kernel, terminal) =
+  let (memory, port_no, distribution_variant_kernel, terminal) =
     let vbox = GPack.vbox ~homogeneous:false ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
     let form =
       Gui_bricks.make_form_with_labels
@@ -288,7 +288,7 @@ let make
       ~packing:(form#add_with_tooltip (s_ "Number of ethernet cards (eth0, eth1 ...) of the virtual machine")) port_no
     in
     form#add_section "Software";
-    let (distribution, kernel) =
+    let (distribution_variant_kernel) =
       let packing_distribution =
         form#add_with_tooltip
           (s_ "GNU/Linux distribution installed on the virtual machine.")
@@ -320,7 +320,7 @@ let make
       Option.iter (fun v -> result#set_active_value v) terminal;
       result
     in
-    (memory, port_no, distribution, variant, kernel, terminal)
+    (memory, port_no, distribution_variant_kernel, terminal)
   in
   (* TODO: to be fully implemented or removed: *)
   terminal#box#misc#set_sensitive false;
@@ -329,13 +329,13 @@ let make
     let label = label#text in
     let memory = int_of_float memory#value in
     let port_no = int_of_float port_no#value in
-    let variant       = distribution#slave#selected in
-    let distribution  = distribution#selected in
+    let distribution  = distribution_variant_kernel#selected in
+    let variant       = distribution_variant_kernel#slave0#selected in
+    let kernel        = distribution_variant_kernel#slave1#selected in
     let variant = match variant with
     | "none" -> None
     | x      -> Some x
     in
-    let kernel = kernel#selected in
     let terminal = terminal#selected in
       { Data.name = name;
         Data.label = label;
@@ -531,6 +531,7 @@ class machine
     new Simulation_level.machine
       ~parent:self
       ~kernel_file_name:self#get_kernel_file_name
+      ?kernel_console_arguments:self#get_kernel_console_arguments
       ~filesystem_file_name:self#get_filesystem_file_name
       ~dynamically_get_the_cow_file_name_source
       ~cow_file_name
@@ -600,6 +601,7 @@ class ['parent] machine =
   fun ~(parent:'parent)
       ~(filesystem_file_name)
       ~(kernel_file_name)
+      ?(kernel_console_arguments)
       ~dynamically_get_the_cow_file_name_source
       ~(cow_file_name)
       ~states_directory
@@ -619,6 +621,7 @@ object(self)
       ~cow_file_name
       ~states_directory
       ~kernel_file_name
+      ?kernel_console_arguments
       ~ethernet_interface_no
       ~memory
       ?umid

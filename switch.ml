@@ -444,7 +444,7 @@ class switch =
     let hublet_no = self#get_port_no in
     let show_vde_terminal = self#get_show_vde_terminal in
     let fstp = Option.of_bool (self#get_activate_fstp) in
-(*    let rcfile =
+(*  let rcfile =
       match self#get_rc_config with
       | false, _ -> None
       | true, content ->
@@ -544,7 +544,7 @@ let get_vde_switch_boolean_answer (ch:Network.stream_channel) : bool =
     Log.printf "Waiting for an answer...\n";
     let answer = ch#input_line () in
     Log.printf "Received answer `%s'\n" answer;
-    try (Scanf.sscanf answer "vde$ 1000 Success" ignore); true with _ ->
+    try (Scanf.sscanf answer "vde$ 1000 Success" ()); true with _ ->
     try (Scanf.sscanf answer "vde$ %d %s" ignore2); false with _ ->
     loop ()
   in

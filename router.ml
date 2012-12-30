@@ -257,7 +257,7 @@ let make
       ?label
       ()
   in
-  let ((s1,s2,s3,s4,s5), port_no, distribution, variant, kernel, show_unix_terminal) =
+  let ((s1,s2,s3,s4,s5), port_no, distribution_variant_kernel, show_unix_terminal) =
     let vbox = GPack.vbox ~homogeneous:false ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
     let form =
       Gui_bricks.make_form_with_labels
@@ -283,7 +283,7 @@ let make
         b1 b2 b3 b4 b5
     in
     form#add_section "Software";
-    let (distribution, kernel) =
+    let distribution_variant_kernel =
       let packing_distribution =
         form#add_with_tooltip
           (s_ "GNU/Linux distribution installed on the router." )
@@ -309,7 +309,7 @@ let make
         ~packing:(form#add_with_tooltip (s_ "Do you want access the router also by a Unix terminal?" ))
         ()
     in
-    (port_0_ip_config, port_no, distribution, variant, kernel, show_unix_terminal)
+    (port_0_ip_config, port_no, distribution_variant_kernel, show_unix_terminal)
   in
   let get_widget_data () :'result =
     let name = name#text in
@@ -323,13 +323,13 @@ let make
       ((s1,s2,s3,s4),s5)
     in
     let port_no = int_of_float port_no#value in
-    let variant       = distribution#slave#selected in
-    let distribution  = distribution#selected in
+    let distribution  = distribution_variant_kernel#selected in
+    let variant       = distribution_variant_kernel#slave0#selected in
+    let kernel        = distribution_variant_kernel#slave1#selected in
     let variant = match variant with
     | "none" -> None
     | x      -> Some x
     in
-    let kernel = kernel#selected in
     let show_unix_terminal = show_unix_terminal#active in
       { Data.name = name;
         Data.label = label;
@@ -507,6 +507,7 @@ class router
     new Simulation_level.router
       ~parent:self
       ~kernel_file_name:self#get_kernel_file_name
+      ?kernel_console_arguments:self#get_kernel_console_arguments
       ~filesystem_file_name:self#get_filesystem_file_name
       ~dynamically_get_the_cow_file_name_source
       ~cow_file_name
@@ -639,6 +640,7 @@ class ['parent] router =
       ~(cow_file_name)
       ~states_directory
       ~(kernel_file_name)
+      ?(kernel_console_arguments)
       ~(filesystem_file_name)
       ~(ethernet_interface_no)
       ?umid
@@ -652,6 +654,7 @@ object(self)
       ~router:true
       ~filesystem_file_name(* :"/usr/marionnet/filesystems/router.debian.lenny.sid.fs" *)
       ~kernel_file_name
+      ?kernel_console_arguments
       ~dynamically_get_the_cow_file_name_source
       ~cow_file_name
       ~states_directory

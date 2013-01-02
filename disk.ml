@@ -15,6 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+open Gettext
 
 (* `epithet' is almost a phantom type (almost because it is not abstract): *)
 type 'a epithet = string
@@ -372,7 +373,7 @@ class virtual_machine_installations
 		Configuration_files.make
 		  ~dont_read_environment:()
 		  ~file_names:[config_file]
-		  ~variables:[ "MD5SUM"; "AUTHOR"; "DATE"; "SUPPORTED_KERNELS"; "X11_SUPPORT"; ]
+		  ~variables:[ "MD5SUM"; "AUTHOR"; "DATE"; "MTIME"; "SUPPORTED_KERNELS"; "X11_SUPPORT"; ]
 		  ()
 	      in
 	      Some (config)
@@ -466,6 +467,30 @@ class virtual_machine_installations
     let user_dir = List.hd user_filesystem_searching_list in
     (Printf.sprintf "%s/%s%s_variants" user_dir prefix epithet)
 
+  method check_filesystems_MTIME_consistency () =
+    let check =
+      fun filesystem_epithet ->
+        let config = String_map.find (filesystem_epithet) (filesystem_config_mapping) in
+        if config = None then () else (* continue: *)
+        let mtime = Configuration_files.get_int_variable "MTIME" (Option.extract config) in
+        Option.iter
+          (fun expected_mtime ->
+             let realpath = filesystems#realpath_of_epithet (filesystem_epithet) in
+             let actual_mtime = 
+               int_of_float ((Unix.stat realpath).Unix.st_mtime)
+             in
+             if actual_mtime = expected_mtime then () else (* warning: *)
+	     let title = (s_ "Modification time (MTIME) inconsistency") in
+	     let message =
+	       Printf.sprintf
+		 (f_ "The filesystem `%s%s' has the mtime %d, but the expected value was %d.\nPlease run the command:\n\n<tt><small>sudo touch -d $(date -d @%d) %s</small></tt>\n\nin order to fix this inconsistency. Otherwise, machines or routers with this filesystem defined in a project created elsewhere can not be restarted.")
+ 		 (prefix) (filesystem_epithet) (actual_mtime) (expected_mtime) (expected_mtime) (realpath)
+	     in   
+             Simple_dialogs.warning title message ())
+          mtime
+    in
+    List.iter (check) filesystems#get_epithet_list
+    
 end
 
 let get_router_installations
@@ -522,3 +547,16 @@ let root_export_dirname_of_prefixed_filesystem prefixed_filesystem =
     vm_installations_and_epithet_of_prefixed_filesystem prefixed_filesystem
   in
   vm_installations#root_export_dirname epithet
+
+  
+module Make_and_check_installations (Unit:sig end) = struct  
+  
+  let machines = get_machine_installations () 
+  let routers  = get_router_installations () 
+  
+  let () = begin
+    machines#check_filesystems_MTIME_consistency ();
+    routers#check_filesystems_MTIME_consistency ();
+    end
+  
+end (* Make_and_check_installations *)

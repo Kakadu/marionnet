@@ -42,7 +42,7 @@ let st = new globalState ()
 let () = User_level.Refresh_sketch_thunk.set (fun () -> st#refresh_sketch ())
 let () = st#gui_coherence ()
 
-module State     = struct let st = st end
+module State = struct let st = st end
 
 (* Complete the main menu *)
 module Created_window_MARIONNET   = Gui_window_MARIONNET.   Make (State)
@@ -285,6 +285,11 @@ let () =
     (s_ "You don't have Graphviz")
 
 
+(** Read and check filesystem's installations. Warning dialogs 
+    are created when something appears wrong or strange. *) 
+module VM_installations = 
+  Disk.Make_and_check_installations(struct end)
+    
 module Motherboard = Created_window_MARIONNET.Motherboard
 
 let () = begin

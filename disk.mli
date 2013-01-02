@@ -113,6 +113,10 @@ class virtual_machine_installations :
     (* filesystem epithet -> dirname *)
     method root_export_dirname : [`distrib] epithet -> dirname
     method user_export_dirname : [`distrib] epithet -> dirname
+    
+    (* This method builds warnings if necessary: *)
+    method check_filesystems_MTIME_consistency : unit -> unit
+    
   end
 
 (** Final user's machines strictu sensu *)
@@ -140,3 +144,9 @@ val vm_installations_and_epithet_of_prefixed_filesystem :
 val user_export_dirname_of_prefixed_filesystem : string -> dirname
 val root_export_dirname_of_prefixed_filesystem : string -> dirname
 
+module Make_and_check_installations : 
+  functor (Unit : sig end) -> 
+    sig 
+      val machines : virtual_machine_installations 
+      val routers  : virtual_machine_installations 
+    end

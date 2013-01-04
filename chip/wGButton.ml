@@ -40,6 +40,8 @@ object (self)
   self_as_wire#destroy ();
   self_as_gbutton#destroy ()
 
+ method reset () = assert false (* unused! *) 
+  
  method set_alone = function
  | Clicked  -> wire#clicked#set ()
  | Enter    -> wire#enter#set ()

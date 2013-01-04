@@ -274,6 +274,7 @@ and virtual ['a, 'b] wire : ?name:string -> ?parent:common -> system ->
     method get : 'b
     method virtual set_alone : 'a -> unit
     method virtual get_alone : 'b
+    method virtual reset : unit -> unit
   end
 
 class ['a] wref : ?name:string -> ?parent:common -> system -> 'a ->
@@ -295,6 +296,7 @@ class ['a] wref : ?name:string -> ?parent:common -> system -> 'a ->
     method get : 'a
     method set_alone : 'a -> unit
     method get_alone : 'a
+    method reset : unit -> unit
   end
 
 class wcounter : ?name:string -> ?parent:common -> system ->
@@ -316,8 +318,34 @@ class wcounter : ?name:string -> ?parent:common -> system ->
     method get : int
     method set_alone : unit -> unit
     method get_alone : int
+    method reset : unit -> unit
   end
 
+class wswitch : ?name:string -> ?parent:common -> system -> bool ->
+  object
+    method id : int
+    method name : string
+    method parent : common option
+    method set_parent : common option -> unit
+    method parent_list : common list
+    method as_common : common
+    method dot_reference : string
+    method system : system
+    method destroy : unit -> unit
+    method add_destroy_callback : (unit -> unit) -> unit
+    method tracing : tracing_methods
+    method to_dot : string
+
+    method set : unit -> unit
+    method get : bool
+    method set_alone : unit -> unit
+    method get_alone : bool
+    method reset : unit -> unit
+    method set_to : bool -> unit
+    method as_wire : (unit, bool) wire
+
+  end
+  
 class ['a] wlist : ?name:string -> ?parent:common -> system -> 'a list ->
   object
     method id : int
@@ -337,6 +365,7 @@ class ['a] wlist : ?name:string -> ?parent:common -> system -> 'a list ->
     method get : 'a list
     method set_alone : 'a list -> unit
     method get_alone : 'a list
+    method reset : unit -> unit
 
     method add : 'a -> unit
     method update_with : ('a list -> 'a list) -> unit
@@ -369,6 +398,7 @@ class ['a, 'b] cable :
     method get : (int * 'b) list
     method set_alone : int * 'a -> unit
     method get_alone : (int * 'b) list
+    method reset : unit -> unit
 end
 
 class type ['a] writeonly_wire =
@@ -465,11 +495,13 @@ val get_or_initialize_current_system : unit -> system
 val wref     : ?name:string -> ?parent:common -> ?system:system -> 'a -> 'a wref
 val wlist    : ?name:string -> ?parent:common -> ?system:system -> 'a list -> 'a wlist
 val wcounter : ?name:string -> ?parent:common -> ?system:system -> unit -> wcounter
+val wswitch  : ?name:string -> ?parent:common -> ?system:system -> bool -> wswitch
+
 val cable : ?name:string -> ?parent:common -> ?system:system -> unit -> ('a, 'a) cable
 val wref_in_cable : ?name:string -> cable:('a,'a) cable -> 'a -> 'a wref
 
 val current_system : system option ref
-val wire_of_accessors : ?name:string -> ?parent:common -> ?system:system -> get:(unit -> 'b) -> set:('a -> unit) -> unit -> ('a,'b) wire
+val wire_of_accessors : ?name:string -> ?parent:common -> ?system:system -> reset_with:'a -> get:(unit -> 'b) -> set:('a -> unit) -> unit -> ('a,'b) wire
 
 val fresh_chip_name   : string -> string
 val fresh_source_name : string -> string

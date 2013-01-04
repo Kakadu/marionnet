@@ -1,6 +1,7 @@
 This file is part of Marionnet, a virtual network laboratory.
 Copyright (C) 2008  Luca Saiu
-Copyright (C) 2008  Jean-Vincent Loddo
+Copyright (C) 2008 2013  Jean-Vincent Loddo
+Copyright (C) 2008 2013  Université Paris 13
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -23,7 +24,7 @@ Images in this directory are mostly:
 1) original, in which case they are released by Jean-Vincent Loddo and
 Luca Saiu under the GPL version 2 or later,
 
-Exceptioins:
+Exceptions:
 
 2) ico.info.orig.png, ico.warning.orig.png and ico.error.orig.png
 are taken from the GNOME Amaranth theme (released under the Artistic
@@ -33,3 +34,23 @@ authors).
 3) ico.question-2.orig.png is taken from the Gnome icons, released
 by its authors under the GNU GPL version 2; converted by Luca Saiu
 in 2008.
+
+4) ico.splines.png is derived from the icon named 
+"Actions-format-stroke-color-icon" taken from the Oxygen Icons and
+released by its authors, the "Oxygen Team", under the GNU LGPL v3 
+(a copy of which is included in this directory); the icon was modified 
+by Jean-Vincent Loddo in 2013.
+http://www.oxygen-icons.org/
+Original file (24x24) downloaded from:
+http://www.iconarchive.com/show/oxygen-icons-by-oxygen-icons.org/Actions-format-stroke-color-icon.html
+
+5) ico.invert-arcs.png is derived from the icon named 
+"Actions-transform-rotate-icon" taken from the Oxygen Icons and
+released by its authors, the "Oxygen Team", under the GNU LGPL v3 
+(a copy of which is included in this directory); the icon was modified 
+by Jean-Vincent Loddo in 2013 (simply desatured).
+http://www.oxygen-icons.org/
+Original file (24x24) downloaded from:
+http://www.iconarchive.com/show/oxygen-icons-by-oxygen-icons.org/Actions-transform-rotate-icon.html
+
+

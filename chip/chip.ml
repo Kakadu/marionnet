@@ -457,6 +457,10 @@ and
   method virtual get_alone : 'b
   method virtual set_alone : 'a -> unit
 
+  (* Reset to an initial value (this method is useful in general but not 
+     really relevant for the semantics of reactive systems)*)
+  method virtual reset : unit -> unit
+  
   (** This would be a final method. *)
   method get : 'b =
    self#tracing#message "reading wire (get)";
@@ -490,6 +494,7 @@ class ['a] wref ?name ?parent (system:system) (value:'a) =
   val mutable content = value
   method get_alone   = content
   method set_alone v = (content <- v)
+  method reset () = self#set value
  end
 
 (** Counters as wires: "set" means "incr". *)
@@ -500,8 +505,34 @@ class wcounter ?name ?parent (system:system) =
   val mutable content = 0
   method get_alone    = content
   method set_alone () = (content <- content + 1)
+  method reset () = 
+    let action () =
+      content <- 0;
+      ignore (self#system#stabilize);
+    in
+    self#system#mutex_methods#with_mutex action
  end
 
+(** Boolean switches as wires: "set" means "not". *)
+class wswitch ?name ?parent (system:system) (value:bool) =
+ let name = match name with None -> fresh_wire_name "wswitch" | Some x -> x in
+ object (self)
+  inherit [unit,bool] wire ~name ?parent system
+  val mutable content = value
+  method get_alone    = content
+  method set_alone () = (content <- not content)
+  method as_wire = (self :> ((unit, bool) wire))
+
+  method set_to x =
+    let action () =
+      content <- x;
+      ignore (self#system#stabilize);
+    in
+    self#system#mutex_methods#with_mutex action
+  
+  method reset () = self#set_to value
+ end
+ 
 class ['a] wlist ?name ?parent (system:system) (value:'a list) =
  let name = match name with None -> fresh_wire_name "wlist" | Some x -> x in
  object (self)
@@ -526,12 +557,13 @@ class ['a] wlist ?name ?parent (system:system) (value:'a list) =
   method coerce = (self :> ('a list,'a list) wire)
  end
 
-class ['a,'b] wire_of_accessors ?name ?parent (system:system) get_alone set_alone =
+class ['a,'b] wire_of_accessors ?name ?parent (system:system) ~(reset_with:'a) get_alone set_alone =
  let name = match name with None -> fresh_wire_name "wire_of_accessors" | Some x -> x in
  object (self)
   inherit ['a,'b] wire ~name ?parent system
   method get_alone = get_alone ()
   method set_alone = set_alone
+  method reset () = self#set reset_with
  end
 
 (** A cable is a wire containing and managing some homogeneous wires. *)
@@ -561,6 +593,9 @@ class ['a,'b] cable
       raise e
      end
 
+  method reset () = 
+    List.iter (fun w -> w#reset ()) wire_list#content
+     
   (* Note that this method do not recursively call the method #to_dot of its components.
      This limitation is due to the non-compositional syntax of dot and the consequence
      is that a system can be represented from the top to, at most, the second level of depth. *)
@@ -742,6 +777,12 @@ let wcounter
  ?(system=(get_or_initialize_current_system ())) () =
  new wcounter ?name ?parent system
 
+let wswitch
+ ?name
+ ?parent
+ ?(system=(get_or_initialize_current_system ())) x =
+ new wswitch ?name ?parent system x
+
 let wlist
  ?name
  ?parent
@@ -751,8 +792,9 @@ let wlist
 let wire_of_accessors
  ?name
  ?parent
- ?(system:system=(get_or_initialize_current_system ())) ~(get:unit -> 'b) ~(set:'a->unit) () =
- ((new wire_of_accessors ?name ?parent system get set) :> ('a,'b) wire)
+ ?(system:system=(get_or_initialize_current_system ())) 
+ ~(reset_with:'a) ~(get:unit -> 'b) ~(set:'a->unit) () =
+ ((new wire_of_accessors ?name ?parent system ~reset_with get set) :> ('a,'b) wire)
 
 (** Simplified constructor. *)
 let cable

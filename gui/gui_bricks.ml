@@ -541,6 +541,7 @@ module Reactive_widget = struct
     inherit [string list * int option, string option] Chip.wire ~name ?parent system
     val mutable content = make_widget ?active strings
     val mutable strings_content = strings
+    method reset () = assert false (* unused! *)
     method get_alone   = GEdit.text_combo_get_active content
     method set_alone (strings, active) =
       let active = match active with

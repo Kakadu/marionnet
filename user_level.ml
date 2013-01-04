@@ -1,7 +1,7 @@
 (* This file is part of Marionnet, a virtual network laboratory
    Copyright (C) 2007, 2008, 2009  Luca Saiu
-   Copyright (C) 2007, 2009, 2010  Jean-Vincent Loddo
-   Copyright (C) 2007, 2008, 2009, 2010  Université Paris 13
+   Copyright (C) 2007, 2009, 2010, 2013  Jean-Vincent Loddo
+   Copyright (C) 2007, 2008, 2009, 2010, 2013  Université Paris 13
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ let network_marshaller = new Oomarshal.marshaller;;
 (* TODO: rename is in network_dot_tuning_zone *)
 class network =
 
-  fun ?(iconsize="large") ?(shuffler=[]) ?(rankdir="TB") ?(nodesep=0.5) ?(labeldistance=1.6) ?(extrasize=0.)
+  fun ?(iconsize="large") ?(shuffler=[]) ?(rankdir="TB") ?(nodesep=0.5) ?(labeldistance=1.6) ?(extrasize=0.) ?(curved_lines=false)
 
       (* The handler for the real network *)
       (network:( < reversed_cables:(string list); reversed_cable_set:(bool->string->unit); .. > ))  ->
@@ -87,6 +87,9 @@ class network =
   val rankdir  = Chip.wref ~name:"rankdir" rankdir
   method rankdir = rankdir
 
+  val curved_lines = Chip.wswitch ~name:"curved_lines" curved_lines
+  method curved_lines = curved_lines
+  
   val shuffler = Chip.wref ~name:"shuffler" shuffler
   method shuffler = shuffler
 
@@ -127,6 +130,7 @@ class network =
       iconsize#set "large";
       shuffler#set [];
       rankdir#set "TB";
+      curved_lines#reset ();
       nodesep#set 0.5;
       labeldistance#set 1.6 ;
       ListExtra.foreach network#reversed_cables (network#reversed_cable_set false) ;
@@ -201,6 +205,7 @@ class network =
      ("iconsize"      , iconsize#get                   ) ;
      ("shuffler"      , (Xforest.encode shuffler#get)  ) ;
      ("rankdir"       , rankdir#get                    ) ;
+     ("curved_lines"  , (string_of_bool curved_lines#get)) ;
      ("nodesep"       , (string_of_float nodesep#get)      ) ;
      ("labeldistance" , (string_of_float labeldistance#get)) ;
      ("extrasize"     , (string_of_float extrasize#get)    ) ;
@@ -212,12 +217,13 @@ class network =
      The Dotoption.network must be undumped AFTER the Netmodel.network in
      order to have significant cable names (reversed_cables). *)
  method eval_forest_attribute = function
-  | ("iconsize"             , x ) -> self#iconsize#set       x
-  | ("shuffler"             , x ) -> self#shuffler#set      (Xforest.decode x)
-  | ("rankdir"              , x ) -> self#rankdir#set        x
-  | ("nodesep"              , x ) -> self#nodesep#set       (float_of_string x)
+  | ("iconsize"             , x ) -> self#iconsize#set x
+  | ("shuffler"             , x ) -> self#shuffler#set (Xforest.decode x)
+  | ("rankdir"              , x ) -> self#rankdir#set x
+  | ("curved_lines"         , x ) -> self#curved_lines#set_to (bool_of_string x)
+  | ("nodesep"              , x ) -> self#nodesep#set (float_of_string x)
   | ("labeldistance"        , x ) -> self#labeldistance#set (float_of_string x)
-  | ("extrasize"            , x ) -> self#extrasize#set     (float_of_string x)
+  | ("extrasize"            , x ) -> self#extrasize#set (float_of_string x)
   | ("gui_callbacks_disable", x ) -> self#set_gui_callbacks_disable (bool_of_string x)
   | ("invertedCables"       , x ) -> self#set_reversed_cables (Xforest.decode x)
   | _ -> () (* Forward-comp. *)
@@ -1382,7 +1388,7 @@ class type virtual cable = object
  method is_reversed : bool
  method set_reversed : bool -> unit
  method show : string -> string
- method dot_traduction : labeldistance:float -> string
+ method dot_traduction : curved_lines:bool -> labeldistance:float -> string
  method decrement_alive_endpoint_no : unit
  method increment_alive_endpoint_no : unit
  method is_connected : bool
@@ -1714,6 +1720,7 @@ class network () =
  method dotTrad () =
  let opt = self#dotoptions in
  let labeldistance = opt#labeldistance#get in
+ let curved_lines = opt#curved_lines#get in
  begin
 "digraph plan {
 
@@ -1742,7 +1749,7 @@ opt#labeldistance_for_dot^",tailclip=true];
 
 "^
 (StringExtra.Text.to_string
-   (List.map (fun c->c#dot_traduction ~labeldistance) self#get_direct_cables))
+   (List.map (fun c->c#dot_traduction ~curved_lines ~labeldistance) self#get_direct_cables))
 
 ^"
 /* *********************************
@@ -1754,7 +1761,7 @@ edge [headclip=true,minlen=1.6,color=\""^self#dotoptions#crossover_cable_color^"
 
 "^
 (StringExtra.Text.to_string
-   (List.map (fun c->c#dot_traduction ~labeldistance) self#get_crossover_cables))
+   (List.map (fun c->c#dot_traduction ~curved_lines ~labeldistance) self#get_crossover_cables))
 
 ^"} //END of digraph\n"
 

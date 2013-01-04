@@ -43,26 +43,27 @@ end
 let () = begin
  let set w text = (GData.tooltips ())#set_tip w ~text
  in
- set w#label_DOT_TUNING_NODES#coerce       (s_ "Tuning of graph nodes")      ;
- set w#vscale_DOT_TUNING_ICONSIZE#coerce   (s_ "Tuning of icon size (machines, switch, hub, etc), without changing the icon arrangement") ;
- set w#button_DOT_TUNING_SHUFFLE#coerce    (s_ "Randomly arrange nodes") ;
- set w#button_DOT_TUNING_UNSHUFFLE#coerce  (s_ "Go back to the standard node arrangement (not random)") ;
- set w#label_DOT_TUNING_EDGES#coerce       (s_ "Tuning of graph edges") ;
- set w#button_DOT_TUNING_RANKDIR_TB#coerce (s_ "Arrange edges top-to-bottom") ;
- set w#button_DOT_TUNING_RANKDIR_LR#coerce (s_ "Arrange edges left-to-right") ;
- set w#vscale_DOT_TUNING_NODESEP#coerce    (s_ "Minimun edge size") ;
- set w#menubar_DOT_TUNING_INVERT#coerce    (s_ "Reverse an edge") ;
- set w#label_DOT_TUNING_LABELS#coerce      (s_ "Tuning edge endpoint labels") ;
+ set w#label_DOT_TUNING_NODES#coerce          (s_ "Tuning of graph nodes")      ;
+ set w#vscale_DOT_TUNING_ICONSIZE#coerce      (s_ "Tuning of icon size (machines, switch, hub, etc), without changing the icon arrangement") ;
+ set w#button_DOT_TUNING_SHUFFLE#coerce       (s_ "Randomly arrange nodes") ;
+ set w#button_DOT_TUNING_UNSHUFFLE#coerce     (s_ "Go back to the standard node arrangement (not random)") ;
+ set w#label_DOT_TUNING_EDGES#coerce          (s_ "Tuning of graph edges") ;
+ set w#button_DOT_TUNING_RANKDIR_TB#coerce    (s_ "Arrange edges top-to-bottom") ;
+ set w#button_DOT_TUNING_RANKDIR_LR#coerce    (s_ "Arrange edges left-to-right") ;
+ set w#vscale_DOT_TUNING_NODESEP#coerce       (s_ "Minimun edge size") ;
+ set w#menubar_DOT_TUNING_INVERT#coerce       (s_ "Reverse an edge") ;
+ set w#button_DOT_TUNING_CURVED_LINES#coerce  (s_ "Switch between straight and curved lines") ;
+ set w#label_DOT_TUNING_LABELS#coerce         (s_ "Tuning edge endpoint labels") ;
  set w#vscale_DOT_TUNING_LABELDISTANCE#coerce (s_ "Distance between labels and icons") ;
- set w#label_DOT_TUNING_AREA#coerce        (s_ "Tuning of the graph size. The surface may increase up to double (100%) the original, in which case case elements are arranged to completely fill the available space.") ;
- set w#vscale_DOT_TUNING_EXTRASIZE#coerce  (s_ "Canvas size")
+ set w#vscale_DOT_TUNING_EXTRASIZE#coerce     (s_ "Canvas size");
+ set w#label_DOT_TUNING_AREA#coerce           (s_ "Tuning of the graph size. The surface may increase up to double (100%) the original, in which case case elements are arranged to completely fill the available space.") ;
  end
 
 (* ******************************* *
       High-level toolbar driver
  * ******************************* *)
 
-(** Handlers for reading or setting related widgets in a more abstract way. *)
+(** Methods for reading or setting related widgets in a more abstract way. *)
 class high_level_toolbar_driver () =
 
   (* The iconsize converter float -> string *)
@@ -226,16 +227,29 @@ let reverse_edge_callback x () =
    st#flash (Printf.sprintf (f_ "Cable %s reversed") x);
   end
 
+(** Reaction for the spline's (straight/curved) tuning *)
+let curved_lines_react () = if opt#gui_callbacks_disable then () else
+  begin
+   (* `set' means `commute' for reactive switches (wswitch): *)
+   st#dotoptions#curved_lines#set ();
+   let msg = match st#dotoptions#curved_lines#get with
+    | true  -> (s_ "Switched to curved lines")
+    | false -> (s_ "Switched to straight lines")
+   in
+   st#flash ~delay:4000 msg;
+  end
+  
 (* Connections *)
 
 let _ = w#vscale_DOT_TUNING_ICONSIZE#connect#value_changed        iconsize_react
 let _ = w#button_DOT_TUNING_SHUFFLE#connect#clicked               shuffle_react
 let _ = w#button_DOT_TUNING_UNSHUFFLE#connect#clicked             unshuffle_react
-let _ = w#button_DOT_TUNING_RANKDIR_TB#connect#clicked           (rankdir_react "TB")
-let _ = w#button_DOT_TUNING_RANKDIR_LR#connect#clicked           (rankdir_react "LR")
+let _ = w#button_DOT_TUNING_RANKDIR_TB#connect#clicked            (rankdir_react "TB")
+let _ = w#button_DOT_TUNING_RANKDIR_LR#connect#clicked            (rankdir_react "LR")
 let _ = w#vscale_DOT_TUNING_NODESEP#connect#value_changed         nodesep_react
 let _ = w#vscale_DOT_TUNING_LABELDISTANCE#connect#value_changed   labeldistance_react
 let _ = w#vscale_DOT_TUNING_EXTRASIZE#connect#value_changed       extrasize_react
+let _ = w#button_DOT_TUNING_CURVED_LINES#connect#clicked          curved_lines_react
 
 (** Generic connect function for rotate menus. *)
 let connect_rotate_menu ~widget ~widget_menu ~dynList = begin

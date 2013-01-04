@@ -90,6 +90,7 @@ module Make (S : sig val st:State.globalState end) = struct
   chip dot_tuning_manager :
     (iconsize      : string  ,
      rankdir       : string  ,
+     curved_lines  : bool    ,
      shuffler      : int list,
      nodesep       : float   ,
      labeldistance : float   ,
@@ -107,6 +108,7 @@ module Make (S : sig val st:State.globalState end) = struct
         ~name:"dot_tuning_manager"
    	~iconsize:d#iconsize
    	~rankdir:d#rankdir
+   	~curved_lines:d#curved_lines#as_wire
    	~shuffler:d#shuffler
    	~nodesep:d#nodesep
    	~labeldistance:d#labeldistance
@@ -127,7 +129,9 @@ module Make (S : sig val st:State.globalState end) = struct
       output_string ch (st#network#dotTrad ());
       close_out ch;
       let command_line =
-	"dot -Gsplines=line -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o "^ft^" "^fs in
+        let splines = string_of_bool (st#network#dotoptions#curved_lines#get) in 
+	Printf.sprintf "dot -Gsplines=%s -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o %s %s" splines ft fs 
+      in
       self#tracing#message "The dot command line is";
       self#tracing#message command_line;
       let exit_code = Sys.command command_line in

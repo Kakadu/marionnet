@@ -413,7 +413,7 @@ class virtual cable_dot_zone ?(reversed=false) ~(motherboard:Motherboard.t) () =
    | false -> "#949494"
    | true  -> "#6d8dc0"
 
-   method dot_traduction (*?(edgeoptions="")*) ~labeldistance =
+   method dot_traduction ~(curved_lines:bool) ~labeldistance =
     let edgeoptions="" in
     let labeldistance_base = labeldistance in
     let n1 = self#get_left#node in
@@ -453,10 +453,11 @@ class virtual cable_dot_zone ?(reversed=false) ~(motherboard:Motherboard.t) () =
       (* Reverse left and right sides of the cable if required *)
       let (n1,r1,n2,r2) = if self#is_reversed then (n2,r2,n1,r1) else (n1,r1,n2,r2)
       in
+      let c = if curved_lines then "" else ":c" in 
       match (n1#get_label, n2#get_label) with
-      | "", "" -> (n1#get_name^":img:c"), (n2#get_name^":img:c"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-      | "", l2 -> (n1#get_name^":img:c"), (n2#get_name)         , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
-      | l1, "" -> (n1#get_name)         , (n2#get_name^":img:c"), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+      | "", "" -> (n1#get_name^":img"^c), (n2#get_name^":img"^c), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+      | "", l2 -> (n1#get_name^":img"^c), (n2#get_name)         , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
+      | l1, "" -> (n1#get_name)         , (n2#get_name^":img"^c), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
       | l1, l2 -> (n1#get_name)         , (n2#get_name)         , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
     in
     let edgeoptions = if edgeoptions = "" then "" else (edgeoptions^",") in

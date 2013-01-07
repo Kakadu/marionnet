@@ -457,10 +457,10 @@ and
   method virtual get_alone : 'b
   method virtual set_alone : 'a -> unit
 
-  (* Reset to an initial value (this method is useful in general but not 
+  (* Reset to an initial value (this method is useful in general but not
      really relevant for the semantics of reactive systems)*)
   method virtual reset : unit -> unit
-  
+
   (** This would be a final method. *)
   method get : 'b =
    self#tracing#message "reading wire (get)";
@@ -505,7 +505,7 @@ class wcounter ?name ?parent (system:system) =
   val mutable content = 0
   method get_alone    = content
   method set_alone () = (content <- content + 1)
-  method reset () = 
+  method reset () =
     let action () =
       content <- 0;
       ignore (self#system#stabilize);
@@ -529,10 +529,10 @@ class wswitch ?name ?parent (system:system) (value:bool) =
       ignore (self#system#stabilize);
     in
     self#system#mutex_methods#with_mutex action
-  
+
   method reset () = self#set_to value
  end
- 
+
 class ['a] wlist ?name ?parent (system:system) (value:'a list) =
  let name = match name with None -> fresh_wire_name "wlist" | Some x -> x in
  object (self)
@@ -593,9 +593,9 @@ class ['a,'b] cable
       raise e
      end
 
-  method reset () = 
+  method reset () =
     List.iter (fun w -> w#reset ()) wire_list#content
-     
+
   (* Note that this method do not recursively call the method #to_dot of its components.
      This limitation is due to the non-compositional syntax of dot and the consequence
      is that a system can be represented from the top to, at most, the second level of depth. *)
@@ -792,7 +792,7 @@ let wlist
 let wire_of_accessors
  ?name
  ?parent
- ?(system:system=(get_or_initialize_current_system ())) 
+ ?(system:system=(get_or_initialize_current_system ()))
  ~(reset_with:'a) ~(get:unit -> 'b) ~(set:'a->unit) () =
  ((new wire_of_accessors ?name ?parent system ~reset_with get set) :> ('a,'b) wire)
 

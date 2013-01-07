@@ -238,7 +238,7 @@ let curved_lines_react () = if opt#gui_callbacks_disable then () else
    in
    st#flash ~delay:4000 msg;
   end
-  
+
 (* Connections *)
 
 let _ = w#vscale_DOT_TUNING_ICONSIZE#connect#value_changed        iconsize_react

@@ -129,8 +129,8 @@ module Make (S : sig val st:State.globalState end) = struct
       output_string ch (st#network#dotTrad ());
       close_out ch;
       let command_line =
-        let splines = string_of_bool (st#network#dotoptions#curved_lines#get) in 
-	Printf.sprintf "dot -Gsplines=%s -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o %s %s" splines ft fs 
+        let splines = string_of_bool (st#network#dotoptions#curved_lines#get) in
+	Printf.sprintf "dot -Gsplines=%s -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o %s %s" splines ft fs
       in
       self#tracing#message "The dot command line is";
       self#tracing#message command_line;

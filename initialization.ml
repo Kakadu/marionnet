@@ -125,7 +125,7 @@ module Debug_level = struct
     | true  -> 1
 
   let default_level =
-    of_bool ((!option_debug=Some()) || 
+    of_bool ((!option_debug=Some()) ||
              (Configuration.extract_bool_variable_or ~default:false "MARIONNET_DEBUG"))
 
   let current = ref default_level
@@ -200,7 +200,7 @@ module Path = struct
  (* The prefix to prepend to VDE executables; this allows us to install
     patched versions in an easy way, before our changes are integrated
     into VDE's mainline... *)
- let vde_prefix = 
+ let vde_prefix =
    Configuration.extract_string_variable_or ~default:"" "MARIONNET_VDE_PREFIX";;
 
  (* User installation: *)
@@ -225,8 +225,8 @@ end (* Path *)
 module Disable_warnings = struct
 
 let temporary_working_directory_automatically_set =
-  Configuration.extract_bool_variable_or 
-    ~default:false 
+  Configuration.extract_bool_variable_or
+    ~default:false
     "MARIONNET_DISABLE_WARNING_TEMPORARY_WORKING_DIRECTORY_AUTOMATICALLY_SET"
 
 end (* Warnings *)
@@ -246,7 +246,7 @@ let router_port0_default_ipv4_config  =
 ;;
 
 let keep_all_snapshots_when_saving =
-  Configuration.extract_bool_variable_or 
+  Configuration.extract_bool_variable_or
     ~default:false
     "MARIONNET_KEEP_ALL_SNAPSHOTS_WHEN_SAVING"
 

@@ -302,8 +302,10 @@ module The_unique_treeview = Stateful_modules.Variable (struct
   end)
 let extract = The_unique_treeview.extract
 
-let make ~packing ~after_user_edit_callback () =
-  let result = new t ~packing ~after_user_edit_callback () in
+let make ~(window:GWindow.window) ~(hbox:GPack.box) ~after_user_edit_callback () =
+  let result = new t ~packing:(hbox#add) ~after_user_edit_callback () in
+  let () = Treeview.add_expand_and_collapse_button ~window ~hbox (result:>Treeview.t) in
   The_unique_treeview.set result;
   result
 ;;
+

@@ -56,12 +56,11 @@ let configuration =
 
 type varname = string
 
-let extract_bool_variable_or ~default varname = 
-  Configuration_files.Logging.extract_bool_variable_or ~default varname (configuration)  
-  
-let extract_string_variable_or ?k ?unsuitable_value ~default varname = 
+let extract_bool_variable_or ~default varname =
+  Configuration_files.Logging.extract_bool_variable_or ~default varname (configuration)
+
+let extract_string_variable_or ?k ?unsuitable_value ~default varname =
   Configuration_files.Logging.extract_string_variable_or ?k ?unsuitable_value ~default varname (configuration)
 
-let get_string_variable ?k ?unsuitable_value varname = 
+let get_string_variable ?k ?unsuitable_value varname =
   Configuration_files.Logging.get_string_variable ?k ?unsuitable_value varname (configuration)
-  

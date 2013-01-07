@@ -345,7 +345,7 @@ class wswitch : ?name:string -> ?parent:common -> system -> bool ->
     method as_wire : (unit, bool) wire
 
   end
-  
+
 class ['a] wlist : ?name:string -> ?parent:common -> system -> 'a list ->
   object
     method id : int

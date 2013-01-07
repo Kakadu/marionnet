@@ -668,4 +668,23 @@ module Reactive_widget = struct
 
 end (* Reactive_widget *)
 
+
+let button_image ?window ?callback ~packing ~file () =
+  (* Complete the filename if necessary: *)
+  let file =
+    if (Filename.is_implicit file)
+      then Filename.concat (Initialization.Path.images) file
+      else file
+  in
+  let button = GButton.button ~packing () in
+  let pixmap = GDraw.pixmap_from_xpm ?window ~file () in
+  let image  = GMisc.pixmap pixmap () in
+  let () = button#set_image image#coerce in
+  let () = match callback with
+  | None -> ()
+  | Some callback -> ignore (button#connect#clicked ~callback)
+  in
+  button
+
+
 let test () = Dialog.yes_or_cancel_question ~markup:"prova <b>bold</b>" ~context:'a' ()

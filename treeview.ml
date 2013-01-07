@@ -1603,3 +1603,24 @@ class virtual treeview_with_a_primary_key_Name_column
     self#remove_reserved_fields (self#get_complete_row_of_child ~parent_name ~child_name)
 
  end
+
+(* Add the two buttons "Expand all" and "Collapse all" at right side of the treeview. *)
+let add_expand_and_collapse_button ~(window:GWindow.window) ~(hbox:GPack.box) (treeview:t) : unit =
+  let toolbar =
+    let packing w = hbox#pack ~expand:false w in
+    GButton.toolbar ~orientation:`VERTICAL ~packing ()
+  in
+  let packing = toolbar#add in
+  let b1 = Gui_bricks.button_image ~window ~packing ~file:"ico.action.zoom.in.png" () in
+  let b2 = Gui_bricks.button_image ~window ~packing ~file:"ico.action.zoom.out.png" () in
+  let () =
+    let set = (GData.tooltips ())#set_tip in
+    set b1#coerce ~text:(s_ "Expand all");
+    set b2#coerce ~text:(s_ "Collapse all")
+  in
+  let () =
+    let set (b:GButton.button) callback = ignore (b#connect#clicked ~callback) in
+    set b1 (fun () -> treeview#expand_everything);
+    set b2 (fun () -> treeview#collapse_everything)
+  in
+  ()

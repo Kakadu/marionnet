@@ -453,7 +453,7 @@ class virtual cable_dot_zone ?(reversed=false) ~(motherboard:Motherboard.t) () =
       (* Reverse left and right sides of the cable if required *)
       let (n1,r1,n2,r2) = if self#is_reversed then (n2,r2,n1,r1) else (n1,r1,n2,r2)
       in
-      let c = if curved_lines then "" else ":c" in 
+      let c = if curved_lines then "" else ":c" in
       match (n1#get_label, n2#get_label) with
       | "", "" -> (n1#get_name^":img"^c), (n2#get_name^":img"^c), (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)
       | "", l2 -> (n1#get_name^":img"^c), (n2#get_name)         , (vertexlab n1 "taillabel" r1), (vertexlab n2 "headlabel" r2)

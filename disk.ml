@@ -454,7 +454,7 @@ class virtual_machine_installations
             "Disk.virtual_machine_installations#get_kernel_console_arguments: couple (%s,%s) unknown!\n"
             (filesystem_epithet) (kernel_epithet)
         in None
-  
+
   (** Terminal choices to handle uml machines.
       The list doesn't depend on the choosen distribution (in this version): *)
   method terminal_manager_of (_: [`distrib] epithet) = terminal_manager
@@ -476,7 +476,7 @@ class virtual_machine_installations
         Option.iter
           (fun expected_mtime ->
              let realpath = filesystems#realpath_of_epithet (filesystem_epithet) in
-             let actual_mtime = 
+             let actual_mtime =
                int_of_float ((Unix.stat realpath).Unix.st_mtime)
              in
              if actual_mtime = expected_mtime then () else (* warning: *)
@@ -485,12 +485,12 @@ class virtual_machine_installations
 	       Printf.sprintf
 		 (f_ "The filesystem `%s%s' has the mtime %d, but the expected value was %d.\nPlease run the command:\n\n<tt><small>sudo touch -d $(date -d @%d) %s</small></tt>\n\nin order to fix this inconsistency. Otherwise, machines or routers with this filesystem defined in a project created elsewhere can not be restarted.")
  		 (prefix) (filesystem_epithet) (actual_mtime) (expected_mtime) (expected_mtime) (realpath)
-	     in   
+	     in
              Simple_dialogs.warning title message ())
           mtime
     in
     List.iter (check) filesystems#get_epithet_list
-    
+
 end
 
 let get_router_installations
@@ -548,15 +548,15 @@ let root_export_dirname_of_prefixed_filesystem prefixed_filesystem =
   in
   vm_installations#root_export_dirname epithet
 
-  
-module Make_and_check_installations (Unit:sig end) = struct  
-  
-  let machines = get_machine_installations () 
-  let routers  = get_router_installations () 
-  
+
+module Make_and_check_installations (Unit:sig end) = struct
+
+  let machines = get_machine_installations ()
+  let routers  = get_router_installations ()
+
   let () = begin
     machines#check_filesystems_MTIME_consistency ();
     routers#check_filesystems_MTIME_consistency ();
     end
-  
+
 end (* Make_and_check_installations *)

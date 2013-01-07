@@ -51,10 +51,14 @@ module Created_toolbar_COMPONENTS = Gui_toolbar_COMPONENTS. Make (State)
 (* ***************************************** *
             Make the treeview widgets
  * ***************************************** *)
+
+let window = st#mainwin#window_MARIONNET
+
 (** Make the states interface: *)
 let filesystem_history_interface =
   Treeview_history.make
-    ~packing:(st#mainwin#filesystem_history_viewport#add)
+    ~window
+    ~hbox:(st#mainwin#filesystem_history_viewport)
     ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
     ()
 
@@ -98,21 +102,24 @@ let after_user_edit_callback x =
 (** Make the ifconfig treeview: *)
 let treeview_ifconfig =
   Treeview_ifconfig.make
-    ~packing:(st#mainwin#ifconfig_viewport#add)
+    ~window
+    ~hbox:(st#mainwin#ifconfig_viewport)
     ~after_user_edit_callback
     ()
 
 (** Make the defects interface: *)
 let treeview_defects =
   Treeview_defects.make
-    ~packing:(st#mainwin#defects_viewport#add)
+    ~window
+    ~hbox:(st#mainwin#defects_viewport)
     ~after_user_edit_callback
     ()
 
 (** Make the texts interface: *)
 let treeview_documents =
   Treeview_documents.make
-    ~packing:(st#mainwin#documents_viewport#add)
+    ~window
+    ~hbox:(st#mainwin#documents_viewport)
     ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
     ()
 
@@ -285,11 +292,11 @@ let () =
     (s_ "You don't have Graphviz")
 
 
-(** Read and check filesystem's installations. Warning dialogs 
-    are created when something appears wrong or strange. *) 
-module VM_installations = 
+(** Read and check filesystem's installations. Warning dialogs
+    are created when something appears wrong or strange. *)
+module VM_installations =
   Disk.Make_and_check_installations(struct end)
-    
+
 module Motherboard = Created_window_MARIONNET.Motherboard
 
 let () = begin

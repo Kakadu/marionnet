@@ -190,4 +190,11 @@ module Reactive_widget :
   end
 
 
+val button_image :
+  ?window:GWindow.window ->
+  ?callback:(unit->unit) ->
+  packing:(GObj.widget -> unit) ->
+  file:string ->
+  unit -> GButton.button
+
 val test : unit -> char option

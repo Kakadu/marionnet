@@ -1,0 +1,237 @@
+# This file is distributed under the three-clause BSD License (see COPYING.BSD).
+# Copyright (C) 2009  Andrea Chiffi
+# Copyright (C) 2009  Marco Stronati
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: marionnet\n"
+"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"POT-Creation-Date: 2010-04-15 14:46+0000\n"
+"PO-Revision-Date: 2010-05-03 21:54+0000\n"
+"Last-Translator: Luca Saiu <Unknown>\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-05-05 03:59+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+"X-Poedit-Bookmarks: 223,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
+
+msgid ""
+"\n"
+"Do you confirm this connection?"
+msgstr ""
+"\n"
+"Confermare questa connessione?"
+
+msgid ""
+"\n"
+"Label"
+msgstr ""
+"\n"
+"Etichetta"
+
+msgid "Address of the first port"
+msgstr "Indirizzo della prima porta"
+
+msgid ""
+"Are you sure that you want to remove %s\n"
+"and all cables connected to this %s?"
+msgstr ""
+"Rimuovere %s\n"
+"e tutti i cavi collegati a %s?"
+
+msgid "CHOOSE A WORKING DIRECTORY"
+msgstr "SCEGLIERE UNA DIRECTORY DI LAVORO"
+
+msgid "CONFIRM"
+msgstr "CONFERMARE"
+
+msgid "Cable %s (re)inverted"
+msgstr "Cavo %s (re)invertito"
+
+msgid "Change working directory"
+msgstr "Cambia la directory di lavoro"
+
+msgid ""
+"Choose a directory which is existing, modifiable and hosted on a filesystem "
+"supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)"
+msgstr ""
+"Scegliere una directory esistente, modificabile e memorizzata su un "
+"filesystem che supporti gli sparse files (ext2, ext3, reiserfs, NTFS, ...)"
+
+msgid "Choose working directory"
+msgstr "Scegli la directory di lavoro"
+
+msgid ""
+"Crossover cable name. This name must be unique in the virtual network. "
+"Suggested: C1, C2, ... "
+msgstr ""
+"Etichetta del cavo incrociato. Questa etichetta deve essere unica nella rete "
+"virtuale. Suggerimento: C1, C2, ... "
+
+msgid "Do you want to stop the machine %s?"
+msgstr "Fermare la macchina %s?"
+
+msgid ""
+"Ethernet\n"
+"cards"
+msgstr ""
+"Interfacce\n"
+"ethernet"
+
+msgid "Export as (only) router variant"
+msgstr "Esporta (solo) come variante del router"
+
+msgid "Failed when exporting the network image to the file "
+msgstr "Errore durante l'esportazione dell'immagine della rete nel file "
+
+msgid "First octet of the IPv4 address"
+msgstr "Primo ottetto dell'indirizzo IPv4"
+
+msgid "Fourth octet of the IPv4 address"
+msgstr "Quarto ottetto dell'indirizzo IPv4"
+
+msgid "Funny connection"
+msgstr "Strana connessione"
+
+msgid "Gateway"
+msgstr "Gateway"
+
+msgid ""
+"Gateway name. This name must be unique in the virtual network. Suggested: "
+"G1, G2, ..."
+msgstr ""
+"Nome del Gateway. Questo nome dev'essere univoco nella rete virtuale. "
+"Suggerimenti: G1, G2, ..."
+
+msgid "Hardware specification."
+msgstr "Specifiche hardware."
+
+msgid "IPv4 configuration and required services"
+msgstr "Configurazione IPv4 e servizi richiesti"
+
+msgid ""
+"Invoking dot failed. Did you install graphviz?\n"
+"The command line is\n"
+"%s\n"
+"and the exit code is %i.\n"
+"Marionnet will work, but you will not see the network graph picture until "
+"you fix the problem.\n"
+"There is no need to restart the application."
+msgstr ""
+"Avvio di dot fallito. È installato graphviz?\n"
+"La linea di comando è\n"
+"%s\n"
+"ed il codice di uscita è %i.\n"
+"Marionnet funzionerà comunque, ma non verrà visualizzata l'immagine della "
+"rete finchè il problema non sarà risolto.\n"
+"Non è necessario riavviare l'applicazione."
+
+msgid ""
+"It is advisable to use as label the IP address of the element (for example "
+"\"192.168.1.0/24\")."
+msgstr ""
+"È consigliabile usare come etichetta gli indirizzi IP del dispositivo (per "
+"esempio \"192.168.1.0/24\")"
+
+msgid "Label to add to the crossover cable icon."
+msgstr "Etichetta da aggiungere all'icona del cavo incrociato"
+
+msgid "Label to add to the straight cable icon."
+msgstr "Etichetta da aggiungere all'icona del cavo dritto"
+
+msgid ""
+"Memory<tt>\n"
+"(Mb)</tt>"
+msgstr ""
+"Memoria\n"
+"RAM <tt>(MB)</tt>"
+
+msgid "Second octet of the IPv4 address"
+msgstr "Secondo ottetto dell'indirizzo IPv4"
+
+msgid "Shutdown"
+msgstr "Spegni"
+
+msgid "Software specification."
+msgstr "Specifiche software."
+
+msgid ""
+"Straight cable name. This name must be unique in the virtual network. "
+"Suggested: D1, D2, ... "
+msgstr ""
+"Etichetta del cavo dritto. Questa etichetta deve essere unica nella rete "
+"virtuale. Suggerimento: D1, D2, ... "
+
+msgid "Switch port number"
+msgstr "Numero di porta dello switch"
+
+msgid "The cable can't be connected on both ends to the same socket!"
+msgstr "Il cavo non può essere connesso da entrambi i lati sulla stessa presa!"
+
+msgid ""
+"The cable is connected to the same device.\n"
+"Machines already have the loopback interface for this purpose."
+msgstr ""
+"Il cavo è connesso da entrambi i lati allo stesso dispositivo.\n"
+"Le macchine hanno già l'interfaccia di loopback per questo."
+
+msgid "The gateway should provide a DHCP service?"
+msgstr "Deve il gateway fornire un servizio DHCP?"
+
+msgid ""
+"The name \"%s\" is not a valid directory.\n"
+"\n"
+"Directory names must contain only letters, numbers, dashes ('-') and "
+"underscores ('_')."
+msgstr ""
+"Il nome \"%s\" non è una directory valida.\n"
+"\n"
+"I nomi delle directory devono contenere solo lettere, numeri, trattini ('-') "
+"e trattini bassi ('_')."
+
+msgid "Third octet of the IPv4 address"
+msgstr "Terzo ottetto dell'indirizzo IPv4"
+
+msgid "User Mode Linux (UML) graphical interface"
+msgstr "Interfaccia grafica di User Mode Linux (UML)"
+
+msgid ""
+"WARNING: you asked to brutally stop the machine,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop machines.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"ATTENZIONE: richiesta di spegnere bruscamente la macchina,\n"
+"come staccando la corrente;\n"
+" tuttavia, è anche possibile spegnere correttamente le macchine.\n"
+"\n"
+"Spegnere comunque bruscamente %s?\n"
+
+msgid ""
+"WARNING: you asked to brutally stop the router,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop routers.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"ATTENZIONE: richiesta di spegnere bruscamente il router,\n"
+"come staccando la corrente;\n"
+" tuttavia, è anche possibile spegnere correttamente i router.\n"
+"\n"
+"Spegnere comunque bruscamente %s?\n"
+
+msgid "Wrong connection"
+msgstr "Connessione sbagliata"
+
+msgid "You don't have VDE"
+msgstr "Manca VDE"
+
+msgid "You don't have a default UML kernel"
+msgstr "Manca il kernel UML predefinito"
+
+msgid "kernel"
+msgstr "Kernel"

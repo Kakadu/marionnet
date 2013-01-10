@@ -1,0 +1,208 @@
+# This file is distributed under the three-clause BSD License (see COPYING.BSD).
+# Marionnet GUI messages: Spanish version
+# Copyright (C) 2010 Juan Sebastián López Villa
+# Juan Sebastián López Villa <jastazv@gmail.com>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Marionnet trunk\n"
+"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"POT-Creation-Date: 2010-04-15 14:46+0000\n"
+"PO-Revision-Date: 2010-05-19 15:41+0000\n"
+"Last-Translator: Luca Saiu <Unknown>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-05-20 05:49+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+
+msgid ""
+"\n"
+"Do you confirm this connection?"
+msgstr ""
+"\n"
+"Usted ha confirmado esta conexión?"
+
+msgid ""
+"\n"
+"Label"
+msgstr ""
+"\n"
+"Etiqueta"
+
+msgid "ADD OR MODIFY AN ETHERNET SOCKET"
+msgstr "AÑADIR O MODIFICAR UN SOCKET ETHERNET"
+
+msgid "Add socket"
+msgstr "Añadir socket"
+
+msgid "Address of the first port"
+msgstr "Direccion del primer puerto"
+
+msgid ""
+"Are you sure that you want to remove %s\n"
+"and all cables connected to this %s?"
+msgstr ""
+"Esta usted seguro que desea remover %s\n"
+"y todos los cables conectados a este %s?"
+
+msgid ""
+"Are you sure you want to remove %s\\nand all cables connected to this %s ?"
+msgstr ""
+"¿Estás seguro que quieres eliminar %s\\ny todos los cables conectados a este "
+"%s ?"
+
+msgid "Broadcast the specification of the virtual network on a real network."
+msgstr ""
+"Enviar un broadcast desde la red virtual a la red real a la que está "
+"conectada el equipo."
+
+msgid "CHOOSE A WORKING DIRECTORY"
+msgstr "SELECCIONE UN DIRECTORIO DE TRABAJO"
+
+msgid "CONFIRM"
+msgstr "CONFIRMADO"
+
+msgid "Change working directory"
+msgstr "Cambiar el directorio de trabajo"
+
+msgid ""
+"Choose a directory which is existing, modifiable and hosted on a filesystem "
+"supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)"
+msgstr ""
+"Seleccione un directorio existente, modificable y organizado en un sistema "
+"de archivos soportando archivos dispersos (ext2, ext3, reiserfs, NTFS, ...)"
+
+msgid "Choose working directory"
+msgstr "Seleccionar el directorio de trabajo"
+
+msgid ""
+"Crossover cable name. This name must be unique in the virtual network. "
+"Suggested: C1, C2, ... "
+msgstr ""
+"Nombre para el cable cruzado. Este nombre debe ser único en la red. "
+"Sugerencias : C1, C2, ... "
+
+msgid "Do you want to stop the machine %s?"
+msgstr "Quiere detener la maquina %s?"
+
+msgid ""
+"Ethernet\n"
+"cards"
+msgstr ""
+"Ethernet\n"
+"tarjetas"
+
+msgid "Export as (only) router variant"
+msgstr "Exportar como variante del router (solamente)"
+
+msgid "Failed when exporting the network image to the file "
+msgstr "Error cuando la imagen de la red era exportada en el archivo "
+
+msgid "First octet of the IPv4 address"
+msgstr "Primer octeto de la dirección IPv4"
+
+msgid "Fourth octet of the IPv4 address"
+msgstr "Cuarto octeto de la dirección IPv4"
+
+msgid "Funny connection"
+msgstr "Conexión rara"
+
+msgid "Gateway"
+msgstr "Puerta de enlace"
+
+msgid ""
+"Gateway name. This name must be unique in the virtual network. Suggested: "
+"G1, G2, ..."
+msgstr ""
+"Nombre del gateway. Este nombre debe ser unico en la red virtual. Sugeridos: "
+"G1, G2, ... "
+
+msgid "Hardware specification."
+msgstr "Especificación del hardware."
+
+msgid "Label to add to the crossover cable icon."
+msgstr "Referencia para asignar al ícono de cable cruzado."
+
+msgid "Label to add to the straight cable icon."
+msgstr "Referencia para asignar al ícono de cable directo."
+
+msgid ""
+"Memory<tt>\n"
+"(Mb)</tt>"
+msgstr ""
+"Memoria<tt>\n"
+"(Mb)</tt>"
+
+msgid "Modify socket"
+msgstr "Modificar socket"
+
+msgid "Second octet of the IPv4 address"
+msgstr "Segundo octeto de la dirección IPv4"
+
+msgid "Shutdown"
+msgstr "Apagar"
+
+msgid "Software specification."
+msgstr "Especificación del software."
+
+msgid "Stop all"
+msgstr "Detener todo"
+
+msgid ""
+"Straight cable name. This name must be unique in the virtual network. "
+"Suggested: D1, D2, ... "
+msgstr ""
+"Nombre para el cable directo. Este nombre debe ser único en la red. "
+"Sugerencias : D1, D2, ... "
+
+msgid "Strange connexion"
+msgstr "Ésta es una conexión extraña. Revisar."
+
+msgid "Switch port number"
+msgstr "Cambiar el numero del puerto"
+
+msgid "The cable can't be connected on both ends to the same socket!"
+msgstr "El cable no se puede conectar con los dos extremos en el mismo puerto!"
+
+msgid ""
+"The cable is connected to the same device.\n"
+"Machines already have the loopback interface for this purpose."
+msgstr ""
+"El cable está conectado a la máquina de donde sale.\n"
+"Las máquinas ya tienen una dirección de loopback (prueba ping localhost o "
+"ping 127.0.0.1)."
+
+msgid ""
+"The name \"%s\" is not a valid directory.\n"
+"\n"
+"Directory names must contain only letters, numbers, dashes ('-') and "
+"underscores ('_')."
+msgstr ""
+"El nombre \"%s\" no es un directorio válido.\n"
+"\n"
+"Los nombres de directorios sólo pueden contener letras, números, guiones "
+"('-') y subrayados ('_')."
+
+msgid "Third octet of the IPv4 address"
+msgstr "Tercer octeto de la dirección IPv4"
+
+msgid "User Mode Linux (UML) graphical interface"
+msgstr "Modo Usuario de Linux (MUL) interface gráfica"
+
+msgid "Wrong connection"
+msgstr "No es posible hacer esa conexión"
+
+msgid "You don't have VDE"
+msgstr "Usted no tiene VDE"
+
+msgid "You don't have a default UML kernel"
+msgstr "No tiene un kernel UML por defecto"
+
+msgid "kernel"
+msgstr "kernel"
+
+msgid "socket"
+msgstr "socket"

@@ -1,0 +1,218 @@
+# German translation for marionnet
+# Copyright (c) 2010 Rosetta Contributors and Canonical Ltd 2010
+# This file is distributed under the same license as the marionnet package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: marionnet\n"
+"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"POT-Creation-Date: 2010-09-06 17:14+0000\n"
+"PO-Revision-Date: 2010-10-23 15:59+0000\n"
+"Last-Translator: cmdrhenner <cmdrhenner@gmail.com>\n"
+"Language-Team: German <de@li.org>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-11-05 17:08+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+
+msgid ""
+"\n"
+"Do you confirm this connection?"
+msgstr ""
+"\n"
+"Bestätigen Sie diese Verbindung?"
+
+msgid ""
+"\n"
+"Label"
+msgstr ""
+"\n"
+"Beschriftung"
+
+msgid "Address of the first port"
+msgstr "Adresse des ersten Ports"
+
+msgid ""
+"Are you sure that you want to remove %s\n"
+"and all cables connected to this %s?"
+msgstr ""
+"Sind Sie sicher, dass Sie %s\n"
+"und alle mit %s verbundenen Kabel entfernen möchten?"
+
+msgid "CHOOSE A WORKING DIRECTORY"
+msgstr "WÄHLEN SIE EIN ARBEITSVERZEICHNIS"
+
+msgid "CONFIRM"
+msgstr "BESTÄTIGEN"
+
+msgid "Change working directory"
+msgstr "Arbeitsverzeichnis ändern"
+
+msgid ""
+"Choose a directory which is existing, modifiable and hosted on a filesystem "
+"supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)"
+msgstr ""
+"Bitte wählen Sie ein Verzeichnis das existiert, nicht schreibgeschützt ist "
+"und unter einem Dateisystem, das sparse files (ext3, reiserfs, NTFS,...) "
+"unterstützt, bereitgestellt wird."
+
+msgid "Choose working directory"
+msgstr "Arbeitsverzeichnis auswählen"
+
+msgid ""
+"Crossover cable name. This name must be unique in the virtual network. "
+"Suggested: C1, C2, ... "
+msgstr ""
+"Name des Crossoverkabels. Dieser muss einzigartig im virtuellen Netzwerk "
+"sein. Vorschlag: C1, C2, ... "
+
+msgid "Do you want to stop the machine %s?"
+msgstr "Möchten Sie die Maschine %s stoppen?"
+
+msgid ""
+"Ethernet\n"
+"cards"
+msgstr ""
+"Ethernet\n"
+"Karten"
+
+msgid "Export as (only) router variant"
+msgstr "Exportieren (nur) als Routervariante"
+
+msgid "Failed when exporting the network image to the file "
+msgstr "Fehler beim exportieren des Netzwerkabbilds in die Datei "
+
+msgid "First octet of the IPv4 address"
+msgstr "Erstes Oktett der IPv4-Adresse"
+
+msgid "Fourth octet of the IPv4 address"
+msgstr "Viertes Oktett der IPv4-Adresse"
+
+msgid "Funny connection"
+msgstr "Lustige Verbindung"
+
+msgid "Gateway"
+msgstr "Gateway"
+
+msgid ""
+"Gateway name. This name must be unique in the virtual network. Suggested: "
+"G1, G2, ..."
+msgstr ""
+"Name des Gateways. Dieser muss einzigartig im virtuellen Netzwerk sein. "
+"Vorschlag: G1, G2, ..."
+
+msgid "Hardware specification."
+msgstr "Hardware-Spezifikation"
+
+msgid "IPv4 configuration and required services"
+msgstr "IPv4-Konfiguration und benötigte Dienste"
+
+msgid ""
+"It is advisable to use as label the IP address of the element (for example "
+"\"192.168.1.0/24\")."
+msgstr ""
+"Es wird empfohlen, als Beschriftung die IP-Adresse des Elements zu verwenden "
+"(zum Beispiel \"192.168.1.0/24\")."
+
+msgid "Label to add to the crossover cable icon."
+msgstr "Beschriftung, die dem Crossoverkabel-Icon hinzugefügt wird."
+
+msgid "Label to add to the straight cable icon."
+msgstr "Beschriftung, die dem Patchkabel-Icon hinzugefügt wird."
+
+msgid ""
+"Memory<tt>\n"
+"(Mb)</tt>"
+msgstr ""
+"Speicher<tt>\n"
+"(Mb)</tt>"
+
+msgid "Second octet of the IPv4 address"
+msgstr "Zweites Oktett der IPv4-Adresse"
+
+msgid "Shutdown"
+msgstr "Herunterfahren"
+
+msgid "Software specification."
+msgstr "Software-Spezifikation"
+
+msgid ""
+"Straight cable name. This name must be unique in the virtual network. "
+"Suggested: D1, D2, ... "
+msgstr ""
+"Name des Patchkabels. Dieser muss einzigartig im virtuellen Netzwerk sein. "
+"Vorschlag: D1, D2, ... "
+
+msgid "Switch port number"
+msgstr "Port Nummer am Switch"
+
+msgid "The cable can't be connected on both ends to the same socket!"
+msgstr ""
+"Das Kabel kann nicht an beiden Enden mit dem selben Anschluss verbunden "
+"werden!"
+
+msgid ""
+"The cable is connected to the same device.\n"
+"Machines already have the loopback interface for this purpose."
+msgstr ""
+"Das Kabel ist mit demselben Gerät verbunden.\n"
+"Die Maschinen haben für diesen Zweck bereits die Schleifenprüfungs-"
+"Schnittstelle."
+
+msgid "The gateway should provide a DHCP service?"
+msgstr "Soll der Gateway einen DHCP service zur Verfügung stellen?"
+
+msgid ""
+"The name \"%s\" is not a valid directory.\n"
+"\n"
+"Directory names must contain only letters, numbers, dashes ('-') and "
+"underscores ('_')."
+msgstr ""
+"Der Name \"%s\" ist kein gültiges Verzeichnis.\n"
+"\n"
+"Verzeichnisnamen dürfen nur Buchstaben, Zahlen, Bindestriche ('-') und "
+"Unterstriche ('_') enthalten."
+
+msgid "Third octet of the IPv4 address"
+msgstr "Drittes Oktett der IPv4-Adresse"
+
+msgid "User Mode Linux (UML) graphical interface"
+msgstr "Benutzermodus Linux (UML) grafische Oberfläche"
+
+msgid ""
+"WARNING: you asked to brutally stop the machine,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop machines.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"WARNUNG: Sie möchten die Maschine direkt stoppen,\n"
+"gleichbedeutend mit Ausschalten;\n"
+"Sie können Maschinen auch geordnet beenden.\n"
+"\n"
+"Möchten Sie %s trotzdem ausschalten?\n"
+
+msgid ""
+"WARNING: you asked to brutally stop the router,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop routers.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"WARNUNG: Sie möchten den Router direkt stoppen,\n"
+"vergleichbar mit Ausschalten;\n"
+" Sie können Router auch geordnet herunterfahren.\n"
+"\n"
+"Möchten Sie %s trotzdem ausschalten?\n"
+
+msgid "Wrong connection"
+msgstr "Falsche Verbindung"
+
+msgid "You don't have a default UML kernel"
+msgstr "Sie haben keinen vorgegebenen UML Kernel"
+
+msgid "kernel"
+msgstr "Kernel"

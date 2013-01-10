@@ -1952,6 +1952,3 @@ msgstr "escolha uma direção para definir este parâmetro"
 #: treeview_ifconfig.ml:391
 msgid "you should choose a port to define this parameter"
 msgstr "Selecione uma porta para definir os parâmetros"
-
-#~ msgid "You don't have VDE"
-#~ msgstr "Você nao possui VDE"

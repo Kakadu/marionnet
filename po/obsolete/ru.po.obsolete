@@ -1,0 +1,213 @@
+# This file is distributed under the three-clause BSD License (see COPYING.BSD).
+# Russian translation for marionnet
+# Copyright (c) 2010 Rosetta Contributors and Canonical Ltd 2010
+# This file is distributed under the same license as the marionnet package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: marionnet\n"
+"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"POT-Creation-Date: 2010-04-15 14:46+0000\n"
+"PO-Revision-Date: 2010-05-25 19:06+0000\n"
+"Last-Translator: WhiteRabbit <Unknown>\n"
+"Language-Team: Russian <ru@li.org>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-05-26 03:59+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+
+msgid ""
+"\n"
+"Do you confirm this connection?"
+msgstr ""
+"\n"
+"Вы подтверждаете это подключение?"
+
+msgid ""
+"\n"
+"Label"
+msgstr ""
+"\n"
+"Метка"
+
+msgid "Address of the first port"
+msgstr "Адрес первого порта"
+
+msgid ""
+"Are you sure that you want to remove %s\n"
+"and all cables connected to this %s?"
+msgstr ""
+"Вы действительно хотите удалить %s\n"
+"и все кабели, подключенные к %s?"
+
+msgid "CHOOSE A WORKING DIRECTORY"
+msgstr "ВЫБЕРИТЕ РАБОЧИЙ КАТАЛОГ"
+
+msgid "CONFIRM"
+msgstr "ПОДТВЕРДИТЬ"
+
+msgid "Change working directory"
+msgstr "Изменить рабочий каталог"
+
+msgid ""
+"Choose a directory which is existing, modifiable and hosted on a filesystem "
+"supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)"
+msgstr ""
+"Выберите существующий каталог, который можно изменять, и который расположен "
+"на файловой системе с поддержкой разреженных (sparse) файлов (ext2, ext3, "
+"reiserfs, NTFS, ...)"
+
+msgid "Choose working directory"
+msgstr "Выбрать рабочий каталог"
+
+msgid ""
+"Crossover cable name. This name must be unique in the virtual network. "
+"Suggested: C1, C2, ... "
+msgstr ""
+"Имя кроссоверного кабеля. Это имя должно быть уникальным в виртуальной сети. "
+"Предлагается: C1, C2, ... "
+
+msgid "Do you want to stop the machine %s?"
+msgstr "Вы действительно хотите остановить машину %s?"
+
+msgid ""
+"Ethernet\n"
+"cards"
+msgstr ""
+"Ethernet\n"
+"карты"
+
+msgid "Failed when exporting the network image to the file "
+msgstr "Ошибка при экспортировании изображения сети в файл "
+
+msgid "First octet of the IPv4 address"
+msgstr "Первый октет адреса IPv4"
+
+msgid "Fourth octet of the IPv4 address"
+msgstr "Четвёртый октет адреса IPv4"
+
+msgid "Funny connection"
+msgstr "Забавное подключение"
+
+msgid "Gateway"
+msgstr "Шлюз"
+
+msgid ""
+"Gateway name. This name must be unique in the virtual network. Suggested: "
+"G1, G2, ..."
+msgstr ""
+"Имя шлюза. Это имя должно быть уникальным в виртуальной сети. Предлагается: "
+"G1, G2, ..."
+
+msgid "Hardware specification."
+msgstr "Спецификация оборудования"
+
+msgid "IPv4 configuration and required services"
+msgstr "Настройки IPv4 и необходимые службы"
+
+msgid ""
+"It is advisable to use as label the IP address of the element (for example "
+"\"192.168.1.0/24\")."
+msgstr ""
+"Рекомендуется использовать в качестве меток IP-адрес элемента (например, "
+"\"192.168.1.0/24\")."
+
+msgid "Label to add to the crossover cable icon."
+msgstr "Метка для добавления к значку кроссоверного кабеля."
+
+msgid "Label to add to the straight cable icon."
+msgstr "Метка для добавления к значку прямого кабеля."
+
+msgid ""
+"Memory<tt>\n"
+"(Mb)</tt>"
+msgstr ""
+"Память<tt>\n"
+"(Мб)</tt>"
+
+msgid "Second octet of the IPv4 address"
+msgstr "Второй октет адреса IPv4"
+
+msgid "Shutdown"
+msgstr "Завершить работу"
+
+msgid "Software specification."
+msgstr "Спецификация программного обеспечения"
+
+msgid ""
+"Straight cable name. This name must be unique in the virtual network. "
+"Suggested: D1, D2, ... "
+msgstr ""
+"Имя прямого кабеля. Это имя должно быть уникальным в виртуальной сети. "
+"Предлагается: D1, D2, ... "
+
+msgid "Switch port number"
+msgstr "Количество портов коммутатора"
+
+msgid "The cable can't be connected on both ends to the same socket!"
+msgstr "Кабель нельзя подключить обоими концами в один и тот же разъём!"
+
+msgid ""
+"The cable is connected to the same device.\n"
+"Machines already have the loopback interface for this purpose."
+msgstr ""
+"Кабель подключен к тому же самому устройству.\n"
+"Компьютеры уже имеют для этой цели loopback-интерфейс."
+
+msgid "The gateway should provide a DHCP service?"
+msgstr "Должен ли шлюз предоставлять службу DHCP?"
+
+msgid ""
+"The name \"%s\" is not a valid directory.\n"
+"\n"
+"Directory names must contain only letters, numbers, dashes ('-') and "
+"underscores ('_')."
+msgstr ""
+"Имя \"%s\" недопустимо для каталога.\n"
+"\n"
+"Имена каталогов должны содержать только буквы, цифры, дефисы ('-') и "
+"подчёркивания ('_')."
+
+msgid "Third octet of the IPv4 address"
+msgstr "Третий октет адреса IPv4"
+
+msgid ""
+"WARNING: you asked to brutally stop the machine,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop machines.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"ПРЕДУПРЕЖДЕНИЕ: вы хотите остановить машину принудительно,\n"
+"как это происходит при выключении;\n"
+" тем не менее вы можете останавливать машины надлежащим образом.\n"
+"\n"
+"Вы действительно хотите выключить %s?\n"
+
+msgid ""
+"WARNING: you asked to brutally stop the router,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop routers.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"ПРЕДУПРЕЖДЕНИЕ: вы хотите принудительно остановить маршрутизатор,\n"
+"как это происходит при выключении;\n"
+" тем не менее вы можете остановить маршрутизатор надлежащим образом.\n"
+"\n"
+"Вы действительно хотите выключить %s?\n"
+
+msgid "Wrong connection"
+msgstr "Неправильное подключение"
+
+msgid "You don't have VDE"
+msgstr "Вы не должны использовать VDE"
+
+msgid "You don't have a default UML kernel"
+msgstr "У вас нет ядра UML по умолчанию"
+
+msgid "kernel"
+msgstr "ядро"

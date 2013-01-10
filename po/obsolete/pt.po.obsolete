@@ -1,0 +1,21 @@
+# This file is distributed under the three-clause BSD License (see COPYING.BSD).
+# Copyright (C) OWNER
+# AUTHOR, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: marionnet\n"
+"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"POT-Creation-Date: 2010-04-15 14:46+0000\n"
+"PO-Revision-Date: 2010-05-20 10:02+0000\n"
+"Last-Translator: Luca Saiu <Unknown>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-05-21 03:53+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+
+msgid "You don't have VDE"
+msgstr "Você nao possui VDE"

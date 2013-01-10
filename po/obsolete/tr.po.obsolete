@@ -1,0 +1,214 @@
+# This file is distributed under the three-clause BSD License (see COPYING.BSD).
+# Turkish translation for marionnet
+# Copyright (c) 2010 Rosetta Contributors and Canonical Ltd 2010
+# This file is distributed under the same license as the marionnet package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: marionnet\n"
+"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"POT-Creation-Date: 2010-04-15 14:46+0000\n"
+"PO-Revision-Date: 2010-05-20 10:01+0000\n"
+"Last-Translator: Angel Spy <melissadilara@yahoo.com>\n"
+"Language-Team: Turkish <tr@li.org>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-05-21 03:53+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+
+msgid ""
+"\n"
+"Do you confirm this connection?"
+msgstr ""
+"\n"
+"Bu bağlantıyı onaylıyor musunuz?"
+
+msgid ""
+"\n"
+"Label"
+msgstr ""
+"\n"
+"Etiket"
+
+msgid "Address of the first port"
+msgstr "Birinci bağlantı noktası adresi"
+
+msgid ""
+"Are you sure that you want to remove %s\n"
+"and all cables connected to this %s?"
+msgstr ""
+"%s i ve bu %s e bağlı tüm kabloları\n"
+"kaldırmak istediğinizden emin misiniz?"
+
+msgid "CHOOSE A WORKING DIRECTORY"
+msgstr "BİR ÇALIŞMA DİZİNİ SEÇ"
+
+msgid "CONFIRM"
+msgstr "ONAYLA"
+
+msgid "Change working directory"
+msgstr "Çalışma dizinini değiştir"
+
+msgid ""
+"Choose a directory which is existing, modifiable and hosted on a filesystem "
+"supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)"
+msgstr ""
+"Mevcut, değiştirilebilen ve sparse dosya desteği olan bir dosya sistemindeki "
+"(ext2, ext3, reiserfs, NTFS, ...) bir dizini seçiniz."
+
+msgid "Choose working directory"
+msgstr "Çalışma dizinini seç"
+
+msgid ""
+"Crossover cable name. This name must be unique in the virtual network. "
+"Suggested: C1, C2, ... "
+msgstr ""
+"Çapraz kablo adı. Bu ad sanal ağ üzerinde benzersiz olmalıdır. Önerilen: C1, "
+"C2, ... "
+
+msgid "Do you want to stop the machine %s?"
+msgstr "%s makinesini durdurmak istediğinizden emin misiniz?"
+
+msgid ""
+"Ethernet\n"
+"cards"
+msgstr ""
+"Ethernet\n"
+"kartları"
+
+msgid "Export as (only) router variant"
+msgstr "Yönlendirici değişkeni olarak (sadece) dışa aktar"
+
+msgid "Failed when exporting the network image to the file "
+msgstr "Ağ görüntüsünü dosyaya yazarken başarısız olundu "
+
+msgid "First octet of the IPv4 address"
+msgstr "IPv4 adresin ilk sekizlisi (okteti)"
+
+msgid "Fourth octet of the IPv4 address"
+msgstr "IPv4 adresin dördüncü sekizlisi (okteti)"
+
+msgid "Funny connection"
+msgstr "Komik bağlantı"
+
+msgid "Gateway"
+msgstr "Ağ Geçidi"
+
+msgid ""
+"Gateway name. This name must be unique in the virtual network. Suggested: "
+"G1, G2, ..."
+msgstr ""
+"Ağ Geçidi adı. Bu ad sanal ağda benzersiz olmalıdır. Önerilen: G1, G2, ..."
+
+msgid "Hardware specification."
+msgstr "Donanım özellikleri."
+
+msgid "IPv4 configuration and required services"
+msgstr "IPv4 yapılandırması ve gerekli servisler"
+
+msgid ""
+"It is advisable to use as label the IP address of the element (for example "
+"\"192.168.1.0/24\")."
+msgstr ""
+"Öğenin IP adresini etiket olarak kullanmanız tavsiye edilir (örneğin "
+"\"192.168.1.0/24\")."
+
+msgid "Label to add to the crossover cable icon."
+msgstr "Çapraz kablo simgesine eklenecek etiket."
+
+msgid "Label to add to the straight cable icon."
+msgstr "Düz kablo simgesine eklenecek etiket."
+
+msgid ""
+"Memory<tt>\n"
+"(Mb)</tt>"
+msgstr ""
+"Bellek<tt>\n"
+"(Mb)</tt>"
+
+msgid "Second octet of the IPv4 address"
+msgstr "IPv4 adresin ikinci sekizlisi (okteti)"
+
+msgid "Shutdown"
+msgstr "Kapat"
+
+msgid "Software specification."
+msgstr "Yazılım özellikleri."
+
+msgid ""
+"Straight cable name. This name must be unique in the virtual network. "
+"Suggested: D1, D2, ... "
+msgstr ""
+"Düz kablo adı. Bu ad sanal ağ üzerinde benzersiz olmalıdır. Önerilen: D1, "
+"D2, ... "
+
+msgid "Switch port number"
+msgstr "Anahtar bağlantı noktası numarası"
+
+msgid "The cable can't be connected on both ends to the same socket!"
+msgstr "Kablo iki ucuyla aynı sokete bağlanamaz!"
+
+msgid ""
+"The cable is connected to the same device.\n"
+"Machines already have the loopback interface for this purpose."
+msgstr ""
+"Kablo aynı aygıta bağlandı.\n"
+"Makineler zaten bu amaçla kullanılan loopback arayüzüne sahiptirler."
+
+msgid "The gateway should provide a DHCP service?"
+msgstr "Ağ geçidi DHCP servisi sağlasın mı?"
+
+msgid ""
+"The name \"%s\" is not a valid directory.\n"
+"\n"
+"Directory names must contain only letters, numbers, dashes ('-') and "
+"underscores ('_')."
+msgstr ""
+"\"%s\" geçerli bir dizin adı değil.\n"
+"\n"
+"Dizin adları sadece harfler, rakamlar, çizgiler ('-') ve alt çizgiler ('_') "
+"içermek zorundadır."
+
+msgid "Third octet of the IPv4 address"
+msgstr "IPv4 adresin üçüncü sekizlisi (okteti)"
+
+msgid "User Mode Linux (UML) graphical interface"
+msgstr "Kullanıcı Modu Linux (UML) grafik arabirimi"
+
+msgid ""
+"WARNING: you asked to brutally stop the machine,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop machines.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"UYARI: makinayı zorla kapatmak istediniz,\n"
+"fişini çekmek gibi;\n"
+" bunun yanında durdur komutu gönderebilirsiniz.\n"
+"\n"
+"Buna rağmen %s i zorla durdurmak istiyor musunuz?\n"
+
+msgid ""
+"WARNING: you asked to brutally stop the router,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop routers.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"UYARI: router ı zorla durdurmayı istediniz,\n"
+"fişini çekmek gibi;\n"
+" buna karşılık routera durdurma komutu yollayabilirsiniz.\n"
+"\n"
+"Buna rağmen %s i zorla durdurmak istiyor musunuz?\n"
+
+msgid "Wrong connection"
+msgstr "Hatalı bağlantı"
+
+msgid "You don't have a default UML kernel"
+msgstr "Varsayılan UML çekirdeğine sahip değilsiniz"
+
+msgid "kernel"
+msgstr "çekirdek"

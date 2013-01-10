@@ -2201,31 +2201,3 @@ msgstr "musíte zvoliť smer, aby ste mohli definovať tento parameter"
 #: treeview_ifconfig.ml:391
 msgid "you should choose a port to define this parameter"
 msgstr "musíte si vybrať port, pre ktorý definujete tento pramater"
-
-#~ msgid "CHOOSE A WORKING DIRECTORY"
-#~ msgstr "VYBERTE PRACOVNÝ ADRESÁR"
-
-#~ msgid "Change working directory"
-#~ msgstr "Zmeniť pracovný adresár"
-
-#~ msgid ""
-#~ "Choose a directory which is existing, modifiable and hosted on a "
-#~ "filesystem supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)"
-#~ msgstr ""
-#~ "Zvoľte adresár, ktorý existuje, je upraviteľný a umiestnený v súborovm "
-#~ "systéme, ktorý podporuje riedke súbory (ext2, ext3, reiserfs, NTFS, ...)"
-
-#~ msgid "Choose working directory"
-#~ msgstr "Zvoliť pracovný adresár"
-
-#~ msgid ""
-#~ "Marionnet can use a directory of your choice for its temporary files. "
-#~ "Every file created in the directory will be deleted at exit time. If the "
-#~ "program is run from the Marionnet live DVD, you are advised to use a "
-#~ "persistent directory (in /mnt/hd*), in order to not waste your system "
-#~ "physical memory.."
-#~ msgstr ""
-#~ "Marionnet môže pre svoje dočasné súbory použiť adresár podľa vášho "
-#~ "výberu. Každý súbor, vytvorený v adresári bude pri ukončení zmazaný. Ak "
-#~ "je program spustený z Live DVD Marionnet, mali by ste použiť trvalý "
-#~ "adresár (v /mnt/hd*), aby ste nezapĺňali fyzickú pamäť svojho systému."

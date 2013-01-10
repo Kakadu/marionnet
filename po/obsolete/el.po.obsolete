@@ -1,0 +1,215 @@
+# Greek translation for marionnet
+# Copyright (c) 2012 Rosetta Contributors and Canonical Ltd 2012
+# This file is distributed under the same license as the marionnet package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: marionnet\n"
+"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"POT-Creation-Date: 2010-09-06 17:14+0000\n"
+"PO-Revision-Date: 2012-03-27 16:07+0000\n"
+"Last-Translator: George Portokaloglou <sinak7@gmail.com>\n"
+"Language-Team: Greek <el@li.org>\n"
+"Language: el\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2012-03-28 04:57+0000\n"
+"X-Generator: Launchpad (build 15027)\n"
+
+msgid ""
+"\n"
+"Do you confirm this connection?"
+msgstr ""
+"\n"
+"Επιβεβαιώνεται αυτή τη σύνδεση;"
+
+msgid ""
+"\n"
+"Label"
+msgstr ""
+"\n"
+"Ετικέτα"
+
+msgid "Address of the first port"
+msgstr "Διεύθυνση της πρώτης πόρτας"
+
+msgid ""
+"Are you sure that you want to remove %s\n"
+"and all cables connected to this %s?"
+msgstr ""
+"Είστε σίγουροι ότι θέλετε να αφαιρέσετε το %s\n"
+"και όλα τα καλώδια που είναι σε συνδεδεμένα σε αυτό %s;"
+
+msgid "CHOOSE A WORKING DIRECTORY"
+msgstr "ΕΠΙΛΕΞΤΕ ΈΝΑΝ ΚΑΤΑΛΟΓΟ ΕΡΓΑΣΙΑΣ"
+
+msgid "CONFIRM"
+msgstr "ΕΠΙΒΕΒΑΙΩΣΗ"
+
+msgid "Change working directory"
+msgstr "Αλλαγή καταλόγου εργασίας"
+
+msgid ""
+"Choose a directory which is existing, modifiable and hosted on a filesystem "
+"supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)"
+msgstr ""
+"Επιλέξτε έναν κατάλογο που υπάρχει, είναι παραμετροποιήσιμος  και "
+"φιλοξενείται σε ένα σύστημα αρχείων που υποστηρίζει αρχεία υπολογισμένης "
+"διασποράς (ext2, ext3, reiserfs, NTFS, ...)"
+
+msgid "Choose working directory"
+msgstr "Επιλογή  καταλόγου εργασίας"
+
+msgid ""
+"Crossover cable name. This name must be unique in the virtual network. "
+"Suggested: C1, C2, ... "
+msgstr ""
+"Όνομα καλωδίου crossover. Αυτό το όνομα πρέπει να είναι μοναδικό στο "
+"εικονικό δίκτυο. Προτείνονται: C1, C2, ... "
+
+msgid "Do you want to stop the machine %s?"
+msgstr "Θέλετε να τερματίσετε το μηχάνημα %s;"
+
+msgid ""
+"Ethernet\n"
+"cards"
+msgstr ""
+"Ethernet\n"
+"κάρτες"
+
+msgid "Export as (only) router variant"
+msgstr "Εξαγωγή ως παραλλαγή του δρομολογητή (μόνο)"
+
+msgid "Failed when exporting the network image to the file "
+msgstr "Αποτυχία κατά την εξαγωγή της εικόνας του δικτύου στο αρχείο "
+
+msgid "First octet of the IPv4 address"
+msgstr "Πρώτη οκτάδα της IPv4 διεύθυνσης"
+
+msgid "Fourth octet of the IPv4 address"
+msgstr "Τέταρτη οκτάδα της IPv4 διεύθυνσης"
+
+msgid "Funny connection"
+msgstr "Αστεία σύνδεση"
+
+msgid "Gateway"
+msgstr "Πύλη"
+
+msgid ""
+"Gateway name. This name must be unique in the virtual network. Suggested: "
+"G1, G2, ..."
+msgstr ""
+"Όνομα πύλης. Αυτό το όνομα πρέπει να είναι μοναδικό για το εικονικό δίκτυο. "
+"Προτείνονται: G1, G2, ..."
+
+msgid "Hardware specification."
+msgstr "Προδιαγραφές του υλικού."
+
+msgid "IPv4 configuration and required services"
+msgstr "Ρύθμιση του IPv4 και απαιτούμενες υπηρεσίες"
+
+msgid ""
+"It is advisable to use as label the IP address of the element (for example "
+"\"192.168.1.0/24\")."
+msgstr ""
+"Συνίσταται να χρησιμοποιείται ως ετικέτα την IP διεύθυνση του στοιχείου (για "
+"παράδειγμα \"192.168.1.0/24\")."
+
+msgid "Label to add to the crossover cable icon."
+msgstr "Η ετικέτα που θα προστεθεί στο εικονίδιο του καλωδίου crossover."
+
+msgid "Label to add to the straight cable icon."
+msgstr "Η ετικέτα που θα προστεθεί στο εικονίδιο του καλωδίου straight."
+
+msgid ""
+"Memory<tt>\n"
+"(Mb)</tt>"
+msgstr ""
+"Μνήμη<tt>\n"
+"(Mb)</tt>"
+
+msgid "Second octet of the IPv4 address"
+msgstr "Δεύτερη οκτάδα της IPv4 διεύθυνσης"
+
+msgid "Shutdown"
+msgstr "Τερματισμός"
+
+msgid "Software specification."
+msgstr "Προδιαγραφές του λογισμικού."
+
+msgid ""
+"Straight cable name. This name must be unique in the virtual network. "
+"Suggested: D1, D2, ... "
+msgstr ""
+"Όνομα straight καλωδίου. Αυτό το όνομα πρέπει να είναι μοναδικό στο εικονικό "
+"δίκτυο. Προτείνονται: D1, D2, ... "
+
+msgid "Switch port number"
+msgstr "Αριθμός πόρτας δρομολογητή"
+
+msgid "The cable can't be connected on both ends to the same socket!"
+msgstr "Οι δύο άκρες του καλωδίου δε μπορούν να συνδεθούν στην ίδια υποδοχή!"
+
+msgid ""
+"The cable is connected to the same device.\n"
+"Machines already have the loopback interface for this purpose."
+msgstr ""
+"Το καλώδιο είναι συνδεδεμένο στην ίδια συσκευή.\n"
+"Τα μηχανήματα έχουν το βρόγχο επιστροφής για αυτό το σκοπό."
+
+msgid "The gateway should provide a DHCP service?"
+msgstr "Πρέπει η πύλη να παρέχει μια υπηρεσία DHCP;"
+
+msgid ""
+"The name \"%s\" is not a valid directory.\n"
+"\n"
+"Directory names must contain only letters, numbers, dashes ('-') and "
+"underscores ('_')."
+msgstr ""
+"Το όνομα \"%s\" δεν είναι ένας έγκυρος κατάλογος.\n"
+"\n"
+"Τα ονόματα των καταλόγων πρέπει να περιέχουν μόνο γράμματα, αριθμούς, παύλες "
+"('-') και κάτω παύλες ('_')."
+
+msgid "Third octet of the IPv4 address"
+msgstr "Τρίτη οκτάδα της IPv4 διεύθυνσης"
+
+msgid "User Mode Linux (UML) graphical interface"
+msgstr "Λειτουργία Χρήστη Linux (UML) γραφικό περιβάλλον"
+
+msgid ""
+"WARNING: you asked to brutally stop the machine,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop machines.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"ΠΡΟΣΟΧΗ: ζητήσατε τη βίαιη διακοπή του μηχανήματος,\n"
+"όπως συμβαίνει κατά την απενεργοποίηση όλων˙\n"
+" μπορείτε ωστόσο, να σταματήσετε ομαλά τα μηχανήματα.\n"
+"\n"
+"Θέλετε να τα απενεργοποιήσετε %s ούτως ή άλλως;\n"
+
+msgid ""
+"WARNING: you asked to brutally stop the router,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop routers.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"ΠΡΟΣΟΧΗ: ζητήσατε τη βίαιη διακοπή του δρομολογητή,\n"
+"όπως κατά την απενεργοποίηση˙\n"
+" ωστόσο μπορείτε να σταματήσετε τους δρομολογητές ομαλά.\n"
+"\n"
+"Θέλετε να απενεργοποιήσετε το %s έτσι και αλλιώς;\n"
+
+msgid "Wrong connection"
+msgstr "Λάθος σύνδεση"
+
+msgid "You don't have a default UML kernel"
+msgstr "Δεν έχετε ένα προεπιλεγμένο UML πυρήνα"
+
+msgid "kernel"
+msgstr "πυρήνας"

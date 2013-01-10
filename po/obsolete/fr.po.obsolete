@@ -1,0 +1,259 @@
+# This file is distributed under the three-clause BSD License (see COPYING.BSD).
+# -*- mode: text buffer-file-coding-system: utf-8- *-
+# Copyright (C) 2009  Jean-Vincent Loddo
+# Copyright (C) 2009  Marco Stronati
+# Copyright (C) 2009  Luca Saiu
+# Copyright (C) 2009  Roudiere Jonathan
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: marionnet\n"
+"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"POT-Creation-Date: 2010-04-15 14:46+0000\n"
+"PO-Revision-Date: 2010-05-03 21:55+0000\n"
+"Last-Translator: Luca Saiu <Unknown>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2010-05-05 03:59+0000\n"
+"X-Generator: Launchpad (build Unknown)\n"
+
+msgid ""
+"\n"
+"Do you confirm this connection?"
+msgstr ""
+"\n"
+"Vous confirmez cette connexion ?"
+
+msgid ""
+"\n"
+"Label"
+msgstr ""
+"\n"
+"Étiquette"
+
+msgid "Address of the first port"
+msgstr ""
+"Adresse du\n"
+"port 0"
+
+msgid ""
+"Are you sure that you want to remove %s\n"
+"and all cables connected to this %s?"
+msgstr ""
+"Êtes-vous sûr de vouloir éliminer %s\n"
+"et tous les câbles connectés à ce %s ?"
+
+msgid "CHOOSE A WORKING DIRECTORY"
+msgstr "CHOISIR UN RÉPERTOIRE DE TRAVAIL"
+
+msgid "CONFIRM"
+msgstr "CONFIRMER"
+
+msgid "Cable %s (re)inverted"
+msgstr "Cable %s (re)inversé"
+
+msgid "Change working directory"
+msgstr "Changer le répertoire de travail"
+
+msgid ""
+"Choose a directory which is existing, modifiable and hosted on a filesystem "
+"supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)"
+msgstr ""
+"Vous devez choisir un répertoire existant, modifiable (au niveau des "
+"permissions) et résidant sur un système de fichiers supportant les fichiers "
+"'sparse' (ext2, ext3, reiserfs, NTFS, ...)."
+
+msgid "Choose working directory"
+msgstr "Choisir le répertoire de travail"
+
+msgid ""
+"Crossover cable name. This name must be unique in the virtual network. "
+"Suggested: C1, C2, ... "
+msgstr ""
+"Le nom du câble croisé. Ce nom doit être unique dans le réseau virtuel (et "
+"ne pas contenir de '.' point). Suggestion : C1, C2, ... "
+
+msgid "Do you want to stop the machine %s?"
+msgstr "Voulez-vous arrêter la machine %s ?"
+
+msgid ""
+"Ethernet\n"
+"cards"
+msgstr ""
+"Cartes\n"
+"Ethernet"
+
+msgid "Export as (only) router variant"
+msgstr "Exporter comme la (seule) variante de routeur"
+
+msgid "Failed when exporting the network image to the file "
+msgstr "Échec durant l'exportation de l'image du réseau dans le fichier "
+
+msgid "First octet of the IPv4 address"
+msgstr "Premier octet de l'adresse IPv4"
+
+msgid "Fourth octet of the IPv4 address"
+msgstr "Quatrième octet de l'adresse IPv4"
+
+msgid "Funny connection"
+msgstr "Connexion étrange"
+
+msgid "Gateway"
+msgstr "Passerelle"
+
+msgid ""
+"Gateway name. This name must be unique in the virtual network. Suggested: "
+"G1, G2, ..."
+msgstr ""
+"Nom de la passerelle. Ce nom doit être unique dans le réseau virtuel. Par "
+"exemple: G1, G2,..."
+
+msgid "Hardware specification."
+msgstr "Spécifications matérielles"
+
+msgid "IPv4 configuration and required services"
+msgstr "configuration IPv4 et services requis"
+
+msgid ""
+"Invoking dot failed. Did you install graphviz?\n"
+"The command line is\n"
+"%s\n"
+"and the exit code is %i.\n"
+"Marionnet will work, but you will not see the network graph picture until "
+"you fix the problem.\n"
+"There is no need to restart the application."
+msgstr ""
+"L'appel du programme 'dot' (graphviz) a échoué. Le code de retour de la "
+"commande :\n"
+"\n"
+"%s est %i.\n"
+"\n"
+"Marionnet continuera de fonctionner mais vous n'aurez pas accès à l'image du "
+"réseau tant que le problème ne sera pas résolu (il ne sera toutefois pas "
+"nécessaire de relancer l'application)."
+
+msgid ""
+"It is advisable to use as label the IP address of the element (for example "
+"\"192.168.1.0/24\")."
+msgstr ""
+"Il est conseillé d'utiliser comme étiquette l'adresse IP du réseau que "
+"l'élément réalise (par exemple\"192.168.1.0/24\")."
+
+msgid "Label to add to the crossover cable icon."
+msgstr "L'étiquette à ajouter au dessin du câble croisé."
+
+msgid "Label to add to the straight cable icon."
+msgstr "L'étiquette à ajouter au dessin du câble droit."
+
+msgid ""
+"Memory<tt>\n"
+"(Mb)</tt>"
+msgstr ""
+"Mémoire<tt>\n"
+"(Mo)</tt>"
+
+msgid "Report bugs to <%s>.\n"
+msgstr "Reportez les bugs à <%s>.\n"
+
+msgid "Second octet of the IPv4 address"
+msgstr "Deuxième octet de l'adresse IPv4"
+
+msgid "Shutdown"
+msgstr "Arrêter"
+
+msgid "Software specification."
+msgstr "Spécifications logicielles"
+
+msgid ""
+"Straight cable name. This name must be unique in the virtual network. "
+"Suggested: D1, D2, ... "
+msgstr ""
+"Le nom du câble droit. Ce nom doit être unique dans le réseau virtuel (et ne "
+"pas contenir de '.' point). Suggestion : D1, D2, ... "
+
+msgid "Switch port number"
+msgstr "Nombre de ports du commutateur (switch)"
+
+msgid "The cable can't be connected on both ends to the same socket!"
+msgstr "Le câble ne peut pas être branché au même endroit des deux côtés!"
+
+msgid ""
+"The cable is connected to the same device.\n"
+"Machines already have the loopback interface for this purpose."
+msgstr ""
+"Le câble est branché sur le même composant.\n"
+"Les machines ont déjà l'interface de loopback pour cela."
+
+msgid "The gateway should provide a DHCP service?"
+msgstr "Cette passerelle doit-elle fournir un service DHCP ?"
+
+msgid ""
+"The name \"%s\" is not a valid directory.\n"
+"\n"
+"Directory names must contain only letters, numbers, dashes ('-') and "
+"underscores ('_')."
+msgstr ""
+"Le nom \"%s\" n'est pas un nom de répertoire valide.\n"
+"\n"
+"Les noms de répertoires peuvent contenir seulement des lettres, chiffres, "
+"tirets et tirets bas (Vérifiez par exemple qu'il n'y a pas de point dans un "
+"des répertoires du chemin par exemple)."
+
+msgid "Third octet of the IPv4 address"
+msgstr "Troisième octet de l'adresse IPv4"
+
+msgid "Try `%s --help' for more information.\n"
+msgstr "Éssayez `%s --help' pour plus d'information\n"
+
+msgid "User Mode Linux (UML) graphical interface"
+msgstr "interface de visualisation User Mode Linux (UML)"
+
+msgid ""
+"WARNING: you asked to brutally stop the machine,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop machines.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"ATTENTION: vous avez demandé un arrêt instantané de la machine,\n"
+"tel que provoqué par une interruption du courant électrique.\n"
+"La procédure ordinaire serait plutôt l'arrêt via la commande shutdown tel "
+"que simulé par le bouton Arrêter.\n"
+"\n"
+"Voulez-vous tout de même débrancher le courant de %s ?\n"
+
+msgid ""
+"WARNING: you asked to brutally stop the router,\n"
+"like in a power-off;\n"
+" however you can also gracefully stop routers.\n"
+"\n"
+"Do you want to power-off %s anyway?\n"
+msgstr ""
+"ATTENTION: vous avez demandé un arrêt brutal du routeur,\n"
+"tel que provoqué par une interruption du courant électrique.\n"
+"La procédure ordinaire serait plutôt l'arrêt via la commande shutdown tel "
+"que simulé par le bouton Arrêter.\n"
+"\n"
+"Voulez-vous tout de même mettre %s hors tension ?\n"
+
+msgid "Wrong connection"
+msgstr "Connexion erronée"
+
+msgid "You don't have VDE"
+msgstr ""
+"Vous n'avez pas le logiciel VDE (Virtual Distributed Ethernet, le programme "
+"'vde_switch' (entre autres) n'a pas été trouvé)."
+
+msgid "You don't have a default UML kernel"
+msgstr ""
+"Vous n'avez pas un noyau UML utilisable par défaut (fichier ou lien nommé "
+"linux-default dans le répertoire 'kernels/' de l'installation de marionnet)."
+
+msgid "hello, world\n"
+msgstr "hello, world (in french ;)\n"
+
+msgid "kernel"
+msgstr "Noyau"

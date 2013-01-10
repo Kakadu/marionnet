@@ -1,0 +1,44 @@
+# Slovak translations for marionnet package
+# Copyright (C) 2011 THE marionnet's copyright holder(s)
+# This file is distributed under the same license as the marionnet package.
+# Slavko <linux@slavino.sk>, 2011.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: marionnet\n"
+"Report-Msgid-Bugs-To: marionnet-dev@marionnet.org\n"
+"PO-Revision-Date: 2011-04-07 22:16+0200\n"
+"Last-Translator: Slavko <linux@slavino.sk>\n"
+"Language-Team: Slovak <nomail>\n"
+"Language: sk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+msgid "CHOOSE A WORKING DIRECTORY"
+msgstr "VYBERTE PRACOVNÝ ADRESÁR"
+
+msgid "Change working directory"
+msgstr "Zmeniť pracovný adresár"
+
+msgid ""
+"Choose a directory which is existing, modifiable and hosted on a filesystem "
+"supporting sparse files (ext2, ext3, reiserfs, NTFS, ...)"
+msgstr ""
+"Zvoľte adresár, ktorý existuje, je upraviteľný a umiestnený v súborovm "
+"systéme, ktorý podporuje riedke súbory (ext2, ext3, reiserfs, NTFS, ...)"
+
+msgid "Choose working directory"
+msgstr "Zvoliť pracovný adresár"
+
+msgid ""
+"Marionnet can use a directory of your choice for its temporary files. Every "
+"file created in the directory will be deleted at exit time. If the program "
+"is run from the Marionnet live DVD, you are advised to use a persistent "
+"directory (in /mnt/hd*), in order to not waste your system physical memory.."
+msgstr ""
+"Marionnet môže pre svoje dočasné súbory použiť adresár podľa vášho výberu. "
+"Každý súbor, vytvorený v adresári bude pri ukončení zmazaný. Ak je program "
+"spustený z Live DVD Marionnet, mali by ste použiť trvalý adresár (v /mnt/"
+"hd*), aby ste nezapĺňali fyzickú pamäť svojho systému."

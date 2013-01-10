@@ -483,7 +483,7 @@ class virtual_machine_installations
 	     let title = (s_ "Modification time (MTIME) inconsistency") in
 	     let message =
 	       Printf.sprintf
-		 (f_ "The filesystem `%s%s' has the mtime %d, but the expected value was %d.\nPlease run the command:\n\n<tt><small>sudo touch -d $(date -d @%d) %s</small></tt>\n\nin order to fix this inconsistency. Otherwise, machines or routers with this filesystem defined in a project created elsewhere can not be restarted.")
+		 (f_ "The filesystem `%s%s' has the mtime %d, but the expected value was %d.\nPlease run the command:\n\n<tt><small>sudo touch -d @%d %s</small></tt>\n\nin order to fix this inconsistency. Otherwise, machines or routers with this filesystem defined in a project created elsewhere can not be restarted.")
  		 (prefix) (filesystem_epithet) (actual_mtime) (expected_mtime) (expected_mtime) (realpath)
 	     in
              Simple_dialogs.warning title message ())

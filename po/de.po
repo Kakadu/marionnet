@@ -2290,6 +2290,17 @@ msgstr "Sie sollten einen Port auswählen, um diesen Parameter zu definieren."
 #~ msgid "The gateway should provide a DHCP service?"
 #~ msgstr "Soll der Gateway einen DHCP service zur Verfügung stellen?"
 
+#~ msgid ""
+#~ "The name \"%s\" is not a valid directory.\n"
+#~ "\n"
+#~ "Directory names must contain only letters, numbers, dashes ('-') and "
+#~ "underscores ('_')."
+#~ msgstr ""
+#~ "Der Name \"%s\" ist kein gültiges Verzeichnis.\n"
+#~ "\n"
+#~ "Verzeichnisnamen dürfen nur Buchstaben, Zahlen, Bindestriche ('-') und "
+#~ "Unterstriche ('_') enthalten."
+
 #~ msgid "Third octet of the IPv4 address"
 #~ msgstr "Drittes Oktett der IPv4-Adresse"
 

@@ -139,7 +139,7 @@ copy-failsafe-marionnet.conf:
 	cp etc/marionnet.conf share/
 
 _build/marionnet.pot: marionnet.byte
-	@msgcat --use-first $(shell find _build/ -name "*.ml.pot") > $@
+	@msgcat -s --use-first $(shell find _build/ -name "*.ml.pot") > $@
 
 pot: _build/marionnet.pot
 	cp _build/marionnet.pot po/messages.pot
@@ -165,7 +165,7 @@ compile-mo:
 update-po: pot
 	@(cd po/; \
 	for i in $(call LANGUAGES); \
-	do (msgmerge --no-fuzzy-matching --sort-by-file --update $$i.po messages.pot || exit -1) && \
+	do (msgmerge --no-fuzzy-matching -s --update $$i.po messages.pot || exit -1) && \
 	echo "Updated "$$i.po; \
 	done;)
 

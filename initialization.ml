@@ -46,6 +46,7 @@ let () =
 let option_v = Argv.register_unit_option "v" ~aliases:["-version"] ~doc:"print version and exit" () ;;
 let option_debug = Argv.register_unit_option "-debug" ~doc:"activate messages for debugging" () ;;
 let option_splash = Argv.register_unit_option "-splash" ~doc:"print splash message and exit" () ;;
+let option_paths = Argv.register_unit_option "-paths" ~doc:"print paths (filesystems, kernels, ..) and exit" () ;;
 let () = Argv.register_h_option_as_help () ;;
 
 (* Registering arguments: *)
@@ -76,8 +77,12 @@ let () = if !option_v = Some () then begin
   exit 0;
  end;;
 
-(* else continue: *)
+let do_not_print_splash_message =
+  (!option_paths = Some ())
+;;
 
+(* else continue: *)
+let () = if do_not_print_splash_message = false then
 Log.printf ~v:0 ~banner:false
   "=======================================================
  Welcome to %s
@@ -105,6 +110,7 @@ Log.printf ~v:0 ~banner:false
   (StringExtra.fmt ~tab:8 ~width:40 Meta.uname)
 ;;
 
+(* Behaviour for option --splash *)
 let () = if !option_splash = Some () then exit 0;;
 
 (* else continue: *)
@@ -186,16 +192,15 @@ module Path = struct
    Configuration.extract_string_variable_or ~k:append_slash ~default "MARIONNET_PREFIX"
 
  let filesystems =
-   let default = (marionnet_home^"/filesystems/") in
+   let default = (marionnet_home^"filesystems/") in
    Configuration.extract_string_variable_or ~k:append_slash ~default "MARIONNET_FILESYSTEMS_PATH"
 
  let kernels =
-   let default = (marionnet_home^"/kernels/") in
+   let default = (marionnet_home^"kernels/") in
    Configuration.extract_string_variable_or ~k:append_slash ~default "MARIONNET_KERNELS_PATH"
 
- let images = marionnet_home^"/images/"
- let leds   = marionnet_home^"/images/leds/"
- let bin    = marionnet_home^"/bin/"
+ let images = marionnet_home^"images/"
+ let leds   = marionnet_home^"images/leds/"
 
  (* The prefix to prepend to VDE executables; this allows us to install
     patched versions in an easy way, before our changes are integrated
@@ -220,6 +225,29 @@ module Path = struct
 
 end (* Path *)
 ;;
+
+(* Behaviour for option --paths *)
+let () = if !option_paths = Some () then
+  let prettify =
+    FilenameExtra.remove_trailing_slashes_and_dots
+  in
+  let filesystems      = prettify Path.filesystems in
+  let kernels          = prettify Path.kernels in
+  let binaries         = Filename.concat Meta.prefix "bin" in
+  let images           = prettify Path.images in
+  let user_filesystems = prettify Path.user_filesystems in
+  let user_kernels     = prettify Path.user_kernels in
+  let tmpdir           = prettify (Option.extract_or Path.marionnet_tmpdir "") in
+  begin
+    Printf.printf "filesystems      : %s\n" filesystems;
+    Printf.printf "kernels          : %s\n" kernels;
+    Printf.printf "binaries         : %s\n" binaries;
+    Printf.printf "images           : %s\n" images;
+    Printf.printf "user-filesystems : %s\n" user_filesystems;
+    Printf.printf "user-kernels     : %s\n" user_kernels;
+    Printf.printf "tmpdir           : %s\n" tmpdir;
+    exit 0;
+  end;;
 
 (* Warnings related configuration variables. *)
 module Disable_warnings = struct

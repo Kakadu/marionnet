@@ -89,7 +89,7 @@ class network =
 
   val curved_lines = Chip.wswitch ~name:"curved_lines" curved_lines
   method curved_lines = curved_lines
-  
+
   val shuffler = Chip.wref ~name:"shuffler" shuffler
   method shuffler = shuffler
 
@@ -1267,7 +1267,7 @@ class virtual virtual_machine_with_history_and_ifconfig
 
   method get_kernel_console_arguments : string option =
       vm_installations#get_kernel_console_arguments (self#get_epithet) (self#get_kernel)
-      
+
   method is_xnest_enabled =
       (vm_installations#terminal_manager_of self#get_epithet)#is_xnest (self#get_terminal)
 

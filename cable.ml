@@ -357,7 +357,7 @@ module Eval_forest_child = struct
   try
    (match root with
    | ("cable", attrs) ->
-	(* Cables represent a special case: they must be builded knowing their endpoints. *)
+	(* Cables represent a special case: they must be built knowing their endpoints. *)
 	let name = List.assoc "name"    attrs in
         Log.printf "Importing cable \"%s\"...\n" name;
 	let ln = List.assoc "leftnodename"    attrs in
@@ -686,9 +686,17 @@ and cable =
       must be considered as a constant field of the class. *)
   method eval_forest_attribute =
     function
-      | ("name"            , x ) -> self#set_name  x
-      | ("label"           , x ) -> self#set_label x
-      | _ -> assert false
+      | ("name"            , x) -> self#set_name  x
+      | ("label"           , x) -> self#set_label x
+      | ("crossover"       , x)
+      | ("leftnodename"    , x)
+      | ("leftreceptname"  , x)
+      | ("rightnodename"   , x)
+      | ("rightreceptname" , x) -> () (* these attributes have been already read *)
+      | (key,_) ->
+          let msg = Printf.sprintf "cable#eval_forest_attribute: unknown attribute `%s'" key in
+          let () = Log.printf "%s\n" msg in
+          failwith msg
 
     (** A cable may be either connected or disconnected; it's connected by default: *)
     val connected = ref true

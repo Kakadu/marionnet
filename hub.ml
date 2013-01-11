@@ -264,7 +264,7 @@ module Eval_forest_child = struct
 	| "hub" ->
             Log.printf "Importing hub \"%s\" with %d ports...\n" name port_no;
 	    let x = new User_level_hub.hub ~network ~name ~port_no () in
-	    x#from_tree ("device", attrs) childs; (* Just for the label... *)
+	    x#from_tree ("hub", attrs) childs; (* Just for the label... *)
             Log.printf "This is an old project: we set the user port offset to 1...\n";
 	    network#defects#change_port_user_offset ~device_name:name ~user_port_offset:1;
 	    Log.printf "Hub \"%s\" successfully imported.\n" name;
@@ -334,7 +334,7 @@ class hub =
   method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x
   | ("label"    , x ) -> self#set_label x
-  | ("port_no"  , x ) -> self#set_port_no  (int_of_string x)
+  | ("port_no"  , x ) -> self#set_port_no (int_of_string x)
   | _ -> () (* Forward-comp. *)
 
 end (* class hub *)

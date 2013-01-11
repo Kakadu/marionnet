@@ -416,22 +416,23 @@ class world_gateway =
     | _  -> Printf.sprintf "%s <br/> %s" ip_gw self#get_label
 
   method to_tree =
-   Forest.tree_of_leaf ("world_gateway", [
-                    ("name",  self#get_name);
-                    ("label", self#get_label);
-                    ("network_address", self#get_network_address);
-                    ("dhcp_enabled", (string_of_bool self#get_dhcp_enabled));
-                    ("port_no", (string_of_int self#get_port_no));
-                    ])
+    Forest.tree_of_leaf ("world_gateway",
+      [ ("name",  self#get_name);
+        ("label", self#get_label);
+        ("network_address", self#get_network_address);
+        ("dhcp_enabled", (string_of_bool self#get_dhcp_enabled));
+        ("port_no", (string_of_int self#get_port_no));
+      ])
 
   (** A world_bridge has just attributes (no childs) in this version. *)
-  method eval_forest_attribute = function
-  | ("name"  , x ) -> self#set_name x
-  | ("label" , x ) -> self#set_label x
-  | ("network_address", x ) -> self#set_network_address x
-  | ("dhcp_enabled", x) -> self#set_dhcp_enabled (bool_of_string x)
-  | ("port_no", x) -> self#set_port_no (int_of_string x)
-  | _ -> assert false
+  method eval_forest_attribute =
+    function
+      | ("name"  , x ) -> self#set_name x
+      | ("label" , x ) -> self#set_label x
+      | ("network_address", x ) -> self#set_network_address x
+      | ("dhcp_enabled", x) -> self#set_dhcp_enabled (bool_of_string x)
+      | ("port_no", x) -> self#set_port_no (int_of_string x)
+      | _ -> assert false
 
   (** Create the simulated device *)
   method private make_simulated_device =

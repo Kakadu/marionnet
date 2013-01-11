@@ -49,9 +49,11 @@ class virtual interpreter () = object (self)
  method from_tree ((tag,attrs):node) (childs:forest) =
   begin
    (* Interpret attributes *)
+   Log.printf "About to interpret *attributes* with tag \"%s\"\n" tag;
    List.iter self#eval_forest_attribute attrs;
 
    (* Interpret childs *)
+   Log.printf "About to interpret *childs* with tag \"%s\"\n" tag;
    let l = Forest.to_treelist childs in
    List.iter (self#eval_forest_child) l
   end

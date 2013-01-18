@@ -179,7 +179,7 @@ install-mo: compile-mo
 
 clean-mo:
 	@(cd po/; \
-	rm -rf *.mo *~ *.pot;)
+	rm -rf *.mo *~ ;)
 
 uninstall-mo:
 	@($(call READ_CONFIG,localeprefix); \

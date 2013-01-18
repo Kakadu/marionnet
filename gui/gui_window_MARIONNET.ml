@@ -139,15 +139,14 @@ let button_BASE_POWEROFF_EVERYTHING =
     ~tooltip:(s_ "(Ungracefully) shutdown every element of the network, as in a power-off")
     ~label_position:`BOTTOM ~packing:w#hbox_BASE#add ()
 
-(*let button_BASE_BROADCAST =
+(* Just a thunk, the button is not really built. We leave this code
+   in order to not remove the gettext key associated to this `tooltip' 
+   and this `label': *)
+let button_BASE_BROADCAST () =
   Gui_bricks.button_image ~label:(s_ "Broadcast")
     ~tooltip:(s_ "Broadcast the specification of the virtual network on a real network")
     ~file:"ico.diffuser.orig.png"
-    ~label_position:`BOTTOM ~packing:w#hbox_BASE#add ()*)
-
-(* Hide this never implemented feature! *)
-(*let () =
- button_BASE_BROADCAST#misc#hide ()*)
+    ~label_position:`BOTTOM ~packing:w#hbox_BASE#add ()
 
 (* Connections *)
 let () =

@@ -650,9 +650,10 @@ class globalState = fun () ->
     begin
     match app_state#get_alone with
      | NoActiveProject -> ()
-     | _ -> app_state#set (if self#network#nodes=[]
-                           then ActiveNotRunnableProject
-                           else ActiveRunnableProject)
+     | _ -> app_state#set  (* TODO: this is a rule (chip) in a reactive system! *)
+              (if self#network#nodes#get = []
+                 then ActiveNotRunnableProject 
+                 else ActiveRunnableProject)
     end;
     if app_state <> old then self#gui_coherence () else ()
    end
@@ -684,7 +685,7 @@ class globalState = fun () ->
 	end;
 	Simple_dialogs.destroy_progress_bar_dialog progress_bar))
     )
-    self#network#nodes
+    self#network#nodes#get
 
  method do_something_with_every_node_in_sequence verb what_to_do_with_a_node =
   List.iter
@@ -712,7 +713,7 @@ class globalState = fun () ->
  method is_there_something_on_or_sleeping () =
   let result = List.exists
                 (fun node -> node#can_gracefully_shutdown or node#can_resume)
-                self#network#nodes
+                self#network#nodes#get
   in begin
   Log.printf "is_there_something_on_or_sleeping: %s\n" (if result then "yes" else "no");
   result

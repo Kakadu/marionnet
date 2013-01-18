@@ -389,11 +389,11 @@ let help_apropos =
  * **************************************** *)
 
 let () = List.iter (* when Active *)
-          (fun w -> st#sensitive_when_Active#add w#coerce)
+          (fun w -> st#sensitive_when_Active#insert w#coerce)
           [project_save; project_save_as; project_copy_to; project_close; project_export]
 
 let () = List.iter (* when NoActive *)
-          (fun w -> st#sensitive_when_NoActive#add w#coerce)
+          (fun w -> st#sensitive_when_NoActive#insert w#coerce)
           [options_cwd]
 
 end

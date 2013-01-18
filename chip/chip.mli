@@ -367,8 +367,10 @@ class ['a] wlist : ?name:string -> ?parent:common -> system -> 'a list ->
     method get_alone : 'a list
     method reset : unit -> unit
 
-    method add : 'a -> unit
     method update_with : ('a list -> 'a list) -> unit
+    method insert : 'a -> unit
+    method append : 'a -> unit
+    method filter : ('a -> bool) -> unit
 
     method coerce : ('a list, 'a list) wire
   end

@@ -874,7 +874,7 @@ class virtual node_with_ports_card = fun
    (* TODO: move it in the network class
      Return the list of cables of which a port of self is an endpoint: *)
    method private get_involved_cables =
-     List.filter (fun c->c#is_node_involved self#get_name) network#cables
+     List.filter (fun c->c#is_node_involved self#get_name) network#cables#get
 
 end;;
 
@@ -882,12 +882,8 @@ end;;
 class type virtual node = node_with_ports_card
 
 
-(* *************************** *
-        class device
- * *************************** *)
-
 class virtual node_with_defects_zone ~network () =
- object (self)
+object (self)
 
   method virtual defects_device_type : string
   method virtual get_name : string
@@ -963,8 +959,8 @@ class virtual node_with_defects
 
   initializer
     (* TODO: the following line must be moved the a node initializer: *)
-    network#add_device (self :> node);
-    self#add_destroy_callback (lazy (network#del_device self#get_name));
+    network#add_node (self :> node);
+    self#add_destroy_callback (lazy (network#del_node_by_name self#get_name));
 
   inherit node_with_defects_zone ~network:network_alias () as node_with_defects_zone
 
@@ -1044,8 +1040,8 @@ class virtual node_with_ledgrid_and_defects
 
   initializer
     (* TODO: the following line must be moved the a node initializer: *)
-    network#add_device (self :> node);
-    self#add_destroy_callback (lazy (network#del_device self#get_name));
+    network#add_node (self :> node);
+    self#add_destroy_callback (lazy (network#del_node_by_name self#get_name));
     (* this is correct here: *)
     self#add_my_ledgrid;
     self#add_destroy_callback (lazy self#destroy_my_ledgrid);
@@ -1054,11 +1050,11 @@ class virtual node_with_ledgrid_and_defects
 
   (** Dot adjustments *)
 
-  (** Returns an image representig the device with the given iconsize. *)
+  (** Returns an image representig the node with the given iconsize. *)
   method virtual dotImg : iconsize -> string
 
   (** Returns the label to use for cable representation.
-      For devices, the port X is represented by the string "[X]". *)
+      For nodes, the port X is represented by the string "[X]". *)
   method dotLabelForEdges (receptname:string) =
     let user_index = self#ports_card#user_port_index_of_user_port_name receptname in
     ("["^string_of_int user_index^"]")
@@ -1412,16 +1408,17 @@ class network () =
 
  method motherboard = Motherboard.extract ()
 
- val mutable devices  : (node list) = []
- val mutable cables   : (cable list) = []
+ val nodes : node Chip.wlist = Chip.wlist ~name:"network.nodes" []
+ method nodes = nodes
+
+ val cables : cable Chip.wlist = Chip.wlist ~name:"network.cables" []
+ method cables = cables
 
  (** Buffers to backup/restore data. *)
- val mutable devices_buffer  : (node list) = []
- val mutable cables_buffer   : (cable list) = []
+ val mutable nodes_buffer  : (node list) = []
+ val mutable cables_buffer : (cable list) = []
 
  (** Accessors *)
- method devices         = devices
- method cables          = cables
  method ledgrid_manager = ledgrid_manager
 
  (** Related dot options fro drawing this virtual network.
@@ -1431,9 +1428,9 @@ class network () =
  method  set_dotoptions x = dotoptions <- Some x
 
  method components : (component list) =
-   ((devices  :> component list) @
-    (cables   :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
-    )
+   List.append 
+     (nodes#get  :> component list) 
+     (cables#get :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
 
  (** Setter *)
 
@@ -1441,49 +1438,49 @@ class network () =
     in a task managed by the Task_runner. In this case, we have not to call
     the task runner method [wait_for_all_currently_scheduled_tasks]. *)
  method reset ?(scheduled=false) () =
+  begin
    Log.print_string "---\n";
    Log.printf "network#reset: begin\n";
    Log.printf "\tDestroying all cables...\n";
    (List.iter
       (fun cable -> try cable#destroy with _ -> ())
-      cables);
-   Log.printf "\tDestroying all devices (machines, switchs, hubs, routers, etc)...\n";
+      cables#get);
+   Log.printf "\tDestroying all nodes (machines, switchs, hubs, routers, etc)...\n";
    (List.iter
-      (fun device -> try device#destroy with _ -> ())
-      devices);
+      (fun node -> try node#destroy with _ -> ())
+      nodes#get);
    Log.printf "\tSynchronously wait that everything terminates...\n";
    (if not scheduled then Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks);
-
    Log.printf "\tMaking the network graph empty...\n";
-   devices  <- [] ;
-   cables   <- [] ;
-
+   nodes#set [] ;
+   cables#set  [] ;
    Log.printf "\tWait for all devices to terminate...\n";
    (** Make sure that all devices have actually been terminated before going
        on: we don't want them to lose filesystem access: *)
    Log.printf "\tAll devices did terminate.\n";
    Log.printf "network#reset: end (success)\n";
    Log.print_string "---\n";
+  end
 
  method destroy_process_before_quitting () =
   begin
    Log.printf "destroy_process_before_quitting: BEGIN\n";
-   (List.iter (fun cable -> try cable#destroy_right_now with _ -> ()) cables);
-   (List.iter (fun device -> try device#destroy_right_now with _ -> ()) devices);
+   (List.iter (fun cable -> try cable#destroy_right_now with _ -> ())   cables#get);
+   (List.iter (fun device -> try device#destroy_right_now with _ -> ()) nodes#get);
    Log.printf "destroy_process_before_quitting: END (success)\n";
   end
 
  method restore_from_buffers =
   begin
    self#reset ();
-   devices  <- devices_buffer  ;
-   cables   <- cables_buffer
- end
+   nodes#set nodes_buffer;
+   cables#set cables_buffer;
+  end
 
  method save_to_buffers =
   begin
-   devices_buffer  <- devices  ;
-   cables_buffer   <- cables
+   nodes_buffer  <- nodes#get;
+   cables_buffer <- cables#get;
   end
 
  method to_tree =
@@ -1512,8 +1509,6 @@ class network () =
         (Log.printf "network#eval_forest_child: I can't interpret this \"%s\" name \"%s\".\n" nodename name)
         (* Forward-compatibility *)
 
- (* Just an alias for devices: *)
- method nodes : (node list) = devices
  method names = (List.map (fun x->x#get_name) self#components)
 
  method suggestedName prefix =
@@ -1523,17 +1518,14 @@ class network () =
      if self#name_exists prop then tip prefix (k+1) else prop
      end in tip prefix 1
 
- method get_device_by_name n =
-   try List.find (fun x->x#get_name=n) devices with _ -> failwith ("get_device_by_name "^n)
-
- (* Alias: *)
- method get_node_by_name = self#get_device_by_name
+ method get_node_by_name n =
+   try List.find (fun x->x#get_name=n) nodes#get  with _ -> failwith ("get_node_by_name "^n)
 
  method get_cable_by_name n =
-   try List.find (fun x->x#get_name=n) cables with _ -> failwith ("get_cable_by_name "^n)
+   try List.find (fun x->x#get_name=n) cables#get with _ -> failwith ("get_cable_by_name "^n)
 
  method involved_node_and_port_index_list =
-   List.flatten (List.map (fun c->c#involved_node_and_port_index_list) cables)
+   List.flatten (List.map (fun c->c#involved_node_and_port_index_list) cables#get)
 
  method busy_port_indexes_of_node (node:node) =
    let node_name = node#get_name in
@@ -1573,7 +1565,7 @@ class network () =
 	  in
 	  (List.map (fun p -> (n,p)) (self#free_user_port_names_of_node ~force_to_be_included node))
 	)
-	self#nodes
+	nodes#get
   in List.concat npss
 
  (* Unused...*)
@@ -1585,7 +1577,7 @@ class network () =
  (* The total number of endpoints in the network: *)
  method private endpoint_no =
    let sum xs = List.fold_left (+) 0 xs in
-   sum (List.map (fun node -> node#get_port_no) self#nodes)
+   sum (List.map (fun node -> node#get_port_no) nodes#get)
 
  method are_there_almost_2_free_endpoints : bool =
     let busy_no = List.length (self#involved_node_and_port_index_list) in
@@ -1608,94 +1600,93 @@ class network () =
   let min_multiple = (ceil ((float_of_int min_port_no) /. k)) *. k in
   int_of_float (max min_multiple k)
 
- method device_exists  n = let f=(fun x->x#get_name=n) in (List.exists f devices )
- method cable_exists   n = let f=(fun x->x#get_name=n) in (List.exists f cables  )
- method name_exists    n = List.mem n self#names
+ method node_exists  n = let f=(fun x->x#get_name=n) in (List.exists f nodes#get)
+ method cable_exists n = let f=(fun x->x#get_name=n) in (List.exists f cables#get)
+ method name_exists  n = List.mem n self#names
 
  (** Adding components *)
 
- (** Devices must have a unique name in the network *)
- method add_device (d:node) =
-    if (self#name_exists d#get_name) then
-      raise (Failure "add_device: name already used in the network")
-    else begin
-      devices  <- (devices@[d]);
-    end
+ (** Nodes must have a unique name in the network *)
+ method add_node (node:node) =
+    if (self#name_exists node#get_name) then
+      failwith "User_level.network#add_node: name already used in the network"
+    else
+      nodes#append node
 
- (** Remove a device from the network. Remove it from the [devices] list
+ (** Remove a node from the network. Remove it from the node list
      and remove all related cables. TODO: change this behaviour! *)
- method del_device dname =
-     let d  = self#get_device_by_name dname in
+ method del_node_by_name (node_name:string) =
+     let node = self#get_node_by_name (node_name) in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_destroy = List.filter (fun c->c#is_node_involved dname) cables in
-     (* The cable#destroy will call itself the network#del_cable: *)
+     let cables_to_destroy = List.filter (fun c->c#is_node_involved node_name) cables#get in
+     (* The cable#destroy will call itself the network#del_cable_by_name: *)
      List.iter (fun cable -> cable#destroy) cables_to_destroy;
-     devices  <- List.filter (fun x->not (x=d)) devices
+     nodes#filter (fun x->not (x=node))
 
  (** Cable must connect free ports: *)
  (* TODO: manage ledgrid with a reactive system!!!*)
  method add_cable (c:cable) =
     if (self#name_exists c#get_name)
-    then raise (Failure "add_cable: name already used in the network")
-    else cables  <- (cables@[c]);
+    then failwith "User_level.network#add_cable: name already used in the network"
+    else cables#append c
 
  (** Remove a cable from network. Called by cable#destroy. *)
- method del_cable cname =
-     let c = self#get_cable_by_name cname in
-     cables <- (List.filter (fun x->not (x=c)) cables);
+ method del_cable_by_name (cable_name) =
+     let c = self#get_cable_by_name (cable_name) in
+     cables#filter (fun x->not (x=c))
 
- method change_node_name oldname newname =
-   if oldname = newname then () else
-   let node = self#get_node_by_name oldname in
-   node#set_name newname ;
+ method change_node_name (old_name) (new_name) =
+   if old_name = new_name then () else
+   let node = self#get_node_by_name (old_name) in
+   node#set_name (new_name)
 
  (** Facilities *)
 
  (** List of node names in the network *)
  method get_node_names  =
-   List.map (fun x->x#get_name) (self#nodes)
+   List.map (fun x->x#get_name) (nodes#get)
 
- method get_devices_that_can_startup ~devkind () =
+ method get_nodes_that_can_startup ~devkind () =
   ListExtra.filter_map
     (fun x -> if (x#devkind = devkind) && x#can_startup then Some x#get_name else None)
-    devices
+    nodes#get
 
- method get_devices_that_can_gracefully_shutdown ~devkind () =
+ method get_nodes_that_can_gracefully_shutdown ~devkind () =
   ListExtra.filter_map
     (fun x -> if (x#devkind = devkind) && x#can_gracefully_shutdown then Some x#get_name else None)
-    devices
+    nodes#get
 
- method get_devices_that_can_suspend ~devkind () =
+ method get_nodes_that_can_suspend ~devkind () =
   ListExtra.filter_map
     (fun x -> if (x#devkind = devkind) && x#can_suspend then Some x#get_name else None)
-    devices
+    nodes#get
 
- method get_devices_that_can_resume ~devkind () =
+ method get_nodes_that_can_resume ~devkind () =
   ListExtra.filter_map
     (fun x -> if (x#devkind = devkind) && x#can_resume then Some x#get_name else None)
-    devices
+    nodes#get
 
  (** List of direct cable names in the network *)
  method get_direct_cable_names  =
-   let clist= List.filter (fun x->x#crossover=false) cables in
+   let clist = List.filter (fun x->x#crossover=false) cables#get in
    List.map (fun x->x#get_name) clist
 
  (** List of crossover cable names in the network *)
- method get_crossover_cable_names  =
-   let clist= List.filter (fun x->x#crossover=true) cables in
+ method get_crossover_cable_names =
+   let clist= List.filter (fun x->x#crossover=true) cables#get in
    List.map (fun x->x#get_name) clist
 
  method get_direct_cables =
-   List.filter (fun x->x#crossover=false) cables
+   List.filter (fun x->x#crossover=false) cables#get
 
  method get_crossover_cables  =
-   List.filter (fun x->x#crossover=true) cables
+   List.filter (fun x->x#crossover=true) cables#get
 
  (** Starting and showing the network *)
 
  (** List of reversed cables (used only for drawing network) *)
  method reversed_cables : (string list) =
-   let clist= List.filter (fun x->x#is_reversed) cables in
+   let clist= List.filter (fun x->x#is_reversed) cables#get in
    List.map (fun x->x#get_name) clist
 
  (** Set the reversed dotoptions field of a cable of the network (identified by name) *)
@@ -1705,15 +1696,15 @@ class network () =
  (** Show network topology *)
  method show =
    Log.printf "========== NETWORK STATUS ===========\n";
-   (* show devices *)
+   (* show nodes *)
    let msg= try
         (String.concat " , "
-        (List.map (fun d->d#get_name^" ("^(d#string_of_devkind)^")") devices))
+        (List.map (fun d->d#get_name^" ("^(d#string_of_devkind)^")") nodes#get))
         with _ -> ""
    in Log.printf "Nodes \r\t\t: %s\n" msg;
   (* show links *)
    let msg=try
-        (String.concat "\n" (List.map (fun c->(c#show "\r\t\t  ")) cables))
+        (String.concat "\n" (List.map (fun c->(c#show "\r\t\t  ")) cables#get))
         with _ -> ""
    in Log.printf "Cables \r\t\t: %s\n" msg
 
@@ -1740,7 +1731,7 @@ class network () =
 (StringExtra.Text.to_string
    (List.map
      (fun (n:node)->n#dotTrad opt#iconsize_for_dot)
-     (ListExtra.permute opt#shuffler_as_function self#nodes)
+     (ListExtra.permute opt#shuffler_as_function nodes#get)
    ))
 ^"
 /* ***********************

@@ -102,10 +102,10 @@ module Make_menus (Params : sig
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_devices_that_can_startup ~devkind:`Switch ()
+    let dynlist () = st#network#get_nodes_that_can_startup ~devkind:`Switch ()
 
     let dialog name () =
-     let d = (st#network#get_device_by_name name) in
+     let d = (st#network#get_node_by_name name) in
      let s = ((Obj.magic d):> User_level_switch.switch) in
      let title = (s_ "Modify switch")^" "^name in
      let label = s#get_label in
@@ -125,7 +125,7 @@ module Make_menus (Params : sig
                    activate_fstp = activate_fstp;
                    rc_config = rc_config }
       =
-      let d = (st#network#get_device_by_name old_name) in
+      let d = (st#network#get_node_by_name old_name) in
       let s = ((Obj.magic d):> User_level_switch.switch) in
       let action () = s#update_switch_with ~name ~label ~port_no ~show_vde_terminal ~activate_fstp ~rc_config in
       st#network_change action ();
@@ -146,7 +146,7 @@ module Make_menus (Params : sig
         ()
 
     let reaction name =
-      let d = (st#network#get_device_by_name name) in
+      let d = (st#network#get_node_by_name name) in
       let h = ((Obj.magic d):> User_level_switch.switch) in
       let action () = h#destroy in
       st#network_change action ();
@@ -158,34 +158,34 @@ module Make_menus (Params : sig
     let to_string = (Printf.sprintf "name = %s\n")
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog_but_simply_return_name
-    let reaction name = (st#network#get_device_by_name name)#startup
+    let reaction name = (st#network#get_node_by_name name)#startup
 
   end
 
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_gracefully_shutdown ~devkind:`Switch ()
+    let dynlist () = st#network#get_nodes_that_can_gracefully_shutdown ~devkind:`Switch ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
-    let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
+    let reaction name = (st#network#get_node_by_name name)#gracefully_shutdown
 
   end
 
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:`Switch ()
+    let dynlist () = st#network#get_nodes_that_can_suspend ~devkind:`Switch ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
-    let reaction name = (st#network#get_device_by_name name)#suspend
+    let reaction name = (st#network#get_node_by_name name)#suspend
 
   end
 
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_resume ~devkind:`Switch ()
+    let dynlist () = st#network#get_nodes_that_can_resume ~devkind:`Switch ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
-    let reaction name = (st#network#get_device_by_name name)#resume
+    let reaction name = (st#network#get_node_by_name name)#resume
 
   end
 

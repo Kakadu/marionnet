@@ -623,7 +623,7 @@ and cable =
 
   initializer
     network#add_cable (self :> User_level.cable);
-    self#add_destroy_callback (lazy (network#del_cable self#get_name));
+    self#add_destroy_callback (lazy (network#del_cable_by_name self#get_name));
 
   inherit cable_defects_zone ~network:network_alias () as cable_defects_zone
   inherit cable_dot_zone ~motherboard:network_alias1#motherboard ()

@@ -545,15 +545,22 @@ class ['a] wlist ?name ?parent (system:system) (value:'a list) =
       self#tracing#rparen "wlist updated.";
     in
     self#system#mutex_methods#with_mutex action
-  (* Equivalent to: update_with (List.append [x]) *)
-  method add x =
-    self#tracing#message "adding on top of the list";
-    let action () =
-      content <- x::content;
-      ignore (self#system#stabilize);
-      self#tracing#rparen "wlist updated.";
-    in
-    self#system#mutex_methods#with_mutex action
+  
+  (* insert is update_with (fun xs -> x::xs) *)
+  method insert x =
+    self#tracing#message "inserting on top of the list";
+    self#update_with (fun xs -> x::xs)
+  
+  (* append is update_with (fun xs -> List.append xs [x]) *)
+  method append x =
+    self#tracing#message "appending to the list";
+    self#update_with (fun xs -> List.append xs [x])
+
+  (* (filter p) is update_with (List.filter p)) *)
+  method filter (pred:'a->bool) : unit =
+    self#tracing#message "filtering the list with a predicate";
+    self#update_with (List.filter pred)
+  
   method coerce = (self :> ('a list,'a list) wire)
  end
 

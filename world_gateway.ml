@@ -106,10 +106,10 @@ module Make_menus (Params : sig
   module Properties = struct
     include Data
 
-    let dynlist () = st#network#get_devices_that_can_startup ~devkind:`World_gateway ()
+    let dynlist () = st#network#get_nodes_that_can_startup ~devkind:`World_gateway ()
 
     let dialog name () =
-     let d = (st#network#get_device_by_name name) in
+     let d = (st#network#get_node_by_name name) in
      let g = ((Obj.magic d):> User_level_world_gateway.world_gateway) in
      let title = (s_ "Modify world gateway")^" "^name in
      let label = g#get_label in
@@ -136,7 +136,7 @@ module Make_menus (Params : sig
          old_name = old_name ;
          }
       =
-      let d = (st#network#get_device_by_name old_name) in
+      let d = (st#network#get_node_by_name old_name) in
       let g = ((Obj.magic d):> User_level_world_gateway.world_gateway) in
       let action () = g#update_world_gateway_with ~name ~label ~network_config ~dhcp_enabled ~port_no in
       st#network_change action ();
@@ -157,7 +157,7 @@ module Make_menus (Params : sig
         ()
 
     let reaction name =
-      let d = (st#network#get_device_by_name name) in
+      let d = (st#network#get_node_by_name name) in
       let g = ((Obj.magic d):> User_level_world_gateway.world_gateway) in
       let action () = g#destroy in
       st#network_change action ();
@@ -169,34 +169,34 @@ module Make_menus (Params : sig
     let to_string = (Printf.sprintf "name = %s\n")
     let dynlist    = Properties.dynlist
     let dialog     = Menu_factory.no_dialog_but_simply_return_name
-    let reaction name = (st#network#get_device_by_name name)#startup
+    let reaction name = (st#network#get_node_by_name name)#startup
 
   end
 
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist = st#network#get_devices_that_can_gracefully_shutdown ~devkind:`World_gateway
+    let dynlist = st#network#get_nodes_that_can_gracefully_shutdown ~devkind:`World_gateway
     let dialog = Menu_factory.no_dialog_but_simply_return_name
-    let reaction name = (st#network#get_device_by_name name)#gracefully_shutdown
+    let reaction name = (st#network#get_node_by_name name)#gracefully_shutdown
 
   end
 
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_suspend ~devkind:`World_gateway ()
+    let dynlist () = st#network#get_nodes_that_can_suspend ~devkind:`World_gateway ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
-    let reaction name = (st#network#get_device_by_name name)#suspend
+    let reaction name = (st#network#get_node_by_name name)#suspend
 
   end
 
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_devices_that_can_resume ~devkind:`World_gateway ()
+    let dynlist () = st#network#get_nodes_that_can_resume ~devkind:`World_gateway ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
-    let reaction name = (st#network#get_device_by_name name)#resume
+    let reaction name = (st#network#get_node_by_name name)#resume
 
   end
 

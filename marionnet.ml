@@ -126,7 +126,7 @@ let treeview_documents =
 module Just_for_testing = struct
 
   let get_machine_by_name name =
-     let m = (st#network#get_device_by_name name) in
+     let m = (st#network#get_node_by_name name) in
      let ul_m = ((Obj.magic m):> Machine.User_level_machine.machine) in
      ul_m
 
@@ -308,8 +308,8 @@ st#mainwin#window_MARIONNET#set_title Command_line.window_title;
 (* This action must be done when all treeviews are set: *)
 Motherboard.set_treeview_filenames_invariant ();
 
-st#sensitive_when_Active#add   st#mainwin#notebook_CENTRAL#coerce;
-st#sensitive_when_Runnable#add st#mainwin#hbox_BASE#coerce ;
+st#sensitive_when_Active#insert (st#mainwin#notebook_CENTRAL#coerce);
+st#sensitive_when_Runnable#insert (st#mainwin#hbox_BASE#coerce);
 
 (* Open the project specified at command line, if any: *)
 let () =

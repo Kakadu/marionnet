@@ -669,22 +669,88 @@ module Reactive_widget = struct
 end (* Reactive_widget *)
 
 
-let button_image ?window ?callback ~packing ~file () =
-  (* Complete the filename if necessary: *)
-  let file =
-    if (Filename.is_implicit file)
-      then Filename.concat (Initialization.Path.images) file
-      else file
+let make_image_with_either_stock_or_file ?window ?stock_size ?stock ?file () =
+  let make_with_file file =
+    (* Complete the filename if necessary: *)
+    let file =
+      if (Filename.is_implicit file)
+	then Filename.concat (Initialization.Path.images) file
+	else file
+    in
+    let pixmap = GDraw.pixmap_from_xpm ?window ~file () in
+    let image  = GMisc.pixmap pixmap () in
+    image
   in
+  let make_with_stock stock =
+    let icon_size = stock_size in
+    GMisc.image ?icon_size ~stock ()
+  in
+  match stock,file with
+  | None, Some file  -> make_with_file file
+  | Some stock, None -> make_with_stock stock
+  | _,_ -> failwith "Gui_Bricks.button_image: either ?stock or ?file is required"
+
+(* The label and image positions are relative. Gtk speaks about the image position with
+   respect to the label. So, if we want indeed to speak about the label position with
+   respect to the image, we have to invert the value: *)
+let opposite_position = function
+ `BOTTOM -> `TOP | `LEFT -> `RIGHT | `RIGHT -> `LEFT | `TOP -> `BOTTOM
+
+let button_image ?window ?callback ?label ?label_position ?tooltip ~packing ?stock ?stock_size ?file () =
+  let image = make_image_with_either_stock_or_file ?window ?stock_size ?stock ?file () in
   let button = GButton.button ~packing () in
-  let pixmap = GDraw.pixmap_from_xpm ?window ~file () in
-  let image  = GMisc.pixmap pixmap () in
   let () = button#set_image image#coerce in
   let () = match callback with
   | None -> ()
   | Some callback -> ignore (button#connect#clicked ~callback)
   in
+  let set_tooltip text = (GData.tooltips ())#set_tip button#coerce ~text in
+  let () =
+    Option.iter (button#set_label) label;
+    Option.iter (fun p -> button#set_image_position (opposite_position p)) label_position;
+    Option.iter set_tooltip tooltip
+  in
   button
 
 
-let test () = Dialog.yes_or_cancel_question ~markup:"prova <b>bold</b>" ~context:'a' ()
+(* Note that ~label:"" is very important in the call of GMenu.image_menu_item. Actually, it is a workaround
+    of something that resemble to a bug in lablgtk: if not present, another external function is internally
+    called by this function and the result is a menu entry with an horizontal line in background... *)
+let button_image_with_dynamic_menu
+  ?window ?callback ?label ?label_position ?tooltip
+  ~packing ?stock ?stock_size ?file () : GMenu.menu
+  =
+  let vbox = GPack.vbox ~homogeneous:false ~packing () in
+  let button =
+    button_image
+      ?window ?callback ?label ?label_position ?tooltip
+      ~packing:(vbox#add)
+      ?stock ?stock_size ?file ()
+  in
+  let menubar = GMenu.menu_bar ~packing:(vbox#add) () in
+  let factory = new GMenu.factory menubar in
+  let empty_unlabelled_menu = factory#add_submenu "..." in
+  empty_unlabelled_menu
+
+
+let button_image_popuping_a_menu
+  ?window ?label ?label_position ?tooltip
+  ~packing ?stock ?stock_size ?file () : (GMenu.menu * GButton.button * GPack.box)
+  =
+  let hbox = GPack.vbox ~homogeneous:false ~packing () in
+  let button =
+    button_image
+      ?window ?label ?label_position ?tooltip
+      ~packing:(hbox#add)
+      ?stock ?stock_size ?file ()
+  in
+  let menubar = GMenu.menu_bar ~packing:(hbox#add) () in
+  let () = menubar#misc#hide () in 
+  let factory = new GMenu.factory menubar in
+  let menu = factory#add_submenu "" in
+  let callback () = menu#popup ~button:0 ~time:(GtkMain.Main.get_current_event_time ()) in
+  let _ = button#connect#clicked ~callback in
+  (menu, button, hbox)
+  
+
+let test () = Dialog.yes_or_cancel_question ~markup:"test <b>bold</b>" ~context:'a' ()

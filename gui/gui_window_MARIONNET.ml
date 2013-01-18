@@ -91,36 +91,55 @@ module Created_toolbar_DOT_TUNING = Gui_toolbar_DOT_TUNING. Make (State)
                 BASE BUTTONS
  * ***************************************** *)
 
-(* Labels for base buttons *)
-let () =
- let set label text =
- label#set_use_markup true;
- label#set_label text in
-(set w#label_button_BASE_STARTUP_EVERYTHING (s_ "Start all");
-set w#label_button_BASE_BROADCAST (s_ "Broadcast") ;
-set w#label_button_BASE_POWEROFF_EVERYTHING (s_ "Power-off all");
-set w#label_button_BASE_SHUTDOWN_EVERYTHING (s_ "Shutdown all"))
+let () = w#hbox_BASE#set_homogeneous true
 
-(* Tooltips for base buttons *)
-let () =
- let set = (GData.tooltips ())#set_tip in begin
-  set w#button_BASE_STARTUP_EVERYTHING#coerce  ~text:(s_ "Start the virtual network (machines, switch, hub, etc) locally on this machine");
-  set w#button_BASE_BROADCAST#coerce           ~text:(s_ "Broadcast the specification of the virtual network on a real network");
-  set w#button_BASE_POWEROFF_EVERYTHING#coerce ~text:(s_ "(Ungracefully) shutdown every element of the network, as in a power-off");
-  set w#button_BASE_SHUTDOWN_EVERYTHING#coerce ~text:(s_ "Gracefully stop every element of the network")
- end
+let button_BASE_STARTUP_EVERYTHING =
+  Gui_bricks.button_image ~label:(s_ "Start all") ~stock:`MEDIA_PLAY
+    ~tooltip:(s_ "Start the virtual network (machines, switch, hub, etc) locally on this machine")
+    ~label_position:`BOTTOM ~stock_size:`DND ~packing:w#hbox_BASE#add ()
+
+let (menu_BASE_PAUSE_SOMETHING, button_BASE_PAUSE_SOMETHING, box_BASE_PAUSE_SOMETHING) =
+  Gui_bricks.button_image_popuping_a_menu ~label:(s_ "Suspend") ~stock:`MEDIA_PAUSE
+    ~tooltip:(s_ "Suspend the activity of a network component")
+    ~label_position:`BOTTOM ~stock_size:`DND ~packing:w#hbox_BASE#add ()
+
+(* Hide the box (button+menu) for this revno: *)    
+let () = box_BASE_PAUSE_SOMETHING#misc#hide ()
+    
+(* let packing = Marionnet.st#mainwin#hbox_BASE#add ;;
+   let m = Gui_bricks.button_image_with_menu ~tooltip:"PROVALO" ~packing ~label:"Suspendre" ~label_position:`BOTTOM ~stock:`MEDIA_PAUSE ~stock_size:`DND () ;; 
+   let mi = GMenu.menu_item ~label:"ciao" ~packing:(m#append) () ;;
+   let mi = GMenu.menu_item ~label:"hello" ~packing:(m#append) () ;;
+   let mi = GMenu.image_menu_item ~stock:`SAVE ~label:"save" ~packing:(m#append) () ;;
+   *)
+   
+let button_BASE_SHUTDOWN_EVERYTHING =
+  Gui_bricks.button_image ~label:(s_ "Shutdown all") ~stock:`MEDIA_STOP
+    ~tooltip:(s_ "Gracefully stop every element of the network")
+    ~label_position:`BOTTOM ~stock_size:`DND ~packing:w#hbox_BASE#add ()
+
+let button_BASE_POWEROFF_EVERYTHING =
+  Gui_bricks.button_image ~label:(s_ "Power-off all")
+    ~file:"ico.poweroff.24x24.png"
+    ~tooltip:(s_ "(Ungracefully) shutdown every element of the network, as in a power-off")
+    ~label_position:`BOTTOM ~packing:w#hbox_BASE#add ()
+
+(*let button_BASE_BROADCAST =
+  Gui_bricks.button_image ~label:(s_ "Broadcast")
+    ~tooltip:(s_ "Broadcast the specification of the virtual network on a real network")
+    ~file:"ico.diffuser.orig.png"
+    ~label_position:`BOTTOM ~packing:w#hbox_BASE#add ()*)
 
 (* Hide this never implemented feature! *)
-let () =
- w#button_BASE_BROADCAST#misc#hide ()
-
+(*let () =
+ button_BASE_BROADCAST#misc#hide ()*)
 
 (* Connections *)
 let () =
 
-  let _ = w#button_BASE_STARTUP_EVERYTHING#connect#clicked ~callback:(fun () -> st#startup_everything ()) in
+  let _ = button_BASE_STARTUP_EVERYTHING#connect#clicked ~callback:(fun () -> st#startup_everything ()) in
 
-  let _ = w#button_BASE_SHUTDOWN_EVERYTHING#connect#clicked
+  let _ = button_BASE_SHUTDOWN_EVERYTHING#connect#clicked
     ~callback:(fun () ->
       match Simple_dialogs.confirm_dialog
           ~question:(s_ "Are you sure that you want to stop\nall the running components?")
@@ -129,7 +148,7 @@ let () =
       | Some false -> ()
       | None -> ()) in
 
-  let _ = w#button_BASE_POWEROFF_EVERYTHING#connect#clicked
+  let _ = button_BASE_POWEROFF_EVERYTHING#connect#clicked
     ~callback:(fun () ->
       match Simple_dialogs.confirm_dialog
           ~question:(s_ "Are you sure that you want to power off\nall the running components? It is also possible to shut them down graciously...")

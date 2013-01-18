@@ -309,7 +309,7 @@ st#mainwin#window_MARIONNET#set_title Command_line.window_title;
 Motherboard.set_treeview_filenames_invariant ();
 
 st#sensitive_when_Active#add   st#mainwin#notebook_CENTRAL#coerce;
-st#sensitive_when_Runnable#add st#mainwin#hbuttonbox_BASE#coerce ;
+st#sensitive_when_Runnable#add st#mainwin#hbox_BASE#coerce ;
 
 (* Open the project specified at command line, if any: *)
 let () =

@@ -193,8 +193,25 @@ module Reactive_widget :
 val button_image :
   ?window:GWindow.window ->
   ?callback:(unit->unit) ->
+  ?label:string ->
+  ?label_position:[ `BOTTOM | `LEFT | `RIGHT | `TOP ] ->
+  ?tooltip:string ->
   packing:(GObj.widget -> unit) ->
-  file:string ->
+  ?stock:GtkStock.id ->
+  ?stock_size:[ `BUTTON | `DIALOG | `DND | `INVALID | `LARGE_TOOLBAR | `MENU | `SMALL_TOOLBAR ] ->
+  ?file:string ->
   unit -> GButton.button
+
+
+val button_image_popuping_a_menu :
+  ?window:GWindow.window ->
+  ?label:string ->
+  ?label_position:[ `BOTTOM | `LEFT | `RIGHT | `TOP ] ->
+  ?tooltip:string ->
+  packing:(GObj.widget -> unit) ->
+  ?stock:GtkStock.id -> ?stock_size:[ `BUTTON | `DIALOG | `DND | `INVALID | `LARGE_TOOLBAR | `MENU | `SMALL_TOOLBAR ] ->
+  ?file:string ->
+  unit -> (GMenu.menu * GButton.button * GPack.box)
+  
 
 val test : unit -> char option

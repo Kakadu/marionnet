@@ -384,7 +384,7 @@ class virtual ['parent] simulated_device () = object(self)
 
   method startup =
     self#set_next_simulated_device_state (Some DeviceOn);
-    self#enqueue_task_with_progress_bar (s_ "Starting") (fun () -> if self#can_startup then self#startup_right_now)
+    self#enqueue_task_with_progress_bar (s_ "Starting") (fun () -> if self#can_startup then    self#startup_right_now)
 
   method suspend =
     self#set_next_simulated_device_state (Some DeviceSleeping);
@@ -411,8 +411,8 @@ class virtual ['parent] simulated_device () = object(self)
 
         match !automaton_state, !simulated_device with
         | NoDevice, None ->
-	    (simulated_device := (Some self#make_simulated_device);
-	      automaton_state := DeviceOff;
+	    ( simulated_device := (Some self#make_simulated_device);
+              automaton_state := DeviceOff;
 	      self#set_next_simulated_device_state None;
 	      (* An endpoint for cables linked to self was just added; we need to start some cables. *)
 	      ignore (List.map
@@ -487,9 +487,9 @@ class virtual ['parent] simulated_device () = object(self)
           Log.printf "Starting up the device %s...\n" self#get_name;
           match !automaton_state, !simulated_device with
           | NoDevice, None ->
-             (Log.printf "  (creating processes for %s first...)\n" self#get_name;
+             (Log.printf "Creating processes for %s first...\n" self#get_name;
               self#create_right_now;
-              Log.printf "  (processes for %s were created...)\n" self#get_name;
+              Log.printf "Processes for %s were created...\n" self#get_name;
               self#startup_right_now
               )
 
@@ -1212,7 +1212,11 @@ class virtual virtual_machine_with_history_and_ifconfig
     Printf.ksprintf (fun x->self#banner^x)
 
   method failwith : 'a 'b. ('a, unit, string, string) format4 -> 'b =
-    Obj.magic (Printf.ksprintf (fun x->failwith (self#banner^x)))
+    Obj.magic
+      (Printf.ksprintf
+        (fun x-> let msg = self#banner^x in
+                 let () = Log.printf "%s\n" msg in
+                 failwith msg))
 
   (** A machine has a Linux filesystem *)
   val mutable epithet : string = epithet
@@ -1234,7 +1238,7 @@ class virtual virtual_machine_with_history_and_ifconfig
    let v = vm_installations#variants_of epithet in
    match v#epithet_exists x with
    | true -> x
-   | false -> self#failwith "the variant %s is not available" x
+   | false -> self#failwith "the variant \"%s\" is not available" x
 
  method get_variant_realpath : string option =
    Option.map (vm_installations#variants_of self#get_epithet)#realpath_of_epithet self#get_variant
@@ -1247,7 +1251,7 @@ class virtual virtual_machine_with_history_and_ifconfig
   method private check_kernel x =
     match (vm_installations#kernels#epithet_exists kernel) with
     | true -> x
-    | false -> self#failwith "unknown kernel %s" x
+    | false -> self#failwith "unknown kernel \"%s\"" x
 
   (** A machine can be used accessed in a specific terminal mode. *)
   val mutable terminal : string = terminal

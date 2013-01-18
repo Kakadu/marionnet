@@ -91,7 +91,11 @@ module Created_toolbar_DOT_TUNING = Gui_toolbar_DOT_TUNING. Make (State)
                 BASE BUTTONS
  * ***************************************** *)
 
-let () = w#hbox_BASE#set_homogeneous true
+let () = begin
+    w#hbox_BASE#set_homogeneous true;
+    w#hbox_BASE#set_spacing 5;
+    w#hbox_BASE#set_border_width 0;
+  end
 
 let button_BASE_STARTUP_EVERYTHING =
   Gui_bricks.button_image ~label:(s_ "Start all") ~stock:`MEDIA_PLAY
@@ -99,20 +103,31 @@ let button_BASE_STARTUP_EVERYTHING =
     ~label_position:`BOTTOM ~stock_size:`DND ~packing:w#hbox_BASE#add ()
 
 let (menu_BASE_PAUSE_SOMETHING, button_BASE_PAUSE_SOMETHING, box_BASE_PAUSE_SOMETHING) =
+  let renewer = 
+    let get_label_active_callback_list () = 
+      let name_kind_suspended_list : (string * [`Node|`Cable] * bool) list = 
+        st#network#get_component_names_that_can_suspend_or_resume () 
+      in
+      List.map 
+        (fun (name, kind, suspended) ->
+           let callback b = 
+             if b = suspended then () else 
+             match suspended with
+             | true  -> (st#network#get_component_by_name ~kind name)#resume
+             | false -> (st#network#get_component_by_name ~kind name)#suspend
+           in
+           (name, suspended, callback)
+        )
+        name_kind_suspended_list
+    in        
+    Gui_bricks.make_check_items_renewer_v1 ~get_label_active_callback_list ()
+    (* end of renewer () *)
+  in
   Gui_bricks.button_image_popuping_a_menu ~label:(s_ "Suspend") ~stock:`MEDIA_PAUSE
+    ~renewer
     ~tooltip:(s_ "Suspend the activity of a network component")
     ~label_position:`BOTTOM ~stock_size:`DND ~packing:w#hbox_BASE#add ()
 
-(* Hide the box (button+menu) for this revno: *)    
-let () = box_BASE_PAUSE_SOMETHING#misc#hide ()
-    
-(* let packing = Marionnet.st#mainwin#hbox_BASE#add ;;
-   let m = Gui_bricks.button_image_with_menu ~tooltip:"PROVALO" ~packing ~label:"Suspendre" ~label_position:`BOTTOM ~stock:`MEDIA_PAUSE ~stock_size:`DND () ;; 
-   let mi = GMenu.menu_item ~label:"ciao" ~packing:(m#append) () ;;
-   let mi = GMenu.menu_item ~label:"hello" ~packing:(m#append) () ;;
-   let mi = GMenu.image_menu_item ~stock:`SAVE ~label:"save" ~packing:(m#append) () ;;
-   *)
-   
 let button_BASE_SHUTDOWN_EVERYTHING =
   Gui_bricks.button_image ~label:(s_ "Shutdown all") ~stock:`MEDIA_STOP
     ~tooltip:(s_ "Gracefully stop every element of the network")

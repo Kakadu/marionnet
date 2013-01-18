@@ -75,7 +75,7 @@ module type Factory =
       val window : GWindow.window
     end
 
-module type Parents      = sig  val parent: menu_parent  val window : GWindow.window  end
+module type Parents = sig  val parent: menu_parent  val window : GWindow.window  end
 
 module Make : functor (M : Parents) -> Factory
 

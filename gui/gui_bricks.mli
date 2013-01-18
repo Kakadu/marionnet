@@ -205,6 +205,7 @@ val button_image :
 
 val button_image_popuping_a_menu :
   ?window:GWindow.window ->
+  ?renewer:(GMenu.menu -> unit) ->
   ?label:string ->
   ?label_position:[ `BOTTOM | `LEFT | `RIGHT | `TOP ] ->
   ?tooltip:string ->
@@ -214,4 +215,13 @@ val button_image_popuping_a_menu :
   unit -> (GMenu.menu * GButton.button * GPack.box)
   
 
+val make_check_items_renewer_v1 :
+  get_label_active_callback_list:(unit -> (string * bool * (bool -> unit)) list) ->
+  unit -> (GMenu.menu -> unit)
+
+val make_check_items_renewer_v2 :
+  get_label_active_list:(unit -> (string * bool) list) ->
+  callback:(string -> bool -> unit) ->
+  unit -> (GMenu.menu -> unit)
+ 
 val test : unit -> char option

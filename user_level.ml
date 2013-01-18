@@ -678,7 +678,12 @@ fun ~(network:< .. >)
   (** The global network. It's a pain to have to access this via a global variable
       define in Marionnet *)
   val network = network
-
+  
+  method virtual can_suspend : bool
+  method virtual can_resume  : bool
+  
+  method virtual suspend : unit
+  method virtual resume  : unit
 end;;
 
 
@@ -1408,10 +1413,10 @@ class network () =
 
  method motherboard = Motherboard.extract ()
 
- val nodes : node Chip.wlist = Chip.wlist ~name:"network.nodes" []
+ val nodes : node Chip.wlist = Chip.wlist ~name:"network#nodes" []
  method nodes = nodes
 
- val cables : cable Chip.wlist = Chip.wlist ~name:"network.cables" []
+ val cables : cable Chip.wlist = Chip.wlist ~name:"network#cables" []
  method cables = cables
 
  (** Buffers to backup/restore data. *)
@@ -1431,6 +1436,17 @@ class network () =
    List.append 
      (nodes#get  :> component list) 
      (cables#get :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
+
+ method components_of_kind ?(kind:[`Node | `Cable] option) () = 
+   match kind with
+   | None        -> self#components
+   | Some `Node  -> (nodes#get  :> (component list)) 
+   | Some `Cable -> (cables#get :> (component list)) 
+     
+ method disjoint_union_of_nodes_and_cables : ((component * [`Node | `Cable]) list) =
+   let xs = List.map (fun x -> x,`Node ) (nodes#get  :> component list)  in
+   let ys = List.map (fun x -> x,`Cable) (cables#get :> component list)  in
+   List.append xs ys
 
  (** Setter *)
 
@@ -1524,6 +1540,10 @@ class network () =
  method get_cable_by_name n =
    try List.find (fun x->x#get_name=n) cables#get with _ -> failwith ("get_cable_by_name "^n)
 
+ method get_component_by_name ?kind n =
+   let components = self#components_of_kind ?kind () in
+   try List.find (fun x->x#get_name=n) components with _ -> failwith ("get_component_by_name "^n)
+   
  method involved_node_and_port_index_list =
    List.flatten (List.map (fun c->c#involved_node_and_port_index_list) cables#get)
 
@@ -1661,6 +1681,18 @@ class network () =
     (fun x -> if (x#devkind = devkind) && x#can_suspend then Some x#get_name else None)
     nodes#get
 
+ (* Including cables (suspend=disconnect, resume=reconnect). The boolean in the result 
+    indicates if the component is suspended (sleeping): *)   
+ method get_component_names_that_can_suspend_or_resume () : (string * [`Node|`Cable] * bool) list =
+  ListExtra.filter_map
+    (fun (x, node_or_cable) -> 
+       let can_suspend = x#can_suspend in
+       let can_resume  = lazy x#can_resume in
+       if  can_suspend || (Lazy.force can_resume) 
+         then Some (x#get_name, node_or_cable, (Lazy.force can_resume)) 
+         else None)
+    self#disjoint_union_of_nodes_and_cables
+    
  method get_nodes_that_can_resume ~devkind () =
   ListExtra.filter_map
     (fun x -> if (x#devkind = devkind) && x#can_resume then Some x#get_name else None)

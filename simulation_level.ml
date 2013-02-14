@@ -201,27 +201,6 @@ end;;
 let dev_null_in = Unix.descr_of_in_channel (open_in "/dev/null");;
 let dev_null_out = Unix.descr_of_out_channel (open_out "/dev/null");;
 
-(** An utility function returning a byte as printed in hexadecimal notation, always
-    two digits long. This is handy for MAC addresses *)
-let int_byte_to_hex_byte n =
-  if n < 0 or n > 255 then
-    failwith "out of bounds (1)"
-  else
-    let string_possibly_of_length_1 = Printf.sprintf "%x" n in
-    if String.length string_possibly_of_length_1 = 1 then
-      "0" ^ string_possibly_of_length_1
-    else
-      string_possibly_of_length_1;;
-
-(** An utility function converting a byte in hexadecimal notation into an int.
-    This is handy for MAC addresses *)
-let hex_byte_to_int_byte h =
-  let n = Scanf.sscanf h "%x" (fun q -> q) in
-  if n < 0 or n > 255 then
-    failwith "out of bounds (2)"
-  else
-    n;;
-
 (** {2 Example of low-level interaction} *)
 
 (** Play with xeyes for ten seconds, then terminate it:
@@ -809,12 +788,13 @@ let ethernet_interface_to_uml_command_line_argument umid port_index hublet =
   ",unix," ^ (hublet#get_socket_name) ^ "/ctl";;
 
 let random_ghost_mac_address () =
+  let random () = Printf.sprintf "%02x" (Random.int 256) in
   let octet0 = "42" in
   let octet1 = "42" in
-  let octet2 = (int_byte_to_hex_byte (Random.int 256)) in
-  let octet3 = (int_byte_to_hex_byte (Random.int 256)) in
-  let octet4 = (int_byte_to_hex_byte (Random.int 256)) in
-  let octet5 = (int_byte_to_hex_byte (Random.int 256)) in
+  let octet2 = random () in
+  let octet3 = random () in
+  let octet4 = random () in
+  let octet5 = random () in
   Printf.sprintf "%s:%s:%s:%s:%s:%s" octet0 octet1 octet2 octet3 octet4 octet5;;
 
 (** Create a fresh sparse file name for swap and return it: *)

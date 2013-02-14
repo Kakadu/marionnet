@@ -1,9 +1,8 @@
 # This -*- makefile -*- is part of Marionnet, a virtual network laboratory
 # Copyright (C) 2008, 2009  Luca Saiu
-# Copyright (C) 2010  Jean-Vincent Loddo
-# Copyright (C) 2008, 2009, 2010  Université Paris 13
+# Copyright (C) 2010, 2013  Jean-Vincent Loddo
+# Copyright (C) 2008, 2009, 2010, 2013  Université Paris 13
 # Updated in 2008 by Marco Stronati
-# Updated by Jean-Vincent Loddo
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +22,7 @@ DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade lablgtksourceview2 oc
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade lablgtksourceview2 ocamlbricks
 C_OBJECTS_TO_LINK +=
 
-OCAMLBRICKS=$(LIBRARYPREFIX)/ocamlbricks
+OCAMLBRICKS=$(OCAML_LIBRARYPREFIX)/ocamlbricks
 PP_OPTION = camlp4of -I $(OCAMLBRICKS) gettext_extract_pot_p4.cmo option_extract_p4.cmo raise_p4.cmo log_module_loading_p4.cmo -I chip
 
 OBJECTS_TO_LINK = gtkThread

@@ -20,8 +20,8 @@ let configuration =
   (* Lowest priority first: *)
   let file_names =
      [ Printf.sprintf "%s/share/marionnet/marionnet.conf" Meta.prefix; (* failsafe copy *)
-       "/etc/marionnet/marionnet.conf";
        Printf.sprintf "%s/etc/marionnet/marionnet.conf" Meta.prefix;
+       "/etc/marionnet/marionnet.conf";
        "~/.marionnet/marionnet.conf" ]
   in
   Configuration_files.make
@@ -38,6 +38,7 @@ let configuration =
                 (* *Optional* configuration variables: *)
 		"MARIONNET_TERMINAL";
                 "MARIONNET_PREFIX";
+                "MARIONNET_LOCALEPREFIX";
                 "MARIONNET_FILESYSTEMS_PATH";
                 "MARIONNET_KERNELS_PATH";
                 "MARIONNET_VDE_PREFIX";

@@ -17,3 +17,5 @@
 
 val s_ : string -> string
 val f_ : ('a, 'b, 'c) format -> ('a, 'b, 'c) format
+
+val localeprefix : string

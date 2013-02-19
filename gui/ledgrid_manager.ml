@@ -16,9 +16,6 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-open Sugar;;
-open Ledgrid;;
-open Gtk.Tags;;
 
 let blinker_thread_socket_file_name =
   let result = UnixExtra.temp_file ~prefix:".marionnet-blinker-server-socket-" () in
@@ -118,7 +115,7 @@ object (self)
     ignore (window#event#connect#delete
              ~callback:(fun _ -> Log.printf "Sorry, no, you can't\n"; true));
     let device =
-      new device_led_grid
+      new Ledgrid.device_led_grid
         ~packing:box#add ~ports:port_no ~show_100_mbs:false
         ~lines:(if port_no > 8 then 2 else 1)
         ~angle:(if port_no > 8 then 90.0 else 0.0)

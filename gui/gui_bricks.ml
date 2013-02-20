@@ -712,10 +712,10 @@ let button_image ?window ?callback ?label ?label_position ?tooltip ~packing ?sto
   in
   button
 
-(** The ~renewer parameter allows to generate dynamic menus 
+(** The ~renewer parameter allows us to generate dynamic menus
     (see the function `make_check_items_renewer_v1' below) *)
 let button_image_popuping_a_menu
-  ?window 
+  ?window
   ?renewer
   ?label ?label_position ?tooltip
   ~packing ?stock ?stock_size ?file () : (GMenu.menu * GButton.button * GPack.box)
@@ -728,57 +728,57 @@ let button_image_popuping_a_menu
       ?stock ?stock_size ?file ()
   in
   let menubar = GMenu.menu_bar ~packing:(hbox#add) () in
-  let () = menubar#misc#hide () in 
+  let () = menubar#misc#hide () in
   let factory = new GMenu.factory menubar in
   let menu = factory#add_submenu "" in
-  let _connect_clicked = 
-    let callback () = 
-      menu#popup ~button:0 ~time:(GtkMain.Main.get_current_event_time ()) 
+  let _connect_clicked =
+    let callback () =
+      menu#popup ~button:0 ~time:(GtkMain.Main.get_current_event_time ())
     in
     (* Call before the renewer if provided: *)
-    let callback = 
-      match renewer with 
+    let callback =
+      match renewer with
       | None -> callback
       | Some renewer -> (fun () -> (renewer menu); callback ())
     in
-    button#connect#clicked ~callback 
+    button#connect#clicked ~callback
   in
   (menu, button, hbox)
-  
+
 
 let make_check_items_renewer_v1
- ~get_label_active_callback_list (* unit -> (string * bool * (bool -> unit)) list *) 
- () 
- = 
+ ~get_label_active_callback_list (* unit -> (string * bool * (bool -> unit)) list *)
+ ()
+ =
  fun (menu:GMenu.menu) ->
  begin
   let () = List.iter (menu#remove) (menu#children) in
   let label_active_callback_list = get_label_active_callback_list () in
-  let () = 
-    List.iter 
-      (fun (label, active, callback) -> 
+  let () =
+    List.iter
+      (fun (label, active, callback) ->
          let item = GMenu.check_menu_item ~active ~label ~packing:(menu#append) () in
-         let _ = 
-           item#connect#toggled 
-             ~callback:(fun () -> callback item#active) 
+         let _ =
+           item#connect#toggled
+             ~callback:(fun () -> callback item#active)
          in ())
       label_active_callback_list
-  in 
+  in
   ()
  end
 
- 
-let make_check_items_renewer_v2 
+
+let make_check_items_renewer_v2
  ~get_label_active_list (* unit -> (string * bool) list *)
  ~callback (* string -> bool -> unit *)
  ()
  =
- let get_label_active_callback_list () = 
-   List.map 
-     (fun (label, active) -> (label, active, (fun b -> callback label b))) 
+ let get_label_active_callback_list () =
+   List.map
+     (fun (label, active) -> (label, active, (fun b -> callback label b)))
      (get_label_active_list ())
  in
  make_check_items_renewer_v1 ~get_label_active_callback_list ()
- 
- 
+
+
 let test () = Dialog.yes_or_cancel_question ~markup:"test <b>bold</b>" ~context:'a' ()

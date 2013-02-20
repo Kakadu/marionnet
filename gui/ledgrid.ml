@@ -63,7 +63,7 @@ let make_pixmap_from_xpm_file ~file_name =
     time, before automatically reverting to its default state.
     Flashing and blinking are *asynchronous* operations: when the user requests
     them they are scheduled to be executed in background, and the user is immediately
-    given back control. This allows to use concurrency in an extremely simple way,
+    given back control. This allows us to use concurrency in an extremely simple way,
     without even exposing a thread interface.
     LED lights can be used in isolation, but they are mainly intended to be arranged
     within a grid, allowing for more complex behaviour.
@@ -287,7 +287,7 @@ let rec range a b =
 (** A 'device LED grid' is a LED grid specialized as a realistic simulation of
     the control panel of a physical device such as a switch, a hub or a router.
     A device LED's appearance can be customized at creation time, and this class
-    allows the user to control each _port_, abstracting from the position of the
+    allows us to control each _port_, abstracting from the position of the
     light or lights representing the port state.
     Port information can be displayed in either one or two lines, and an optional
     "100Mb/s" array of lights can also be shown. The number of ports must be even

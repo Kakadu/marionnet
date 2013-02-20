@@ -344,7 +344,7 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_switch (network:User_level.network) ((root,childs):Xforest.tree) =
+ let try_to_add_switch (network:User_level.network) ((root,children):Xforest.tree) =
   try
    (match root with
     | ("switch", attrs) ->
@@ -352,7 +352,7 @@ module Eval_forest_child = struct
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
         Log.printf "Importing switch \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_switch.switch ~network ~name ~port_no () in
-	x#from_tree ("switch", attrs) childs;
+	x#from_tree ("switch", attrs) children;
         Log.printf "Switch \"%s\" successfully imported.\n" name;
         true
 
@@ -365,7 +365,7 @@ module Eval_forest_child = struct
 	| "switch" ->
             Log.printf "Importing switch \"%s\" with %d ports...\n" name port_no;
 	    let x = new User_level_switch.switch ~network ~name ~port_no () in
-	    x#from_tree ("device", attrs) childs; (* Just for the label... *)
+	    x#from_tree ("device", attrs) children; (* Just for the label... *)
             Log.printf "This is an old project: we set the user port offset to 1...\n";
 	    network#defects#change_port_user_offset ~device_name:name ~user_port_offset:1;
 	    Log.printf "Switch \"%s\" successfully imported.\n" name;

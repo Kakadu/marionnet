@@ -395,8 +395,8 @@ object(self)
         let content = float_of_string content in
         if content > 1.0 then
           Simple_dialogs.warning
-            "This value may be too high"
-            "Please consider that a flipped bits percentage greater than 1% implies *many* trasmission errors.\n\nAnyway you are free to experiment with any percentage."
+            (s_ "This value may be too high")
+            (s_ "Please consider that a flipped bits percentage greater than 1% implies *many* transmission errors.\n\nAnyway you are free to experiment with any percentage.")
             ());
     let minimum_delay =
       self#add_editable_string_column

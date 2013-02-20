@@ -210,7 +210,7 @@ let make
    (* TODO: rename "ethernet socket" => "world bridge" in all translations!*)
    let msg   = (s_ "\
 In this dialog window you can define the name of an Ethernet socket \
-and set parameters for it. This component allows to connect the virtual \
+and set parameters for it. This component allows the user to connect the virtual \
 network to a Linux bridge whose name is defined by the user via the \
 configuration variable called MARIONNET_BRIDGE (in marionnet.conf or provide on \
 the command line).\n\n\
@@ -240,7 +240,7 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_world_bridge (network:User_level.network) ((root,childs):Xforest.tree) =
+ let try_to_add_world_bridge (network:User_level.network) ((root,children):Xforest.tree) =
   try
    (match root with
     | ("world_bridge", attrs)
@@ -248,7 +248,7 @@ module Eval_forest_child = struct
     	let name  = List.assoc "name"  attrs in
         Log.printf "Importing world bridge \"%s\"...\n" name;
         let x = new User_level_world_bridge.world_bridge ~network ~name () in
-	x#from_tree ("world_bridge", attrs) childs  ;
+	x#from_tree ("world_bridge", attrs) children  ;
         Log.printf "World bridge \"%s\" successfully imported.\n" name;
         true
    | _ ->

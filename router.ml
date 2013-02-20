@@ -384,7 +384,7 @@ end
 (*-----*)
 
 module Eval_forest_child = struct
- let try_to_add_router (network:User_level.network) ((root,childs):Xforest.tree) =
+ let try_to_add_router (network:User_level.network) ((root,children):Xforest.tree) =
   try
    (match root with
     | ("router", attrs) ->
@@ -392,7 +392,7 @@ module Eval_forest_child = struct
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
         Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_router.router ~network ~name ~port_no () in
-	x#from_tree ("router", attrs) childs;
+	x#from_tree ("router", attrs) children;
         Log.printf "Router \"%s\" successfully imported.\n" name;
         true
 
@@ -406,7 +406,7 @@ module Eval_forest_child = struct
           Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
 	  let r = new User_level_router.router ~network ~name ~port_no () in
 	  let x = (r :> User_level.node_with_ledgrid_and_defects) in
-	  x#from_tree ("device", attrs) childs ;
+	  x#from_tree ("device", attrs) children ;
           Log.printf "Router \"%s\" successfully imported.\n" name;
           true
       | _ -> false
@@ -562,7 +562,7 @@ class router
       ("port_no"  ,  (string_of_int self#get_port_no))  ;
       ])
 
- (** A machine has just attributes (no childs) in this version. *)
+ (** A machine has just attributes (no children) in this version. *)
  method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x
   | ("label"    , x ) -> self#set_label x

@@ -33,7 +33,7 @@ type node   = tag * attributes ;;
 
 type forest = node Forest.t ;;
 type t      = forest ;;
-type tree   = node * forest ;; (* the root and its childs *)
+type tree   = node * forest ;; (* the root and its children *)
 
 
 (* *************************** *
@@ -46,15 +46,15 @@ type tree   = node * forest ;; (* the root and its childs *)
 class virtual interpreter () = object (self)
 
  (** Interpret a tree. The tag is ignored here. *)
- method from_tree ((tag,attrs):node) (childs:forest) =
+ method from_tree ((tag,attrs):node) (children:forest) =
   begin
    (* Interpret attributes *)
    Log.printf "About to interpret *attributes* with tag \"%s\"\n" tag;
    List.iter self#eval_forest_attribute attrs;
 
-   (* Interpret childs *)
-   Log.printf "About to interpret *childs* with tag \"%s\"\n" tag;
-   let l = Forest.to_treelist childs in
+   (* Interpret children *)
+   Log.printf "About to interpret *children* with tag \"%s\"\n" tag;
+   let l = Forest.to_treelist children in
    List.iter (self#eval_forest_child) l
   end
 
@@ -67,7 +67,7 @@ class virtual interpreter () = object (self)
   fun tree -> ()
 
  (** Encode self into an xtree. Typically this method calls
-     recursively the same method of its childs in order to construct
+     recursively the same method of its children in order to construct
       its representation as forest. *)
  method virtual to_tree : tree
 
@@ -116,7 +116,7 @@ method eval_forest_attribute : (string * string) -> unit = function
  in Forest.node ("cable",[]) (Forest.of_treelist [name; kind])
 
 (** EXAMPLE 2 *)
-method eval_forest_child (root,childs) = match root with
+method eval_forest_child (root,children) = match root with
  | ("name", attrs) ->
      let name = new name () in (* nel new senza argomenti l'essenza della backward-compatibility *)
      name#from_tree x;       (* chiamata ricorsiva al from_forest *)

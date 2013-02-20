@@ -33,7 +33,7 @@ class ['a] queue = object(self)
     Condition.signal empty_condition;
     Mutex.unlock mutex
 
-  (* This allows to use the queue as a deque, for 'urgent' messages, like
+  (* This allows the user to use the queue as a deque, for 'urgent' messages, like
      thread termination requests: *)
   method prepend x =
     Mutex.lock mutex;

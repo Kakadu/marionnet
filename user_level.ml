@@ -196,7 +196,7 @@ class network =
    (* we are manually setting the verbosity 3 *)
    (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr forest);
    match Forest.to_tree forest with
-   | (("dotoptions", attrs), childs) -> self#from_tree ("dotoptions", attrs) childs
+   | (("dotoptions", attrs), children) -> self#from_tree ("dotoptions", attrs) children
    | _ -> assert false
 
  (** Dot_tuning to forest encoding. *)
@@ -213,7 +213,7 @@ class network =
      ("invertedCables", (Xforest.encode network#reversed_cables)) ;
      ])
 
- (** A Dotoption.network has just attributes (no childs) in this version.
+ (** A Dotoption.network has just attributes (no children) in this version.
      The Dotoption.network must be undumped AFTER the Netmodel.network in
      order to have significant cable names (reversed_cables). *)
  method eval_forest_attribute = function
@@ -572,31 +572,31 @@ class virtual ['parent] simulated_device () = object(self)
 
         | _ -> raise_forbidden_transition "poweroff_right_now")
 
-  (** Return true iff the current state allows to 'startup' the device from the GUI. *)
+  (** Return true iff the current state allows the user to 'startup' the device from the GUI. *)
   method can_startup =
     Recursive_mutex.with_mutex mutex
       (fun () ->
         match !automaton_state with NoDevice | DeviceOff -> true | _ -> false)
 
-  (** Return true iff the current state allows to 'shutdown' a device from the GUI. *)
+  (** Return true iff the current state allows the user to 'shutdown' a device from the GUI. *)
   method can_gracefully_shutdown =
     Recursive_mutex.with_mutex mutex
       (fun () ->
         match !automaton_state with DeviceOn | DeviceSleeping -> true | _ -> false)
 
-  (** Return true iff the current state allows to 'power off' a device from the GUI. *)
+  (** Return true iff the current state allows the user to 'power off' a device from the GUI. *)
   method can_poweroff =
     Recursive_mutex.with_mutex mutex
       (fun () ->
         match !automaton_state with NoDevice | DeviceOff -> false | _ -> true)
 
-  (** Return true iff the current state allows to 'suspend' a device from the GUI. *)
+  (** Return true iff the current state allows the user to 'suspend' a device from the GUI. *)
   method can_suspend =
     Recursive_mutex.with_mutex mutex
       (fun () ->
         match !automaton_state with DeviceOn -> true | _ -> false)
 
-  (** Return true iff the current state allows to 'resume' a device from the GUI. *)
+  (** Return true iff the current state allows the user to 'resume' a device from the GUI. *)
   method can_resume =
     Recursive_mutex.with_mutex mutex
       (fun () ->
@@ -1502,8 +1502,8 @@ class network () =
  method to_tree =
    let l = List.map (fun x->x#to_tree) self#components in
    let root = ("network",[]) in
-   let childs = Forest.of_treelist l in
-   (root, childs)
+   let children = Forest.of_treelist l in
+   (root, children)
 
  method to_forest =
    Forest.of_tree self#to_tree
@@ -1512,7 +1512,7 @@ class network () =
  method subscribe_a_try_to_add_procedure p =
    try_to_add_procedure_list := p::(!try_to_add_procedure_list)
 
- (** We redefine just the interpretation of a childs.
+ (** We redefine just the interpretation of a children.
      We ignore (in this version) network attributes. *)
  method eval_forest_child (f:Xforest.tree) : unit =
   let xs = List.rev !try_to_add_procedure_list in
@@ -1815,7 +1815,7 @@ module Xml = struct
   (* we are manually setting the verbosity 3 *)
   (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr forest);
   match Forest.to_tree forest with
-  | (("network", attrs), childs) -> net#from_tree ("network", attrs) childs
+  | (("network", attrs), children) -> net#from_tree ("network", attrs) children
   | _ -> assert false
  ;;
 

@@ -176,7 +176,7 @@ function tmpfile {
    local SIGTERM=15 # CTRL-C
    local TRAPPED_EVENTS="$SIGINT $SIGQUIT $SIGABRT $SIGKILL $SIGTERM"
    trap "rm -rf $TWDIR" $TRAPPED_EVENTS
-   # Assign the system variable TMPDIR used by mktemp (for script childs):
+   # Assign the system variable TMPDIR used by mktemp (for script children):
    export TMPDIR=$TWDIR
    export -f tmpfile
  fi

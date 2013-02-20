@@ -221,14 +221,14 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_cloud (network:User_level.network) ((root,childs):Xforest.tree) =
+ let try_to_add_cloud (network:User_level.network) ((root,children):Xforest.tree) =
   try
    (match root with
     | ("cloud", attrs) ->
     	let name  = List.assoc "name"  attrs in
         Log.printf "Importing cloud \"%s\"...\n" name;
         let x = new User_level_cloud.cloud ~network ~name () in
-	x#from_tree ("cloud", attrs) childs  ;
+	x#from_tree ("cloud", attrs) children  ;
         Log.printf "Cloud \"%s\" successfully imported.\n" name;
         true
    | _ ->

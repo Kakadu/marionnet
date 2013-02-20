@@ -20,7 +20,7 @@ open Unix;;
 open Sys;;
 open Mutex;;
 
-(** This functionality allows to register a callback to invoke in the event of
+(** This functionality allows the user to register a callback to invoke in the event of
     the unexpected death of each given process. When a process death is detected
     the callback is invoked, and the process is automatically un-registered.
     Process death is not detected immediately, as the implementation is based on

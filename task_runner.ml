@@ -60,7 +60,7 @@ type task_graph =
 (** This is only used internally. *)
 exception Kill_task_runner;;
 
-(** This class allows to enqueue tasks (represented as thunks) to
+(** This class allows the user to enqueue tasks (represented as thunks) to
     be executed one after another, all in the same thread which is
     created at initialization time. *)
 class task_runner = object(self)

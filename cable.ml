@@ -320,7 +320,7 @@ and set its parameters:\n\n\
 network graph\n\n\
 - Devices: the two network devices (machine, hub, ...) linked by the cable and \
 their two connected interfaces\n\n\
-WARNING: this dialog allows to define straight cables even in contexts where \
+WARNING: this dialog allows the user to define straight cables even in contexts where \
 they won't work (for example between two machines); allowing users to define 'wrong' \
 connections may be of some pedagogical interest.")
    in Simple_dialogs.help title msg
@@ -334,7 +334,7 @@ and set its parameters:\n\n\
 network graph\n\n\
 - Devices: the two network devices (machine, hub, ...) linked by the cable and \
 their two connected interfaces\n\n\
-WARNING: this dialog allows to define crossover cables even in contexts where \
+WARNING: this dialog allows the user to define crossover cables even in contexts where \
 they won't work (for example between two machines); allowing users to define 'wrong' \
 connections may be of some pedagogical interest.")
    in Simple_dialogs.help title msg
@@ -353,7 +353,7 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_cable (network:User_level.network) ((root,childs):Xforest.tree) =
+ let try_to_add_cable (network:User_level.network) ((root,children):Xforest.tree) =
   try
    (match root with
    | ("cable", attrs) ->
@@ -374,7 +374,7 @@ module Eval_forest_child = struct
 	    ~right_user_endpoint:(rn,rr)
 	    ()
         in
-        x#from_tree ("cable", attrs) childs ;
+        x#from_tree ("cable", attrs) children ;
         Log.printf "Cable \"%s\" successfully imported.\n" name;
         true
    | _ ->
@@ -682,7 +682,7 @@ and cable =
 	("rightreceptname" ,  self#get_right#user_port_name) ;
       ])
 
-  (** A cable has just attributes (no childs) in this version. The attribute "kind" cannot be set,
+  (** A cable has just attributes (no children) in this version. The attribute "kind" cannot be set,
       must be considered as a constant field of the class. *)
   method eval_forest_attribute =
     function

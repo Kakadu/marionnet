@@ -378,9 +378,9 @@ tab.\n\n\
 subdirectory\n\n\
 SECTION 'UML':\n\n\
 - Terminal: the possible choices are 'X HOST' and 'X NEST'; the first one \
-allows to run graphic applications from a text terminal where the user \
+allows the user to run graphic applications from a text terminal where the user \
 can operate the virtual machine (with user 'root' and password 'root'); \
-the second allows to have a real graphic server reserved for the virtual \
+the second allows the user to have a real graphic server reserved for the virtual \
 machine, with independent windows manager and desktops environments.")
    in Simple_dialogs.help title msg ;;
 
@@ -392,7 +392,7 @@ end
 
 module Eval_forest_child = struct
 
- let try_to_add_machine (network:User_level.network) ((root,childs):Xforest.tree) =
+ let try_to_add_machine (network:User_level.network) ((root,children):Xforest.tree) =
   try
    (match root with
     | ("machine", attrs) ->
@@ -401,7 +401,7 @@ module Eval_forest_child = struct
 	let port_no = int_of_string (ListExtra.Assoc.find_first ["port_no"; "eth"] attrs) in
         Log.printf "Importing machine \"%s\" with %d ethernet cards...\n" name port_no;
 	let x = new User_level_machine.machine ~network ~name ~port_no () in
-	x#from_tree ("machine", attrs) childs;
+	x#from_tree ("machine", attrs) children;
         Log.printf "Machine \"%s\" successfully imported.\n" name;
         true
    | _ -> false
@@ -497,7 +497,7 @@ class machine
       ("port_no"  ,  (string_of_int self#get_port_no))  ;
       ])
 
- (** A machine has just attributes (no childs) in this version. *)
+ (** A machine has just attributes (no children) in this version. *)
  method eval_forest_attribute = function
   | ("name"     , x ) -> self#set_name x
   | ("label"    , x ) -> self#set_label x

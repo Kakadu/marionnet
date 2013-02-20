@@ -326,7 +326,7 @@ end
 (*-----*)
 
 module Eval_forest_child = struct
- let try_to_add_world_gateway (network:User_level.network) ((root,childs):Xforest.tree) =
+ let try_to_add_world_gateway (network:User_level.network) ((root,children):Xforest.tree) =
   try
    (match root with
     | ("world_gateway", attrs) ->
@@ -336,7 +336,7 @@ module Eval_forest_child = struct
 	in
         Log.printf "Importing world gateway \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_world_gateway.world_gateway ~network ~name ~port_no () in
-	x#from_tree ("world_gateway", attrs) childs;
+	x#from_tree ("world_gateway", attrs) children;
         Log.printf "World gateway \"%s\" successfully imported.\n" name;
         true
    | _ ->
@@ -424,7 +424,7 @@ class world_gateway =
         ("port_no", (string_of_int self#get_port_no));
       ])
 
-  (** A world_bridge has just attributes (no childs) in this version. *)
+  (** A world_bridge has just attributes (no children) in this version. *)
   method eval_forest_attribute =
     function
       | ("name"  , x ) -> self#set_name x

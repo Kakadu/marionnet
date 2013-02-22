@@ -16,8 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.16
-# 2012.10.24
+# Script version: 0.90.17
+# 2013.02.22
 
 set -e
 shopt -s nullglob
@@ -738,7 +738,7 @@ function echo_required_debian_packages {
  # vde2 only if is not already installed and the available version is >= 2.2.1
  if type 1>&2 aptitude; then
    type 1>&2 vde_switch || {
-       VDE2_VERSION=$(aptitude show vde2 | awk '/^Version.*2[.]2[.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
+       VDE2_VERSION=$(aptitude show vde2 | awk '/^Version.*[2-9][.][0-9][.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
        VDE2_VERSION=$(echo $VDE2_VERSION | awk -F '.' '(($2 * 100 + $3 * 10 + $4) >= 221) {print}')
        if [[ -n "$VDE2_VERSION" ]]; then
 	   LIST+="vde2 "
@@ -821,7 +821,7 @@ if are_we_in_debian_or_derived; then
       fi
       # vde2 only if is not already installed and the available version is >= 2.2.1
       if [[ $APTITUDE_INSTALLED_NOW = yes ]] && ! type 1>&2 vde_switch; then
-	  VDE2_VERSION=$(aptitude $APTITUDE_OPTIONS show vde2 | awk '/^Version.*2[.]2[.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
+	  VDE2_VERSION=$(aptitude $APTITUDE_OPTIONS show vde2 | awk '/^Version.*[2-9][.][0-9][.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
 	  VDE2_VERSION=$(echo $VDE2_VERSION | awk -F '.' '(($2 * 100 + $3 * 10 + $4) >= 221) {print}')
 	  if [[ -n "$VDE2_VERSION" ]]; then
 	      DEBIAN_PACKAGE_LIST+="vde2 "
@@ -980,6 +980,7 @@ elif [[ -w "$PREFIX" ]]; then
 elif type -t sudo 1>&2; then
   ensure_sudo -p "* Required the [sudo] password for %u:"
   MAKE_INSTALL="PATH=$PATH make install"
+  SUDO_MAKE_INSTALL="sudo make install"
   AS_ROOT=--as-root
 elif type -t su 1>&2; then
   echo "* Preparing to install in $PREFIX"
@@ -990,6 +991,9 @@ elif type -t su 1>&2; then
 else
   exit_and_continue_as_root
 fi
+
+# Set a default if not already set (when sudo is required and available):
+SUDO_MAKE_INSTALL=${SUDO_MAKE_INSTALL:-$SUDO_OR_NOTHING $MAKE_INSTALL}
 
 launch_and_log ${AS_ROOT} \
   "Installing marionnet" \
@@ -1019,7 +1023,7 @@ function download_compile_and_install_vde2 {
   cd vde2
   { ./configure -prefix $PREFIX &&
     make &&
-    $MAKE_INSTALL
+    $SUDO_MAKE_INSTALL
     } || return 1
   cd ..
 }
@@ -1046,7 +1050,7 @@ function download_compile_and_install_graphviz {
   cd graphviz
   { ./configure -prefix=$PREFIX &&
     make &&
-    $MAKE_INSTALL
+    $SUDO_MAKE_INSTALL
     } || return 1
   cd ..
 }

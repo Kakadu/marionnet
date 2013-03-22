@@ -1,0 +1,50 @@
+#!/bin/bash
+# This file is part of Marionnet, a virtual network laboratory
+# Copyright (C) 2007  Luca Saiu
+# Copyright (C) 2007  Jean-Vincent Loddo
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+echo -n "Finalizing Marionnet support... "
+
+# Read kernel command line variables into this shell's environment:
+source /usr/sbin/marionnet_source_cmdline
+
+# Save the configuration if we're in exam mode:
+if [[ -n $exam ]]; then
+  /usr/sbin/marionnet_grab_config
+fi
+
+function remove_line_if_needed {
+    local LINE="$1"
+    local FILE="$2"
+    local temporary_file
+
+    if test -f "$FILE" && grep -q "^${LINE}$" "$FILE"; then  
+        temporary_file=$(mktemp /tmp/prepare_shutdown.XXXXXX) && \
+           grep -v "^${LINE}$" "$FILE" > $temporary_file && \
+           mv -f $temporary_file "$FILE"
+    else
+        true
+    fi 
+}
+
+# Remove the host name from /etc/hosts: the user might change it
+# when the virtual machine is off:
+remove_line_if_needed "127.0.0.1 $hostname" /etc/hosts
+
+# To do: add other stuff as needed.
+
+echo "done."

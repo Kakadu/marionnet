@@ -1,0 +1,5 @@
+/usr/sbin/marionnet_grab_config
+/usr/sbin/marionnet_source_cmdline
+/etc/init.d/marionnet_prepare_startup
+/etc/init.d/marionnet_prepare_shutdown
+/etc/init.d/marionnet-xterm-title.sh

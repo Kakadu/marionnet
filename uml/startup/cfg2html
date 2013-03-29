@@ -1,0 +1,22 @@
+# @(#) $Header: /home/ralproth/CVS/cfg2html_hpux/release/cfg2html,v 3.13 2006/05/03 08:10:23 ralproth Exp $
+##############################################################
+# This is a wrapper for cfg2html(-hpux).sh (shortcut) and can be
+# customized to fit your needs.
+#
+
+case $(uname) in
+HP-UX) 	cfg2html_hpux.sh $* -0 -o/tmp;;			## 31.03.2005 14:50
+Linux)  cfg2html-linux $* -x -A;;			## 08.06.2006
+*)	echo "$0: Unsupported operating system!"; exit 2 ;;
+esac
+
+RETCODE=$?
+
+if [ $RETCODE -eq 0 ]
+then
+	# Customize this to fit your needs!
+	######## mueller ############# #  16.03.2005, 09:49 modified by Ralph.Roth
+	[ -x /usr/bin/xitd03wg ] && /usr/bin/xitd03wg /tmp/$(hostname)*{.err,.html,_xpinfo.txt}
+else
+	echo "Error ($0): Returncode=$RETCODE"
+fi

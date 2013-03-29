@@ -1,0 +1,10 @@
+
+digraph deps {
+  "/etc/init.d/marionnet_prepare_shutdown" -> "/usr/sbin/marionnet_source_cmdline";
+  "/etc/init.d/marionnet_prepare_shutdown" -> "/usr/sbin/marionnet_grab_config";
+  "/etc/init.d/marionnet_prepare_startup"  -> "/usr/sbin/marionnet_source_cmdline";
+  "/usr/sbin/marionnet_grab_config"        -> "/usr/bin/cfg2html";
+  "/usr/bin/cfg2html"                      -> "/usr/bin/cfg2html-linux";
+  "marionnet-xterm-title.sh";
+}
+

@@ -3,3 +3,5 @@
 /etc/init.d/marionnet_prepare_startup
 /etc/init.d/marionnet_prepare_shutdown
 /etc/init.d/marionnet-xterm-title.sh
+/usr/bin/cfg2html
+/usr/bin/cfg2html-linux

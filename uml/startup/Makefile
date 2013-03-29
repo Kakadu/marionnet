@@ -1,0 +1,4 @@
+dot: DEPENDENCIES.dot
+	dot -Tpng -o DEPENDENCIES.png DEPENDENCIES.dot
+
+

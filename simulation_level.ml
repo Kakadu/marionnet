@@ -363,9 +363,10 @@ class vde_switch_process =
      ?rcfile
      ~unexpected_death_callback
      () ->
- let socket_name_prefix = match socket_name_prefix with
+ let socket_name_prefix =
+  match socket_name_prefix with
   | Some p -> p
-  | None -> (if hub then "hub-socket-" else "switch-socket-")
+  | None -> Printf.sprintf "%s-socket-" (if hub then "hub" else "switch")
  in
  object(self)
   inherit process_which_creates_a_socket_at_spawning_time
@@ -1468,6 +1469,10 @@ class virtual ['parent] hub_or_switch =
     main_process <-
       Some (new vde_switch_process
               ~hub
+              ~socket_name_prefix:
+                 (Printf.sprintf "%s-%s-socket-"
+                   (if hub then "hub" else "switch")
+                   (parent#get_name))
               ~port_no:hublet_no
               ?management_socket
               ?fstp

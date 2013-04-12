@@ -1,4 +1,4 @@
-# This file is a part of the tool Ghost2 to the
+# This file is a part of the tool ethghost to the
 # Marionnet project <http://www.marionnet.org>
 
 # Copyright (C) 2011  Luca Saiu
@@ -28,14 +28,22 @@
 CC = gcc
 CFLAGS = -g -O2
 
-ghost2: ghost2.o ghost2-interface.o
+all: ethghost
+
+ethghost: ethghost.o ethghost-interface.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-ghost2.o: ghost2.c ghost2-interface.h
+ethghost.o: ethghost.c ethghost-interface.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-ghost2-interface.o: ghost2-interface.c ghost2-interface.h
+ethghost-interface.o: ethghost-interface.c ethghost-interface.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f *.o ghost2
+	rm -f *.o ethghost
+
+# DESTDIR may be set by the caller, for instance:
+# make DESTDIR=/usr/local install
+# (suitable for buildroot)
+install:
+	 cp ethghost $(DESTDIR)/bin/ethghost

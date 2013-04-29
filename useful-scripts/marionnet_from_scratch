@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # This file is part of marionnet
-# Copyright (C) 2010  Jean-Vincent Loddo
+# Copyright (C) 2010 2011 2012 2013  Jean-Vincent Loddo
+# Copyright (C) 2010 2011 2012 2013  Université Paris 13
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,8 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.17
-# 2013.02.22
+# Script version: 0.90.18
+# 2013.04.29
 
 set -e
 shopt -s nullglob
@@ -31,6 +32,17 @@ else
   export SUDO_OR_EVAL=sudo
   export SUDO_OR_NOTHING=sudo
 fi
+
+function exiting_because_error {
+ # global KEEP_DEBRIS TWDIR
+ echo -e "Exiting because of an unexpected error in line $BASH_LINENO"
+ if [[ $KEEP_DEBRIS = no ]]; then
+  rm -rf $TWDIR
+ fi
+ exit 3
+}
+#
+trap exiting_because_error ERR
 
 # =============================================================
 #                     SELF DEPENDENCIES
@@ -174,7 +186,15 @@ done
 
 declare -a ARGS
 parse_cmdline "$@" # read OPTSTRING and set ARGS
-set - "${ARGS[@]}"
+# Warning: the following two branches could not be grouped
+# into the single command (`else' branch):
+# set - "${ARGS[@]}";
+# The behaviour is not the same when the array is empty!
+if [[ ${#ARGS[@]} -eq 0 ]]; then
+  set - "";
+else
+  set - "${ARGS[@]}";
+fi
 unset ARGS
 
 function print_usage_and_exit {
@@ -344,10 +364,10 @@ fi
 
 function exiting_because_signal {
  # global KEEP_DEBRIS TWDIR COMMAND_LINE
+ echo -e "Exiting because of signal."
  if [[ $KEEP_DEBRIS = no ]]; then
   rm -rf $TWDIR
  else
-  echo -e "Exiting because of signal."
   echo -e "You can continue the execution launching the following command:
 ---
 $COMMAND_LINE -c $TWDIR
@@ -495,6 +515,8 @@ function launch_and_log {
  # prevent sudo to re-ask the password)
  # The option --as-script implies that the command will be launched
  # as a standalone script
+ local DO_NOT_REGISTER_AS_DONE
+ if [[ $1 = --do-not-register-as-done ]]; then shift; DO_NOT_REGISTER_AS_DONE=y; fi
  local EVAL_OR_SUDO
  local AS_SCRIPT
  # By default EVAL_OR_SUDO is equal to eval
@@ -540,7 +562,9 @@ function launch_and_log {
   echo "Exiting."
  else
   echo
-  echo "$MSG DONE" >> $ALREADY_DONE
+  if [[ -z $DO_NOT_REGISTER_AS_DONE ]]; then
+    echo "$MSG DONE" >> $ALREADY_DONE
+  fi
  fi
  return $RETURN_CODE
 }
@@ -828,7 +852,8 @@ if are_we_in_debian_or_derived; then
               echo "  Note: I will also install vde2 with aptitude"
 	  fi
       fi
-      launch_and_log --sudo "$MSG" "aptitude $APTITUDE_OPTIONS -q -y install $DEBIAN_PACKAGE_LIST"
+      # We set the option `--do-not-register-as-done' because sometimes a single call to aptitude is not sufficient to install all things...
+      launch_and_log --do-not-register-as-done --sudo "$MSG" "aptitude $APTITUDE_OPTIONS -q -y install $DEBIAN_PACKAGE_LIST"
       DISABLE_libc6_i386_WARNING=yes
     fi # answered yes
   fi # package list not empty
@@ -868,10 +893,10 @@ fi
   make world.opt &&
   make install &&
   make -C tools/ objinfo &&
-  [[ -e $OCAML_PREFIX/bin/ocamlobjinfo ]] || {
+  if [[ ! -e $OCAML_PREFIX/bin/ocamlobjinfo ]]; then
     cp tools/objinfo $OCAML_PREFIX/bin/ &&
     [[ -e $OCAML_PREFIX/bin/ocamlobjinfo ]] || ln -s objinfo $OCAML_PREFIX/bin/ocamlobjinfo
-    }
+  fi
   } || return 1
 cd ..
 }
@@ -1150,7 +1175,14 @@ popd 1>&2
 #                     marionnet.conf
 # =============================================================
 
-MARIONNET_DOT_CONF=$PREFIX/share/marionnet/marionnet.conf
+if [[ -f $PREFIX/share/marionnet/marionnet.conf ]]; then
+ MARIONNET_DOT_CONF=$PREFIX/share/marionnet/marionnet.conf
+elif [[ -f $PREFIX/etc/marionnet/marionnet.conf ]]; then
+ MARIONNET_DOT_CONF=$PREFIX/etc/marionnet/marionnet.conf
+else
+ echo "File \`marionnet.conf' not found. Exiting.";
+ exit 3
+fi
 
 function first_installed_binary_of_list {
  local i
@@ -1493,7 +1525,7 @@ fi
 if are_we_in_ubuntu_11_or_greater ; then
   echo "* Warning: Ubuntu (>= 11.x) systems require to launch marionnet with UBUNTU_MENUPROXY=0"
   echo "  => The problem may be solved defining an alias in your shell configuration:"
-  echo "     alias marionnet='UBUNTU_MENUPROXY=0 marionnet'" 
+  echo "     alias marionnet='UBUNTU_MENUPROXY=0 marionnet'"
   case $USER in
    root)
      DEST='/etc/profile'
@@ -1536,6 +1568,34 @@ else
  if [[ $z != n && $z != N ]]; then
    append_line_if_needed "export PATH=$PREFIX/bin:$PREFIX/sbin:\$PATH" $DEST
  fi
+fi
+
+
+# =============================================================
+#                       Adjust LOCALES
+#     `/usr/share/locale'  vs  `/usr/local/share/locale'
+# =============================================================
+
+# When PREFIX is set to `/usr/local' ocamlbricks and marionnet install their
+# locale-related files in `$PREFIX/share/locale' (i.e. `/usr/local/share/locale')
+# while some distributions install their locales into `/usr/share/locale'
+# ignoring files installed in `/usr/local/share/locale'
+# (for instance Ubuntu 12.04 LTS 64 bits). So:
+if [[ $PREFIX = "/usr/local" && -d "/usr/share/locale/" && -d "/usr/local/share/locale" ]]; then
+PROBABLY_GOOD="/usr/share/locale/"
+PROBABLY_BAD="/usr/local/share/locale"
+COUNT_GOOD=$(find $PROBABLY_GOOD -type f -name "*.mo" | wc -l)
+COUNT_BAD=$(find $PROBABLY_BAD -type f -name "*.mo" | wc -l)
+# Heuristic method (of course): is $COUNT_GOOD twenty times bigger then $COUNT_BAD?
+if [[ $((COUNT_GOOD/COUNT_BAD)) -gt 20 ]]; then
+  # Move `marionnet.mo' files from $PROBABLY_BAD to $PROBABLY_GOOD:
+  echo -n "* Moving installed locales into $PROBABLY_GOOD"
+  pushd >/dev/null $PROBABLY_BAD
+  find . -name "marionnet.mo" | xargs tar -cf - | $SUDO_OR_NOTHING tar -C $PROBABLY_GOOD -xf -
+  $SUDO_OR_NOTHING find . -name "marionnet.mo" -exec rm {} \;
+  popd >/dev/null
+  echo_at_right_side --newline "ok"
+fi
 fi
 
 # =============================================================

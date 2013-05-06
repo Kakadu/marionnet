@@ -1,0 +1,21 @@
+*** linux-3.2.13.original/arch/x86/um/Makefile	2012-03-19 17:03:17.000000000 +0100
+--- linux-3.2.13.modified/arch/x86/um/Makefile	2013-04-30 18:09:48.000000000 +0200
+***************
+*** 19,25 ****
+  obj-y += checksum_32.o
+  obj-$(CONFIG_BINFMT_ELF) += elfcore.o
+  
+! subarch-y = ../lib/string_32.o ../lib/atomic64_32.o ../lib/atomic64_cx8_32.o
+  subarch-$(CONFIG_RWSEM_XCHGADD_ALGORITHM) += ../lib/rwsem.o
+  subarch-$(CONFIG_HIGHMEM) += ../mm/highmem_32.o
+  
+--- 19,27 ----
+  obj-y += checksum_32.o
+  obj-$(CONFIG_BINFMT_ELF) += elfcore.o
+  
+! subarch-y = ../lib/string_32.o ../lib/atomic64_32.o ../lib/atomic64_cx8_32.o \
+! 	../lib/atomic64_386_32.o ../lib/cmpxchg8b_emu.o
+! 
+  subarch-$(CONFIG_RWSEM_XCHGADD_ALGORITHM) += ../lib/rwsem.o
+  subarch-$(CONFIG_HIGHMEM) += ../mm/highmem_32.o
+  

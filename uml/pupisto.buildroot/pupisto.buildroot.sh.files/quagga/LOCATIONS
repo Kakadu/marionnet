@@ -1,0 +1,4 @@
+/etc/quagga/*.conf
+/etc/quagga/daemons
+/etc/quagga/README.ports
+/etc/init.d/quagga

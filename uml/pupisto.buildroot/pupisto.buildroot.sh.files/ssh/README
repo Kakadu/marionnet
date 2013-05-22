@@ -1,0 +1,13 @@
+1) The following settings in `/etc/sshd_config' allow Marionnet to connect 
+   or send commands to virtual machines:
+
+   PermitRootLogin yes
+   StrictModes no
+   PubkeyAuthentication yes
+
+2) The private key `id_rsa_marionnet' should be used by Marionnet in a command like
+   the following:
+   ssh -i id_rsa_marionnet -o PreferredAuthentications=publickey root@172.23.0.1 ls /
+
+3) The public key `id_rsa_marionnet.pub' should be appended to .ssh/authorized_keys 
+   for both "root" and "student" accounts into the virtual machines.

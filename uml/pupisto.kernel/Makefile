@@ -24,7 +24,7 @@ help:
 	@echo "Example: make 3.2.44"
 
 2.% 3.%: dependencies
-	./pupisto_kernel.sh $@
+	./pupisto.kernel.sh $@
 
 clean:
 	rm -rf _build.linux-*

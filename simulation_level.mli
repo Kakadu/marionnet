@@ -297,6 +297,7 @@ class uml_process :
   id:int ->
   ?show_unix_terminal:bool ->
   ?xnest_display_number:string ->
+  ?guestkind:string ->                                                                                                                                     
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object

@@ -1,0 +1,100 @@
+# Some aliases and simple but useful functions for system/network exercices.
+# J.V. Loddo - Licence: GPL
+
+export PS1='[$? \u@\e[0;36m\h\e[m \w]\\$ '
+
+# Without color for the hostname:
+# export PS1='[$? \u@\h \w]\\$ '
+
+alias ls='ls -Fs --color'
+alias ll="ls -lh"
+alias la="ls -alh"
+alias lt="ls -lth"
+alias '..'='cd ..'
+
+shopt -s nullglob
+
+# Clean $PATH
+export PATH=$(for i in ${PATH//:/ }; do [[ -d $i ]] && echo $i ; done | uniq | tr '\n' ':')
+PATH=${PATH%:}
+
+export EDITOR="nano"
+
+# Get the specified field of each line:
+function field { local N=${1:-1}; shift; cat "$@" | awk -v N=$N '{print $N}'; }
+export field
+
+# Like `which' but reads links recursively. Useful for instance to quickly know
+# if a binary name corresponds to busybox:
+function what {
+ local W B
+ if W=$(which "$1"); then
+   if B=$(readlink -f $W); then
+     echo $B
+   else
+     echo $W
+   fi
+ else
+  return 1
+ fi
+}
+export what
+
+# TCP listening ports:
+function tcp_ports {
+ local CMD="sudo netstat -tlnp"
+ if [[ $# = 0 ]]; then
+   $CMD
+ else
+   local ARGS="$@";
+   $CMD | \grep "${ARGS// /\\|}"
+ fi
+}
+export tcp_ports
+
+# UDP waiting ports:
+function udp_ports {
+ local CMD="sudo netstat -unpa"
+ if [[ $# = 0 ]]; then
+   $CMD
+ else
+   local ARGS="$@";
+   $CMD | \grep "${ARGS// /\\|}"
+ fi
+}
+export udp_ports
+
+# Listening unix ports
+function unix_ports {
+ local CMD="sudo netstat -xnpa | \grep LISTENING"
+ if [[ $# = 0 ]]; then
+   eval $CMD
+ else
+   local ARGS="$@";
+   eval $CMD | \grep "${ARGS// /\\|}"
+ fi
+}
+export unix_ports
+
+# Service ports (TCP, UDP or UNIX):
+function srv_ports {
+ echo "--- TCP listening ports"
+ tcp_ports "$@"
+ echo "--- UDP waiting ports"
+ udp_ports "$@"
+ echo "--- UNIX listening ports"
+ unix_ports "$@"
+}
+export srv_ports
+
+# Files opened by a command:
+# Example: opened_by bash
+function opened_by {
+ local TMPFILE=$(mktemp)
+ strace 2>$TMPFILE "$@" </dev/null
+ echo "Open calls:"
+ \grep "^open(\".*\"" <$TMPFILE
+ rm $TMPFILE
+}
+export opened_by
+

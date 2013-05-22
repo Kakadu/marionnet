@@ -1,0 +1,11 @@
+config BR2_PACKAGE_ETHGHOST
+	bool "ethghost"
+	help
+	  Hide or show ethernet interfaces. This utility allows the user
+	  to take advantages of the system calls introduced by the
+	  Marionnet's developers in order to "ghostify" (or "unghostify")
+	  ethernet interfaces. This feature is used in Marionnet for
+	  pedagogical reasons in order to hide the interface eth42
+	  and the related X11 traffic.
+
+	  http://www.marionnet.org

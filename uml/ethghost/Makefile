@@ -40,10 +40,14 @@ ethghost-interface.o: ethghost-interface.c ethghost-interface.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f *.o ethghost
+	rm -f *.o ethghost *~
 
 # DESTDIR may be set by the caller, for instance:
 # make DESTDIR=/usr/local install
 # (suitable for buildroot)
 install:
 	 cp ethghost $(DESTDIR)/bin/ethghost
+
+# Used by `pupisto' to know the package version to include in the buildroot's image
+print_version:
+	@awk <ethghost-interface.h '($$1 == "#define") && ($$2 == "__ETHGHOST_VERSION__") {a=$$3; gsub(/"/,"",a); print a}'

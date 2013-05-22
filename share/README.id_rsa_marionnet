@@ -1,0 +1,14 @@
+Example of how to exploit the key `id_rsa_marionnet'
+----------------------------------------------------
+
+m1# /etc/init.d/sshd start
+
+host# route
+...
+172.23.0.1    *    255.255.255.255 UH    0      0     0 tap677104
+...
+
+host# ssh -i id_rsa_marionnet student@172.23.0.1
+host# ssh -i id_rsa_marionnet root@172.23.0.1
+
+host# scp -i id_rsa_marionnet <FILE> root@172.23.0.1:

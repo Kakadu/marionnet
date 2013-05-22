@@ -40,9 +40,11 @@ else
   exit $EXIT_CODE
 fi
 
+[[ $1 = "--source" || $1 = "-s" ]] || {
 set -e
 shopt -s nullglob
 shopt -s expand_aliases
+}
 
 # Getopt's format used to parse the command line:
 OPTSTRING="hls"

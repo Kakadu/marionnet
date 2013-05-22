@@ -1,0 +1,27 @@
+Author: Stefan Meißner
+http://lists.busybox.net/pipermail/buildroot/2012-April/052591.html
+
+Modified by Marionnet team in order to get a up-to-date debian patch of version 1.60,
+and also modified at line 55 as suggested by the Buildroot build system itself:
+$(eval $(call GENTARGETS)) ==> $(eval $(generic-package)) 
+
+More formally, the patch of the patch is the following:
+
+--- net-tools.patch.orig	2013-05-07 12:26:35.000000000 +0200
++++ net-tools.patch.modified	2013-05-07 12:20:50.000000000 +0200
+@@ -164,8 +164,8 @@
+ +#############################################################
+ +NET_TOOLS_VERSION = 1.60
+ +NET_TOOLS_SOURCE  = net-tools_$(NET_TOOLS_VERSION).orig.tar.gz
+-+NET_TOOLS_PATCH   = net-tools_$(NET_TOOLS_VERSION)-24.1.diff.gz
+ +NET_TOOLS_SITE    = $(BR2_DEBIAN_MIRROR)/debian/pool/main/n/net-tools
+++NET_TOOLS_PATCH   = $(shell wget -q -O - $(NET_TOOLS_SITE) | grep -o '[>]net-tools_$(NET_TOOLS_VERSION).*[.]diff[.]gz' | sort | tail -n 1 | cut -c2-)
+ +
+ +# Override Busybox implementations if Busybox is enabled.
+ +ifeq ($(BR2_PACKAGE_BUSYBOX),y)
+@@ -211,4 +211,4 @@
+ +	$(MAKE) -C $(@D) clean
+ +endef
+ +
+-+$(eval $(call GENTARGETS))
+++$(eval $(generic-package))

@@ -1,7 +1,9 @@
-#!/bin/sh
+#!/bin/bash
+
 # This file is part of Marionnet, a virtual network laboratory
 # Copyright (C) 2007  Luca Saiu
-# Copyright (C) 2007  Jean-Vincent Loddo
+# Copyright (C) 2007 2013  Jean-Vincent Loddo
+# Copyright (C) 2007 2013  Université Paris 13
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,130 +18,167 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+echo -n "Marionnet startup configuration... "
+
+set -x
+
+function append_line_if_needed {
+  local LINE="$1"
+  local FILE="$2"
+  { test -f "$FILE" && grep -q "^${LINE}$" "$FILE"; } || echo "$LINE" >> "$FILE"
+}
+
+###########################################
+#     Source-ing kernel command line      #
+###########################################
+
+# Read kernel command line variables into this shell's environment:
+# Expected variables: hostname hostfs ubd0s
+export $(tr </proc/cmdline ' ' '\n' | \grep "^[a-zA-Z][a-zA-Z0-9_]*[=]")
+
+
+###########################################
+#               hostname                  #
+###########################################
+
+# Set the hostname according to the kernel command line:
+if [[ -n $hostname ]]; then
+  echo $hostname > /etc/hostname
+  # The script `/etc/init.d/hostname.sh' belonged to the package `initscripts'
+  # on old debian systems:
+  [[ -x /etc/init.d/hostname.sh ]] && /etc/init.d/hostname.sh start &>/dev/null
+  # Make a correct entry in /etc/hosts:
+  append_line_if_needed "127.0.0.1 $hostname" /etc/hosts
+else
+  echo "Warning: variable 'hostname' undefined" 1>&2
+fi
+
+
+###########################################
+#                hostfs                   #
+###########################################
+
+# Mount the hostfs filesystem and add bindings from the hostfs file
+# `boot_parameters' to this shell environment:
+if [[ -n $hostfs ]]; then
+  mount none /mnt/hostfs -t hostfs -o $hostfs &&
+  # And also record it on the hostfs filesystem, so that we can
+  # easily tell which guest machine the directory belongs to
+  # *from the host*:
+  [[ -n $hostname ]] && echo $hostname > /mnt/hostfs/GUESTNAME &&
+  source /mnt/hostfs/boot_parameters
+else
+  echo "Warning: variable 'hostfs' undefined" 1>&2
+fi
+
+###########################################
+#             xterm title                 #
+###########################################
+
+# Show the hostname (and its filesystem) in the terminal window title bar
+if [[ -n $ubd0s ]]; then
+  # Get the name of the virtual filesystem choosen by the user:
+  virtualfs_name="${ubd0s##*/}"
+  virtualfs_name=${virtualfs_name#router-}
+  virtualfs_name=${virtualfs_name#machine-}
+  echo -e '\033]0;'"$hostname ($virtualfs_name)"'\007'
+else
+  echo "Warning: variable 'ubd0s' undefined" 1>&2
+fi
+
+
+###########################################
+#        Network configurations           #
+###########################################
 
 # Perform an indirect lookup of the variable $1'_eth'$2, i.e. return
 # the value of the variable which is the value of the variable named
 # $1'_eth'$2.
-
-function lookup
-{
-    echo $(eval echo '$'$1'_eth'$2)
+function lookup {
+  echo $(eval echo '$'$1'_eth'$2)
 }
 
-echo -n "Preparing the configuration for Marionnet... "
-
-# Read kernel command line variables into this shell's environment:
-source /usr/sbin/marionnet_source_cmdline
-
-# Mount the hostfs filesystem:
-mount none /mnt/hostfs -t hostfs -o $hostfs
-
-# Add bindings from the hostfs boot_parameters to this shell
-# environment:
-. /mnt/hostfs/boot_parameters
-
-# Set the hostname according to the kernel command line:
-echo $hostname > /etc/hostname
-/etc/init.d/hostname.sh start &> /dev/null
-
-
-# Get the name of the virtual machine version
-virtualfs_version=`echo $ubd0s | sed -e 's/.*\/\(.*\)$/\1/'`
-
-# Show the hostname in the terminal window title bar...
-echo -en '\033]0;'$hostname '('$virtualfs_version')\a'
-
-# And also record it on the hostfs filesystem, so that we can
-# easily tell which guest machine the directory belongs to
-# *from the host*:
-echo $hostname > /mnt/hostfs/GUESTNAME
-
 # Configure network interfaces:
-for i in `seq 0 $(( $ethernet_interfaces_no - 1))`; do
-#    mac_address=$(eval echo '$mac_address_eth'$i)
-    mac_address=`lookup mac_address $i`
-    mtu=`lookup mtu $i` 
-    ipv4_address=`lookup ipv4_address $i` 
-    ipv4_broadcast=`lookup ipv4_broadcast $i` 
-    ipv4_netmask=`lookup ipv4_netmask $i` 
-    ipv6_address=`lookup ipv6_address $i` 
-    ipv6_broadcast=`lookup ipv6_broadcast $i` 
-    ipv6_netmask=`lookup ipv6_netmask $i` 
-#    echo -------------------------------------------
-    echo -- eth$i:  $mac_address --ipv4: $ipv4_address /  $ipv4_netmask --ipv6: $ipv6_address
-#    echo $mtu
-#    echo $ipv4_broadcast
-#    echo $ipv6_broadcast
-#    echo $ipv6_netmask
-    ifconfig eth$i hw ether $mac_address
-    ifconfig eth$i mtu $mtu
-    if [ "A$ipv4_address" != "A" ]; then
-     if [ "A$ipv4_netmask" != "A" ]; then
-       ifconfig eth$i $ipv4_address netmask $ipv4_netmask
-     else
-       ifconfig eth$i $ipv4_address
-     fi
-    fi
-    if  [ "A$ipv6_address" != "A" ]; then
-       ifconfig eth$i inet6 add $ipv6_address
-    fi
-#    echo -------------------------------------------
-done
+if [[ -n $ethernet_interfaces_no ]]; then
 
+  for i in $(eval echo {0..$((ethernet_interfaces_no-1))}); do
+    mac_address=`lookup mac_address $i`
+    mtu=`lookup mtu $i`
+    ipv4_address=`lookup ipv4_address $i`
+    ipv4_broadcast=`lookup ipv4_broadcast $i`
+    ipv4_netmask=`lookup ipv4_netmask $i`
+    ipv6_address=`lookup ipv6_address $i`
+    [[ -z $mac_address ]] || ifconfig eth$i hw ether $mac_address
+    [[ -z $mtu ]] || ifconfig eth$i mtu $mtu
+    # IPv4 configuration.
+    # The variable `ipv4_address' may be defined via the Marionnet GUI with the
+    # CIDR notation, i.e. in the form x.y.z.t/N. However, in order to be
+    # compatible with the busybox (buildroot) implementation of `ifconfig',
+    # Marionnet extracts the address into x.y.z.t and sets `ipv4_address',
+    # then it computes the corresponding netmask and sets `ipv4_netmask'.
+    # So, the command executed here may have a form like:
+    # ifconfig eth0 192.168.0.1
+    # or
+    # ifconfig eth0 192.168.0.1 netmask 255.255.255.0
+    if [[ -n $ipv4_address ]]; then
+      if [[ -n $ipv4_netmask ]]; then
+        ifconfig eth$i $ipv4_address netmask $ipv4_netmask
+      else
+        ifconfig eth$i $ipv4_address
+      fi
+    fi
+    # IPv6 configuration.
+    # The variable `ipv6_address' may be defined via the Marionnet GUI with the
+    # CIDR notation. So, the command executed here may have a form like:
+    # ifconfig eth0 inet6 add 2003:abd::1/32
+    if [[ -n $ipv6_address ]]; then
+        ifconfig eth$i inet6 add $ipv6_address
+    fi
+  done
+
+fi
+
+###########################################
+#        Ghost interface (eth42)          #
+###########################################
 
 # Activate and immediately ghostify our special network
 # interface communicating with the host:
-ifconfig eth42 $ip42 up &> /dev/null
-ghostify eth42 &> /dev/null
-
-function run_x_window_manager {
-    while true; do
-        sawfish
-    done
-}
-
-function run_x_clients {
-    while true; do
-        xterm -ls -name "$hostname"
-    done
-}
-
-function run_xfce {
-    xfce4-session
-}
+ifconfig eth42 $ip42 up &>/dev/null
+if type ghostify; then ghostify eth42; fi &>/dev/null
 
 
-function add_line_if_needed {
-    local LINE="$1"
-    local FILE="$2"
-    
-    { test -f "$FILE" && grep -q "^${LINE}$" "$FILE"; } || { 
-        bash <<EOF
-echo "$LINE" >> "$FILE"
-EOF
-    }
-}
+###########################################
+#      /etc/fstab swap tuning             #
+###########################################
 
 # Add swap (the swap 'partition' was already created as a
-# sparse file and initialized with mkswap from the host
-# side):
-add_line_if_needed \
+# sparse file and initialized with mkswap from the host side):
+append_line_if_needed \
   "/dev/ubdb       none            swap    sw              0       0" \
   /etc/fstab
+
 swapon -a
 
-# Make a correct entry in /etc/hosts:
-add_line_if_needed "127.0.0.1 $hostname" /etc/hosts
 
-# Setup the X session, if requested:
-if [ "$xnest_display_number" != "" ]; then
-    export PATH=/root/bin:/usr/local/bin:$PATH
-    export DISPLAY=172.23.0.254$xnest_display_number
-    export HOME=/root
-    cd $HOME
-#    run_x_window_manager &> /dev/null &
-#    run_x_clients &> /dev/null &
-    run_xfce&
+###########################################
+#      /etc/fstab swap tuning             #
+###########################################
+
+# TODO: think about the ssh tunnelling!
+if [ -z "$xnest_display_number" ]; then
+  DISPLAY_VALUE=172.23.0.254:0
+else
+  DISPLAY_VALUE=172.23.0.254$xnest_display_number
 fi
+
+# Find a suitable shell configuration file and append the line setting the
+# variable DISPLAY:
+for i in /etc/profile /etc/bash.bashrc /root/.bash_profile /root/.bashrc; do
+  if [[ -f $i ]]; then
+    append_line_if_needed "export DISPLAY=$DISPLAY_VALUE" $i
+    break;
+  fi
+done
 
 echo "done."

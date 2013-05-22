@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Simple wrapper for `id -Gn'
+# J.V. Loddo, for the Marionnet project. GPL.
+
+# Note that we cannot change the name of the executable (exec -a groups) 
+# because `id' is itself a wrapper to `busybox':
+exec id -Gn "$@"

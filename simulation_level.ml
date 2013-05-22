@@ -82,17 +82,22 @@ fun program
       (Some _) ->
         raise (ProcessIsntInTheRightState "spawn")
     | None ->
-        let cmdline = String.concat " " (program::arguments) in
         let basename = Filename.basename program in
-        Log.printf "process#spawn: the command line for %s is:\n---\n%s\n---\n"
-          basename
-          (StringExtra.fmt ~tab:2 ~width:60 cmdline);
-        let new_pid = (Unix.create_process
-                         program
-                         (Array.of_list (program :: arguments))
-                         stdin
-                         stdout
-                         stderr) in
+        let _just_for_logging =
+          let cmdline = String.concat " " (program::arguments) in
+          Log.printf "process#spawn: `%s' called with %d arguments; the complete command line is:\n---\n%s\n---\n"
+            basename
+            (List.length arguments)
+            (StringExtra.fmt ~tab:2 ~width:60 cmdline)
+        in
+        let new_pid =
+          Unix.create_process
+            program
+            (Array.of_list (program :: arguments))
+            stdin
+            stdout
+            stderr
+        in
         pid := (Some new_pid);
         Death_monitor.start_monitoring new_pid program unexpected_death_callback;
         Log.printf
@@ -822,6 +827,7 @@ class uml_process =
       ~id
       ?(show_unix_terminal=false)
       ?xnest_display_number
+      ?(guestkind="machine") (* or "router" *)
       ~unexpected_death_callback
       () ->
   let motherboard = Motherboard.extract () in
@@ -841,7 +847,8 @@ class uml_process =
       (* Don't show the xterm console if we're using an Xnest, in non-debug mode. *)
       match xnest_display_number with
         Some xnest_display_number -> "none"
-      | None -> console in
+      | None -> console
+  in
   let hostfs_pathname =
     Printf.sprintf "%s/hostfs/%i" (Filename.dirname (Filename.dirname cow_file_name)) id
   in
@@ -860,35 +867,45 @@ class uml_process =
     | Created (Tap tap_name) ->
         tap_name
     | _ ->
-        "wrong-tap-name" in
+        "wrong-tap-name"
+  in
+  (* Basic parameters: *)
   let command_line_arguments =
     List.append
       (List.map
          (fun (ei, h) -> ethernet_interface_to_uml_command_line_argument umid ei h)
          (List.combine (ListExtra.range 0 (ethernet_interface_no - 1)) hublet_processes))
       [
-       "ubd0s=" ^ cow_file_name ^ "," ^ filesystem_file_name;
+       "ubda=" ^ cow_file_name ^ "," ^ filesystem_file_name;
+(*        "ubd0s=" ^ cow_file_name ^ "," ^ filesystem_file_name; *)
        "ubdb=" ^ swap_file_name;
        "umid=" ^ umid;
        "mem=" ^ (string_of_int memory) ^ "M";
        "root=98:0";
        "hostfs="^hostfs_pathname;
        "hostname="^umid;
+       "guestkind="^guestkind;
        "xterm="^Initialization.marionnet_terminal;
        (* Ghost interface configuration. The IP address is relative to a *host* tap: *)
        "eth42=tuntap,"^tap_name^","^(random_ghost_mac_address ())^",172.23.0.254";
-     ] in
+     ]
+  in
+  (* Exam *)
   let command_line_arguments =
     if Command_line.are_we_in_exam_mode then
       "exam=1" :: command_line_arguments
     else
-      command_line_arguments in
+      command_line_arguments
+  in
+  (* xnest_display_number *)
   let command_line_arguments =
     match xnest_display_number with
       Some xnest_display_number ->
         ("xnest_display_number=" ^ xnest_display_number) :: command_line_arguments
     | None ->
-        command_line_arguments in
+        command_line_arguments
+  in
+  (* keyboard_layout *)
   let command_line_arguments =
     match Global_options.keyboard_layout with
       None ->
@@ -896,21 +913,24 @@ class uml_process =
     | Some keyboard_layout ->
         ("keyboard_layout="^keyboard_layout) :: command_line_arguments
   in
+  (* Some examples:
+     "con=none"; "con6=port:9000"; "ssl1=port:9001"; "ssl2=tty:/dev/tty42"; "ssl3=pts"; *)
   let console_related_arguments =
     match kernel_console_arguments with
     | Some args ->
         let () = Log.printf "using specific console arguments: %s\n" args in
         [args]
     | None ->
-        let () = Log.printf "using default console arguments\n" in
-	[(* Other examples: "con=none"; "con6=port:9000"; "ssl1=port:9001"; "ssl2=tty:/dev/tty42"; "ssl3=pts"; *)
-	"con13=xterm";
-	"con14=xterm";
-	"con15=xterm";
-	"con=pts";
-	"ssl="^console;
-	"console=ttyS0" (* obsolete since filesystems built for release 0.91.x *)
-	]
+        (* Undesirable situation: the couple (kernel, filesystem) is not well
+           configured. We try however to deduce the good arguments simply looking
+           the kernel version: *)
+        match StrExtra.First.matchingp (Str.regexp "linux-2[.]6[.]") kernel_file_name with
+        | true  ->
+            let () = Log.printf "Warning: using default console arguments for old pairs filesystem/kernels\n" in
+            [ "con=none"; "ssl="^console; "console=ttyS0" ]
+        | false ->
+            let () = Log.printf "Warning: using default console arguments for new pairs filesystem/kernels\n" in
+            [ "con0="^console ]
   in
   let command_line_arguments =
     command_line_arguments @ console_related_arguments
@@ -1579,6 +1599,8 @@ object(self)
                  if xnest then Some self#get_xnest_process#display_number_as_server
                           else None)
               ~unexpected_death_callback:self#execute_the_unexpected_death_callback
+              (* The following parameter will be given to the uml process: *)
+              ~guestkind:(if router then "router" else "machine")
               ());
 
   method terminate_processes = self#terminate_processes_private ~gracefully:false ()

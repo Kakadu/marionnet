@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# This file is part of Marionnet, a virtual network laboratory
+# Copyright (C) 2013  Jean-Vincent Loddo
+# Copyright (C) 2013  Université Paris 13
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Simple wrapper for Busybox's `ifconfig' allowing CIDR syntax as for instance:
+#
+# ifconfig eth0 192.168.0.1/24
+#
+# The previous command will be expanded by this wrapper into:
+# ifconfig.busybox eth0 192.168.0.1 netmask 255.255.255.0
+
+function allocate_t {
+t_1="128.0.0.0";
+t_2="192.0.0.0";
+t_3="224.0.0.0";
+t_4="240.0.0.0";
+t_5="248.0.0.0";
+t_6="252.0.0.0";
+t_7="254.0.0.0";
+t_8="255.0.0.0";
+t_9="255.128.0.0";
+t_10="255.192.0.0";
+t_11="255.224.0.0";
+t_12="255.240.0.0";
+t_13="255.248.0.0";
+t_14="255.252.0.0";
+t_15="255.254.0.0";
+t_16="255.255.0.0";
+t_17="255.255.128.0";
+t_18="255.255.192.0";
+t_19="255.255.224.0";
+t_20="255.255.240.0";
+t_21="255.255.248.0";
+t_22="255.255.252.0";
+t_23="255.255.254.0";
+t_24="255.255.255.0";
+t_25="255.255.255.128";
+t_26="255.255.255.192";
+t_27="255.255.255.224";
+t_28="255.255.255.240";
+t_29="255.255.255.248";
+t_30="255.255.255.252";
+t_31="255.255.255.254";
+t_32="255.255.255.255";
+ALLOCATED=y
+}
+
+# Note that the busybox version if a limited version of awk (here `match' is used without a third parameter):
+awk_program='($1>=0 && $1<256 && $2>=0 && $2<256 && $3>=0 && $3<256 && (match($4,/^[0-9]*\/[0-9]*$/)>0)) && (split($4,g,"/") && g[1]>=0 && g[1]<256 && g[2]>0 && g[2]<=32) {print $1,$2,$3,g[1],g[2]; exit 1;} {exit 0;}'
+
+for A in "$@"; do
+  if B=$(awk <<<"$A" -F. "$awk_program"); then
+    ARGS+=" '$A'";
+  else
+    [[ -n $ALLOCATED ]] || allocate_t
+    read <<<"$B" i1 i2 i3 i4 cidr
+    eval netmask=\$t_$cidr
+    N=" $i1.$i2.$i3.$i4 netmask $netmask"
+    ARGS+=" $N";
+  fi
+done
+
+eval exec -a ifconfig $0.busybox $ARGS

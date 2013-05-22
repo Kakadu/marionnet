@@ -728,7 +728,7 @@ function is_aptitude_installed  {
 
 
 function is_package_installed {
- local L==en_US.UTF-8
+ local L=en_US.UTF-8
  LANG=$L LC_ALL=$L LC_MESSAGES=$L LANGUAGE=$L dpkg -s $1 2>/dev/null | \grep -q 'Status: install ok installed';
 }
 

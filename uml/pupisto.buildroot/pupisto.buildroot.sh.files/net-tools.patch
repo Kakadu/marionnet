@@ -1,0 +1,214 @@
+diff --git a/package/Config.in b/package/Config.in
+index e1629c8..35945a6 100644
+--- a/package/Config.in
++++ b/package/Config.in
+@@ -479,6 +479,9 @@ source "package/netkitbase/Config.in"
+ source "package/netkittelnet/Config.in"
+ endif
+ source "package/netplug/Config.in"
++if BR2_PACKAGE_BUSYBOX_SHOW_OTHERS
++source "package/net-tools/Config.in"
++endif
+ source "package/netsnmp/Config.in"
+ source "package/netstat-nat/Config.in"
+ source "package/network-manager/Config.in"
+diff --git a/package/net-tools/Config.in b/package/net-tools/Config.in
+new file mode 100644
+index 0000000..6527831
+--- /dev/null
++++ b/package/net-tools/Config.in
+@@ -0,0 +1,8 @@
++config BR2_PACKAGE_NET_TOOLS
++	bool "net-tools"
++	help
++	  This package includes the important tools for controlling the network subsystem
++	  of the Linux kernel. This includes arp, ifconfig, netstat, rarp, nameif and route.
++	  Additionally, this package contains utilities relating to particular network
++	  hardware types (plipconfig, slattach, mii-tool) and advanced aspects
++	  of IP configuration (iptunnel, ipmaddr).
+diff --git a/package/net-tools/net-tools.config.h b/package/net-tools/net-tools.config.h
+new file mode 100644
+index 0000000..2afe5ec
+--- /dev/null
++++ b/package/net-tools/net-tools.config.h
+@@ -0,0 +1,76 @@
++/*
++* config.h	Automatically generated configuration includefile
++*
++* NET-TOOLS	A collection of programs that form the base set of the
++*		NET-3 Networking Distribution for the LINUX operating
++*		system.
++*
++*		DO  NOT  EDIT  DIRECTLY
++*
++*/
++
++/*
++ *
++ * Internationalization
++ *
++ * The net-tools package has currently been translated to French,
++ * German and Brazilian Portugese.  Other translations are, of
++ * course, welcome.  Answer `n' here if you have no support for
++ * internationalization on your system.
++ *
++ */
++#define I18N 0
++
++/*
++ *
++ * Protocol Families.
++ *
++ */
++#define HAVE_AFUNIX 1
++#define HAVE_AFINET 1
++#define HAVE_AFINET6 1
++#define HAVE_AFIPX 1
++#define HAVE_AFATALK 1
++#define HAVE_AFAX25 1
++#define HAVE_AFNETROM 1
++#define HAVE_AFROSE 1
++#define HAVE_AFX25 1
++#define HAVE_AFECONET 1
++#define HAVE_AFDECnet 0
++#define HAVE_AFASH 1
++
++/*
++ *
++ * Device Hardware types.
++ *
++ */
++#define HAVE_HWETHER 1
++#define HAVE_HWARC 1
++#define HAVE_HWSLIP 1
++#define HAVE_HWPPP 1
++#define HAVE_HWTUNNEL 1
++#define HAVE_HWSTRIP 1
++#define HAVE_HWTR 1
++#define HAVE_HWAX25 1
++#define HAVE_HWROSE 1
++#define HAVE_HWNETROM 1
++#define HAVE_HWX25 1
++#define HAVE_HWFR 1
++#define HAVE_HWSIT 1
++#define HAVE_HWFDDI 1
++#define HAVE_HWHIPPI 1
++#define HAVE_HWASH 1
++#define HAVE_HWHDLCLAPB 1
++#define HAVE_HWIRDA 1
++#define HAVE_HWEC 1
++#define HAVE_HWEUI64 1
++#define HAVE_HWIB 1
++
++/*
++ *
++ * Other Features.
++ *
++ */
++#define HAVE_FW_MASQUERADE 1
++#define HAVE_IP_TOOLS 1
++#define HAVE_MII 1
+diff --git a/package/net-tools/net-tools.config.make b/package/net-tools/net-tools.config.make
+new file mode 100644
+index 0000000..8e70f18
+--- /dev/null
++++ b/package/net-tools/net-tools.config.make
+@@ -0,0 +1,37 @@
++# I18N=0
++HAVE_AFUNIX=1
++HAVE_AFINET=1
++HAVE_AFINET6=1
++HAVE_AFIPX=1
++HAVE_AFATALK=1
++HAVE_AFAX25=1
++HAVE_AFNETROM=1
++HAVE_AFROSE=1
++HAVE_AFX25=1
++HAVE_AFECONET=1
++# HAVE_AFDECnet=0
++HAVE_AFASH=1
++HAVE_HWETHER=1
++HAVE_HWARC=1
++HAVE_HWSLIP=1
++HAVE_HWPPP=1
++HAVE_HWTUNNEL=1
++HAVE_HWSTRIP=1
++HAVE_HWTR=1
++HAVE_HWAX25=1
++HAVE_HWROSE=1
++HAVE_HWNETROM=1
++HAVE_HWX25=1
++HAVE_HWFR=1
++HAVE_HWSIT=1
++HAVE_HWFDDI=1
++HAVE_HWHIPPI=1
++HAVE_HWASH=1
++HAVE_HWHDLCLAPB=1
++HAVE_HWIRDA=1
++HAVE_HWEC=1
++HAVE_HWEUI64=1
++HAVE_HWIB=1
++HAVE_FW_MASQUERADE=1
++HAVE_IP_TOOLS=1
++HAVE_MII=1
+diff --git a/package/net-tools/net-tools.mk b/package/net-tools/net-tools.mk
+new file mode 100644
+index 0000000..41fc6d8
+--- /dev/null
++++ b/package/net-tools/net-tools.mk
+@@ -0,0 +1,55 @@
++#############################################################
++#
++# net-tools
++#
++#############################################################
++NET_TOOLS_VERSION = 1.60
++NET_TOOLS_SOURCE  = net-tools_$(NET_TOOLS_VERSION).orig.tar.gz
++NET_TOOLS_SITE    = $(BR2_DEBIAN_MIRROR)/debian/pool/main/n/net-tools
++NET_TOOLS_PATCH   = $(shell wget -q -O - $(NET_TOOLS_SITE) | grep -o '[>]net-tools_$(NET_TOOLS_VERSION).*[.]diff[.]gz' | sort | tail -n 1 | cut -c2-)
++
++# Override Busybox implementations if Busybox is enabled.
++ifeq ($(BR2_PACKAGE_BUSYBOX),y)
++	NET_TOOLS_DEPENDENCIES = busybox
++endif
++
++define NET_TOOLS_DEBIAN_PATCHES
++	if [ -d $(@D)/debian/patches ]; then \
++		support/scripts/apply-patches.sh $(@D) $(@D)/debian/patches \*.patch; \
++	fi
++endef
++
++NET_TOOLS_POST_PATCH_HOOKS = NET_TOOLS_DEBIAN_PATCHES
++
++define NET_TOOLS_BUILD_CMDS
++	cp package/net-tools/net-tools.config.h $(@D)/config.h
++	cp package/net-tools/net-tools.config.make $(@D)/config.make
++
++	$(MAKE) -j 1 $(TARGET_CONFIGURE_OPTS) \
++                CFLAGS+="-I $(@D)/include/ -I $(@D)/ -I $(@D)/lib/" \
++                LDFLAGS+="-L$(@D)/lib/" \
++                 -C $(@D)/
++
++endef
++
++define NET_TOOLS_INSTALL_TARGET_CMDS
++	for x in route ifconfig ipmaddr iptunnel mii-tool nameif plipconfig rarp route slattach; do \
++		install -D -m 0755 $(@D)/$$x $(TARGET_DIR)/sbin/$$x || exit 1; \
++	done
++        install -D -m 0755 $(@D)/arp $(TARGET_DIR)/usr/sbin/arp || exit 1;
++	install -D -m 0755 $(@D)/netstat $(TARGET_DIR)/bin/netstat || exit 1;
++endef
++
++define NET_TOOLS_UNINSTALL_TARGET_CMDS
++	for x in route ifconfig ipmaddr iptunnel mii-tool nameif plipconfig rarp route slattach; do \
++		rm -f $(TARGET_DIR)/sbin/$$x || exit 1; \
++	done
++	rm -f $(TARGET_DIR)/usr/sbin/arp || exit 1;
++	rm -f $(TARGET_DIR)/bin/netstat || exit 1;
++endef
++
++define NET_TOOLS_CLEAN_CMDS
++	$(MAKE) -C $(@D) clean
++endef
++
++$(eval $(generic-package))

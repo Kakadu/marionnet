@@ -94,7 +94,15 @@ done
 
 declare -a ARGS
 parse_cmdline "$@" # read OPTSTRING and set ARGS
-set - "${ARGS[@]}"
+# Warning: the following two branches could not be grouped
+# into the single command (`else' branch):
+# set - "${ARGS[@]}";
+# The behaviour is not the same when the array is empty!
+if [[ ${#ARGS[@]} -eq 0 ]]; then
+  set - "";
+else
+  set - "${ARGS[@]}";
+fi
 unset ARGS
 
 function print_usage_and_exit {
@@ -218,7 +226,7 @@ function launch_and_log_in_a_xterm {
   echo "FAILED!"
   echo "Last 20 lines of $LOGFILE:"
   echo "======"
-  tail -n 20 $LOGFILE  
+  tail -n 20 $LOGFILE
   echo "======"
   echo "Exiting."
  else

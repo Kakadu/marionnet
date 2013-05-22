@@ -209,7 +209,7 @@ PERFORM_MANUALLY_POST_ACTIONS = \
 
 # Edit all ml/mli files and Makefile.local with your $EDITOR
 edit:
-	test -n "$$EDITOR" && $$EDITOR Makefile.local $$(find . \( -wholename "./_build/*" -o -name "meta.ml" -o -name "$(EXCLUDE_FROM_EDITING)" -o -name "version.ml" -o -name "gui.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
+	test -n "$$EDITOR" && $$EDITOR Makefile.local $$(find . \( -name "_build*" -o -name "meta.ml" -o -name "$(EXCLUDE_FROM_EDITING)" -o -name "version.ml" -o -name "gui.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
 
 # Create the documentation
 documentation: world documentation-local
@@ -537,9 +537,9 @@ ChangeLog:
 # metadata to re-generate it):
 clean: clean-local
 	@(rm -rf _build; \
-	find -type f -name \*~ -exec rm -f {} \;; \
-	find -type f -name \#\*\# -exec rm -f {} \;; \
-	find -type f -name core -exec rm -f {} \;; \
+	find -name "_build*" -prune -o -type f -name \*~ -exec rm -f {} \;; \
+	find -name "_build*" -prune -o -type f -name \#\*\# -exec rm -f {} \;; \
+	find -name "_build*" -prune -o -type f -name core -exec rm -f {} \;; \
 	rm -f _tags meta.ml myocamlbuild.ml; \
 	if [ -d .bzr ]; then \
 	  rm -f meta.ml.released ChangeLog; \
@@ -748,7 +748,7 @@ FIX_VERSION = \
 # the value of sourcedirectories:
 SOURCE_SUBDIRECTORIES = \
 	sourcedirectories=''; \
-	for d in `find -type d | grep -v "/[.]bzr\$$" | grep -v "/[.]bzr/" \
+	for d in `find -name _"build*" -prune -o -type d | grep -v "/[.]bzr\$$" | grep -v "/[.]bzr/" \
 	          | grep -v /_build\$$ | grep -v /_build/ \
 	          | grep -v ^.$$ | sort`; do \
 		if ls $$d/*.ml &> /dev/null  || \

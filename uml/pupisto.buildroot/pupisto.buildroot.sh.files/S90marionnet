@@ -1,0 +1,266 @@
+#!/bin/bash
+
+# This file is part of Marionnet, a virtual network laboratory
+# Copyright (C) 2007  Luca Saiu
+# Copyright (C) 2007 2013  Jean-Vincent Loddo
+# Copyright (C) 2007 2013  Université Paris 13
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# TODO: run `set -x' if Marionnet is currently in the debug mode!
+# set -x
+
+###########################################
+#     Source-ing kernel command line      #
+###########################################
+
+# Read kernel command line variables into this shell's environment:
+# Expected variables: hostname hostfs guestkind ubd0s (or ubda)
+export $(tr </proc/cmdline ' ' '\n' | \grep "^[a-zA-Z][a-zA-Z0-9_]*[=]")
+
+
+# ======================================================== #
+#                        START ()                          #
+# ======================================================== #
+
+function start {
+
+ echo -n "Marionnet startup configuration... "
+
+ function append_line_if_needed {
+  local LINE="$1"
+  local FILE="$2"
+  { test -f "$FILE" && grep -q "^${LINE}$" "$FILE"; } || echo "$LINE" >> "$FILE"
+ }
+
+ ###########################################
+ #               hostname                  #
+ ###########################################
+
+ # Set the hostname according to the kernel command line:
+ if [[ -n $hostname ]]; then
+  echo $hostname > /etc/hostname
+  # The script `/etc/init.d/hostname.sh' belonged to the package `initscripts'
+  # on old debian systems:
+  if [[ -x /etc/init.d/hostname.sh ]]; then
+    /etc/init.d/hostname.sh start
+  elif type hostname; then
+    hostname $hostname
+  fi &>/dev/null
+  # Make a correct entry in /etc/hosts:
+  append_line_if_needed "127.0.0.1 $hostname" /etc/hosts
+ else
+  echo "Warning: variable 'hostname' undefined" 1>&2
+ fi
+
+ ###########################################
+ #                hostfs                   #
+ ###########################################
+
+ # Mount the hostfs filesystem and add bindings from the hostfs file
+ # `boot_parameters' to this shell environment:
+ if [[ -n $hostfs ]]; then
+  mkdir -p /mnt/hostfs
+  mount none /mnt/hostfs -t hostfs &&
+  # And also record it on the hostfs filesystem, so that we can
+  # easily tell which guest machine the directory belongs to
+  # *from the host*:
+  [[ -n $hostname ]] && echo $hostname > /mnt/hostfs/GUESTNAME &&
+  source /mnt/hostfs/boot_parameters
+ else
+  echo "Warning: variable 'hostfs' undefined" 1>&2
+ fi
+
+ ###########################################
+ #             xterm title                 #
+ ###########################################
+
+ # Show the hostname (and its filesystem) in the terminal window title bar
+ virtual_disk=${ubd0s:-$ubda}
+ if [[ -n $virtual_disk ]]; then
+   # Get the name of the virtual filesystem choosen by the user:
+   virtualfs_name="${virtual_disk##*/}"
+   virtualfs_kind=${virtualfs_name%%-*} # "machine" or "router"
+   virtualfs_name=${virtualfs_name#router-}
+   virtualfs_name=${virtualfs_name#machine-}
+   echo -e '\033]0;'"$hostname ($virtualfs_name)"'\007'
+ else
+   echo "Warning: variable '$virtual_disk' undefined" 1>&2
+fi
+
+
+ ###########################################
+ #        Network configurations           #
+ ###########################################
+
+ # Perform an indirect lookup of the variable $1'_eth'$2, i.e. return
+ # the value of the variable which is the value of the variable named
+ # $1'_eth'$2.
+ function lookup {
+  echo $(eval echo '$'$1'_eth'$2)
+ }
+
+ # Configure network interfaces:
+ if [[ -n $ethernet_interfaces_no ]]; then
+
+  for i in $(eval echo {0..$((ethernet_interfaces_no-1))}); do
+    mac_address=`lookup mac_address $i`
+    mtu=`lookup mtu $i`
+    ipv4_address=`lookup ipv4_address $i`
+    ipv4_broadcast=`lookup ipv4_broadcast $i`
+    ipv4_netmask=`lookup ipv4_netmask $i`
+    ipv6_address=`lookup ipv6_address $i`
+    [[ -z $mac_address ]] || ifconfig eth$i hw ether $mac_address
+    [[ -z $mtu ]] || ifconfig eth$i mtu $mtu
+    # IPv4 configuration.
+    # The variable `ipv4_address' may be defined via the Marionnet GUI with the
+    # CIDR notation, i.e. in the form x.y.z.t/N. However, in order to be
+    # compatible with the busybox (buildroot) implementation of `ifconfig',
+    # Marionnet extracts the address into x.y.z.t and sets `ipv4_address',
+    # then it computes the corresponding netmask and sets `ipv4_netmask'.
+    # So, the command executed here may have a form like:
+    # ifconfig eth0 192.168.0.1
+    # or
+    # ifconfig eth0 192.168.0.1 netmask 255.255.255.0
+    if [[ -n $ipv4_address ]]; then
+      if [[ -n $ipv4_netmask ]]; then
+        ifconfig eth$i $ipv4_address netmask $ipv4_netmask
+      else
+        ifconfig eth$i $ipv4_address
+      fi
+    fi
+    # IPv6 configuration.
+    # The variable `ipv6_address' may be defined via the Marionnet GUI with the
+    # CIDR notation. So, the command executed here may have a form like:
+    # ifconfig eth0 inet6 add 2003:abd::1/32
+    if [[ -n $ipv6_address ]]; then
+        ifconfig eth$i inet6 add $ipv6_address
+    fi
+  done
+
+ fi
+
+ ###########################################
+ #        Ghost interface (eth42)          #
+ ###########################################
+
+ # Activate and immediately "ghostify" our special network
+ # interface communicating with the host:
+ ifconfig eth42 $ip42 up &>/dev/null
+ if type ethghost; then ethghost -g eth42; fi &>/dev/null
+
+ ###########################################
+ #             /etc/fstab                  #
+ ###########################################
+
+ # TODO: according to the kernel version!
+ SWAP_DEVICE=/dev/ubdb
+ ROOT_DEVICE=/dev/ubd0
+
+ # Add swap (the swap 'partition' was already created as a
+ # sparse file and initialized with mkswap from the host side):
+ append_line_if_needed \
+  "$SWAP_DEVICE       none            swap    sw              0       0" \
+  /etc/fstab
+
+ ROOT_FS_TYPE=$(awk </proc/mounts '$1 == "/dev/root" && $2 == "/" {print $3; exit 0}')
+
+ append_line_if_needed \
+  "/dev/ubd0       /      $ROOT_FS_TYPE    defaults   0 0" \
+  /etc/fstab
+
+ [[ -e $SWAP_DEVICE ]] || mknod $SWAP_DEVICE b 98 16
+ swapon -a
+
+ # Not really need, but for consistence with /etc/fstab
+ [[ -e $ROOT_DEVICE ]] || mknod $ROOT_DEVICE b 98 0
+
+ ###########################################
+ #                DISPLAY                  #
+ ###########################################
+
+ # Setting DISPLAY
+ x11_display_number=${x11_display_number#:}
+ DISPLAY_VALUE=172.23.0.254:${x11_display_number:-0}
+
+ # ssh tunnelling:
+ if [[ -n "$x11_display_cookie" ]] && type -t xauth &>/dev/null; then
+  xauth add $DISPLAY_VALUE . $x11_display_cookie
+ fi
+
+ # Find a suitable shell configuration file and append the line setting the
+ # variable DISPLAY:
+ for i in /etc/profile /etc/bash.bashrc /root/.bash_profile /root/.bashrc; do
+  if [[ -f $i ]]; then
+    append_line_if_needed "export DISPLAY=$DISPLAY_VALUE" $i
+    break;
+  fi
+ done
+
+
+ ###########################################
+ #                quagga                   #
+ ###########################################
+
+ if [[ $virtualfs_kind = "router" || $guestkind = "router" ]]; then
+   /etc/init.d/quagga start
+ fi
+
+ ###
+
+ echo "OK"
+
+} ########################## END of function start()
+
+
+
+# ======================================================== #
+#                        STOP ()                          #
+# ======================================================== #
+
+function stop {
+
+echo -n "Marionnet shutdown tunings... "
+
+###########################################
+#     Mrproper take care of /etc/hosts    #
+###########################################
+
+function remove_line_if_needed {
+    local LINE="$1"
+    local FILE="$2"
+    local temporary_file
+
+    if test -f "$FILE" && grep -q "^${LINE}$" "$FILE"; then
+        temporary_file=$(mktemp /tmp/$(basename $0).XXXXXX) && \
+           grep -v "^${LINE}$" "$FILE" > $temporary_file && \
+           mv -f $temporary_file "$FILE"
+    fi
+}
+
+# Remove the host name from /etc/hosts: the user might change it
+# when the virtual machine is off:
+remove_line_if_needed "127.0.0.1 $hostname" /etc/hosts
+
+echo "OK"
+
+} ########################## END of function stop()
+
+
+case "$1" in
+  start) start ;;
+   stop) stop ;;
+      *) echo "Usage: $0 {start|stop}"
+	 exit 1 ;;
+esac

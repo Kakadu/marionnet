@@ -529,7 +529,7 @@ class unixterm_process =
    try
      let wrapper =
        (* TODO: move in Initialization: *)
-       List.find (fun p -> (UnixExtra.is_executable_in_PATH p)<>None) ["ledit"; "rlfe"; "rlwrap"; ]
+       List.find (fun p -> (UnixExtra.path_of_implicit p)<>None) ["ledit"; "rlfe"; "rlwrap"; ]
      in
      Printf.sprintf "%s %s" wrapper command_launched_by_xterm
    with

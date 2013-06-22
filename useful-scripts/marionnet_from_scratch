@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.20
+# Script version: 0.90.21
 # 2013.06.22
 
 set -e
@@ -280,16 +280,28 @@ fi
 # Option -b, --ocamlbricks-version
 if [[ -n ${option_b} ]]; then
  OCAMLBRICKS_VERSION="${option_b_arg}"
+elif [[ $MARIONNET_VERSION = "trunk" ]]; then
+ OCAMLBRICKS_VERSION="trunk"
 fi
 
 # Option -o, --ocaml-version
 if [[ -n ${option_o} ]]; then
  OCAML_VERSION="${option_o_arg}"
+elif [[ $MARIONNET_VERSION = "trunk" ]]; then
+ # This value must be updated each time the trunk 
+ # will require a new OCaml version:
+ OCAML_VERSION="3[.]12[.]1"
+else
+ # Fixed for marionnet 0.90.6:
+ OCAML_VERSION="3[.]11[.]2"
 fi
 
 # Option -l, --lablgtk-version
 if [[ -n ${option_l} ]]; then
  LABLGTK_VERSION="${option_l_arg}"
+else 
+ # Fixed for marionnet 0.90.6:
+ LABLGTK_VERSION="2[.]14[.]2"
 fi
 
 # Option -v, --vde-version
@@ -656,10 +668,11 @@ function download_latest_ocaml {
 }
 
 
+# Obsolete url: "ftp://ftp.kurims.kyoto-u.ac.jp/pub/lang/olabl/"
 function download_latest_lablgtk {
   local VERSION="${LABLGTK_VERSION:-[0-9][.][0-9][0-9]*[.][0-9][0-9]*}"
   download_latest_tar_gz -v "$VERSION" lablgtk \
-    "ftp://ftp.kurims.kyoto-u.ac.jp/pub/lang/olabl/" \
+    "http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgtk.html" \
     $OUR_MIRROR
 }
 
@@ -937,6 +950,7 @@ case $USING_GODI in
   export OCAML_PREFIX=$PWD/local
   export PATH=$OCAML_PREFIX/bin:$PATH
   LIB_OCAML=$OCAML_PREFIX/lib/ocaml/
+  export CAML_LD_LIBRARY_PATH=${LIB_OCAML}/stublibs
   launch_and_log "Downloading ocaml" download_latest_ocaml 83000
   launch_and_log "Downloading lablgtk" download_latest_lablgtk 17800
   launch_and_log "Compiling ocaml" compile_ocaml 382000

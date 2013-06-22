@@ -17,12 +17,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.18
-# 2013.04.29
+# Script version: 0.90.19
+# 2013.06.22
 
 set -e
 shopt -s nullglob
 shopt -s expand_aliases
+
+# Prevent problems compiling `ocamlbricks' (the command `cd' prints
+# the target directory when CDPATH is set, in the style of `pushd',
+# and this unexpected behaviour get the make process confused): 
+unset CDPATH
 
 # By default SUDO_OR_EVAL and SUDO_OR_NOTHING are set to 'sudo' for normal users:
 if [[ $USER = root ]]; then

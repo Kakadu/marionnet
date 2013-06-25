@@ -17,8 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.21
-# 2013.06.22
+# Script version: 0.90.22
+# 2013.06.25
 
 set -e
 shopt -s nullglob
@@ -28,6 +28,10 @@ shopt -s expand_aliases
 # the target directory when CDPATH is set, in the style of `pushd',
 # and this unexpected behaviour get the make process confused): 
 unset CDPATH
+
+# Prevent problems installing files as root (sudo) with a more 
+# restrictive umask (like for instance 027):
+umask 022
 
 # By default SUDO_OR_EVAL and SUDO_OR_NOTHING are set to 'sudo' for normal users:
 if [[ $USER = root ]]; then

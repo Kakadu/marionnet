@@ -17,8 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.22
-# 2013.06.25
+# Script version: 0.90.23
+# 2013.07.02
+
+# Thanks:
+# - Lucas Nussbaum for the idea of having an option "--download-only/-O",
+#   and for its patch proposal (July 2013)
 
 set -e
 shopt -s nullglob
@@ -26,10 +30,10 @@ shopt -s expand_aliases
 
 # Prevent problems compiling `ocamlbricks' (the command `cd' prints
 # the target directory when CDPATH is set, in the style of `pushd',
-# and this unexpected behaviour get the make process confused): 
+# and this unexpected behaviour get the make process confused):
 unset CDPATH
 
-# Prevent problems installing files as root (sudo) with a more 
+# Prevent problems installing files as root (sudo) with a more
 # restrictive umask (like for instance 027):
 umask 022
 
@@ -78,7 +82,7 @@ COMMAND_LINE="$(realpath $COMMAND_LINE) "$@""
 # =============================================================
 
 # Getopt's format used to parse the command line:
-OPTSTRING="hp:m:b:o:gG:t:kl:d:v:NVDKPFAc:"
+OPTSTRING="hp:m:b:o:gG:t:kl:d:v:NVDKPFAOc:"
 
 function parse_cmdline {
 local i j flag
@@ -134,6 +138,9 @@ for i in "$@"; do
      ;;
     --no-filesystems|--ignore-filesystems)
      ARGS+=("-F");
+     ;;
+    --download-only)
+     ARGS+=("-O");
      ;;
     --no-all|--ignore-all)
      ARGS+=("-A");
@@ -233,6 +240,7 @@ Options:
   -K, --no-kernels 		Don't download kernels
   -P, --no-pinocchio		Don't download pinocchio (small) filesystems
   -F, --no-filesystems		Don't download other (big) filesystems
+  -O, --download-only           Skip everything except downloads of kernels and filesystems
   -A, --no-all		        Equivalent to --no-{vde,dot,kernels,pinocchio,filesystems}
 Defaults:
   - the installation prefix is ${PREFIX}
@@ -292,7 +300,7 @@ fi
 if [[ -n ${option_o} ]]; then
  OCAML_VERSION="${option_o_arg}"
 elif [[ $MARIONNET_VERSION = "trunk" ]]; then
- # This value must be updated each time the trunk 
+ # This value must be updated each time the trunk
  # will require a new OCaml version:
  OCAML_VERSION="3[.]12[.]1"
 else
@@ -303,7 +311,7 @@ fi
 # Option -l, --lablgtk-version
 if [[ -n ${option_l} ]]; then
  LABLGTK_VERSION="${option_l_arg}"
-else 
+else
  # Fixed for marionnet 0.90.6:
  LABLGTK_VERSION="2[.]14[.]2"
 fi
@@ -373,6 +381,9 @@ if [[ -n ${option_P} || -n ${option_A} ]]; then IGNORE_PINOCCHIO_FILESYSTEMS=yes
 
 # Option -F, --no-filesystems
 if [[ -n ${option_F} || -n ${option_A} ]]; then IGNORE_BIG_FILESYSTEMS=yes; else IGNORE_BIG_FILESYSTEMS=no; fi
+
+# Option -O, --download-only
+if [[ -n ${option_O} ]]; then DOWNLOAD_ONLY=yes; else DOWNLOAD_ONLY=no; fi
 
 # Option -h
 if [[ -n ${option_h}  ]]; then
@@ -802,6 +813,92 @@ function echo_required_debian_packages {
 }
 
 # =============================================================
+#                  OUR KERNELS AND FILESYSTEMS
+# =============================================================
+
+function download_our_kernels {
+  # global OUR_BASE_URL
+  local KERNELS
+  KERNELS=$(wget -O - "$OUR_BASE_URL" \
+  | grep -o 'href="kernels_.*"' \
+  | grep -o "kernels_.*[.]tar[.]gz"\
+  )
+  local i WEIGHT
+  for i in $KERNELS; do
+    # Known weights:
+    case "$i" in
+      "kernels_linux-2.6.18-ghost.tar.gz") WEIGHT=6032 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log --sudo --script "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
+  done
+}
+
+function download_our_big_filesystems {
+  # global OUR_BASE_URL
+  local FILESYSTEMS
+  FILESYSTEMS=$(wget -O - "$OUR_BASE_URL" \
+  | grep -o 'href="filesystems_.*"' \
+  | grep -o "filesystems_.*[.]tar[.]gz"\
+  | grep -v "filesystems_pinocchio.*[.]tar[.]gz"\
+  )
+  local i WEIGHT
+  for i in $FILESYSTEMS; do
+    # Known weights:
+    case "$i" in
+      "filesystems_machine-debian-lenny-sid-2008.tar.gz") WEIGHT=677935 ;;
+      "filesystems_machine-mandriva20100215.tar.gz") WEIGHT=540521 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log --sudo --script "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
+  done
+}
+
+function download_our_pinocchio_filesystems {
+  # global OUR_BASE_URL
+  local FILESYSTEMS
+  FILESYSTEMS=$(wget -O - "$OUR_BASE_URL" \
+  | grep -o 'href="filesystems_pinocchio.*"' \
+  | grep -o "filesystems_.*[.]tar[.]gz"\
+  )
+  local i WEIGHT
+  for i in $FILESYSTEMS; do
+    # Known weights:
+    case "$i" in
+      "filesystems_pinocchio.tar.gz") WEIGHT=77543 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log --sudo --script "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }"  $WEIGHT
+  done
+}
+
+# Main function calling the previously defined functions (download_our_*):
+function download_marionnet_kernels_and_filesystems {
+  # global  OUR_BASE_URL  SUDO_OR_NOTHING  PREFIX
+  # global  IGNORE_KERNELS  IGNORE_PINOCCHIO_FILESYSTEMS  IGNORE_BIG_FILESYSTEMS
+  ensure_sudo -p "* Required the [sudo] password for %u:"
+  $SUDO_OR_NOTHING mkdir -p $PREFIX/share/marionnet/
+  pushd $PREFIX/share/marionnet/ 1>&2
+
+  if [[ $IGNORE_KERNELS = yes ]]; then
+  echo -n "* Installing kernels: dependency ignored (--no-kernels)"
+  echo_at_right_side --newline "ok"
+  else download_our_kernels; fi
+
+  if [[ $IGNORE_PINOCCHIO_FILESYSTEMS = yes ]]; then
+  echo -n "* Installing pinocchio filesystems: dependency ignored (--no-pinocchio)"
+  echo_at_right_side --newline "ok"
+  else download_our_pinocchio_filesystems; fi
+
+  if [[ $IGNORE_BIG_FILESYSTEMS = yes ]]; then
+  echo -n "* Installing other filesystems: dependency ignored (--no-filesystems)"
+  echo_at_right_side --newline "ok"
+  else download_our_big_filesystems; fi
+
+  popd 1>&2
+}
+
+# =============================================================
 #                            MAIN
 # =============================================================
 
@@ -840,10 +937,17 @@ exec 2>>$LOGFILE
 
 COMMAND_RESULT=$REPODIR/result
 ALREADY_DONE=$REPODIR/already_done
-touch $COMMAND_RESULT
+touch $COMMAND_RESULT $ALREADY_DONE
 
 OUR_BASE_URL="http://www.marionnet.org/download/marionnet_from_scratch"
 OUR_MIRROR="$OUR_BASE_URL/mirror/"
+
+if [[ $DOWNLOAD_ONLY = yes ]]; then
+  download_marionnet_kernels_and_filesystems
+  echo '---'
+  echo "Success."
+  exit 0
+fi
 
 if are_we_in_debian_or_derived; then
   echo "* This looks like a Debian or derived distribution. Oh, joy!"
@@ -856,23 +960,23 @@ if are_we_in_debian_or_derived; then
     if [[ $z != n && $z != N ]]; then
       echo -n "  Shall I use the aptitude option --allow-untrusted ([y]/n)? "; read z
       if [[ $z != n && $z != N ]]; then
-        APTITUDE_OPTIONS+="--allow-untrusted "
+	APTITUDE_OPTIONS+="--allow-untrusted "
       fi
       MSG="Installing required packages with aptitude"
       ensure_sudo_or_continue_as_root "* $MSG"
       # First install aptitude if needed:
       if ! type 1>&2 aptitude; then
-        launch_and_log --sudo "Installing aptitude" "apt-get -y install aptitude"
-        APTITUDE_INSTALLED_NOW=yes
+	launch_and_log --sudo "Installing aptitude" "apt-get -y install aptitude"
+	APTITUDE_INSTALLED_NOW=yes
       fi
       # vde2 only if is not already installed and the available version is >= 2.2.1
       if [[ $APTITUDE_INSTALLED_NOW = yes ]] && ! type 1>&2 vde_switch; then
-	  VDE2_VERSION=$(aptitude $APTITUDE_OPTIONS show vde2 | awk '/^Version.*[2-9][.][0-9][.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
-	  VDE2_VERSION=$(echo $VDE2_VERSION | awk -F '.' '(($2 * 100 + $3 * 10 + $4) >= 221) {print}')
-	  if [[ -n "$VDE2_VERSION" ]]; then
-	      DEBIAN_PACKAGE_LIST+="vde2 "
-              echo "  Note: I will also install vde2 with aptitude"
-	  fi
+	VDE2_VERSION=$(aptitude $APTITUDE_OPTIONS show vde2 | awk '/^Version.*[2-9][.][0-9][.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
+	VDE2_VERSION=$(echo $VDE2_VERSION | awk -F '.' '(($2 * 100 + $3 * 10 + $4) >= 221) {print}')
+	if [[ -n "$VDE2_VERSION" ]]; then
+	  DEBIAN_PACKAGE_LIST+="vde2 "
+	  echo "  Note: I will also install vde2 with aptitude"
+	fi
       fi
       # We set the option `--do-not-register-as-done' because sometimes a single call to aptitude is not sufficient to install all things...
       launch_and_log --do-not-register-as-done --sudo "$MSG" "aptitude $APTITUDE_OPTIONS -q -y install $DEBIAN_PACKAGE_LIST"
@@ -1120,79 +1224,11 @@ fi
 #                     KERNELS AND FILESYSTEMS
 # =============================================================
 
-function download_our_kernels {
-  local KERNELS
-  KERNELS=$(wget -O - "$OUR_BASE_URL" \
-  | grep -o 'href="kernels_.*"' \
-  | grep -o "kernels_.*[.]tar[.]gz"\
-  )
-  local i WEIGHT
-  for i in $KERNELS; do
-    # Known weights:
-    case "$i" in
-      "kernels_linux-2.6.18-ghost.tar.gz") WEIGHT=6032 ;;
-      *) unset WEIGHT ;;
-    esac
-    launch_and_log --sudo --script "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
-  done
-}
-
-function download_our_big_filesystems {
-  local FILESYSTEMS
-  FILESYSTEMS=$(wget -O - "$OUR_BASE_URL" \
-  | grep -o 'href="filesystems_.*"' \
-  | grep -o "filesystems_.*[.]tar[.]gz"\
-  | grep -v "filesystems_pinocchio.*[.]tar[.]gz"\
-  )
-  local i WEIGHT
-  for i in $FILESYSTEMS; do
-    # Known weights:
-    case "$i" in
-      "filesystems_machine-debian-lenny-sid-2008.tar.gz") WEIGHT=677935 ;;
-      "filesystems_machine-mandriva20100215.tar.gz") WEIGHT=540521 ;;
-      *) unset WEIGHT ;;
-    esac
-    launch_and_log --sudo --script "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
-  done
-}
-
-function download_our_pinocchio_filesystems {
-  local FILESYSTEMS
-  FILESYSTEMS=$(wget -O - "$OUR_BASE_URL" \
-  | grep -o 'href="filesystems_pinocchio.*"' \
-  | grep -o "filesystems_.*[.]tar[.]gz"\
-  )
-  local i WEIGHT
-  for i in $FILESYSTEMS; do
-    # Known weights:
-    case "$i" in
-      "filesystems_pinocchio.tar.gz") WEIGHT=77543 ;;
-      *) unset WEIGHT ;;
-    esac
-    launch_and_log --sudo --script "Installing $i" "{ wget -O - '$OUR_BASE_URL/$i' | tar 1>&2 xvzf -; }"  $WEIGHT
-  done
-}
-
-ensure_sudo -p "* Required the [sudo] password for %u:"
-$SUDO_OR_NOTHING mkdir -p $PREFIX/share/marionnet/
-pushd $PREFIX/share/marionnet/ 1>&2
-
-if [[ $IGNORE_KERNELS = yes ]]; then
- echo -n "* Installing kernels: dependency ignored (--no-kernels)"
- echo_at_right_side --newline "ok"
-else download_our_kernels; fi
-
-if [[ $IGNORE_PINOCCHIO_FILESYSTEMS = yes ]]; then
- echo -n "* Installing pinocchio filesystems: dependency ignored (--no-pinocchio)"
- echo_at_right_side --newline "ok"
-else download_our_pinocchio_filesystems; fi
-
-if [[ $IGNORE_BIG_FILESYSTEMS = yes ]]; then
- echo -n "* Installing other filesystems: dependency ignored (--no-filesystems)"
- echo_at_right_side --newline "ok"
-else download_our_big_filesystems; fi
-
-popd 1>&2
+# The functions related to these features are located at the
+# beginning of this script in order to manage the option
+# download--only. So, at this point we have just to call the
+# good function:
+download_marionnet_kernels_and_filesystems
 
 # =============================================================
 #                     marionnet.conf

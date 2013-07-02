@@ -51,7 +51,7 @@ static int on_error (int origcode, int nerror)
 		 */
 		case (ESOCKCREATE) :
 			dinfo;
-			fprintf(stderr, "ethghost: Error: Cann't create socket (%s)\n",strerror(nerror));
+			fprintf(stderr, "ethghost: Error: couldn't create socket (%s)\n",strerror(nerror));
 			break;
 		/*
 		 * If we can not destroy socket then we send a generic message
@@ -59,7 +59,7 @@ static int on_error (int origcode, int nerror)
 		 */
 		case (ESOCKDELETE) :
 			dinfo;
-			fprintf(stderr, "ethghost: Error: Cann't destroy socket (%s)\n",strerror(nerror));
+			fprintf(stderr, "ethghost: Error: couldn't destroy socket (%s)\n",strerror(nerror));
 			break;
 		/*
 		 * If errors occur during the ghostification or the unghostification
@@ -77,22 +77,21 @@ static int on_error (int origcode, int nerror)
 				 * this case then kernel don't support ghost ops.
 				 */
 				case (EINVAL) :
-					fprintf(stderr, "ethghost: Error: Can not ghostify interface, are you sure\n");
-					fprintf(stderr, "ethghost:        that your kernel supports Ghostification.\n");
+					fprintf(stderr, "ethghost: Error: couldn't ghostify interface; are you sure that your kernel supports Ghostification?\n");
 					break;
 				/*
 				 * This error code is send by the ghostification kernel code
 				 * if the specified interface exist and is already ghositifed.
 				 */
 				case (EEXIST) :
-					fprintf(stderr, "ethghost: Error: Specified interface is already ghostified.\n");
+					fprintf(stderr, "ethghost: Error: the specified interface is already ghostified.\n");
 					break;
 				/*
 				 * This error code is send by the ghostification kernel code
 				 * if the specified interface (really) doesn't exist.
 				 */
 				case (ENODEV) :
-					fprintf(stderr, "ethghost: Error: Specified interface doesn't exist (ghostify).\n");
+					fprintf(stderr, "ethghost: Error: the specified interface doesn't exist (ghostify).\n");
 					break;
 				/*
 				 * This error code is send by the ghostification kernel code if the
@@ -100,7 +99,7 @@ static int on_error (int origcode, int nerror)
 				 * maximum number of interface ghostified has already been reached.
 				 */
 				case (ENOMEM) :
-					fprintf(stderr, "ethghost: Error: Max number of ghositifed interfaces has been reached.\n");
+					fprintf(stderr, "ethghost: Error: the maximum number of ghostified interfaces has been reached.\n");
 					break;
 				/*
 				 * A unknown error took place (not return but the ghostification
@@ -108,7 +107,7 @@ static int on_error (int origcode, int nerror)
 				 * system error message between parentheses.
 				 */
 				default :
-					fprintf(stderr, "ethghost: Error: An error occurs during ghostification (%s).\n",strerror(nerror));
+					fprintf(stderr, "ethghost: Error: an error occurred during ghostification (%s).\n",strerror(nerror));
 			}
 			break;
 		case (EUNGHOSTIFY) :
@@ -121,14 +120,14 @@ static int on_error (int origcode, int nerror)
 				 * it cann't be ghostified.
 				 */
 				case (ENODEV) :
-					fprintf(stderr, "ethghost: Error: Specified interface doesn't exist (unghostify).\n");
+					fprintf(stderr, "ethghost: Error: the specified interface doesn't exist (unghostify).\n");
 					break;
 				/*
 				 * This error occurs when the specified interface is not
 				 * ghostified (but it exists)
 				 */
 				case (ESRCH) :
-					fprintf(stderr, "ethghost: Error: Specified interface is not ghostified.\n");
+					fprintf(stderr, "ethghost: Error: the specified interface isn't ghostified.\n");
 					break;
 				/*
 				 * This error code cann't be sent by the ghostification kernel
@@ -137,8 +136,7 @@ static int on_error (int origcode, int nerror)
 				 * ghostification operations.
 				 */
 				case (EINVAL) :
-					fprintf(stderr, "ethghost: Error: Can not unghostify interface, are you sure\n");
-					fprintf(stderr, "ethghost:        that your kernel supports Ghostification.\n");
+					fprintf(stderr, "ethghost: Error: couldn't unghostify interface; are you sure that your kernel supports Ghostification?\n");
 					break;
 				/*
 				 * A unknown error took place (not return but the ghostification
@@ -146,7 +144,7 @@ static int on_error (int origcode, int nerror)
 				 * system error message between parentheses.
 				 */
 				default :
-					fprintf(stderr, "ethghost: Error: An error occurs during unghostification (%s).\n",strerror(nerror));
+					fprintf(stderr, "ethghost: Error: an error occurred during unghostification (%s).\n",strerror(nerror));
 			}
 			break;
 		default :
@@ -238,7 +236,7 @@ unsigned int ghostify_iface (const char *iface)
 	}
 
 	/* debug */
-	dprintf("Socket create with success, goto __ghostify");
+	dprintf("Socket created with success, goto __ghostify");
 	/* 2) ghostify iface */
 	if ((error =__ghostify(&sk, iface)) != 0) {
 		fprintf(stderr, "ethghost: Error: in %s : interface %s, Exit!!\n",__FUNCTION__,iface);
@@ -253,7 +251,7 @@ unsigned int ghostify_iface (const char *iface)
 	}
 
 	/* debug */
-	dprintf("Socket delete with success, goto main");
+	dprintf("Socket deleted with success, goto main");
 
 	/* return error to main for user (0 on succes) */
 	return (error);
@@ -282,10 +280,10 @@ unsigned int unghostify_iface (const char *iface)
 	}
 
 	/* debug */
-	dprintf("Socket create with success, goto __unghostify");
+	dprintf("Socket created with success, goto __unghostify");
 	/* 2) unghostify iface */
 	if ((error =__unghostify(&sk, iface)) != 0) {
-		fprintf(stderr, "ethghost: Error: in %s : interface %s, Exit!!\n",__FUNCTION__,iface);
+		fprintf(stderr, "ethghost: Error: in %s about the interface %s. Exit!!\n",__FUNCTION__,iface);
 		/* to preserve original error (if possible) */
 		errorp = __destroy_socket(&sk);
 		return errorp ? errorp : error;
@@ -293,11 +291,11 @@ unsigned int unghostify_iface (const char *iface)
 
 	/* 3) destroy socket*/
 	if ((error = __destroy_socket(&sk)) != 0 ) {
-		fprintf(stderr, "ethghost: Error: in %s , Exit!!\n",__FUNCTION__);
+		fprintf(stderr, "ethghost: Error: in %s. Exit!!\n",__FUNCTION__);
 	}
 
 	/* debug */
-	dprintf("Socket delete with success, goto main");
+	dprintf("Socket deleted with success, goto main");
 	/* return error to main for user (0 on succes) */
 	return (error);
 }

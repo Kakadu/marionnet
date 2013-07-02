@@ -1,0 +1,11 @@
+diff -ruN linux-3.2.48--original/arch/um/os-Linux/start_up.c linux-3.2.48/arch/um/os-Linux/start_up.c
+--- linux-3.2.48--original/arch/um/os-Linux/start_up.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/arch/um/os-Linux/start_up.c	2013-07-01 11:37:13.000000000 +0200
+@@ -13,6 +13,7 @@
+ #include <signal.h>
+ #include <string.h>
+ #include <sys/mman.h>
++#include <sys/resource.h>
+ #include <sys/stat.h>
+ #include <sys/wait.h>
+ #include <asm/unistd.h>

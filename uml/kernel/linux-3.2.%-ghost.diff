@@ -1,6 +1,6 @@
-diff -rNuad linux-3.0.8-original/include/linux/netdevice.h linux-3.0.8-modified/include/linux/netdevice.h
---- linux-3.0.8-original/include/linux/netdevice.h	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/include/linux/netdevice.h	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/include/linux/netdevice.h linux-3.2.48/include/linux/netdevice.h
+--- linux-3.2.48--original/include/linux/netdevice.h	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/include/linux/netdevice.h	2013-07-01 11:59:07.000000000 +0200
 @@ -14,6 +14,8 @@
   *		Alan Cox, <alan@lxorguk.ukuu.org.uk>
   *		Bjorn Ekwall. <bj0rn@blox.se>
@@ -10,7 +10,7 @@ diff -rNuad linux-3.0.8-original/include/linux/netdevice.h linux-3.0.8-modified/
   *
   *		This program is free software; you can redistribute it and/or
   *		modify it under the terms of the GNU General Public License
-@@ -2753,4 +2755,12 @@
+@@ -2735,4 +2737,12 @@
  
  #endif /* __KERNEL__ */
  
@@ -23,9 +23,9 @@ diff -rNuad linux-3.0.8-original/include/linux/netdevice.h linux-3.0.8-modified/
 +#endif /* CONFIG_GHOSTIFICATION */
 +
  #endif	/* _LINUX_NETDEVICE_H */
-diff -rNuad linux-3.0.8-original/include/linux/sockios.h linux-3.0.8-modified/include/linux/sockios.h
---- linux-3.0.8-original/include/linux/sockios.h	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/include/linux/sockios.h	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/include/linux/sockios.h linux-3.2.48/include/linux/sockios.h
+--- linux-3.2.48--original/include/linux/sockios.h	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/include/linux/sockios.h	2013-07-01 11:59:07.000000000 +0200
 @@ -9,6 +9,8 @@
   *
   * Authors:	Ross Biro
@@ -49,9 +49,9 @@ diff -rNuad linux-3.0.8-original/include/linux/sockios.h linux-3.0.8-modified/in
  /* ARP cache control calls. */
  		    /*  0x8950 - 0x8952  * obsolete calls, don't re-use */
  #define SIOCDARP	0x8953		/* delete ARP table entry	*/
-diff -rNuad linux-3.0.8-original/include/net/ghostdebug.h linux-3.0.8-modified/include/net/ghostdebug.h
---- linux-3.0.8-original/include/net/ghostdebug.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-3.0.8-modified/include/net/ghostdebug.h	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/include/net/ghostdebug.h linux-3.2.48/include/net/ghostdebug.h
+--- linux-3.2.48--original/include/net/ghostdebug.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-3.2.48/include/net/ghostdebug.h	2013-07-01 11:59:07.000000000 +0200
 @@ -0,0 +1,93 @@
 +/*
 + * Ghost support:
@@ -146,9 +146,9 @@ diff -rNuad linux-3.0.8-original/include/net/ghostdebug.h linux-3.0.8-modified/i
 +#endif /* CONFIG_GHOSTIFICATION */
 +
 +#endif /* __GHOSTDEBUG__ */
-diff -rNuad linux-3.0.8-original/kernel/softirq.c linux-3.0.8-modified/kernel/softirq.c
---- linux-3.0.8-original/kernel/softirq.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/kernel/softirq.c	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/kernel/softirq.c linux-3.2.48/kernel/softirq.c
+--- linux-3.2.48--original/kernel/softirq.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/kernel/softirq.c	2013-07-01 11:59:07.000000000 +0200
 @@ -134,8 +134,11 @@
  
  static void __local_bh_enable(unsigned int cnt)
@@ -172,9 +172,10 @@ diff -rNuad linux-3.0.8-original/kernel/softirq.c linux-3.0.8-modified/kernel/so
  #ifdef CONFIG_TRACE_IRQFLAGS
  	local_irq_disable();
  #endif
-diff -rNuad linux-3.0.8-original/net/core/dev.c linux-3.0.8-modified/net/core/dev.c
---- linux-3.0.8-original/net/core/dev.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/core/dev.c	2011-10-26 16:22:27.000000000 +0200
+Binary files linux-3.2.48--original/linux and linux-3.2.48/linux differ
+diff -ruN linux-3.2.48--original/net/core/dev.c linux-3.2.48/net/core/dev.c
+--- linux-3.2.48--original/net/core/dev.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/core/dev.c	2013-07-01 11:59:07.000000000 +0200
 @@ -18,6 +18,7 @@
   *		Alexey Kuznetsov <kuznet@ms2.inr.ac.ru>
   *		Adam Sulmicki <adam@cfar.umd.edu>
@@ -192,7 +193,7 @@ diff -rNuad linux-3.0.8-original/net/core/dev.c linux-3.0.8-modified/net/core/de
   */
  
  #include <asm/uaccess.h>
-@@ -143,6 +146,231 @@
+@@ -147,6 +150,231 @@
  #define GRO_MAX_HEAD (MAX_HEADER + 128)
  
  /*
@@ -424,7 +425,7 @@ diff -rNuad linux-3.0.8-original/net/core/dev.c linux-3.0.8-modified/net/core/de
   *	The list of packet types we will receive (as opposed to discard)
   *	and the routines to invoke.
   *
-@@ -562,6 +790,13 @@
+@@ -576,6 +804,13 @@
  {
  	int ints[5];
  	struct ifmap map;
@@ -438,7 +439,7 @@ diff -rNuad linux-3.0.8-original/net/core/dev.c linux-3.0.8-modified/net/core/de
  
  	str = get_options(str, ARRAY_SIZE(ints), ints);
  	if (!str || !*str)
-@@ -3932,11 +4167,20 @@
+@@ -4076,11 +4311,20 @@
  	len = ifc.ifc_len;
  
  	/*
@@ -460,7 +461,7 @@ diff -rNuad linux-3.0.8-original/net/core/dev.c linux-3.0.8-modified/net/core/de
  		for (i = 0; i < NPROTO; i++) {
  			if (gifconf_list[i]) {
  				int done;
-@@ -4011,6 +4255,10 @@
+@@ -4183,6 +4427,10 @@
  	struct rtnl_link_stats64 temp;
  	const struct rtnl_link_stats64 *stats = dev_get_stats(dev, &temp);
  
@@ -471,7 +472,7 @@ diff -rNuad linux-3.0.8-original/net/core/dev.c linux-3.0.8-modified/net/core/de
  	seq_printf(seq, "%6s: %7llu %7llu %4llu %4llu %4llu %5llu %10llu %9llu "
  		   "%8llu %7llu %4llu %4llu %4llu %5llu %7llu %10llu\n",
  		   dev->name, stats->rx_bytes, stats->rx_packets,
-@@ -4744,6 +4992,16 @@
+@@ -4891,6 +5139,16 @@
  	if (!dev)
  		return -ENODEV;
  
@@ -488,7 +489,7 @@ diff -rNuad linux-3.0.8-original/net/core/dev.c linux-3.0.8-modified/net/core/de
  	switch (cmd) {
  	case SIOCGIFFLAGS:	/* Get interface flags */
  		ifr->ifr_flags = (short) dev_get_flags(dev);
-@@ -4814,6 +5072,17 @@
+@@ -4961,6 +5219,17 @@
  
  	ops = dev->netdev_ops;
  
@@ -506,7 +507,7 @@ diff -rNuad linux-3.0.8-original/net/core/dev.c linux-3.0.8-modified/net/core/de
  	switch (cmd) {
  	case SIOCSIFFLAGS:	/* Set interface flags */
  		return dev_change_flags(dev, ifr->ifr_flags);
-@@ -4954,6 +5223,56 @@
+@@ -5107,6 +5376,56 @@
  	 */
  
  	switch (cmd) {
@@ -563,9 +564,9 @@ diff -rNuad linux-3.0.8-original/net/core/dev.c linux-3.0.8-modified/net/core/de
  	/*
  	 *	These ioctl calls:
  	 *	- can be done by all.
-diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/core/rtnetlink.c
---- linux-3.0.8-original/net/core/rtnetlink.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/core/rtnetlink.c	2011-10-26 16:28:19.000000000 +0200
+diff -ruN linux-3.2.48--original/net/core/rtnetlink.c linux-3.2.48/net/core/rtnetlink.c
+--- linux-3.2.48--original/net/core/rtnetlink.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/core/rtnetlink.c	2013-07-01 15:55:19.000000000 +0200
 @@ -12,8 +12,12 @@
   *		as published by the Free Software Foundation; either version
   *		2 of the License, or (at your option) any later version.
@@ -592,7 +593,7 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  struct rtnl_link {
  	rtnl_doit_func		doit;
  	rtnl_dumpit_func	dumpit;
-@@ -117,7 +126,10 @@
+@@ -118,7 +127,10 @@
  static rtnl_doit_func rtnl_get_doit(int protocol, int msgindex)
  {
  	struct rtnl_link *tab;
@@ -604,7 +605,7 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  	if (protocol <= RTNL_FAMILY_MAX)
  		tab = rtnl_msg_handlers[protocol];
  	else
-@@ -132,7 +144,10 @@
+@@ -133,7 +145,10 @@
  static rtnl_dumpit_func rtnl_get_dumpit(int protocol, int msgindex)
  {
  	struct rtnl_link *tab;
@@ -616,7 +617,7 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  	if (protocol <= RTNL_FAMILY_MAX)
  		tab = rtnl_msg_handlers[protocol];
  	else
-@@ -555,6 +570,12 @@
+@@ -577,6 +592,12 @@
  {
  	struct sock *rtnl = net->rtnl;
  	int report = 0;
@@ -629,7 +630,7 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  
  	if (nlh)
  		report = nlmsg_report(nlh);
-@@ -855,6 +876,20 @@
+@@ -887,6 +908,20 @@
  	if (nlh == NULL)
  		return -EMSGSIZE;
  
@@ -650,7 +651,7 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  	ifm = nlmsg_data(nlh);
  	ifm->ifi_family = AF_UNSPEC;
  	ifm->__ifi_pad = 0;
-@@ -1013,6 +1048,24 @@
+@@ -1075,6 +1110,24 @@
  		idx = 0;
  		head = &net->dev_index_head[h];
  		hlist_for_each_entry_rcu(dev, node, head, index_hlist) {
@@ -675,25 +676,28 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  			if (idx < s_idx)
  				goto cont;
  			if (rtnl_fill_ifinfo(skb, dev, RTM_NEWLINK,
-@@ -1135,6 +1188,17 @@
+@@ -1203,6 +1256,20 @@
  			}
  		}
  	}
 +#ifdef CONFIG_GHOSTIFICATION
-+	/* (ghost support) Normally we should never go through it 
-+	with user-space tools (like iproute) which scan all iface first */
-+	ghost_develmsg("nlh->nlmsg_type = %i, nlmsg_seq = %i, nlmsg_pid = %i and dev->name = %s",
-+		nlh->nlmsg_type, nlh->nlmsg_seq, nlh->nlmsg_pid, dev->name);
-+	if (is_a_ghost_interface_name(dev->name)) {
-+		ghost_ptk("Try to change state/parameters of a ghotified "
-+			"interface (%s), skip", dev->name);
-+		return -ENODEV;
-+	}
++        if(dev != NULL){
++          /* (ghost support) Normally we should never go through it 
++             with user-space tools (like iproute) which scan all iface first */
++          ghost_develmsg("nlh->nlmsg_type = %i, nlmsg_seq = %i, nlmsg_pid = %i and dev->name = %s",
++                         nlh->nlmsg_type, nlh->nlmsg_seq, nlh->nlmsg_pid, dev->name);
++          if (is_a_ghost_interface_name(dev->name)) {
++            ghost_ptk("Try to change state/parameters of a ghotified "
++                      "interface (%s), skip", dev->name);
++            return -ENODEV;
++          }
++        }
++
 +#endif /* CONFIG_GHOSTIFICATION */
  
  	return 0;
  }
-@@ -1486,6 +1550,17 @@
+@@ -1564,6 +1631,17 @@
  		err = -ENODEV;
  		goto errout;
  	}
@@ -711,7 +715,7 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  
  	err = validate_linkmsg(dev, tb);
  	if (err < 0)
-@@ -1524,6 +1599,17 @@
+@@ -1602,6 +1680,17 @@
  
  	if (!dev)
  		return -ENODEV;
@@ -729,16 +733,16 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  
  	ops = dev->rtnl_link_ops;
  	if (!ops)
-@@ -1848,6 +1934,8 @@
- 	struct sk_buff *skb;
+@@ -1959,6 +2048,8 @@
  	int err = -ENOBUFS;
+ 	size_t if_info_size;
  
 +	/* (ghost support) call rtnl_fill_ifinfo so maybe it
-+	is need here to modify, in order to skip ghost iface */
- 	skb = nlmsg_new(if_nlmsg_size(dev), GFP_KERNEL);
++           is need here to modify, in order to skip ghost iface */
+ 	skb = nlmsg_new((if_info_size = if_nlmsg_size(dev, 0)), GFP_KERNEL);
  	if (skb == NULL)
  		goto errout;
-@@ -1883,6 +1971,11 @@
+@@ -1994,6 +2085,11 @@
  	int err;
  
  	type = nlh->nlmsg_type;
@@ -750,7 +754,7 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  	if (type > RTM_MAX)
  		return -EOPNOTSUPP;
  
-@@ -1899,14 +1992,21 @@
+@@ -2010,15 +2106,23 @@
  	if (kind != 2 && security_netlink_recv(skb, CAP_NET_ADMIN))
  		return -EPERM;
  
@@ -758,22 +762,23 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  	if (kind == 2 && nlh->nlmsg_flags&NLM_F_DUMP) {
  		struct sock *rtnl;
  		rtnl_dumpit_func dumpit;
+ 		rtnl_calcit_func calcit;
+ 		u16 min_dump_alloc = 0;
  
 +		/* (ghost support) then rtnl_get_dumpit return pointer to the appropriate
-+		function for this family and this type take in rtnl_msg_handler[] */
++                   function for this family and this type take in rtnl_msg_handler[] */
  		dumpit = rtnl_get_dumpit(family, type);
  		if (dumpit == NULL)
  			return -EOPNOTSUPP;
--
 +#ifdef CONFIG_GHOSTIFICATION
 +		ghost_develmsg("Part 1: rtnl_get_dumpit(family %i, type %i) "
 +			"is used before call to netlink_dump_start",
 +			family,type);
 +#endif /* CONFIG_GHOSTIFICATION */
- 		__rtnl_unlock();
- 		rtnl = net->rtnl;
- 		err = netlink_dump_start(rtnl, skb, nlh, dumpit, NULL);
-@@ -1938,6 +2038,11 @@
+ 		calcit = rtnl_get_calcit(family, type);
+ 		if (calcit)
+ 			min_dump_alloc = calcit(skb, nlh);
+@@ -2055,6 +2159,11 @@
  	doit = rtnl_get_doit(family, type);
  	if (doit == NULL)
  		return -EOPNOTSUPP;
@@ -785,7 +790,7 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  
  	return doit(skb, nlh, (void *)&rta_buf[0]);
  }
-@@ -1953,6 +2058,10 @@
+@@ -2070,6 +2179,10 @@
  {
  	struct net_device *dev = ptr;
  
@@ -796,9 +801,9 @@ diff -rNuad linux-3.0.8-original/net/core/rtnetlink.c linux-3.0.8-modified/net/c
  	switch (event) {
  	case NETDEV_UP:
  	case NETDEV_DOWN:
-diff -rNuad linux-3.0.8-original/net/ipv4/arp.c linux-3.0.8-modified/net/ipv4/arp.c
---- linux-3.0.8-original/net/ipv4/arp.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv4/arp.c	2011-10-26 15:21:10.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv4/arp.c linux-3.2.48/net/ipv4/arp.c
+--- linux-3.2.48--original/net/ipv4/arp.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv4/arp.c	2013-07-01 11:59:07.000000000 +0200
 @@ -71,6 +71,8 @@
   *					sending (e.g. insert 8021q tag).
   *		Harald Welte	:	convert to make use of jenkins hash
@@ -808,7 +813,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/arp.c linux-3.0.8-modified/net/ipv4/ar
   */
  
  #include <linux/module.h>
-@@ -119,6 +121,11 @@
+@@ -118,6 +120,11 @@
  EXPORT_SYMBOL(clip_tbl_hook);
  #endif
  
@@ -820,7 +825,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/arp.c linux-3.0.8-modified/net/ipv4/ar
  #include <asm/system.h>
  #include <linux/uaccess.h>
  
-@@ -1384,9 +1391,21 @@
+@@ -1352,9 +1359,21 @@
  	}
  #endif
  	sprintf(tbuf, "%pI4", n->primary_key);
@@ -843,7 +848,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/arp.c linux-3.0.8-modified/net/ipv4/ar
  }
  
  static void arp_format_pneigh_entry(struct seq_file *seq,
-@@ -1397,9 +1416,21 @@
+@@ -1365,9 +1384,21 @@
  	char tbuf[16];
  
  	sprintf(tbuf, "%pI4", n->key);
@@ -867,9 +872,9 @@ diff -rNuad linux-3.0.8-original/net/ipv4/arp.c linux-3.0.8-modified/net/ipv4/ar
  }
  
  static int arp_seq_show(struct seq_file *seq, void *v)
-diff -rNuad linux-3.0.8-original/net/ipv4/devinet.c linux-3.0.8-modified/net/ipv4/devinet.c
---- linux-3.0.8-original/net/ipv4/devinet.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv4/devinet.c	2011-10-26 16:42:12.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv4/devinet.c linux-3.2.48/net/ipv4/devinet.c
+--- linux-3.2.48--original/net/ipv4/devinet.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv4/devinet.c	2013-07-01 11:59:07.000000000 +0200
 @@ -23,6 +23,9 @@
   *					address (4.4BSD alias style support),
   *					fall back to comparing just the label
@@ -955,9 +960,9 @@ diff -rNuad linux-3.0.8-original/net/ipv4/devinet.c linux-3.0.8-modified/net/ipv
  			if (idx < s_idx)
  				goto cont;
  			if (h > s_h || idx > s_idx)
-diff -rNuad linux-3.0.8-original/net/ipv4/fib_frontend.c linux-3.0.8-modified/net/ipv4/fib_frontend.c
---- linux-3.0.8-original/net/ipv4/fib_frontend.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv4/fib_frontend.c	2011-10-26 15:27:03.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv4/fib_frontend.c linux-3.2.48/net/ipv4/fib_frontend.c
+--- linux-3.2.48--original/net/ipv4/fib_frontend.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv4/fib_frontend.c	2013-07-01 11:59:07.000000000 +0200
 @@ -6,6 +6,10 @@
   *		IPv4 Forwarding Information Base: FIB frontend.
   *
@@ -1102,9 +1107,9 @@ diff -rNuad linux-3.0.8-original/net/ipv4/fib_frontend.c linux-3.0.8-modified/ne
  	return skb->len;
  }
  
-diff -rNuad linux-3.0.8-original/net/ipv4/fib_semantics.c linux-3.0.8-modified/net/ipv4/fib_semantics.c
---- linux-3.0.8-original/net/ipv4/fib_semantics.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv4/fib_semantics.c	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv4/fib_semantics.c linux-3.2.48/net/ipv4/fib_semantics.c
+--- linux-3.2.48--original/net/ipv4/fib_semantics.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv4/fib_semantics.c	2013-07-01 11:59:07.000000000 +0200
 @@ -11,6 +11,9 @@
   *		modify it under the terms of the GNU General Public License
   *		as published by the Free Software Foundation; either version
@@ -1127,7 +1132,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/fib_semantics.c linux-3.0.8-modified/n
  #include "fib_lookup.h"
  
  static DEFINE_SPINLOCK(fib_info_lock);
-@@ -915,6 +923,23 @@
+@@ -923,6 +931,23 @@
  	if (nlh == NULL)
  		return -EMSGSIZE;
  
@@ -1151,9 +1156,9 @@ diff -rNuad linux-3.0.8-original/net/ipv4/fib_semantics.c linux-3.0.8-modified/n
  	rtm = nlmsg_data(nlh);
  	rtm->rtm_family = AF_INET;
  	rtm->rtm_dst_len = dst_len;
-diff -rNuad linux-3.0.8-original/net/ipv4/fib_trie.c linux-3.0.8-modified/net/ipv4/fib_trie.c
---- linux-3.0.8-original/net/ipv4/fib_trie.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv4/fib_trie.c	2011-10-26 15:28:41.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv4/fib_trie.c linux-3.2.48/net/ipv4/fib_trie.c
+--- linux-3.2.48--original/net/ipv4/fib_trie.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv4/fib_trie.c	2013-07-01 11:59:07.000000000 +0200
 @@ -47,6 +47,14 @@
   *		Paul E. McKenney <paulmck@us.ibm.com>
   *		Patrick McHardy <kaber@trash.net>
@@ -1169,7 +1174,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/fib_trie.c linux-3.0.8-modified/net/ip
  
  #define VERSION "0.409"
  
-@@ -82,6 +90,11 @@
+@@ -83,6 +91,11 @@
  #include <net/ip_fib.h>
  #include "fib_lookup.h"
  
@@ -1181,7 +1186,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/fib_trie.c linux-3.0.8-modified/net/ip
  #define MAX_STAT_DEPTH 32
  
  #define KEYLENGTH (8*sizeof(t_key))
-@@ -1213,6 +1226,18 @@
+@@ -1216,6 +1229,18 @@
  		goto err;
  	}
  
@@ -1200,7 +1205,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/fib_trie.c linux-3.0.8-modified/net/ip
  	l = fib_find_node(t, key);
  	fa = NULL;
  
-@@ -1667,7 +1692,17 @@
+@@ -1670,7 +1695,17 @@
  	fa = list_entry(fa->fa_list.prev, struct fib_alias, fa_list);
  	list_for_each_entry_continue(fa, fa_head, fa_list) {
  		struct fib_info *fi = fa->fa_info;
@@ -1219,7 +1224,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/fib_trie.c linux-3.0.8-modified/net/ip
  		if (fa->fa_tos != tos)
  			break;
  
-@@ -2554,7 +2589,28 @@
+@@ -2557,7 +2592,28 @@
  			    || fa->fa_type == RTN_MULTICAST)
  				continue;
  
@@ -1249,7 +1254,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/fib_trie.c linux-3.0.8-modified/net/ip
  				seq_printf(seq,
  					 "%s\t%08X\t%08X\t%04X\t%d\t%u\t"
  					 "%d\t%08X\t%d\t%u\t%u%n",
-@@ -2567,13 +2623,14 @@
+@@ -2570,13 +2626,14 @@
  					  fi->fib_advmss + 40 : 0),
  					 fi->fib_window,
  					 fi->fib_rtt >> 3, &len);
@@ -1266,9 +1271,9 @@ diff -rNuad linux-3.0.8-original/net/ipv4/fib_trie.c linux-3.0.8-modified/net/ip
  			seq_printf(seq, "%*s\n", 127 - len, "");
  		}
  	}
-diff -rNuad linux-3.0.8-original/net/ipv4/igmp.c linux-3.0.8-modified/net/ipv4/igmp.c
---- linux-3.0.8-original/net/ipv4/igmp.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv4/igmp.c	2011-10-26 15:35:09.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv4/igmp.c linux-3.2.48/net/ipv4/igmp.c
+--- linux-3.2.48--original/net/ipv4/igmp.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv4/igmp.c	2013-07-01 11:59:07.000000000 +0200
 @@ -68,6 +68,8 @@
   *		Alexey Kuznetsov:	Accordance to igmp-v2-06 draft.
   *		David L Stevens:	IGMPv3 support, with help from
@@ -1290,7 +1295,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/igmp.c linux-3.0.8-modified/net/ipv4/i
  #define IP_MAX_MEMBERSHIPS	20
  #define IP_MAX_MSF		10
  
-@@ -2437,8 +2444,18 @@
+@@ -2440,8 +2447,18 @@
  #endif
  
  		if (rcu_dereference(state->in_dev->mc_list) == im) {
@@ -1309,7 +1314,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/igmp.c linux-3.0.8-modified/net/ipv4/i
  		}
  
  		seq_printf(seq,
-@@ -2590,14 +2607,30 @@
+@@ -2593,14 +2610,30 @@
  			   "Device", "MCA",
  			   "SRC", "INC", "EXC");
  	} else {
@@ -1348,9 +1353,9 @@ diff -rNuad linux-3.0.8-original/net/ipv4/igmp.c linux-3.0.8-modified/net/ipv4/i
  	}
  	return 0;
  }
-diff -rNuad linux-3.0.8-original/net/ipv4/route.c linux-3.0.8-modified/net/ipv4/route.c
---- linux-3.0.8-original/net/ipv4/route.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv4/route.c	2011-10-26 16:36:20.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv4/route.c linux-3.2.48/net/ipv4/route.c
+--- linux-3.2.48--original/net/ipv4/route.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv4/route.c	2013-07-01 11:59:07.000000000 +0200
 @@ -55,6 +55,9 @@
   *	Eric Dumazet		:	hashed spinlocks and rt_check_expire() fixes.
   * 	Ilia Sotnikov		:	Ignore TOS on PMTUD and Redirect
@@ -1361,8 +1366,8 @@ diff -rNuad linux-3.0.8-original/net/ipv4/route.c linux-3.0.8-modified/net/ipv4/
   *
   *		This program is free software; you can redistribute it and/or
   *		modify it under the terms of the GNU General Public License
-@@ -110,6 +113,11 @@
- #endif
+@@ -112,6 +115,11 @@
+ #include <net/atmclip.h>
  #include <net/secure_seq.h>
  
 +/* (ghost support) */
@@ -1371,9 +1376,9 @@ diff -rNuad linux-3.0.8-original/net/ipv4/route.c linux-3.0.8-modified/net/ipv4/
 +#endif
 +
  #define RT_FL_TOS(oldflp4) \
-     ((u32)(oldflp4->flowi4_tos & (IPTOS_RT_MASK | RTO_ONLINK)))
+ 	((oldflp4)->flowi4_tos & (IPTOS_RT_MASK | RTO_ONLINK))
  
-@@ -411,6 +419,14 @@
+@@ -420,6 +428,14 @@
  			   "Metric\tSource\t\tMTU\tWindow\tIRTT\tTOS\tHHRef\t"
  			   "HHUptod\tSpecDst");
  	else {
@@ -1386,9 +1391,9 @@ diff -rNuad linux-3.0.8-original/net/ipv4/route.c linux-3.0.8-modified/net/ipv4/
 +		}
 +#endif /* CONFIG_GHOSTIFICATION */
  		struct rtable *r = v;
- 		int len;
- 
-@@ -2809,8 +2825,13 @@
+ 		struct neighbour *n;
+ 		int len, HHUptod;
+@@ -2999,8 +3015,13 @@
  		r->rtm_src_len = 32;
  		NLA_PUT_BE32(skb, RTA_SRC, rt->rt_key_src);
  	}
@@ -1403,7 +1408,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/route.c linux-3.0.8-modified/net/ipv4/
  #ifdef CONFIG_IP_ROUTE_CLASSID
  	if (rt->dst.tclassid)
  		NLA_PUT_U32(skb, RTA_FLOW, rt->dst.tclassid);
-@@ -2902,7 +2923,7 @@
+@@ -3096,7 +3117,7 @@
  		err = -ENOBUFS;
  		goto errout;
  	}
@@ -1412,7 +1417,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/route.c linux-3.0.8-modified/net/ipv4/
  	/* Reserve room for dummy headers, this skb can pass
  	   through good chunk of routing engine.
  	 */
-@@ -2925,6 +2946,17 @@
+@@ -3119,6 +3140,17 @@
  		if (dev == NULL) {
  			err = -ENODEV;
  			goto errout_free;
@@ -1430,7 +1435,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/route.c linux-3.0.8-modified/net/ipv4/
  		}
  
  		skb->protocol	= htons(ETH_P_IP);
-@@ -2959,6 +2991,22 @@
+@@ -3153,6 +3185,22 @@
  	if (rtm->rtm_flags & RTM_F_NOTIFY)
  		rt->rt_flags |= RTCF_NOTIFY;
  
@@ -1453,7 +1458,7 @@ diff -rNuad linux-3.0.8-original/net/ipv4/route.c linux-3.0.8-modified/net/ipv4/
  	err = rt_fill_info(net, skb, NETLINK_CB(in_skb).pid, nlh->nlmsg_seq,
  			   RTM_NEWROUTE, 0, 0);
  	if (err <= 0)
-@@ -2973,6 +3021,8 @@
+@@ -3167,6 +3215,8 @@
  	goto errout;
  }
  
@@ -1462,9 +1467,9 @@ diff -rNuad linux-3.0.8-original/net/ipv4/route.c linux-3.0.8-modified/net/ipv4/
  int ip_rt_dump(struct sk_buff *skb,  struct netlink_callback *cb)
  {
  	struct rtable *rt;
-diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ipv6/addrconf.c
---- linux-3.0.8-original/net/ipv6/addrconf.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv6/addrconf.c	2011-10-26 15:56:36.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv6/addrconf.c linux-3.2.48/net/ipv6/addrconf.c
+--- linux-3.2.48--original/net/ipv6/addrconf.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv6/addrconf.c	2013-07-01 11:59:07.000000000 +0200
 @@ -36,6 +36,9 @@
   *	YOSHIFUJI Hideaki @USAGI	:	improved source address
   *						selection; consider scope,
@@ -1487,7 +1492,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  #include <linux/uaccess.h>
  #include <asm/unaligned.h>
  
-@@ -454,6 +462,86 @@
+@@ -459,6 +467,86 @@
  	return idev;
  }
  
@@ -1574,7 +1579,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  #ifdef CONFIG_SYSCTL
  static void dev_forward_change(struct inet6_dev *idev)
  {
-@@ -2175,6 +2263,10 @@
+@@ -2254,6 +2342,10 @@
  	return PTR_ERR(ifp);
  }
  
@@ -1585,7 +1590,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  static int inet6_addr_del(struct net *net, int ifindex, const struct in6_addr *pfx,
  			  unsigned int plen)
  {
-@@ -2189,6 +2281,15 @@
+@@ -2268,6 +2360,15 @@
  	if (!dev)
  		return -ENODEV;
  
@@ -1601,7 +1606,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  	if ((idev = __in6_dev_get(dev)) == NULL)
  		return -ENXIO;
  
-@@ -3048,6 +3149,22 @@
+@@ -3184,6 +3285,22 @@
  static int if6_seq_show(struct seq_file *seq, void *v)
  {
  	struct inet6_ifaddr *ifp = (struct inet6_ifaddr *)v;
@@ -1624,7 +1629,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  	seq_printf(seq, "%pi6 %02x %02x %02x %02x %8s\n",
  		   &ifp->addr,
  		   ifp->idev->dev->ifindex,
-@@ -3055,6 +3172,8 @@
+@@ -3191,6 +3308,8 @@
  		   ifp->scope,
  		   ifp->flags,
  		   ifp->idev->dev->name);
@@ -1633,7 +1638,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  	return 0;
  }
  
-@@ -3273,6 +3392,10 @@
+@@ -3409,6 +3528,10 @@
  	[IFA_CACHEINFO]		= { .len = sizeof(struct ifa_cacheinfo) },
  };
  
@@ -1644,7 +1649,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  static int
  inet6_rtm_deladdr(struct sk_buff *skb, struct nlmsghdr *nlh, void *arg)
  {
-@@ -3290,7 +3413,9 @@
+@@ -3426,7 +3549,9 @@
  	pfx = extract_addr(tb[IFA_ADDRESS], tb[IFA_LOCAL]);
  	if (pfx == NULL)
  		return -EINVAL;
@@ -1655,7 +1660,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  	return inet6_addr_del(net, ifm->ifa_index, pfx, ifm->ifa_prefixlen);
  }
  
-@@ -3339,6 +3464,10 @@
+@@ -3475,6 +3600,10 @@
  	return 0;
  }
  
@@ -1666,7 +1671,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  static int
  inet6_rtm_newaddr(struct sk_buff *skb, struct nlmsghdr *nlh, void *arg)
  {
-@@ -3376,6 +3505,15 @@
+@@ -3512,6 +3641,15 @@
  	if (dev == NULL)
  		return -ENODEV;
  
@@ -1682,7 +1687,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  	/* We ignore other flags so far. */
  	ifa_flags = ifm->ifa_flags & (IFA_F_NODAD | IFA_F_HOMEADDRESS);
  
-@@ -3612,6 +3750,12 @@
+@@ -3748,6 +3886,12 @@
  	return err;
  }
  
@@ -1695,7 +1700,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  static int inet6_dump_addr(struct sk_buff *skb, struct netlink_callback *cb,
  			   enum addr_type_t type)
  {
-@@ -3642,6 +3786,16 @@
+@@ -3778,6 +3922,16 @@
  			if (!idev)
  				goto cont;
  
@@ -1712,7 +1717,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  			if (in6_dump_addrs(idev, skb, cb, type,
  					   s_ip_idx, &ip_idx) <= 0)
  				goto done;
-@@ -3672,7 +3826,6 @@
+@@ -3808,7 +3962,6 @@
  	return inet6_dump_addr(skb, cb, type);
  }
  
@@ -1720,7 +1725,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  static int inet6_dump_ifacaddr(struct sk_buff *skb, struct netlink_callback *cb)
  {
  	enum addr_type_t type = ANYCAST_ADDR;
-@@ -3680,6 +3833,10 @@
+@@ -3816,6 +3969,10 @@
  	return inet6_dump_addr(skb, cb, type);
  }
  
@@ -1731,7 +1736,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  static int inet6_rtm_getaddr(struct sk_buff *in_skb, struct nlmsghdr* nlh,
  			     void *arg)
  {
-@@ -3706,6 +3863,17 @@
+@@ -3842,6 +3999,17 @@
  	if (ifm->ifa_index)
  		dev = __dev_get_by_index(net, ifm->ifa_index);
  
@@ -1749,7 +1754,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  	ifa = ipv6_get_ifaddr(net, addr, dev, 1);
  	if (!ifa) {
  		err = -EADDRNOTAVAIL;
-@@ -3971,6 +4139,10 @@
+@@ -4107,6 +4275,10 @@
  	return -EMSGSIZE;
  }
  
@@ -1760,7 +1765,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  static int inet6_dump_ifinfo(struct sk_buff *skb, struct netlink_callback *cb)
  {
  	struct net *net = sock_net(skb->sk);
-@@ -3989,6 +4161,14 @@
+@@ -4125,6 +4297,14 @@
  		idx = 0;
  		head = &net->dev_index_head[h];
  		hlist_for_each_entry_rcu(dev, node, head, index_hlist) {
@@ -1775,7 +1780,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  			if (idx < s_idx)
  				goto cont;
  			idev = __in6_dev_get(dev);
-@@ -4020,7 +4200,6 @@
+@@ -4156,7 +4336,6 @@
  	skb = nlmsg_new(inet6_if_nlmsg_size(), GFP_ATOMIC);
  	if (skb == NULL)
  		goto errout;
@@ -1783,10 +1788,10 @@ diff -rNuad linux-3.0.8-original/net/ipv6/addrconf.c linux-3.0.8-modified/net/ip
  	err = inet6_fill_ifinfo(skb, idev, 0, 0, event, 0);
  	if (err < 0) {
  		/* -EMSGSIZE implies BUG in inet6_if_nlmsg_size() */
-diff -rNuad linux-3.0.8-original/net/ipv6/ip6_fib.c linux-3.0.8-modified/net/ipv6/ip6_fib.c
---- linux-3.0.8-original/net/ipv6/ip6_fib.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv6/ip6_fib.c	2011-10-26 15:02:30.000000000 +0200
-@@ -273,6 +273,8 @@
+diff -ruN linux-3.2.48--original/net/ipv6/ip6_fib.c linux-3.2.48/net/ipv6/ip6_fib.c
+--- linux-3.2.48--original/net/ipv6/ip6_fib.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv6/ip6_fib.c	2013-07-01 11:59:07.000000000 +0200
+@@ -269,6 +269,8 @@
  
  #endif
  
@@ -1795,7 +1800,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/ip6_fib.c linux-3.0.8-modified/net/ipv
  static int fib6_dump_node(struct fib6_walker_t *w)
  {
  	int res;
-@@ -318,7 +320,6 @@
+@@ -314,7 +316,6 @@
  {
  	struct fib6_walker_t *w;
  	int res;
@@ -1803,9 +1808,9 @@ diff -rNuad linux-3.0.8-original/net/ipv6/ip6_fib.c linux-3.0.8-modified/net/ipv
  	w = (void *)cb->args[2];
  	w->root = &table->tb6_root;
  
-diff -rNuad linux-3.0.8-original/net/ipv6/Kconfig linux-3.0.8-modified/net/ipv6/Kconfig
---- linux-3.0.8-original/net/ipv6/Kconfig	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv6/Kconfig	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv6/Kconfig linux-3.2.48/net/ipv6/Kconfig
+--- linux-3.2.48--original/net/ipv6/Kconfig	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv6/Kconfig	2013-07-01 11:59:07.000000000 +0200
 @@ -4,8 +4,8 @@
  
  #   IPv6 as module will cause a CRASH if you try to unload it
@@ -1928,9 +1933,9 @@ diff -rNuad linux-3.0.8-original/net/ipv6/Kconfig linux-3.0.8-modified/net/ipv6/
  	select INET6_TUNNEL
  	---help---
  	  Support for IPv6-in-IPv6 and IPv4-in-IPv6 tunnels described in
-diff -rNuad linux-3.0.8-original/net/ipv6/mcast.c linux-3.0.8-modified/net/ipv6/mcast.c
---- linux-3.0.8-original/net/ipv6/mcast.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv6/mcast.c	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv6/mcast.c linux-3.2.48/net/ipv6/mcast.c
+--- linux-3.2.48--original/net/ipv6/mcast.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv6/mcast.c	2013-07-01 11:59:07.000000000 +0200
 @@ -24,6 +24,10 @@
   *		- MLD for link-local addresses.
   *	David L Stevens <dlstevens@us.ibm.com>:
@@ -1954,7 +1959,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/mcast.c linux-3.0.8-modified/net/ipv6/
  /* Set to 3 to get tracing... */
  #define MCAST_DEBUG 2
  
-@@ -2406,6 +2415,20 @@
+@@ -2405,6 +2414,20 @@
  	struct ifmcaddr6 *im = (struct ifmcaddr6 *)v;
  	struct igmp6_mc_iter_state *state = igmp6_mc_seq_private(seq);
  
@@ -1975,7 +1980,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/mcast.c linux-3.0.8-modified/net/ipv6/
  	seq_printf(seq,
  		   "%-4d %-15s %pi6 %5d %08X %ld\n",
  		   state->dev->ifindex, state->dev->name,
-@@ -2413,6 +2436,7 @@
+@@ -2412,6 +2435,7 @@
  		   im->mca_users, im->mca_flags,
  		   (im->mca_flags&MAF_TIMER_RUNNING) ?
  		   jiffies_to_clock_t(im->mca_timer.expires-jiffies) : 0);
@@ -1983,7 +1988,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/mcast.c linux-3.0.8-modified/net/ipv6/
  	return 0;
  }
  
-@@ -2564,6 +2588,20 @@
+@@ -2563,6 +2587,20 @@
  			   "Device", "Multicast Address",
  			   "Source Address", "INC", "EXC");
  	} else {
@@ -2004,7 +2009,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/mcast.c linux-3.0.8-modified/net/ipv6/
  		seq_printf(seq,
  			   "%3d %6.6s %pi6 %pi6 %6lu %6lu\n",
  			   state->dev->ifindex, state->dev->name,
-@@ -2571,6 +2609,7 @@
+@@ -2570,6 +2608,7 @@
  			   &psf->sf_addr,
  			   psf->sf_count[MCAST_INCLUDE],
  			   psf->sf_count[MCAST_EXCLUDE]);
@@ -2012,9 +2017,9 @@ diff -rNuad linux-3.0.8-original/net/ipv6/mcast.c linux-3.0.8-modified/net/ipv6/
  	}
  	return 0;
  }
-diff -rNuad linux-3.0.8-original/net/ipv6/proc.c linux-3.0.8-modified/net/ipv6/proc.c
---- linux-3.0.8-original/net/ipv6/proc.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv6/proc.c	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv6/proc.c linux-3.2.48/net/ipv6/proc.c
+--- linux-3.2.48--original/net/ipv6/proc.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv6/proc.c	2013-07-01 11:59:07.000000000 +0200
 @@ -9,6 +9,8 @@
   *
   * Authors:	David S. Miller (davem@caip.rutgers.edu)
@@ -2024,7 +2029,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/proc.c linux-3.0.8-modified/net/ipv6/p
   *
   *		This program is free software; you can redistribute it and/or
   *		modify it under the terms of the GNU General Public License
-@@ -29,6 +31,16 @@
+@@ -30,6 +32,16 @@
  #include <net/transp_v6.h>
  #include <net/ipv6.h>
  
@@ -2041,7 +2046,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/proc.c linux-3.0.8-modified/net/ipv6/p
  static int sockstat6_seq_show(struct seq_file *seq, void *v)
  {
  	struct net *net = seq->private;
-@@ -228,6 +240,18 @@
+@@ -229,6 +241,18 @@
  	return single_open_net(inode, file, snmp6_seq_show);
  }
  
@@ -2060,7 +2065,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/proc.c linux-3.0.8-modified/net/ipv6/p
  static const struct file_operations snmp6_seq_fops = {
  	.owner	 = THIS_MODULE,
  	.open	 = snmp6_seq_open,
-@@ -235,6 +259,7 @@
+@@ -236,6 +260,7 @@
  	.llseek	 = seq_lseek,
  	.release = single_release_net,
  };
@@ -2068,9 +2073,9 @@ diff -rNuad linux-3.0.8-original/net/ipv6/proc.c linux-3.0.8-modified/net/ipv6/p
  
  static int snmp6_dev_seq_show(struct seq_file *seq, void *v)
  {
-diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/route.c
---- linux-3.0.8-original/net/ipv6/route.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/ipv6/route.c	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/net/ipv6/route.c linux-3.2.48/net/ipv6/route.c
+--- linux-3.2.48--original/net/ipv6/route.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/ipv6/route.c	2013-07-01 11:59:07.000000000 +0200
 @@ -22,6 +22,10 @@
   *		reachable.  otherwise, round-robin the list.
   *	Ville Nuorvala
@@ -2082,7 +2087,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
   */
  
  #include <linux/capability.h>
-@@ -61,6 +65,11 @@
+@@ -62,6 +66,11 @@
  #include <linux/sysctl.h>
  #endif
  
@@ -2094,7 +2099,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
  /* Set to 3 to get tracing. */
  #define RT6_DEBUG 2
  
-@@ -1168,10 +1177,6 @@
+@@ -1205,10 +1214,6 @@
  }
  EXPORT_SYMBOL(ip6_dst_hoplimit);
  
@@ -2105,7 +2110,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
  int ip6_route_add(struct fib6_config *cfg)
  {
  	int err;
-@@ -1912,6 +1917,8 @@
+@@ -1958,6 +1963,8 @@
  	struct in6_rtmsg rtmsg;
  	int err;
  
@@ -2114,7 +2119,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
  	switch(cmd) {
  	case SIOCADDRT:		/* Add a route */
  	case SIOCDELRT:		/* Delete a route */
-@@ -2263,26 +2270,84 @@
+@@ -2309,26 +2316,84 @@
  	return err;
  }
  
@@ -2202,7 +2207,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
  
  	return ip6_route_add(&cfg);
  }
-@@ -2302,6 +2367,10 @@
+@@ -2348,6 +2413,10 @@
  	       + nla_total_size(sizeof(struct rta_cacheinfo));
  }
  
@@ -2213,9 +2218,9 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
  static int rt6_fill_node(struct net *net,
  			 struct sk_buff *skb, struct rt6_info *rt,
  			 struct in6_addr *dst, struct in6_addr *src,
-@@ -2313,6 +2382,19 @@
- 	long expires;
+@@ -2360,6 +2429,19 @@
  	u32 table;
+ 	struct neighbour *n;
  
 +#ifdef CONFIG_GHOSTIFICATION
 +	ghost_develmsg("rtnetlink msg type %i, pid %i and seq %i",
@@ -2233,7 +2238,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
  	if (prefix) {	/* user wants prefix routes only */
  		if (!(rt->rt6i_flags & RTF_PREFIX_RT)) {
  			/* success since this is not a prefix route */
-@@ -2426,10 +2508,26 @@
+@@ -2480,10 +2562,26 @@
  	return -EMSGSIZE;
  }
  
@@ -2260,7 +2265,7 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
  
  	if (nlmsg_len(arg->cb->nlh) >= sizeof(struct rtmsg)) {
  		struct rtmsg *rtm = nlmsg_data(arg->cb->nlh);
-@@ -2443,6 +2541,8 @@
+@@ -2497,6 +2595,8 @@
  		     prefix, 0, NLM_F_MULTI);
  }
  
@@ -2269,9 +2274,9 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
  static int inet6_rtm_getroute(struct sk_buff *in_skb, struct nlmsghdr* nlh, void *arg)
  {
  	struct net *net = sock_net(in_skb->sk);
-@@ -2586,6 +2686,17 @@
- {
+@@ -2641,6 +2741,17 @@
  	struct seq_file *m = p_arg;
+ 	struct neighbour *n;
  
 +#ifdef CONFIG_GHOSTIFICATION
 +	/* (ghost support) Do nothing if this route involves a 
@@ -2287,9 +2292,9 @@ diff -rNuad linux-3.0.8-original/net/ipv6/route.c linux-3.0.8-modified/net/ipv6/
  	seq_printf(m, "%pi6 %02x ", &rt->rt6i_dst.addr, rt->rt6i_dst.plen);
  
  #ifdef CONFIG_IPV6_SUBTREES
-diff -rNuad linux-3.0.8-original/net/Kconfig linux-3.0.8-modified/net/Kconfig
---- linux-3.0.8-original/net/Kconfig	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/Kconfig	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/net/Kconfig linux-3.2.48/net/Kconfig
+--- linux-3.2.48--original/net/Kconfig	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/Kconfig	2013-07-01 11:59:07.000000000 +0200
 @@ -189,6 +189,105 @@
  source "net/decnet/netfilter/Kconfig"
  source "net/bridge/netfilter/Kconfig"
@@ -2396,8 +2401,8 @@ diff -rNuad linux-3.0.8-original/net/Kconfig linux-3.0.8-modified/net/Kconfig
  endif
  
  source "net/dccp/Kconfig"
-@@ -324,4 +423,93 @@
- source "net/ceph/Kconfig"
+@@ -325,4 +424,93 @@
+ source "net/nfc/Kconfig"
  
  
 +config GHOSTIFICATION
@@ -2490,9 +2495,9 @@ diff -rNuad linux-3.0.8-original/net/Kconfig linux-3.0.8-modified/net/Kconfig
 +	  release of the ghostification patch.
 +
  endif   # if NET
-diff -rNuad linux-3.0.8-original/net/netfilter/core.c linux-3.0.8-modified/net/netfilter/core.c
---- linux-3.0.8-original/net/netfilter/core.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/netfilter/core.c	2011-10-26 15:02:30.000000000 +0200
+diff -ruN linux-3.2.48--original/net/netfilter/core.c linux-3.2.48/net/netfilter/core.c
+--- linux-3.2.48--original/net/netfilter/core.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/netfilter/core.c	2013-07-01 11:59:07.000000000 +0200
 @@ -5,6 +5,8 @@
   * way.
   *
@@ -2681,9 +2686,9 @@ diff -rNuad linux-3.0.8-original/net/netfilter/core.c linux-3.0.8-modified/net/n
  	verdict = nf_iterate(&nf_hooks[pf][hook], skb, hook, indev,
  			     outdev, &elem, okfn, hook_thresh);
  	if (verdict == NF_ACCEPT || verdict == NF_STOP) {
-@@ -192,6 +349,9 @@
+@@ -191,6 +348,9 @@
+ 			kfree_skb(skb);
  		}
- 		ret = 0;
  	}
 +#ifdef CONFIG_GHOSTIFICATION_NETFILTER
 +unlock:
@@ -2691,9 +2696,9 @@ diff -rNuad linux-3.0.8-original/net/netfilter/core.c linux-3.0.8-modified/net/n
  	rcu_read_unlock();
  	return ret;
  }
-diff -rNuad linux-3.0.8-original/net/packet/af_packet.c linux-3.0.8-modified/net/packet/af_packet.c
---- linux-3.0.8-original/net/packet/af_packet.c	2011-10-25 07:11:12.000000000 +0200
-+++ linux-3.0.8-modified/net/packet/af_packet.c	2011-10-26 15:45:24.000000000 +0200
+diff -ruN linux-3.2.48--original/net/packet/af_packet.c linux-3.2.48/net/packet/af_packet.c
+--- linux-3.2.48--original/net/packet/af_packet.c	2013-06-29 05:06:45.000000000 +0200
++++ linux-3.2.48/net/packet/af_packet.c	2013-07-01 11:59:07.000000000 +0200
 @@ -8,6 +8,7 @@
   * Authors:	Ross Biro
   *		Fred N. van Kempen, <waltje@uWalt.NL.Mugnet.ORG>
@@ -2702,7 +2707,7 @@ diff -rNuad linux-3.0.8-original/net/packet/af_packet.c linux-3.0.8-modified/net
   *
   * Fixes:
   *		Alan Cox	:	verify_area() now used correctly
-@@ -90,6 +91,11 @@
+@@ -94,6 +95,11 @@
  #include <net/inet_common.h>
  #endif
  
@@ -2714,7 +2719,7 @@ diff -rNuad linux-3.0.8-original/net/packet/af_packet.c linux-3.0.8-modified/net
  /*
     Assumptions:
     - if device has no dev->hard_header routine, it adds and removes ll header
-@@ -569,6 +575,18 @@
+@@ -1593,6 +1599,18 @@
  	if (skb->pkt_type == PACKET_LOOPBACK)
  		goto drop;
  
@@ -2733,7 +2738,7 @@ diff -rNuad linux-3.0.8-original/net/packet/af_packet.c linux-3.0.8-modified/net
  	sk = pt->af_packet_priv;
  	po = pkt_sk(sk);
  
-@@ -690,6 +708,18 @@
+@@ -1717,6 +1735,18 @@
  	if (skb->pkt_type == PACKET_LOOPBACK)
  		goto drop;
  
@@ -2752,7 +2757,7 @@ diff -rNuad linux-3.0.8-original/net/packet/af_packet.c linux-3.0.8-modified/net
  	sk = pt->af_packet_priv;
  	po = pkt_sk(sk);
  
-@@ -2716,6 +2746,26 @@
+@@ -3841,6 +3871,26 @@
  		struct sock *s = sk_entry(v);
  		const struct packet_sock *po = pkt_sk(s);
  
@@ -2779,7 +2784,7 @@ diff -rNuad linux-3.0.8-original/net/packet/af_packet.c linux-3.0.8-modified/net
  		seq_printf(seq,
  			   "%pK %-6d %-4d %04x   %-5d %1d %-6u %-6u %-6lu\n",
  			   s,
-@@ -2727,6 +2777,7 @@
+@@ -3852,6 +3902,7 @@
  			   atomic_read(&s->sk_rmem_alloc),
  			   sock_i_uid(s),
  			   sock_i_ino(s));

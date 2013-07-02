@@ -43,7 +43,7 @@ clean:
 	rm -f *.o ethghost *~
 
 # DESTDIR may be set by the caller, for instance:
-# make DESTDIR=/usr/local install
+# make DESTDIR=/usr/local install
 # (suitable for buildroot)
 install:
 	 cp ethghost $(DESTDIR)/bin/ethghost

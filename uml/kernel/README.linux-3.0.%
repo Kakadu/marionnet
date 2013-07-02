@@ -1,0 +1,21 @@
+Notes about the compilation of the series 3.0.%
+-----------------------------------------------
+
+The execution of the script "pupisto.kernel.sh 3.0.84" produces a linking error:
+
+  arch/x86/include/asm/atomic64_32.h:72: undefined reference to `atomic64_set_386'
+
+similar to the errors fixed by the patches:
+
+ linux-3.?.%.compile_with_ARCH_um_SUBARCH_i386.diff
+
+for the successive kernel series (3.2, 3.4, 3.6, 3.8). 
+There is probably a work-around for this problem by changing some configuration options.
+Actually, if we generate the .config file with the function: 
+
+ create_kernel_config_from CONFIG-3.0.8
+
+the compilation of 3.0.8 succeed (but 3.0.84 fails). 
+However, we are not currently able to adapt the patch for the series 3.2 to the serie 3.0, 
+neither find the .config options to fix.
+J.V. Loddo

@@ -44,7 +44,8 @@ static int usage(void)
 static int version(void)
 {
 	printf("\nethghost " __ETHGHOST_VERSION__ " \n");
-	printf("Copyright (C) 2009 Roudiere Jonathan\n");
+	printf("Copyright (C) 2009  Jonathan Roudiere\n");
+	printf("Copyright (C) 2009, 2013 Université Paris 13\n");
 	printf("License GPLv2: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n");
 	printf("\nThis is free software: you are free to change and redistribute it.\n");
 	printf("There is NO WARRANTY, to the extent permitted by law.\n\n");
@@ -67,7 +68,7 @@ int main (int argc, char *argv[])
 	/* Verify number of args, if need show version/help */
 	if (argc == 1) {
 		dinfo;
-		fprintf(stderr, "%s: Error, No agrs, Exit!!\n\n",prog);
+		fprintf(stderr, "%s: Error, no args. Exit!!\n\n",prog);
 		usage();
 		return (EXIT_FAILURE);
 	} else {
@@ -75,25 +76,25 @@ int main (int argc, char *argv[])
 		/* the one and only case where we accept one option */
 		if (argc == 2) {
 			/* Look if version is asked */
-			dprintf("argc = %i and argv[%i] = %s, look if (-v,--version) is ask.", argc, argc, argv[argc - 1]);
+			dprintf("argc = %i and argv[%i] = %s, look if (-v,--version) has been provided.", argc, argc, argv[argc - 1]);
 			if ((!(strcmp(argv[1],"-v"))) || (!(strcmp(argv[1],"--version")))) {
 				version();
 				return (EXIT_SUCCESS);
 			} else {
 				/* Look if help is asked */
-				dprintf("argc = %i and argv[%i] = %s, look if (-h,--help) is ask.", argc, argc, argv[argc - 1]);
+				dprintf("argc = %i and argv[%i] = %s, look if (-h,--help) has been provided.", argc, argc, argv[argc - 1]);
 				if ((!(strcmp(argv[1],"-h"))) || (!(strcmp(argv[1],"--help")))) {
 					usage();
 					return (EXIT_SUCCESS);
 				} else {
-					fprintf(stderr, "%s: Error, Unkonwn this option, Exit!!\n\n",prog);
+					fprintf(stderr, "%s: Error, unknown option. Exit!!\n\n",prog);
 					usage();
 					return (EXIT_FAILURE);
 				}
 			}
 		}
 		if (argc != 3) {
-			fprintf(stderr, "%s: Error, Bad number of arguments, Exit!!\n\n",prog);
+			fprintf(stderr, "%s: Error, bad number of arguments. Exit!!\n\n",prog);
 			usage();
 			return (EXIT_FAILURE);
 		}
@@ -106,14 +107,14 @@ int main (int argc, char *argv[])
 
 	/* put in act pointer toward appropriate function */
 	if ((!(strcmp(argv[1],"-g"))) || (!(strcmp(argv[1],"--ghostify")))) {
-		dprintf("Fonction call to act : act = &(ghostify_iface);");
+		dprintf("Function call to act : act = &(ghostify_iface);");
 		act = &(ghostify_iface);
 	} else {
 		if ((!(strcmp(argv[1],"-u"))) || (!(strcmp(argv[1],"--unghostify")))) {
-			dprintf("Fonction call to act : act = &(unghostify_iface);");
+			dprintf("Function call to act : act = &(unghostify_iface);");
 			act = &(unghostify_iface);
 		} else {
-			fprintf(stderr, "%s: Error, Unkonwn this option, Exit!!\n\n",prog);
+			fprintf(stderr, "%s: Error, unknown option. Exit!!\n\n",prog);
 			usage();
 			return (EXIT_FAILURE);
 		}
@@ -121,7 +122,7 @@ int main (int argc, char *argv[])
 
 	/* Verify lenght of the second args */
 	if (strlen(argv[2]) >= IFNAMSIZ) {
-		fprintf(stderr, "%s: Error: Invalid interface name, Exit!!\n",prog);
+		fprintf(stderr, "%s: Error, invalid interface name. Exit!!\n",prog);
 		return (EXIT_FAILURE);
 	}
 
@@ -129,13 +130,13 @@ int main (int argc, char *argv[])
 	if ((error = act(argv[2])) == 0) {
 		dprintf("Act exit without error (%i)", error);
 		if (act == (&ghostify_iface)) {
-			printf("ethghost: SUCCESS, interface %s has been ghostified !!\n", argv[2]);
+			printf("ethghost: SUCCESS, the interface %s has been ghostified!!\n", argv[2]);
 		} else {
 			if (act == (&unghostify_iface)) {
-				printf("ethghost: SUCCESS, interface %s has been unghostified !!\n", argv[2]);
+				printf("ethghost: SUCCESS, the interface %s has been unghostified!!\n", argv[2]);
 			} else {
 				/* debug, never come here */
-				fprintf(stderr, "\nethghost: Error: an unexpected error took place (bug ...), Exit!!\n");
+				fprintf(stderr, "\nethghost: Error, an unexpected error (bug?) took place. Exit!!\n");
 				return (EBUG);
 			}
 		}

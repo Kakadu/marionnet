@@ -22,7 +22,7 @@
 
 # Thanks:
 # - Lucas Nussbaum for the idea of having an option "--download-only/-O",
-#   and for its patch proposal (July 2013)
+#   and for his patch proposal (July 2013)
 
 set -e
 shopt -s nullglob

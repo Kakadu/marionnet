@@ -900,29 +900,26 @@ class uml_process =
   (* xnest_display_number *)
   let command_line_arguments =
     match xnest_display_number with
-      Some xnest_display_number ->
-        ("xnest_display_number=" ^ xnest_display_number) :: command_line_arguments
-    | None ->
-        command_line_arguments
+    | None                      -> command_line_arguments
+    | Some xnest_display_number -> ("xnest_display_number="^xnest_display_number)::command_line_arguments
   in
   (* keyboard_layout *)
   let command_line_arguments =
     match Global_options.keyboard_layout with
-      None ->
-        command_line_arguments
-    | Some keyboard_layout ->
-        ("keyboard_layout="^keyboard_layout) :: command_line_arguments
+    | None                 -> command_line_arguments
+    | Some keyboard_layout -> ("keyboard_layout="^keyboard_layout)::command_line_arguments
   in
-  (* timezone *)
+  (* timezone (something like "Europe/Paris") *)
   let command_line_arguments =
-    match PervasivesExtra.get_first_line_of_file "/etc/timezone" with
-      None ->
-        command_line_arguments
-    | Some timezone -> (* `timezone' is something like "Europe/Paris" *)
-        (* A simple safety check: *)
-        if Sys.file_exists (Filename.concat "/usr/share/zoneinfo" timezone)
-        then ("timezone="^timezone)::command_line_arguments
-        else command_line_arguments
+    match Initialization.marionnet_timezone with
+    | None          -> command_line_arguments
+    | Some timezone -> ("timezone="^timezone)::command_line_arguments
+  in
+  (* numeric_TZ (something like "+02:00") *)
+  let command_line_arguments =
+    (* numeric_TZ is something like "+02:00" *)
+    let numeric_TZ = Shell.date ~arg:"+%:z" () in
+    ("numeric_TZ="^numeric_TZ)::command_line_arguments
   in
   (* Some examples:
      "con=none"; "con6=port:9000"; "ssl1=port:9001"; "ssl2=tty:/dev/tty42"; "ssl3=pts"; *)

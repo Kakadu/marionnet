@@ -226,6 +226,18 @@ module Path = struct
 end (* Path *)
 ;;
 
+(* Timezone (useful to configure the guest time) *)
+let marionnet_timezone : string option =
+ let attempt1 () = Configuration.get_string_variable "MARIONNET_TIMEZONE" in
+ let attempt2 () = try Some(Sys.getenv "TZ") with Not_found -> None in
+ let attempt3 () = PervasivesExtra.get_first_line_of_file "/etc/timezone" in
+ (* A simple safety check: *)
+ let check timezone =
+   Sys.file_exists (Filename.concat "/usr/share/zoneinfo" timezone)
+ in
+ Thunk.first_attempt check [attempt1; attempt2; attempt3]
+;;
+
 (* Behaviour for option --paths *)
 let () = if !option_paths = Some () then
   let prettify =

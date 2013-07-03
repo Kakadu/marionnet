@@ -50,6 +50,7 @@ let configuration =
                 "MARIONNET_DISABLE_WARNING_TEMPORARY_WORKING_DIRECTORY_AUTOMATICALLY_SET";
                 "MARIONNET_TMPDIR";
                 "MARIONNET_KEEP_ALL_SNAPSHOTS_WHEN_SAVING";
+                "MARIONNET_TIMEZONE";
               ]
     ();;
 

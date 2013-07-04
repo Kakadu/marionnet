@@ -17,23 +17,39 @@
 
 help:
 	@echo "Usage: make <KERNEL-VERSION>"
+	@echo "   or: make OPTIONS=--custom <KERNEL-VERSION>"
 	@echo "   or: make show_versions"
 	@echo "   or: make dependencies"
 	@echo "   or: make clean"
 	@echo "   or: make help"
-	@echo "Example: make 3.2.44"
+	@echo "Example: make 3.2.48"
 
 2.% 3.%: dependencies
-	./pupisto.kernel.sh $@
+	./pupisto.kernel.sh $(OPTIONS) $@
 
 clean:
 	rm -rf _build.linux-*
-
-dependencies:
-	if which aptitude; then sudo aptitude install -q -q -q -y binutils wget gcc patch ccache; fi
 
 # Show available (stable or longterm support) versions of the kernel
 # looking to https://www.kernel.org/:
 show_versions:
 	@lynx 2>/dev/null --dump https://www.kernel.org/ | awk '/longterm:/ || /stable:/ {print $$1,$$2}'
 
+
+# =============================================================
+#                     Dependencies
+# =============================================================
+
+REQUIRED_PACKAGES=binutils wget patch ccache gcc gcc-multilib libc6-i386 libc6-dev-i386
+dependencies:
+	@echo "Required packages: $(REQUIRED_PACKAGES)"
+	@which dpkg 1>/dev/null || { echo "Not a Debian system (oh my god!); please install packages corresponding to: $(REQUIRED_PACKAGES)"; exit 1; }
+	@dpkg 1>/dev/null -l $(REQUIRED_PACKAGES) || \
+		if which aptitude; then \
+		  sudo aptitude install -q -q -q -y $(REQUIRED_PACKAGES); \
+		elif which apt-get; then \
+		  sudo apt-get  install -q -q -q -y $(REQUIRED_PACKAGES); \
+		else \
+		  exit 1; \
+		fi
+	@echo Ok.

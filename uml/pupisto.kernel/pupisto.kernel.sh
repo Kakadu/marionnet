@@ -47,7 +47,7 @@ shopt -s expand_aliases
 }
 
 # Getopt's format used to parse the command line:
-OPTSTRING="hls"
+OPTSTRING="hlsc"
 
 function parse_cmdline {
 local i j flag
@@ -56,6 +56,9 @@ for i in "$@"; do
   if [[ double_dash_found = 1 ]]; then
     ARGS+=("$i")
   else case "$i" in
+    --custom)
+      ARGS+=("-c");
+      ;;
     --help)
       ARGS+=("-h");
       ;;
@@ -127,7 +130,7 @@ unset ARGS
 
 function print_usage_and_exit {
  echo "Download, patch and compile a kernel.
-Usage: ${0##*/} <KERNEL_VERSION> [WORKING-DIRECTORY]
+Usage: ${0##*/} [OPTIONS] <KERNEL_VERSION> [WORKING-DIRECTORY]
    or: ${0##*/} (--help|-h)
    or: ${0##*/} (--list|-l)
    or: source ${0##*/} (--source|-s)
@@ -137,6 +140,9 @@ The second synopsis prints this message and exits.
 The third synopsis shown the list of defined functions.
 The fourth synopsis allows this script to be sourced
 (to have relevant functions available in the current environment).
+
+Options:
+  -c/--custom    customize the kernel using 'make menuconfig'
 
 Example:
 $ ${0##*/} 3.4.22
@@ -159,6 +165,11 @@ AWK_PROGRAM_LISTING_FUNCTIONS='/^[ ]*function[ ]*[a-zA-Z0-9_]*[ ]*{/ && ($2 != "
 if [[ -n ${option_l} ]]; then
   awk <"$0" "$AWK_PROGRAM_LISTING_FUNCTIONS" | sort
  exit 0
+fi
+
+# Option -c/--custom
+if [[ -n ${option_c} ]]; then
+  CUSTOM_OPTION="--custom"
 fi
 
 ####################################
@@ -207,6 +218,8 @@ function create_kernel_config_from {
  fi
  # Finally fix some specific problems:
  # UML_NET_PCAP must be unset (error compiling the kernel):
+ # (unhappily because in this way we cannot start wireshark as normal user,
+ #  see http://wiki.wireshark.org/CaptureSetup/CapturePrivileges)
  sed -i -e 's/CONFIG_UML_NET_PCAP=y/CONFIG_UML_NET_PCAP=n/' .config
  # Looking linux-3.0.75/arch/x86/lib/Makefile this variable must be unset:
  sed -i -e 's/CONFIG_X86_CMPXCHG64=y/CONFIG_X86_CMPXCHG64=n/' .config
@@ -244,17 +257,23 @@ function get_our_marionnet_slash_uml_directory_path {
 
 
 # Usage:
-# $ download_patch_and_compile_kernel <KERNEL_VERSION> [WORKING-DIRECTORY]
+# $ download_patch_and_compile_kernel [c/--custom] <KERNEL_VERSION> [WORKING-DIRECTORY]
 #
 # Example:
-# $ download_patch_and_compile_kernel 3.2.44 /tmp/_building_directory
+# $ download_patch_and_compile_kernel 3.2.48 /tmp/_building_directory
 function download_patch_and_compile_kernel {
-
+local CUSTOM
+if [[ $1 = "-c" || $1 = "--custom" ]]; then
+  CUSTOM=y
+  shift
+fi
+# global CUSTOM
 [[ $# -ge 1 ]] || return 1
 
-# For instance "3.2.44"
+# For instance "3.2.48"
 local VERSION=$1
 local TWDIR=${2:-.}
+local DOWNLOADS_DIRECTORY=${3:-$PWD/_build.downloads}
 
 # Before pushing, get our marionnet/uml/kernel directory:
 local OUR_KERNEL_DIR=$(get_our_marionnet_slash_uml_directory_path)/kernel
@@ -265,19 +284,34 @@ pushd "$TWDIR"
 # Download, uncompress and untar the kernel:
 local KERNEL_SUBDIR=${VERSION%.*}
 local KERNEL_SUBDIR=${KERNEL_SUBDIR//3.?/3.x}
-wget -O - https://www.kernel.org/pub/linux/kernel/v${KERNEL_SUBDIR}/linux-${VERSION}.tar.xz | tar -xJf -
+
+# To save the tarball:
+mkdir -p $DOWNLOADS_DIRECTORY
+
+if [[ -f linux-${VERSION}.tar.xz ]]; then
+  tar -xJf linux-${VERSION}.tar.xz
+  mv linux-${VERSION}.tar.xz $DOWNLOADS_DIRECTORY/
+elif [[ -f $DOWNLOADS_DIRECTORY/linux-${VERSION}.tar.xz ]]; then
+  tar -xJf $DOWNLOADS_DIRECTORY/linux-${VERSION}.tar.xz
+else
+  wget -O - https://www.kernel.org/pub/linux/kernel/v${KERNEL_SUBDIR}/linux-${VERSION}.tar.xz | tee $DOWNLOADS_DIRECTORY/linux-${VERSION}.tar.xz | tar -xJf -
+fi
 
 # Move to the kernel directory:
 cd linux-${VERSION}
 
-local FOUND
+local FOUND GHOST_SUFFIX i j
 # Apply all patches for this version:
 for i in $OUR_KERNEL_DIR/linux-{$VERSION,${VERSION%.*}.%,${VERSION%.*.*}.%.%}[.-]*.{diff,patch}; do
   FOUND=y
-  echo "Applying patch: \'$(basename $i)'";
+  j=$(basename $i)
+  echo "Applying patch: \'$j'";
   echo "---"
   patch -p1 < $i
   cp $i ./
+  if grep -q "ghost" <<<"$j"; then
+    GHOST_SUFFIX="-ghost"
+  fi
   echo "---"
 done
 if [[ -z $FOUND ]]; then
@@ -301,10 +335,15 @@ fi
 
 # Modify CONFIG_LOCALVERSION="-ghost" according to the
 # presence of the "ghostification" patch:
-local GHOST_SUFFIX="-ghost"
-if [[ ! -f $OUR_KERNEL_DIR/linux-${VERSION}-ghost.diff ]]; then
+if [[ -n $GHOST_SUFFIX ]]; then
  sed -i -e 's/CONFIG_LOCALVERSION="-ghost"/CONFIG_LOCALVERSION=""/' .config
- unset GHOST_SUFFIX
+ #unset GHOST_SUFFIX
+fi
+
+# Custom:
+if [[ $CUSTOM = y ]]; then
+ local PSEUDO_TERMINAL=$(tty)
+ make menuconfig ARCH=um SUBARCH=i386 0<$PSEUDO_TERMINAL 1>$PSEUDO_TERMINAL
 fi
 
 # Add `ccache' in the PATH if needed:
@@ -319,13 +358,14 @@ local PROCESSOR_NO=$(\grep "^processor.*:" /proc/cpuinfo | sort | uniq | wc -l)
 # and with `i386' target host architecture (SUBARCH)
 make -j $PROCESSOR_NO ARCH=um SUBARCH=i386
 
+cp -a linux linux-${VERSION}${GHOST_SUFFIX}-unstripped
 strip linux
 ln linux linux-${VERSION}${GHOST_SUFFIX}
 cp .config linux-${VERSION}${GHOST_SUFFIX}.config
 echo -ls -l $PWD
 ls -l linux-*
 popd
-}
+} # download_patch_and_compile_kernel
 
 
 # ---------------
@@ -333,16 +373,27 @@ popd
 # ---------------
 
 # Example:
-# start_kernel  ./kernel32-3.2.44-ok  machine-brighella-59975
+# start_kernel  ./kernel32-3.2.48  machine-brighella-59975
 function start_kernel {
+  local GDB
+  if [[ $1 = "--debug" ]]; then
+    # GDB="gdb --eval-command run --args "
+    GDB='gdb -ex "handle SIGSEGV nostop noprint" -ex "handle SIGUSR1 nopass stop print" -ex run --args '
+    shift
+  fi
   [[ $# -gt 1 ]] || return 1
-  local KERNEL=$1
+  local KERNEL="${GDB}${1}"
   local FS=$2
   shift; shift;
   local OTHER_OPTIONS="$@"
   set -x
+  TAP=$(LC_ALL=en_US ifconfig -a | \grep -o "^tap[0-9]" | head -n 1)
+  if [[ -z $TAP ]]; then
+   xterm -l -sb -T "m1" -e "$KERNEL keyboard_layout=us ubda=$FS umid=m1 mem=128M root=98:0 hostname=m1 guestkind=machine $OTHER_OPTIONS"
+  else
+   xterm -l -sb -T "m1" -e "$KERNEL keyboard_layout=us ubda=$FS umid=m1 mem=128M root=98:0 hostname=m1 guestkind=machine eth0=tuntap,$TAP $OTHER_OPTIONS"
+  fi
   # -l generate a log XTerm.log.<DATE>
-  xterm -l -sb -T "m1" -e "$KERNEL keyboard_layout=us ubda=$FS umid=m1 mem=128M root=98:0 hostname=m1 guestkind=machine $OTHER_OPTIONS"
   set +x
   echo "fuser -k first time:"
   fuser -k ${FS#*,}
@@ -351,15 +402,20 @@ function start_kernel {
 }
 
 # Example:
-# start_kernel_with_cow  ./kernel32-3.2.44-ok  machine-brighella-59975
+# start_kernel_with_cow  ./kernel32-3.2.48  machine-brighella-59975
 function start_kernel_with_fresh_cow {
+  local GDB
+  if [[ $1 = "--debug" ]]; then
+    GDB="--debug"
+    shift
+  fi
   local KERNEL=$1
   local FS=$2
   local COWFILE=$(mktemp /tmp/start_kernel.XXXXXXX.cow)
   rm -f $COWFILE
   FS="$COWFILE,$FS"
   shift; shift;
-  start_kernel $KERNEL $FS "$@"
+  start_kernel $GDB $KERNEL $FS "$@"
 }
 
 
@@ -387,6 +443,8 @@ if ! echo $KERNEL_VERSION | grep -q "^[1-9][.][0-9][0-9]*[.][0-9][0-9]*$"; then
 fi
 
 WORKING_DIRECTORY=${2:-.}
+DOWNLOADS_DIRECTORY=$WORKING_DIRECTORY/_build.downloads
+
 [[ -d $WORKING_DIRECTORY ]] || {
   echo 1>&2 "Unexisting working directory \`$WORKING_DIRECTORY'"
   echo 1>&2 "Exiting."
@@ -395,12 +453,13 @@ WORKING_DIRECTORY=${2:-.}
 
 [[ -d $WORKING_DIRECTORY/linux-$KERNEL_VERSION ]] && {
   echo 1>&2 "A directory \`$WORKING_DIRECTORY/linux-$KERNEL_VERSION' already exists."
-  echo 1>&2 "Exiting."
-  exit 4
+  KERNEL_DIR_BACKUP=$WORKING_DIRECTORY/linux-$KERNEL_VERSION.$(date +%Y-%m-%d.%H\h%M | tr -d " ").backup
+  mv $WORKING_DIRECTORY/linux-$KERNEL_VERSION $KERNEL_DIR_BACKUP
+  echo 1>&2 "Moved to \`$KERNEL_DIR_BACKUP'"
 }
 
 set -x
-download_patch_and_compile_kernel $KERNEL_VERSION "$WORKING_DIRECTORY"
+download_patch_and_compile_kernel $CUSTOM_OPTION $KERNEL_VERSION "$WORKING_DIRECTORY" "$DOWNLOADS_DIRECTORY"
 set +x
 
 function abspath {
@@ -415,6 +474,12 @@ if [[ $(dirname $(abspath $WORKING_DIRECTORY)) = $(dirname $(abspath "$0")) ]]; 
   BUILT_DIR=_build.linux-${KERNEL_VERSION}.$(date +%Y-%m-%d.%H\h%M).$RANDOM
   echo "Moving \`$WORKING_DIRECTORY/linux-$KERNEL_VERSION' -> \`$WORKING_DIRECTORY/$BUILT_DIR'"
   mv $WORKING_DIRECTORY/linux-$KERNEL_VERSION $WORKING_DIRECTORY/$BUILT_DIR
+  # Copy log:
+  cp $LOGFILE $WORKING_DIRECTORY/$BUILT_DIR/$(basename $LOGFILE)
+  if [[ -f linux-${VERSION}.tar.xz ]]; then
+    mkdir -p $DOWNLOADS_DIRECTORY
+    mv linux-${VERSION}.tar.xz $DOWNLOADS_DIRECTORY/
+  fi
 fi
 
 echo 'Success.'

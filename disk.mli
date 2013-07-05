@@ -108,7 +108,8 @@ class virtual_machine_installations :
     method supported_kernels_of  : [`distrib] epithet -> ([`kernel] epithet * (string option)) list
     method get_kernel_console_arguments : [`distrib] epithet -> [`kernel] epithet -> string option
 
-    method terminal_manager_of   : [`distrib] epithet -> terminal_manager
+    method terminal_manager_of            : [`distrib] epithet -> terminal_manager
+    method multiple_consoles_supported_by : [`distrib] epithet -> bool
 
     (* filesystem epithet -> dirname *)
     method root_export_dirname : [`distrib] epithet -> dirname

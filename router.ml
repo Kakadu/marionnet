@@ -662,6 +662,7 @@ object(self)
       ~memory:Const.memory_default
       ?umid
       (* Change this when debugging the router device *)
+      ~console_no:1
       ~console:"none" (* To do: this should be "none" for releases and "xterm" for debugging *)
       ~id
       ~show_unix_terminal

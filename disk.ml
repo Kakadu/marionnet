@@ -373,7 +373,8 @@ class virtual_machine_installations
 		Configuration_files.make
 		  ~dont_read_environment:()
 		  ~file_names:[config_file]
-		  ~variables:[ "MD5SUM"; "AUTHOR"; "DATE"; "MTIME"; "SUPPORTED_KERNELS"; "X11_SUPPORT"; ]
+		  ~variables:[ "MD5SUM"; "AUTHOR"; "DATE"; "MTIME"; "SUPPORTED_KERNELS"; "X11_SUPPORT";
+		               "MEMORY_MIN_SIZE"; "MEMORY_SUGGESTED_SIZE"; "MULTIPLE_CONSOLES_SUPPORT"; "BINARY_LIST"; ]
 		  ()
 	      in
 	      Some (config)
@@ -466,6 +467,12 @@ class virtual_machine_installations
   method user_export_dirname epithet =
     let user_dir = List.hd user_filesystem_searching_list in
     (Printf.sprintf "%s/%s%s_variants" user_dir prefix epithet)
+
+  method multiple_consoles_supported_by epithet =
+    let config = String_map.find (epithet) (filesystem_config_mapping) in
+    if config = None then false else (* continue: *)
+    let x = Configuration_files.get_bool_variable "MULTIPLE_CONSOLES_SUPPORT" (Option.extract config) in
+    (x = Some true)
 
   method check_filesystems_MTIME_consistency () =
     let check =

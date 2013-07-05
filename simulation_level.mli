@@ -292,12 +292,13 @@ class uml_process :
   ethernet_interface_no:int ->
   hublet_processes:< get_socket_name : string; .. > list ->
   memory:int ->
+  console_no:int ->
   console:string ->
   ?umid:string ->
   id:int ->
   ?show_unix_terminal:bool ->
   ?xnest_display_number:string ->
-  ?guestkind:string ->                                                                                                                                     
+  ?guestkind:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -457,6 +458,7 @@ class virtual ['parent] machine_or_router :
   states_directory:string ->
   ethernet_interface_no:int ->
   memory:int ->
+  console_no:int ->
   console:string ->
   xnest:bool ->
   ?umid:string ->

@@ -822,6 +822,7 @@ class uml_process =
       ~(ethernet_interface_no)
       ~(hublet_processes)
       ~(memory) (* in megabytes *)
+      ~(console_no)
       ~(console)
       ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
       ~id
@@ -917,9 +918,12 @@ class uml_process =
   in
   (* numeric_TZ (something like "+02:00") *)
   let command_line_arguments =
-    (* numeric_TZ is something like "+02:00" *)
     let numeric_TZ = Shell.date ~arg:"+%:z" () in
     ("numeric_TZ="^numeric_TZ)::command_line_arguments
+  in
+  (* console_no *)
+  let command_line_arguments =
+    ("console_no="^(string_of_int console_no))::command_line_arguments
   in
   (* Some examples:
      "con=none"; "con6=port:9000"; "ssl1=port:9001"; "ssl2=tty:/dev/tty42"; "ssl3=pts"; *)
@@ -1529,6 +1533,7 @@ class virtual ['parent] machine_or_router =
       ~states_directory
       ~(ethernet_interface_no)
       ~(memory) (* in megabytes *)
+      ~(console_no)
       ~(console)
       ~xnest
       ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
@@ -1600,6 +1605,7 @@ object(self)
               ~hublet_processes:self#get_inner_hublet_processes
               ~memory
               ~umid
+              ~console_no
               ~console
               ~id
               ?show_unix_terminal

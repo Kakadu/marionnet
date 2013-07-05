@@ -131,6 +131,9 @@ val set_marionnet_icon : [> ] GWindow.dialog -> unit
 type packing_function = GObj.widget -> unit
 
 val make_combo_boxes_of_vm_installations:
+  ?on_distrib_change:(string -> unit) ->
+  ?on_variant_change:(string -> unit) ->
+  ?on_kernel_change:(string -> unit) ->
   ?distribution:string ->
   ?variant:string ->
   ?kernel:string ->
@@ -213,7 +216,7 @@ val button_image_popuping_a_menu :
   ?stock:GtkStock.id -> ?stock_size:[ `BUTTON | `DIALOG | `DND | `INVALID | `LARGE_TOOLBAR | `MENU | `SMALL_TOOLBAR ] ->
   ?file:string ->
   unit -> (GMenu.menu * GButton.button * GPack.box)
-  
+
 
 val make_check_items_renewer_v1 :
   get_label_active_callback_list:(unit -> (string * bool * (bool -> unit)) list) ->
@@ -223,5 +226,5 @@ val make_check_items_renewer_v2 :
   get_label_active_list:(unit -> (string * bool) list) ->
   callback:(string -> bool -> unit) ->
   unit -> (GMenu.menu -> unit)
- 
+
 val test : unit -> char option

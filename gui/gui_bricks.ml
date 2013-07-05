@@ -417,6 +417,9 @@ end (* module Dialog *)
 type packing_function = GObj.widget -> unit
 
 let make_combo_boxes_of_vm_installations
+  ?on_distrib_change
+  ?on_variant_change
+  ?on_kernel_change
   ?distribution
   ?variant
   ?kernel
@@ -461,10 +464,13 @@ let make_combo_boxes_of_vm_installations
        fun epithet -> List.map fst (vm_installations#supported_kernels_of epithet)
      in
      Widget.ComboTextTree.fromListWithTwoSlaves
+       ~masterCallback:on_distrib_change
        ~masterPacking:(Some packing_distribution)
         distribution_choices
+       ~slave0Callback:on_variant_change
        ~slave0Packing:(Some packing_variant)
         variant_choices
+       ~slave1Callback:on_kernel_change
        ~slave1Packing:(Some packing_kernel)
         kernel_choices
     in

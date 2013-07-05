@@ -48,6 +48,7 @@ type t = {
   distribution       : string;          (* epithet *)
   variant            : string option;
   kernel             : string;          (* epithet *)
+  console_no         : int;
   terminal           : string;
   old_name           : string;
   }
@@ -88,6 +89,7 @@ module Make_menus (Params : sig
          distribution = distribution;
          variant = variant;
 	 kernel = kernel;
+	 console_no = console_no;
          terminal = terminal;
          old_name = _ ;
          }
@@ -102,6 +104,7 @@ module Make_menus (Params : sig
           ~epithet:distribution
           ?variant:variant
           ~kernel
+          ~console_no
  	  ~terminal
           ())
       in
@@ -123,6 +126,7 @@ module Make_menus (Params : sig
      let distribution = m#get_epithet in
      let variant = m#get_variant in
      let kernel = m#get_kernel in
+     let console_no = m#get_console_no in
      let terminal = m#get_terminal in
      (* The user cannot remove receptacles used by a cable. *)
      let port_no_min = st#network#port_no_lower_of (m :> User_level.node)
@@ -132,6 +136,7 @@ module Make_menus (Params : sig
        ~memory ~port_no ~port_no_min
        ~distribution ?variant
        ~kernel
+       ~console_no
        ~terminal
        ~updating:() (* the user cannot change the distrib & variant *)
        ~ok_callback:Add.ok_callback  ()
@@ -145,6 +150,7 @@ module Make_menus (Params : sig
          distribution = distribution;
          variant = variant;
 	 kernel = kernel;
+	 console_no = console_no;
          terminal = terminal;
          old_name = old_name;
          }
@@ -155,7 +161,8 @@ module Make_menus (Params : sig
         m#update_machine_with
           ~name ~label
           ~memory ~port_no
-	  ~kernel ~terminal
+	  ~kernel
+	  ~console_no ~terminal
       in
       st#network_change action ();
 
@@ -248,6 +255,7 @@ let make
  ?variant
  ?kernel
  ?(updating:unit option)
+ ?(console_no=1)
  ?terminal
  ?(help_callback=help_callback) (* defined backward with "WHERE" *)
  ?(ok_callback=(fun data -> Some data))
@@ -265,7 +273,7 @@ let make
       ?label
       ()
   in
-  let (memory, port_no, distribution_variant_kernel, terminal) =
+  let (memory, port_no, distribution_variant_kernel, console_no, terminal) =
     let vbox = GPack.vbox ~homogeneous:false ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
     let form =
       Gui_bricks.make_form_with_labels
@@ -275,6 +283,7 @@ let make
          (s_ "Distribution");
          (s_ "Variant");
          (s_ "Kernel");
+         (s_ "Consoles");
          (s_ "Terminal");
          ]
     in
@@ -286,6 +295,9 @@ let make
     let port_no =
       Gui_bricks.spin_byte ~lower:port_no_min ~upper:port_no_max ~step_incr:1
       ~packing:(form#add_with_tooltip (s_ "Number of ethernet cards (eth0, eth1 ...) of the virtual machine")) port_no
+    in
+    (* Ugly hack: the callback will be correctly defined later: *)
+    let on_distrib_change = ref [] (* a list of callbacks *)
     in
     form#add_section "Software";
     let (distribution_variant_kernel) =
@@ -303,11 +315,26 @@ let make
       in
       let packing = (packing_distribution, packing_variant, packing_kernel) in
       Gui_bricks.make_combo_boxes_of_vm_installations
+        ~on_distrib_change:(fun distrib -> List.iter (fun f -> f distrib) !on_distrib_change)
         ?distribution ?variant ?kernel ?updating
         ~packing
         vm_installations
     in
     form#add_section "Access";
+    let console_no =
+      Gui_bricks.spin_byte ~lower:1 ~upper:8 ~step_incr:1
+      ~packing:(form#add_with_tooltip (s_ "Number of consoles (tty0, tty1 ...) of the virtual machine")) console_no
+    in
+    let console_no_related_action_on_distrib_change d =
+      let sensitive = (vm_installations#multiple_consoles_supported_by d) in
+      console_no#misc#set_sensitive (sensitive);
+      (if not sensitive then console_no#set_value 1.);
+    in
+    let () =
+      on_distrib_change := (console_no_related_action_on_distrib_change)::!on_distrib_change;
+      let current = distribution_variant_kernel#selected in
+      console_no_related_action_on_distrib_change (current)
+    in
     let terminal =
       let tooltip = (s_ "Type of terminal to use to control the virtual machine. Possible choices are: X HOST terminal (providing the possibility to launch graphical applications on the host X server) and X NEST (an independent graphic server displaying all the X windows of a virtual machines).")
       in
@@ -320,7 +347,7 @@ let make
       Option.iter (fun v -> result#set_active_value v) terminal;
       result
     in
-    (memory, port_no, distribution_variant_kernel, terminal)
+    (memory, port_no, distribution_variant_kernel, console_no, terminal)
   in
   (* TODO: to be fully implemented or removed: *)
   terminal#box#misc#set_sensitive false;
@@ -336,6 +363,7 @@ let make
     | "none" -> None
     | x      -> Some x
     in
+    let console_no = int_of_float console_no#value in
     let terminal = terminal#selected in
       { Data.name = name;
         Data.label = label;
@@ -344,6 +372,7 @@ let make
         Data.distribution = distribution;
         Data.variant = variant;
         Data.kernel = kernel;
+        Data.console_no = console_no;
         Data.terminal = terminal;
         Data.old_name = old_name;
         }
@@ -424,6 +453,7 @@ class machine
   ?epithet
   ?variant
   ?kernel
+  ?(console_no=1)
   ?terminal
   ~port_no
   ()
@@ -476,6 +506,16 @@ class machine
     | false ->
         self#failwith "value %d not in the memory range [%d,%d]" x Const.memory_min Const.memory_max
 
+  val mutable console_no : int = console_no
+  initializer ignore (self#check_console_no console_no)
+  method get_console_no = console_no
+  method set_console_no x = console_no <- self#check_console_no x
+  method private check_console_no x =
+    match (x>=1) && (x<=8) with
+    | true  -> x
+    | false ->
+        self#failwith "value %d not in the console no. range [%d,%d]" x 1 8
+
   (** Show for debugging *)
   method show = name
 
@@ -493,6 +533,7 @@ class machine
       ("distrib"  ,  self#get_epithet  );
       ("variant"  ,  self#get_variant_as_string);
       ("kernel"   ,  self#get_kernel   );
+      ("console_no", (string_of_int self#get_console_no));
       ("terminal" ,  self#get_terminal );
       ("port_no"  ,  (string_of_int self#get_port_no))  ;
       ])
@@ -507,6 +548,7 @@ class machine
   | ("variant"  , "" )-> self#set_variant None
   | ("variant"  , x ) -> self#set_variant (Some x)
   | ("kernel"   , x ) -> self#set_kernel x
+  | ("console_no" , x ) -> self#set_console_no (int_of_string x)
   | ("terminal" , x ) -> self#set_terminal x
   | ("eth"      , x ) (* backward-compatibility *)
   | ("port_no"  , x ) -> self#set_port_no  (int_of_string x)
@@ -538,6 +580,7 @@ class machine
       ~states_directory:(self#get_states_directory)
       ~ethernet_interface_no:self#get_port_no
       ~memory:self#get_memory
+      ~console_no:self#get_console_no
       ~umid:self#get_name
       ~id
       ~xnest:self#is_xnest_enabled
@@ -579,12 +622,13 @@ class machine
        can use a new cow file (see the make_simulated_device method) *)
     self#destroy_right_now
 
- method update_machine_with ~name ~label ~memory ~port_no ~kernel ~terminal =
+ method update_machine_with ~name ~label ~memory ~port_no ~kernel ~console_no ~terminal =
    (* first action: *)
    self_as_virtual_machine_with_history_and_ifconfig#update_virtual_machine_with ~name ~port_no kernel;
    (* then we can set the object property "name" (read by #get_name): *)
    self_as_node_with_defects#update_with ~name ~label ~port_no;
    self#set_memory memory;
+   self#set_console_no console_no;
    self#set_terminal terminal;
 
 end;;
@@ -606,9 +650,10 @@ class ['parent] machine =
       ~(cow_file_name)
       ~states_directory
       ~(ethernet_interface_no)
-      ?memory:(memory=40) (* in megabytes *)
+      ?(memory=40) (* in megabytes *)
       ?umid
       ?(xnest=false)
+      ?(console_no=1)
       ~id
       ~unexpected_death_callback
       () ->
@@ -626,6 +671,7 @@ object(self)
       ~memory
       ?umid
       ~console:"xterm"
+      ~console_no
       ~id
       ~xnest
       ~unexpected_death_callback

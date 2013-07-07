@@ -122,6 +122,11 @@ Random.self_init ();;
 let cwd_at_startup_time =
   Unix.getcwd ();;
 
+(** Workaround for Ubuntu with Unity.
+    Ugly: it's a pain to write code depending to the GNU/Linux distribution!
+    I accept because the workaround is very simple. J.V. Loddo *)  
+let () = Unix.putenv "UBUNTU_MENUPROXY" "0" ;;
+
 (** Firstly read if the debug mode must be activated.
     In this way the variable parsing can be monitored. *)
 module Debug_level = struct

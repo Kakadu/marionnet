@@ -508,6 +508,7 @@ class router
       ~parent:self
       ~kernel_file_name:self#get_kernel_file_name
       ?kernel_console_arguments:self#get_kernel_console_arguments
+      ?filesystem_relay_script:self#get_filesystem_relay_script
       ~filesystem_file_name:self#get_filesystem_file_name
       ~dynamically_get_the_cow_file_name_source
       ~cow_file_name
@@ -641,6 +642,7 @@ class ['parent] router =
       ~states_directory
       ~(kernel_file_name)
       ?(kernel_console_arguments)
+      ?(filesystem_relay_script)
       ~(filesystem_file_name)
       ~(ethernet_interface_no)
       ?umid
@@ -655,6 +657,7 @@ object(self)
       ~filesystem_file_name(* :"/usr/marionnet/filesystems/router.debian.lenny.sid.fs" *)
       ~kernel_file_name
       ?kernel_console_arguments
+      ?filesystem_relay_script
       ~dynamically_get_the_cow_file_name_source
       ~cow_file_name
       ~states_directory

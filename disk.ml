@@ -308,13 +308,17 @@ class virtual_machine_installations
   let filesystem_searching_list =
     List.append user_filesystem_searching_list root_filesystem_searching_list
   in
-  let filter_exclude_names_ending_with_dot_conf x =
-    not (StrExtra.First.matchingp (Str.regexp "[.]conf[~]?$") x)
+  let filter_dot_relay =
+    StrExtra.First.matchingp (Str.regexp "[.]relay\\($\\|[._-][a-zA-Z0-9._-]*[~]?$\\)")
+  in
+  let filter_exclude_names_ending_with_dot_conf_or_dot_relay x =
+    not ((StrExtra.First.matchingp (Str.regexp "[.]conf[~]?$") x) || 
+         (filter_dot_relay x))
   in
   (* The manager of all filesystem epithets: *)
   let filesystems : [`distrib] epithet_manager =
     new epithet_manager
-        ~filter:filter_exclude_names_ending_with_dot_conf
+        ~filter:filter_exclude_names_ending_with_dot_conf_or_dot_relay
         ~kind:`distrib
 	~prefix
 	~directory_searching_list:filesystem_searching_list
@@ -324,7 +328,7 @@ class virtual_machine_installations
   (* The manager of all kernel epithets: *)
   let kernels : [`kernel] epithet_manager =
     new epithet_manager
-        ~filter:filter_exclude_names_ending_with_dot_conf
+        ~filter:filter_exclude_names_ending_with_dot_conf_or_dot_relay
         ~kind:`kernel
         ~prefix:kernel_prefix
         ~directory_searching_list:kernel_searching_list
@@ -384,6 +388,24 @@ class virtual_machine_installations
     in
     String_map.of_list (List.map (fun e -> (e, mill e)) filesystems#get_epithet_list)
   in
+  (* Now we build the mapping filesystem-epithet -> marionnet_relay-script list *)
+  let filesystem_relay_script_mapping =
+    let mill =
+      fun filesystem_epithet ->
+	let filename = filesystems#filename_of_epithet (filesystem_epithet) in
+	let dot_relay_file = Printf.sprintf "%s.relay" (filename) in
+	let result =
+	  match Sys.file_exists (dot_relay_file) with
+	  | false -> None
+	  | true  ->
+	      let () = Log.printf "relay script found for \"%s\"\n" filesystem_epithet in
+	      Some (dot_relay_file)
+	in
+	result
+    (* end mill () *)
+    in
+    String_map.of_list (List.map (fun e -> (e, mill e)) filesystems#get_epithet_list)
+  in
   (* Now the mapping filesystem-epithet -> [(kernel1, console-options1); (kernel2, console-options2);...] option *)
   let filesystem_kernels_mapping =
     let mill =
@@ -427,6 +449,9 @@ class virtual_machine_installations
   method variants_of filesystem_epithet =
     String_map.find (filesystem_epithet) (filesystem_variants_mapping)
 
+  method relay_script_of filesystem_epithet =
+    String_map.find (filesystem_epithet) (filesystem_relay_script_mapping)
+    
   (* Here, if we replace the first two lines of the following definition by:
     ---
     method supported_kernels_of (filesystem_epithet:[`distrib] epithet) : ([`kernel] epithet * (string option)) list =

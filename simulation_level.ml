@@ -815,6 +815,7 @@ class uml_process =
   fun ~(kernel_file_name)
       ?(kernel_console_arguments:string option)
       ~(filesystem_file_name)
+      ?(filesystem_relay_script:string option)
       ~(dynamically_get_the_cow_file_name_source:unit->string option)
       ~(cow_file_name)
       ~states_directory
@@ -1090,11 +1091,22 @@ class uml_process =
         self#hostfs_directory_pathname
         0o777 (* a+rwx; To do: this should be made slightly more restrictive... *);
     with _ -> ());
-    (* Fill it: *)
+    (* Now fill this directory: *)
+    (* Copy the `filesystem_relay_script' if exists: *)
+    let () = 
+      Option.iter 
+        (fun relay -> 
+           let dest = Filename.concat (self#hostfs_directory_pathname) (Filename.basename relay) in
+           UnixExtra.file_copy relay dest) 
+        (filesystem_relay_script)
+    in
+    (* Create the file `boot_parameters_pathname': *)
     let descriptor =
-      Unix.openfile boot_parameters_pathname [Unix.O_WRONLY; Unix.O_CREAT] 0o777 in
+      Unix.openfile boot_parameters_pathname [Unix.O_WRONLY; Unix.O_CREAT] 0o777 
+    in
     let out_channel =
-      Unix.out_channel_of_descr descriptor in
+      Unix.out_channel_of_descr descriptor 
+    in
     List.iter
       (fun (name, value) -> Printf.fprintf out_channel "%s='%s'\n" name value)
       (* Here we leave "ethernet_interfaces_no" instead of "ethernet_interface_no" *)
@@ -1527,6 +1539,7 @@ class virtual ['parent] machine_or_router =
       ~(router:bool)
       ~(kernel_file_name)
       ?(kernel_console_arguments)
+      ?(filesystem_relay_script)
       ~(filesystem_file_name)
       ~dynamically_get_the_cow_file_name_source
       ~(cow_file_name)
@@ -1597,6 +1610,7 @@ object(self)
       Some (new uml_process
               ~kernel_file_name
               ?kernel_console_arguments
+              ?filesystem_relay_script
               ~filesystem_file_name
               ~dynamically_get_the_cow_file_name_source
               ~cow_file_name

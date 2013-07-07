@@ -1273,6 +1273,9 @@ class virtual virtual_machine_with_history_and_ifconfig
   method get_kernel_console_arguments : string option =
       vm_installations#get_kernel_console_arguments (self#get_epithet) (self#get_kernel)
 
+  method get_filesystem_relay_script : string option =
+      vm_installations#relay_script_of (self#get_epithet)
+
   method is_xnest_enabled =
       (vm_installations#terminal_manager_of self#get_epithet)#is_xnest (self#get_terminal)
 

@@ -1,0 +1,20 @@
+# This script will be copied into the guest directory /mnt/hostfs/ when
+# a virtual machine will be started by marionnet. In this way, it will
+# be sourced as final step of the script `/etc/init.d/marionnet_relay'
+# during the virtual machine bootstrap process.
+#
+# Note that this hook mecanism is running only for virtual machines 
+# built after July 2013. Indeed, for older machines, the script 
+# `marionnet_relay' (or `marionnet_prepare_startup') doesn't take
+# care of files ending with the suffix ".relay" in the directory /mnt/hostfs/.
+
+# Example
+# -------
+# Create /dev/tty12 and launch the daemon `syslogd' (busybox version) 
+# on this console:
+#
+# [[ -e /dev/tty12 ]] || mknod /dev/tty12 c 4 12
+# chown -v root:tty /dev/tty12 
+# syslogd -O /dev/tty12 
+#
+# J.V. Loddo - July 2013.

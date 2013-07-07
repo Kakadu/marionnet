@@ -285,6 +285,7 @@ class uml_process :
   kernel_file_name:process_name ->
   ?kernel_console_arguments:string ->
   filesystem_file_name:string ->
+  ?filesystem_relay_script:string ->
   dynamically_get_the_cow_file_name_source:(unit -> string option) ->
   cow_file_name:string ->
   states_directory:string ->
@@ -452,6 +453,7 @@ class virtual ['parent] machine_or_router :
   router:bool ->
   kernel_file_name:process_name ->
   ?kernel_console_arguments:string ->
+  ?filesystem_relay_script:string ->
   filesystem_file_name:string ->
   dynamically_get_the_cow_file_name_source:(unit -> string option) ->
   cow_file_name:string ->

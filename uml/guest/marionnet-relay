@@ -21,14 +21,32 @@
 # TODO: run `set -x' if Marionnet is currently in the debug mode!
 # set -x
 
+### BEGIN INIT INFO
+# Provides:          marionnet-startup
+# Required-Start:    $local_fs $network $syslog
+# Required-Stop:
+# Should-Start:
+# Should-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+# Short-Description: Execute actions according to the kernel command line
+# Description:       When Marionnet launches a kernel, it puts on the kernel
+#                    command line a set of bindings VARIABLE=VALUE which are
+#                    interpreted by this script to execute some actions in
+#                    order to make the virtual machine suitable for the user.
+### END INIT INFO
+
+
 ###########################################
 #     Source-ing kernel command line      #
 ###########################################
 
 # Read kernel command line variables into this shell's environment:
-# Expected variables: hostname hostfs guestkind ubd0s (or ubda)
+# Expected variables: hostname hostfs guestkind ubd0s (or ubda) timezone numeric_TZ console_no
 export $(tr </proc/cmdline ' ' '\n' | \grep "^[a-zA-Z][a-zA-Z0-9_]*[=]")
 
+# Fix the PATH:
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # ======================================================== #
 #                        START ()                          #
@@ -72,7 +90,7 @@ function start {
  # `boot_parameters' to this shell environment:
  if [[ -n $hostfs ]]; then
   mkdir -p /mnt/hostfs
-  mount none /mnt/hostfs -t hostfs &&
+  mount none /mnt/hostfs -t hostfs && HOSTFS_MOUNTED=yes &&
   # And also record it on the hostfs filesystem, so that we can
   # easily tell which guest machine the directory belongs to
   # *from the host*:
@@ -166,18 +184,22 @@ fi
 
  # TODO: according to the kernel version!
  SWAP_DEVICE=/dev/ubdb
- ROOT_DEVICE=/dev/ubd0
+ if [[ -n ${ubd0s} ]]; then
+   ROOT_DEVICE=/dev/ubd0
+ else
+   ROOT_DEVICE=/dev/ubda
+ fi
 
  # Add swap (the swap 'partition' was already created as a
  # sparse file and initialized with mkswap from the host side):
  append_line_if_needed \
-  "$SWAP_DEVICE       none            swap    sw              0       0" \
+  "$SWAP_DEVICE none swap sw 0 0" \
   /etc/fstab
 
  ROOT_FS_TYPE=$(awk </proc/mounts '$1 == "/dev/root" && $2 == "/" {print $3; exit 0}')
 
  append_line_if_needed \
-  "/dev/ubd0       /      $ROOT_FS_TYPE    defaults   0 0" \
+  "$ROOT_DEVICE / $ROOT_FS_TYPE defaults 0 0" \
   /etc/fstab
 
  [[ -e $SWAP_DEVICE ]] || mknod $SWAP_DEVICE b 98 16
@@ -187,6 +209,16 @@ fi
  [[ -e $ROOT_DEVICE ]] || mknod $ROOT_DEVICE b 98 0
 
  ###########################################
+ #           KERNEL VERBOSITY              #
+ ###########################################
+
+ # Set verbosity level (first field) to 3 in a range from 1 to 7,
+ # in order to prevent annoying messages like:
+ # line_ioctl: tty0: unknown ioctl: 0x4b64
+ # just before the login prompt.
+ [[ -e /proc/sys/kernel/printk ]] && echo "3 4 1 7" > /proc/sys/kernel/printk
+
+ ###########################################
  #                DISPLAY                  #
  ###########################################
 
@@ -194,7 +226,7 @@ fi
  x11_display_number=${x11_display_number#:}
  DISPLAY_VALUE=172.23.0.254:${x11_display_number:-0}
 
- # ssh tunnelling:
+ # Support for `ssh' tunnelling:
  if [[ -n "$x11_display_cookie" ]] && type -t xauth &>/dev/null; then
   xauth add $DISPLAY_VALUE . $x11_display_cookie
  fi
@@ -208,6 +240,54 @@ fi
   fi
  done
 
+ ###########################################
+ #   Additional consoles (tty1, tty2,..)   #
+ ###########################################
+
+ # Modify /etc/inittab then signal the `init' process
+ # in order to create new tty? consoles:
+  function start_consoles {
+  local LINE_PREFIX="tty"
+  if [[ $1 = "--empty-prefix" ]]; then
+    unset LINE_PREFIX
+    shift
+  fi
+  local REQUIRED_CONSOLE_NO="$1"
+  local ADDITIONAL_CONSOLES=$((REQUIRED_CONSOLE_NO-1))
+  local TARGET=/etc/inittab
+  local skip=0
+  local i
+
+  for ((i=1; i<=ADDITIONAL_CONSOLES; i=i+1)); do
+  if grep -q "^#${LINE_PREFIX}${i}:" $TARGET; then
+    sed -i -e "s/^#${LINE_PREFIX}${i}:/${LINE_PREFIX}${i}:/" $TARGET
+  elif ! grep -q "^${LINE_PREFIX}${i}:" $TARGET; then
+    local TTY0_LINE LINE
+    TTY0_LINE=$(grep "^${LINE_PREFIX}0:" $TARGET)
+    LINE=$(echo ${TTY0_LINE//${LINE_PREFIX}0/${LINE_PREFIX}$i})
+    [[ -z "$LINE" ]] || echo $LINE >> $TARGET
+  else
+    let skip=skip+1
+  fi
+  done
+
+  [[ $skip = $ADDITIONAL_CONSOLES ]] || kill -HUP 1
+
+  # Update inittab:
+  for ((i=ADDITIONAL_CONSOLES+1; i<=8; i=i+1)); do
+  if grep -q "^${LINE_PREFIX}${i}:" $TARGET; then
+    sed -i -e "s/^${LINE_PREFIX}${i}:/#${LINE_PREFIX}${i}:/" $TARGET
+  fi
+  done
+ }
+
+ # LINE_PREFIX may be empty (Debian) or "tty" (Buildroot):
+ local LINE_PREFIX=$(grep "^[^#].*/sbin/getty" /etc/inittab | cut -f1 -d: | head -n 1)
+ LINE_PREFIX=${LINE_PREFIX%?} # chop last char
+ case "$LINE_PREFIX" in
+   tty) start_consoles "$console_no" ;;
+    "") start_consoles --empty-prefix "$console_no" ;;
+ esac
 
  ###########################################
  #                quagga                   #
@@ -217,9 +297,68 @@ fi
    /etc/init.d/quagga start
  fi
 
- ###
+ ###########################################
+ #               timezone                  #
+ ###########################################
 
+ function echo_export_TZ {
+  # global numeric_TZ
+  local NTZ=${1:-$numeric_TZ}
+  local h
+  IFS=: read h _ <<<"$NTZ"
+  let h=-1*h
+  if [[ $h -gt 0 ]]; then
+    echo "export TZ=UTC+$h"
+  elif [[ $h -lt 0 ]]; then
+    echo "export TZ=UTC$h"
+  else
+    echo "export TZ=UTC"
+  fi
+ } # echo_export_TZ
+
+ # Example: timezone="Europe/Paris"
+ if [[ -n $timezone && -e /usr/share/zoneinfo/$timezone ]]; then
+   rm -f /etc/{timezone,localtime}
+   ln -s /usr/share/zoneinfo/$timezone /etc/timezone
+   ln -s /usr/share/zoneinfo/$timezone /etc/localtime
+ fi
+ if [[ -n $numeric_TZ ]]; then
+   local LINE
+   LINE=$(echo_export_TZ $numeric_TZ)
+   append_line_if_needed "$LINE" /etc/profile
+ fi
+
+ ######################################
+ #  Source `marionnet-relay' patches  #
+ ######################################
+ 
+ # 1) Source generic patches:  
+ #    /mnt/hostfs/marionnet-relay*  
+ #
+ # 2) Source machine-specific (or router-specific) patches: 
+ #    /mnt/hostfs/${virtualfs_name}.relay* 
+
+ if [[ $HOSTFS_MOUNTED = yes ]]; then
+   # Ex: machine-debian-wheezy-42007
+   virtualfs_name="${virtual_disk##*/}" 
+   local i
+   for i in /mnt/hostfs/{marionnet-,$virtualfs_name.}relay*; do
+     echo "Source-ing $i ..."
+     source "$i"; 
+   done
+ fi
+
+ ###
+ 
  echo "OK"
+ clear
+ # Instead of launching getty with option "-f /etc/issue.linuxlogo",
+ # we simply execute the command linuxlogo:
+ if type &>/dev/null linuxlogo && [[ -f /etc/issue.marionnet ]]; then
+   linuxlogo > /etc/issue
+   cat /etc/issue.marionnet >>/etc/issue
+ fi
+
 
 } ########################## END of function start()
 

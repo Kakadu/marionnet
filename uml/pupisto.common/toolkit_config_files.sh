@@ -26,10 +26,11 @@
 # tabular_file_update -i -d ":" -k 1 --key-value "root" -f 7 --field-value "/bin/bash" --field-old-value "/bin/sh" etc/passwd
 # Returns with following codes:
 # 0 => successfully finished and file updated
-# 1 => successfully finished but file unchanged
+# 1 => successfully finished but file unchanged (neutralized by option --ignore-unchanged)
 # 2 => failed somewhere
 function tabular_file_update {
- local SEP KEY KEY_VALUE FIELD_NO FIELD_NEW_VALUE FIELD_OLD_VALUE FIELD_OLD_REGEXP EDIT_IN_PLACE BACKUP IGNORE_BLANKS
+ local SEP KEY KEY_VALUE FIELD_NO FIELD_NEW_VALUE FIELD_OLD_VALUE FIELD_OLD_REGEXP
+ local EDIT_IN_PLACE BACKUP IGNORE_BLANKS IGNORE_UNCHANGED
  local RETURN_CODE
  local BOOLEAN_AND=1
  # Defaults
@@ -46,8 +47,10 @@ function tabular_file_update {
      -fov|--field-old-value) FIELD_OLD_VALUE="$2"; shift 2 ;;
     -for|--field-old-regexp) FIELD_OLD_REGEXP="$2"; shift 2 ;;
             --ignore-blanks) IGNORE_BLANKS=y; shift ;;
+         --ignore-unchanged) IGNORE_UNCHANGED=y; shift ;;
               -i|--in-place) EDIT_IN_PLACE=y; shift ;;
                 -b|--backup) BACKUP=y; shift ;;
+                          *) echo "Unknown option: $1"; return 2 ;;
    esac
  done
 
@@ -63,8 +66,8 @@ function tabular_file_update {
    FS="[ \t]*${SEP}[ \t]*"
    OFS="$SEP"
  fi
- [[ -n "$KEY_VALUE" ]]       || { echo "Wrong arguments: --key-value must be specified" ; return 2; }
-   FIELD_NO=${FIELD_NO:-$KEY}
+ [[ -n "$KEY_VALUE" ]] || { echo "Wrong arguments: --key-value must be specified" ; return 2; }
+ FIELD_NO=${FIELD_NO:-$KEY}
  if [[ -z "$FIELD_OLD_VALUE" && "$KEY" = "$FIELD_NO" ]]; then
    FIELD_OLD_VALUE=$KEY_VALUE
  fi
@@ -110,12 +113,12 @@ function tabular_file_update {
    {print}'
  fi || return 2
 
- if diff 1>/dev/null -q "$FILE" $TMPFILE; then
+ if [[ -z $IGNORE_UNCHANGED ]] && diff 1>/dev/null -q "$FILE" $TMPFILE; then
    RETURN_CODE=1 # no update!
  else
-   RETURN_CODE=0 # update occurred
+   RETURN_CODE=0 # update occurred (or ignore the question if --ignore-unchanged is set)
  fi
- let BOOLEAN_AND=BOOLEAN_AND*RETURN_CODE
+ let BOOLEAN_AND="BOOLEAN_AND*RETURN_CODE" || true
 
  # An update occurred:
  if [[ $EDIT_IN_PLACE = "y"  && $RETURN_CODE = 0 ]]; then
@@ -171,20 +174,28 @@ function test_quoting_for_grep {
 # user_config_set "PermitRootLogin" " " "yes" /etc/sshd_config
 #
 # Returns with following codes:
-# 0 => successfully finished and file updated
-# 1 => successfully finished but file unchanged
+# 0 => successfully finished and file updated (or --ignore-unchanged is set)
+# 1 => successfully finished but file unchanged (and --ignore-unchanged is not set)
 # 2 => failed somewhere
 function user_config_set {
   local KEY_VALUE="$1"
   local DELIMITER="$2" # '=', ':', ..
   local FIELD_VALUE="$3"
+  local RETURN_CODE_WHEN_UNCHANGED=1 # by default
+  local IGNORE_UNCHANGED
+  # ---
+  if [[ $1 = "--ignore-unchanged" ]]; then
+    RETURN_CODE_WHEN_UNCHANGED=0
+    IGNORE_UNCHANGED="$1"
+    shift
+  fi
   # ---
   # Check actuals:
   [[ $# -ge 3 && -n $KEY_VALUE && -n $DELIMITER ]] || {
     echo "Usage: user_config_set <KEY_VALUE> <DELIMITER> <FIELD_VALUE> [<FILE>].."
     return 2
     }
-
+  # ---
   local INFILE OUTFILE
   local WORKINGFILE=$(mktemp)
   shift 3
@@ -202,7 +213,11 @@ function user_config_set {
   else
     local BOOLEAN_AND=1
     for INFILE in "$@"; do
-      user_config_set "$KEY_VALUE" "$DELIMITER" "$FIELD_VALUE" "$INFILE" && BOOLEAN_AND=0;
+      if user_config_set $IGNORE_UNCHANGED "$KEY_VALUE" "$DELIMITER" "$FIELD_VALUE" "$INFILE"; then
+        BOOLEAN_AND=0;
+      else
+        true
+      fi
     done
     return $BOOLEAN_AND
   fi
@@ -215,7 +230,7 @@ function user_config_set {
   if \grep -q "^[ \t]*${KEY_VALUE}${FS}$(quoting_for_grep "${FIELD_VALUE}")[ \t]*$" $WORKINGFILE; then
     # Fine! no update required:
     rm $WORKINGFILE
-    return 1
+    return $RETURN_CODE_WHEN_UNCHANGED
   fi
 
   # Unset keys at the same place if the delimiter appears twice:
@@ -228,7 +243,7 @@ function user_config_set {
     return 0
   elif \grep -q "^[ \t]*${KEY_VALUE}${FS}$(quoting_for_grep "${FIELD_VALUE}")[ \t]*" $WORKINGFILE; then
     # Fine! no update performed:
-    return 1
+    return $RETURN_CODE_WHEN_UNCHANGED
   else # No update occurred but it's needed, so:
     local TMPFILE=$(mktemp)
     # Remove comment any line "# <key><sep><value>":
@@ -239,7 +254,7 @@ function user_config_set {
     else
       local CODE=0
       # There was a commented line, so we have just to update (if required) this line:
-      tabular_file_update -d "$DELIMITER" --ignore-blanks -k 1 --key-value "$KEY_VALUE" -f 2 --field-value "$FIELD_VALUE" "$TMPFILE" > $WORKINGFILE || CODE=$?
+      tabular_file_update $IGNORE_UNCHANGED -d "$DELIMITER" --ignore-blanks -k 1 --key-value "$KEY_VALUE" -f 2 --field-value "$FIELD_VALUE" "$TMPFILE" > $WORKINGFILE || CODE=$?
       if [[ $CODE = 2 ]]; then return 2; fi
     fi
     cat $WORKINGFILE > $OUTFILE
@@ -364,11 +379,11 @@ function get_config_variable_unquoting {
 
 # Sort and merge configuration files removing comments and empty lines.
 # We are supposing that the order of line is not important.
+# TODO: it would be nice to implement `sort_and_merge_user_config_files'
 function sort_and_merge_config_files {
  cat "$@" | awk 'NF>0 && $1 !~ /^#/' | sort | uniq
 }
 
-# TODO: it would be nice to implement `sort_and_merge_user_config_files'
-
 # Automatically export previously defined functions:
 export -f $(awk '/^function/ {print $2}' ${BASH_SOURCE[0]})
+

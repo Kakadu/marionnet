@@ -1,12 +1,26 @@
-This directory contains UML kernel patches (mostly for
-ghostofication), kernel .config files, and userland utilities (again,
-mostly for ghostification).
+=======================================================================
+drwxr-xr-x  2 jean jean 4096 Jun 19 23:37 ethghost
+drwxr-xr-x  4 jean jean 4096 May  6 20:12 kernel
+
+These directories contain UML kernel patches (mostly for
+ghostification), kernel .config files, and userland utilities 
+(again, mostly for ghostification).
 
 Our repositories do *not* contain copies of Linux, since the kernel
 is huge and we only need tiny modifications.
 
 All of this makes easy to create UML kernels usable with Marionnet.
-
-
 This part of the work has been performed by Jonathan Roudiere and Luca
 Saiu.
+
+=======================================================================
+drwxrwxr-x  6 jean jean 4096 May 22 13:23 pupisto.buildroot
+drwxrwxr-x  2 jean jean 4096 Jun 19 19:27 pupisto.common
+drwxrwxr-x 12 jean jean 4096 Jun 21 17:04 pupisto.debian
+drwxrwxr-x  3 jean jean 4096 May 21 20:08 pupisto.kernel
+drwxrwxr-x  2 jean jean 4096 Apr  8 13:51 startup
+
+These directories contain a set of scripts to build kernels and/or 
+filesystems (Buildroot and Debian) suitable for Marionnet. 
+This part of the work has been performed by Jean-Vincent Loddo with 
+the contribution of Antoine Seignard.

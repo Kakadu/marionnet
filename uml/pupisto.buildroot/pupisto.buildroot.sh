@@ -216,7 +216,7 @@ $ ${0##*/} --no-kernel --router --name pulcinella"
 # successfully buildroot compilation (2.6.18 fails)
 # Another possible default could be 2.6.32 (last statically-linked
 # available version of our patched (ghost2) kernel)
-DEFAULT_KERNEL_VERSION=3.2.44
+DEFAULT_KERNEL_VERSION=3.2.48
 
 # Manage now your options in a convenient order
 #
@@ -342,7 +342,7 @@ function make_a_human_readable_log_into_working_directory {
    echo "Log file made more human-readable and copied into $READABLE_LOG_FILE"
    rm -f $TMPFILE1 $TMPFILE2
  else
-   printf "Log file %s found\n" $LOGFILE 1>&2
+   printf "Log file %s not found\n" $LOGFILE 1>&2
  fi
 }
 
@@ -375,7 +375,7 @@ source ../pupisto.common/toolkit_config_files.sh
 #                 OUR BUILDROOT TUNING SCRIPT
 # =============================================================
 
-S90marionnet=$PWD/$PUPISTO_FILES/S90marionnet
+MARIONNET_RELAY=$PWD/$PUPISTO_FILES/S90marionnet-relay
 QUAGGA_DIR=$PWD/$PUPISTO_FILES/quagga
 OUR_TUNING_SCRIPT=$PWD/$(mktemp --tmpdir=$TWDIR ROOTFS_POST_IMAGE_SCRIPT.XXXXXXXX)
 IFCONFIG_WRAPPER=$PWD/$PUPISTO_FILES/ifconfig
@@ -398,7 +398,7 @@ set -x
 cd \$TARGET_DIR
 
 # Copying our init script
-cp $S90marionnet etc/init.d/
+cp ${MARIONNET_RELAY} etc/init.d/
 
 # ifconfig wrapper (only need if we dont install the net-tools package)
 if [[ -L sbin/ifconfig && -f $IFCONFIG_WRAPPER ]]; then
@@ -499,7 +499,7 @@ if [[ -n ${option_q} ]]; then
 cat 1>>$OUR_TUNING_SCRIPT <<EOF
 # Quagga:
 cp $QUAGGA_DIR/quagga etc/init.d/
-# Called by S90marionnet if the filesystem name starts with 'router-'
+# Called by ${MARIONNET_RELAY} if the filesystem name starts with 'router-'
 chmod +x etc/init.d/quagga
 mkdir -p etc/quagga
 cp -f $QUAGGA_DIR/{*.conf,README.ports} etc/quagga/
@@ -554,15 +554,15 @@ eval exec -a udhcpc busybox -fnq "$@"
  chmod +x sbin/dhclient
 fi
 
-# Do not start services at boot (except S90marionnet and some other):
+# Do not start services at boot (except S90marionnet-relay and some other):
 pushd etc/init.d/
-for i in $(find . -maxdepth 1 -name "S*" -a ! -name "S90marionnet" -a ! -name "S01logging" -a ! -name "S20urandom" -a ! -name "S40network"); do
+for i in $(find . -maxdepth 1 -name "S*" -a ! -name "S90marionnet-relay" -a ! -name "S01logging" -a ! -name "S20urandom" -a ! -name "S40network"); do
   j=${i#./S??};
   mv $i $j;
   echo "$j was $i" >> README.script_order
 done
 # Create links for the remaining services:
-for i in $(find . -maxdepth 1 -name "S*" -a ! -name "S90marionnet"); do
+for i in $(find . -maxdepth 1 -name "S*" -a ! -name "S90marionnet-relay"); do
   j=${i#./S??};
   mv $i $j;
   ln -s $j $i

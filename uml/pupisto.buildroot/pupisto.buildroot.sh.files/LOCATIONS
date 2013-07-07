@@ -1,2 +1,2 @@
-/etc/init.d/S90marionnet
+/etc/init.d/S90marionnet-relay
 /sbin/ifconfig

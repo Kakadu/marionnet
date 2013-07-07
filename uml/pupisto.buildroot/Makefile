@@ -27,19 +27,19 @@
 #                     Building `guignol'
 # =============================================================
 
-KERNEL_VERSION=3.2.44
+KERNEL_VERSION=3.2.48
 
 guignol: dependencies buildroot
-	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --router --name guignol
+	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --router --name guignol $(OPTIONS)
 
 guignol-no-kernel: dependencies buildroot
-	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --router --no-kernel --name guignol
+	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --router --no-kernel --name guignol $(OPTIONS)
 
 guignol-custom: dependencies buildroot
-	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --router --name guignol --custom
+	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --router --name guignol --custom $(OPTIONS)
 
 guignol-debug: dependencies buildroot
-	./pupisto.buildroot.sh --debug --kernel $(KERNEL_VERSION) --router --name guignol
+	./pupisto.buildroot.sh --debug --kernel $(KERNEL_VERSION) --router --name guignol $(OPTIONS)
 
 # Make a minimal filesystem, just with Busybox and Bash (useful for testing), without quagga (no --router) and without kernel:
 minimal:
@@ -47,7 +47,7 @@ minimal:
 	@{ test -f $(CUSTOM_PACKAGES_YES) && cp -v $(CUSTOM_PACKAGES_YES) $(CUSTOM_PACKAGES_YES).backup --backup="numbered"; } || true
 	@cat /dev/null > $(CUSTOM_PACKAGES_YES)
 	@find ./_build.buildroot/package -name "Config.in" -exec \grep -o "BR2_PACKAGE_[A-Z0-9_]*" {} \; | uniq | sort | uniq > $(CUSTOM_PACKAGES_NO)
-	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --no-kernel --name minimal
+	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --no-kernel --name minimal $(OPTIONS)
 
 
 # =============================================================

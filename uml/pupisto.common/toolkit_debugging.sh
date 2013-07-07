@@ -29,7 +29,7 @@ PS4='+ [#${LINENO}$(A=${FUNCNAME[@]}; A=${A% main}; A=${A// /\|}; [[ -n $A ]] &&
 
 function set_tracing {
  # global BASH_XTRACING
- BASH_XTRACING=y
+ export BASH_XTRACING=y
  set -x
 }
 
@@ -39,6 +39,21 @@ function unset_tracing {
  unset BASH_XTRACING
 }
 
+function pause_tracing {
+ # global BASH_XTRACING  BASH_XTRACING_PAUSE
+ if [[ $BASH_XTRACING = y ]]; then
+   export BASH_XTRACING_PAUSE=y
+   unset_tracing
+ fi
+}
+
+function continue_tracing {
+ # global BASH_XTRACING  BASH_XTRACING_PAUSE
+ if [[ $BASH_XTRACING_PAUSE = y ]]; then
+   unset BASH_XTRACING_PAUSE
+   set_tracing
+ fi
+}
 
 # =============================================================
 #                       BREAK POINTS
@@ -110,9 +125,14 @@ function make_temporary_once_actions_file {
  set_once_actions_file "$(mktemp /tmp/$(basename $0).once_actions_file.XXXXXX)"
 }
 
-# Usage: once <COMMAND>
+# Usage: once [-r/--register-anyway] <COMMAND>
 # Register successfully executed commands in order to prevent to repeat their execution.
 function once {
+ local REGISTER_ANYWAY
+ if [[ $1 = "--register-anyway" || $1 = "-r" ]]; then
+   REGISTER_ANYWAY=y
+   shift
+ fi
  # global ONCE_ACTIONS_FILE
  [[ -n "$ONCE_ACTIONS_FILE" ]] || make_temporary_once_actions_file
  >>"$ONCE_ACTIONS_FILE"
@@ -125,12 +145,19 @@ function once {
    echo "Already done, skipping."
  else
    "$@" || ___CODE___=$?
-   if [[ ${___CODE___} -eq 0 ]]; then
+   if [[ -n $REGISTER_ANYWAY || ${___CODE___} -eq 0 ]]; then
      echo "${___POINT___}" >> $ONCE_ACTIONS_FILE
    fi
  fi
  return ${___CODE___}
 }
+
+function exiting_because_error {
+ echo -e "Exiting because of an unexpected error in line $BASH_LINENO"
+ exit 3
+}
+# Trap errors:
+trap exiting_because_error ERR
 
 # Automatically export previously defined functions:
 export -f $(awk '/^function/ {print $2}' ${BASH_SOURCE[0]})

@@ -303,7 +303,7 @@ let () = begin
 
 (** Set the main window icon (which may be the exam icon...), and the window title: *)
 st#mainwin#toplevel#set_icon (Some Icon.icon_pixbuf);
-st#mainwin#window_MARIONNET#set_title Command_line.window_title;
+st#mainwin#window_MARIONNET#set_title Initialization.window_title;
 
 (* This action must be done when all treeviews are set: *)
 Motherboard.set_treeview_filenames_invariant ();

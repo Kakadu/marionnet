@@ -36,8 +36,8 @@ module Make (S : sig val st:State.globalState end) = struct
 
   chip main_window_title_manager : (project_filename) -> () =
     let title = match project_filename with
-    | None          ->  Command_line.window_title
-    | Some filename -> (Command_line.window_title ^ " - " ^ filename)
+    | None          ->  Initialization.window_title
+    | Some filename -> (Initialization.window_title ^ " - " ^ filename)
     in
     w#window_MARIONNET#set_title title
 

@@ -893,7 +893,7 @@ class uml_process =
   in
   (* Exam *)
   let command_line_arguments =
-    if Command_line.are_we_in_exam_mode then
+    if Initialization.are_we_in_exam_mode then
       "exam=1" :: command_line_arguments
     else
       command_line_arguments
@@ -942,7 +942,7 @@ class uml_process =
             [ "con=none"; "ssl="^console; "console=ttyS0" ]
         | false ->
             let () = Log.printf "Warning: using default console arguments for new pairs filesystem/kernels\n" in
-            [ "con0="^console; "ssl=pts"; ]
+            [ "con0="^console; ]
   in
   let command_line_arguments =
     command_line_arguments @ console_related_arguments

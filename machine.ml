@@ -595,7 +595,7 @@ class machine
     (* Do as usual... *)
     self_as_node_with_defects#gracefully_shutdown_right_now;
     (* If we're in exam mode then make the report available in the texts treeview: *)
-    (if Command_line.are_we_in_exam_mode then begin
+    (if Initialization.are_we_in_exam_mode then begin
       let treeview_documents = Treeview_documents.extract () in
       Log.printf "Adding the report on %s to the texts interface\n" self#name;
       treeview_documents#import_report

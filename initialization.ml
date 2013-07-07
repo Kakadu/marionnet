@@ -43,10 +43,11 @@ let () =
 ;;
 
 (* Registering options: *)
-let option_v = Argv.register_unit_option "v" ~aliases:["-version"] ~doc:"print version and exit" () ;;
-let option_debug = Argv.register_unit_option "-debug" ~doc:"activate messages for debugging" () ;;
+let option_v      = Argv.register_unit_option "v" ~aliases:["-version"] ~doc:"print version and exit" () ;;
+let option_debug  = Argv.register_unit_option "d" ~aliases:["-debug"]   ~doc:"activate messages for debugging" () ;;
 let option_splash = Argv.register_unit_option "-splash" ~doc:"print splash message and exit" () ;;
-let option_paths = Argv.register_unit_option "-paths" ~doc:"print paths (filesystems, kernels, ..) and exit" () ;;
+let option_exam   = Argv.register_unit_option "-exam"   ~doc:"switch to student exam mode" () ;;
+let option_paths  = Argv.register_unit_option "-paths"  ~doc:"print paths (filesystems, kernels, ..) and exit" () ;;
 let () = Argv.register_h_option_as_help () ;;
 
 (* Registering arguments: *)
@@ -162,6 +163,14 @@ Log.printf
   "MARIONNET_DEBUG is %b (debug level %d)\n"
   (Debug_level.are_we_debugging ()) (* is true iff you read the message *)
   (Debug_level.get ())
+;;
+
+(* Student exam mode: *)
+let are_we_in_exam_mode = (!option_exam = Some ()) ;;
+let () = Log.printf "Student exam mode: %b\n" are_we_in_exam_mode ;;
+let window_title = match are_we_in_exam_mode with
+ | false -> "Marionnet"
+ | true  -> "Marionnet (EXAM)"
 ;;
 
 (* Used as continuation (~k) calling `extract_string_variable_or': *)

@@ -1,0 +1,361 @@
+9base PROVIDES: bc dc ed strings DESCRIPTION: Plan 9 userland tools
+acl PROVIDES: chacl getfacl setfacl DESCRIPTION: Access control list utilities
+acpid PROVIDES: acpid acpi_listen DESCRIPTION: Advanced Configuration and Power Interface event daemon
+adjtimex PROVIDES: adjtimex DESCRIPTION: kernel time variables configuration utility
+adns-tools PROVIDES: adnsheloex adnshost adnslogres adnsresfilter DESCRIPTION: Asynchronous-capable DNS client library and utilities
+apache2.2-common PROVIDES: a2dismod a2dissite a2enmod a2ensite apache2ctl apachectl DESCRIPTION: Apache HTTP Server common files
+apache2-dbg PROVIDES: ab checkgid htcacheclean htdbm htdigest htpasswd httxt2dbm logresolve rotatelogs DESCRIPTION: Apache debugging symbols
+apache2-mpm-event PROVIDES: apache2 DESCRIPTION: Apache HTTP Server - event driven model
+apache2-utils PROVIDES: check_forensic dbmmanage split-logfile DESCRIPTION: utility programs for webservers
+aria2 PROVIDES: aria2c DESCRIPTION: High speed download utility
+arping PROVIDES: arping DESCRIPTION: sends IP and/or ARP pings (to the MAC address)
+ash PROVIDES: ash DESCRIPTION: compatibility package for dash
+aspell PROVIDES: aspell aspell-import precat preunzip prezip prezip-bin run-with-aspell word-list-compress DESCRIPTION: GNU Aspell spell-checker
+atftpd PROVIDES: in.tftpd DESCRIPTION: advanced TFTP server
+attr PROVIDES: attr getfattr setfattr DESCRIPTION: Utilities for manipulating filesystem extended attributes
+autoconf PROVIDES: autoconf autoheader autom4te autoreconf autoscan autoupdate ifnames DESCRIPTION: automatic configure script builder
+autopoint PROVIDES: autopoint DESCRIPTION: The autopoint program from GNU gettext
+avahi-autoipd PROVIDES: avahi-autoipd DESCRIPTION: Avahi IPv4LL network address configuration daemon
+avahi-daemon PROVIDES: avahi-daemon DESCRIPTION: Avahi mDNS/DNS-SD daemon
+avahi-utils PROVIDES: avahi-browse avahi-browse-domains avahi-publish avahi-publish-address avahi-publish-service avahi-resolve avahi-resolve-address avahi-resolve-host-name avahi-set-host-name DESCRIPTION: Avahi browsing, publishing and discovery utilities
+babeld PROVIDES: babeld DESCRIPTION: loop-free distance-vector routing protocol
+beep PROVIDES: beep DESCRIPTION: advanced pc-speaker beeper
+bind9 PROVIDES: dnssec-dsfromkey dnssec-keyfromlabel named DESCRIPTION: Internet Domain Name Server
+bind9-host PROVIDES: host DESCRIPTION: Version of 'host' bundled with BIND 9.X
+bind9utils PROVIDES: dnssec-keygen dnssec-signzone named-checkconf named-checkzone named-compilezone rndc rndc-confgen DESCRIPTION: Utilities for BIND
+binutils PROVIDES: addr2line ar as c++filt gprof ld nm objcopy objdump ranlib readelf size strip DESCRIPTION: GNU assembler, linker and binary utilities
+boinc-dbg PROVIDES: db_dump DESCRIPTION: debugging symbols for BOINC binaries
+bootchart PROVIDES: bootchartd DESCRIPTION: Boot process performance analyser
+bootlogd PROVIDES: bootlogd DESCRIPTION: daemon to log boot messages
+bridge-utils PROVIDES: brctl DESCRIPTION: Utilities for configuring the Linux Ethernet bridge
+busybox PROVIDES: busybox DESCRIPTION: Tiny utilities for small and embedded systems
+busybox-syslogd PROVIDES: klogd logread syslogd DESCRIPTION: Provides syslogd and klogd using busybox
+bzip2 PROVIDES: bunzip2 bzcat bzcmp bzdiff bzegrep bzexe bzfgrep bzgrep bzip2 bzip2recover bzless bzmore DESCRIPTION: high-quality block-sorting file compressor - utilities
+cdbs PROVIDES: cdbs-edit-patch DESCRIPTION: common build system for Debian packages
+chkconfig PROVIDES: chkconfig DESCRIPTION: system tool to enable or disable system services
+cifs-utils PROVIDES: mount.cifs DESCRIPTION: Common Internet File System utilities
+citadel-mta PROVIDES: sendmail DESCRIPTION: complete and feature-rich groupware server (mail transport agent)
+consolekit PROVIDES: ck-history ck-launch-session ck-list-sessions ck-log-system-restart ck-log-system-start ck-log-system-stop console-kit-daemon DESCRIPTION: framework for defining and tracking users, sessions and seats
+console-tools PROVIDES: chvt deallocvt dumpkeys fgconsole getkeycodes kbd_mode kbdrate loadkeys openvt psfaddtable psfgettable psfstriptable setkeycodes setleds setlogcons setmetamode showkey unicode_start unicode_stop DESCRIPTION: Linux console and font utilities
+conspy PROVIDES: conspy DESCRIPTION: Remote control of Linux virtual consoles
+courier-authdaemon PROVIDES: authdaemond DESCRIPTION: Courier authentication daemon
+courier-authlib PROVIDES: authenumerate authpasswd authtest courierlogger DESCRIPTION: Courier authentication library
+courier-authlib-dev PROVIDES: courierauthconfig DESCRIPTION: Development libraries for the Courier authentication library
+courier-authlib-userdb PROVIDES: makeuserdb pw2userdb userdb userdbpw userdb-test-cram-md5 DESCRIPTION: userdb support for the Courier authentication library
+courier-base PROVIDES: courier-config couriertcpd maildiracl maildirkw sharedindexinstall sharedindexsplit testmxlookup DESCRIPTION: Courier mail server - base system
+courier-imap PROVIDES: imapd DESCRIPTION: Courier mail server - IMAP server
+courier-ldap PROVIDES: courierldapaliasd DESCRIPTION: Courier mail server - LDAP support
+courier-maildrop PROVIDES: mailbot maildrop makemime reformail reformime DESCRIPTION: Courier mail server - mail delivery agent
+courier-mta PROVIDES: mailq newaliases rmail DESCRIPTION: Courier mail server - ESMTP daemon
+courier-ssl PROVIDES: couriertls DESCRIPTION: Courier mail server - SSL/TLS Support
+cpp PROVIDES: cpp DESCRIPTION: GNU C preprocessor (cpp)
+crack PROVIDES: Crack Crack-Reporter DESCRIPTION: Password guessing program
+cracklib-runtime PROVIDES: cracklib-check cracklib-format cracklib-packer cracklib-unpacker create-cracklib-dict DESCRIPTION: runtime support for password checker library cracklib2
+cramfsprogs PROVIDES: cramfsck mkcramfs DESCRIPTION: Tools for CramFs (Compressed ROM File System)
+cryptsetup-bin PROVIDES: cryptsetup DESCRIPTION: disk encryption support - command line tools
+cups-bsd PROVIDES: lpq lpr DESCRIPTION: Common UNIX Printing System(tm) - BSD commands
+curlftpfs PROVIDES: curlftpfs DESCRIPTION: filesystem to access FTP hosts based on FUSE and cURL
+daemontools PROVIDES: envdir envuidgid setuidgid softlimit DESCRIPTION: a collection of tools for managing UNIX services
+dbus PROVIDES: dbus-cleanup-sockets dbus-daemon dbus-monitor dbus-send dbus-uuidgen DESCRIPTION: simple interprocess messaging system (daemon and utilities)
+dbus-1-dbg PROVIDES: dbus-launch DESCRIPTION: simple interprocess messaging system (debug symbols)
+db-util PROVIDES: db_archive db_checkpoint db_deadlock db_hotbackup db_load db_printlog db_recover db_stat db_upgrade db_verify DESCRIPTION: Berkeley Database Utilities
+debhelper PROVIDES: dh_builddeb dh_clean dh_compress dh_desktop dh_fixperms dh_gconf dh_gencontrol dh_icons dh_install dh_installcatalogs dh_installchangelogs dh_installcron dh_installdeb dh_installdebconf dh_installdirs dh_installdocs dh_installemacsen dh_installexamples dh_installifupdown dh_installinfo dh_installinit dh_installlogcheck dh_installlogrotate dh_installman dh_installmanpages dh_installmenu dh_installmime dh_installmodules dh_installpam dh_installppp dh_installudev dh_installwm dh_installxfonts dh_link dh_listpackages dh_makeshlibs dh_md5sums dh_movefiles dh_perl dh_python dh_scrollkeeper dh_shlibdeps dh_strip dh_suidregister dh_testdir dh_testroot dh_undocumented dh_usrlocal DESCRIPTION: helper programs for debian/rules
+desktop-file-utils PROVIDES: desktop-file-install desktop-file-validate update-desktop-database DESCRIPTION: Utilities for .desktop files
+dh-ocaml PROVIDES: dh_ocaml ocaml-md5sums DESCRIPTION: helper tools for maintaining OCaml-related Debian packages
+dictionaries-common PROVIDES: aspell-autobuildhash ispell-autobuildhash ispell-wrapper remove-default-ispell remove-default-wordlist select-default-ispell select-default-iwrap select-default-wordlist update-default-ispell update-default-wordlist update-dictcommon-aspell DESCRIPTION: Common utilities for spelling dictionary tools
+dietlibc-dev PROVIDES: dnsd DESCRIPTION: diet libc - a libc optimized for small size
+dmeventd PROVIDES: dmeventd DESCRIPTION: Linux Kernel Device Mapper event daemon
+dmsetup PROVIDES: dmsetup DESCRIPTION: Linux Kernel Device Mapper userspace library
+dnsutils PROVIDES: dig nslookup nsupdate DESCRIPTION: Clients provided with BIND
+dos2unix PROVIDES: dos2unix unix2dos DESCRIPTION: convert text file line endings between CRLF and LF
+dosfstools PROVIDES: mkdosfs mkfs.vfat DESCRIPTION: utilities for making and checking MS-DOS FAT filesystems
+dropbear PROVIDES: dbclient dropbear dropbearkey DESCRIPTION: lightweight SSH2 server and client
+dselect PROVIDES: dselect DESCRIPTION: Debian package management front-end
+e2fsck-static PROVIDES: e2fsck.static DESCRIPTION: statically-linked version of the ext2/ext3/ext4 filesystem checker
+ed PROVIDES: red DESCRIPTION: classic UNIX line editor
+eglibc-source PROVIDES: locale-gen update-locale validlocale DESCRIPTION: Embedded GNU C Library: sources
+eject PROVIDES: eject volname DESCRIPTION: ejects CDs and operates CD-Changers under Linux
+ethtool PROVIDES: ethtool DESCRIPTION: display or change Ethernet device settings
+exo-utils PROVIDES: exo-csource exo-desktop-item-edit exo-open exo-preferred-applications DESCRIPTION: Utility files for libexo
+exuberant-ctags PROVIDES: ctags-exuberant DESCRIPTION: build tag file indexes of source code definitions
+fam PROVIDES: famd DESCRIPTION: File Alteration Monitor
+fbset PROVIDES: fbset DESCRIPTION: framebuffer device maintenance program
+fdflush PROVIDES: fdflush DESCRIPTION: Flush out-of-date disk buffers
+file PROVIDES: file DESCRIPTION: Determines file type using "magic" numbers
+finger PROVIDES: finger DESCRIPTION: user information lookup program
+flex PROVIDES: flex++ DESCRIPTION: A fast lexical analyzer generator.
+fontconfig PROVIDES: fc-cache fc-cat fc-list fc-match fc-query fc-scan DESCRIPTION: generic font configuration library - support binaries
+fortune-mod PROVIDES: strfile unstr DESCRIPTION: provides fortune cookies on demand
+ftp PROVIDES: netkit-ftp DESCRIPTION: classical file transfer client
+fuse PROVIDES: fusermount DESCRIPTION: Filesystem in Userspace
+fvwm PROVIDES: fvwm2 fvwm-bug FvwmCommand fvwm-config fvwm-convert-2.4 fvwm-convert-2.6 fvwm-menu-desktop fvwm-menu-directory fvwm-menu-headlines fvwm-menu-xlock fvwm-perllib fvwm-root DESCRIPTION: F(?) Virtual Window Manager
+gawk PROVIDES: gawk igawk pgawk DESCRIPTION: GNU awk, a pattern scanning and processing language
+gcc PROVIDES: c89-gcc c99-gcc gcc gcov DESCRIPTION: GNU C compiler
+gcj-4.6-jdk PROVIDES: appletviewer jar jarsigner javac javadoc javah jdb native2ascii rmic serialver DESCRIPTION: gcj and classpath development tools for Java(TM)
+gcj-4.6-jre-headless PROVIDES: java keytool orbd rmid rmiregistry tnameserv DESCRIPTION: Java runtime environment using GIJ/classpath (headless version)
+gconf2 PROVIDES: gconf-merge-tree gconf-schemas gconftool-2 update-gconf-defaults DESCRIPTION: GNOME configuration database system (support tools)
+gdb PROVIDES: gcore gdb gdbtui DESCRIPTION: The GNU Debugger
+gdbserver PROVIDES: gdbserver DESCRIPTION: The GNU Debugger (remote server)
+gettext PROVIDES: gettextize msgattrib msgcat msgcmp msgcomm msgconv msgen msgexec msgfilter msgfmt msggrep msginit msgmerge msgunfmt msguniq recode-sr-latin xgettext DESCRIPTION: GNU Internationalization utilities
+gettext-base PROVIDES: envsubst gettext gettext.sh ngettext DESCRIPTION: GNU Internationalization utilities for the base system
+ghostscript PROVIDES: dumphint dvipdf eps2eps font2c gsbj gsdj gsdj500 gslj gslp gsnd pdf2dsc pdf2ps pdfopt pf2afm pfbtopfa pphs printafm ps2ascii ps2epsi ps2pdf12 ps2pdf13 ps2pdf14 ps2pdfwr ps2ps ps2ps2 wftopfa DESCRIPTION: interpreter for the PostScript language and for PDF
+gksu PROVIDES: gksu DESCRIPTION: graphical frontend to su
+gnome-keyring PROVIDES: gnome-keyring-daemon DESCRIPTION: GNOME keyring services (daemon and tools)
+gnutls-bin PROVIDES: certtool gnutls-cli gnutls-cli-debug gnutls-serv psktool srptool DESCRIPTION: GNU TLS library - commandline utilities
+grub-coreboot PROVIDES: grub-install DESCRIPTION: GRand Unified Bootloader, version 2 (Coreboot version)
+grub-legacy PROVIDES: grub grub-floppy grub-md5-crypt grub-reboot grub-set-default grub-terminfo mbchk mkbimage update-grub DESCRIPTION: GRand Unified Bootloader (Legacy version)
+gv PROVIDES: gv DESCRIPTION: PostScript and PDF viewer for X
+hal PROVIDES: hald hal-device hal-disable-polling hal-find-by-capability hal-find-by-property hal-get-property hal-is-caller-locked-out hal-lock hal-set-property lshal umount.hal DESCRIPTION: Hardware Abstraction Layer
+hardening-wrapper PROVIDES: gcc-4.2 DESCRIPTION: Compiler wrapper to enable security hardening flags
+hdparm PROVIDES: hdparm DESCRIPTION: tune hard disk parameters for high performance
+heimdal-clients PROVIDES: kadmin kdestroy kinit klist kpasswd ksu ktutil DESCRIPTION: Heimdal Kerberos - clients
+heimdal-dev PROVIDES: krb5-config DESCRIPTION: Heimdal Kerberos - development files
+html2text PROVIDES: html2text DESCRIPTION: advanced HTML to text converter
+htop PROVIDES: htop DESCRIPTION: interactive processes viewer
+icedtea-netx PROVIDES: javaws DESCRIPTION: NetX - implementation of the Java Network Launching Protocol (JNLP)
+iceweasel PROVIDES: firefox DESCRIPTION: Web browser based on Firefox
+id-utils PROVIDES: lid DESCRIPTION: Fast, high-capacity, identifier database tool
+ifmetric PROVIDES: ifmetric DESCRIPTION: Set routing metrics for a network interface
+ifplugd PROVIDES: ifplugd ifplugstatus DESCRIPTION: configuration daemon for ethernet devices
+ifstat PROVIDES: ifstat DESCRIPTION: InterFace STATistics Monitoring
+inetutils-ftpd PROVIDES: ftpd DESCRIPTION: File Transfer Protocol server
+inetutils-telnet PROVIDES: inetutils-telnet DESCRIPTION: telnet client
+inetutils-telnetd PROVIDES: telnetd DESCRIPTION: telnet server
+inetutils-tools PROVIDES: inetutils-ifconfig DESCRIPTION: base networking utilities (experimental package)
+initramfs-tools PROVIDES: mkinitramfs update-initramfs DESCRIPTION: generic modular initramfs generator
+installation-report PROVIDES: report-hw DESCRIPTION: system installation report
+ipcalc PROVIDES: ipcalc DESCRIPTION: parameter calculator for IPv4 addresses
+ipsec-tools PROVIDES: setkey DESCRIPTION: IPsec utilities
+ipsvd PROVIDES: tcpsvd udpsvd DESCRIPTION: Internet protocol service daemons
+iputils-clockdiff PROVIDES: clockdiff DESCRIPTION: Measure the time difference between networked computers
+iputils-tracepath PROVIDES: tracepath tracepath6 DESCRIPTION: Tools to trace the network path to a remote host
+isc-dhcp-relay PROVIDES: dhcrelay DESCRIPTION: ISC DHCP relay daemon
+isc-dhcp-server PROVIDES: dhcpd DESCRIPTION: ISC DHCP server for automatic IP address assignment
+ispell PROVIDES: buildhash findaffix icombine ijoin ispell munchlist sq tryaffix unsq DESCRIPTION: International Ispell (an interactive spelling corrector)
+jackd1 PROVIDES: alsa_in alsa_out jack_alias jack_bufsize jack_connect jackd jack_disconnect jack_evmon jack_freewheel jack_impulse_grabber jack_load jack_lsp jack_metro jack_midiseq jack_midisine jack_monitor_client jack_netsource jack_showtime jack_simple_client jack_transport jack_unload DESCRIPTION: JACK Audio Connection Kit (server and example clients)
+joe PROVIDES: joe DESCRIPTION: user friendly full screen text editor
+john PROVIDES: john mailer DESCRIPTION: active password cracking tool
+kate PROVIDES: kate DESCRIPTION: K Advanced Text Editor
+kate-dbg PROVIDES: kwrite DESCRIPTION: debugging symbols for Kate
+kbd PROVIDES: loadunimap mapscrn psfxtable resizecons setfont showconsolefont DESCRIPTION: Linux console font and keytable utilities
+krb5-admin-server PROVIDES: kadmind kadmin.local kprop DESCRIPTION: MIT Kerberos master server (kadmind)
+krb5-clients PROVIDES: telnet.krb5 DESCRIPTION: Secure replacements for ftp, telnet and rsh using MIT Kerberos
+krb5-gss-samples PROVIDES: gss-client gss-server DESCRIPTION: MIT Kerberos GSS Sample applications
+krb5-kdc PROVIDES: kdb5_util kpropd krb5kdc DESCRIPTION: MIT Kerberos key server (KDC)
+krb5-kdc-ldap PROVIDES: kdb5_ldap_util DESCRIPTION: MIT Kerberos key server (KDC) LDAP plugin
+krb5-rsh-server PROVIDES: klogind kshd login.krb5 DESCRIPTION: Secure replacements for rshd and rlogind using MIT Kerberos
+krb5-user PROVIDES: k5srvutil kvno DESCRIPTION: Basic programs to authenticate using MIT Kerberos
+laptop-detect PROVIDES: laptop-detect DESCRIPTION: attempt to detect a laptop
+ldap2zone PROVIDES: ldap2zone DESCRIPTION: Extract DNS zones from LDAP trees
+ldap-utils PROVIDES: ldapadd ldapcompare ldapdelete ldapexop ldapmodify ldapmodrdn ldappasswd ldapsearch ldapurl ldapwhoami DESCRIPTION: OpenLDAP utilities
+less PROVIDES: less lessecho lesskey lesspipe DESCRIPTION: pager program similar to more
+libbonobo2-bin PROVIDES: activation-client bonobo-activation-sysconf bonobo-slay echo-client-2 DESCRIPTION: Bonobo CORBA interfaces library -- support binaries
+libc-dev-bin PROVIDES: gencat mtrace rpcgen sprof DESCRIPTION: Embedded GNU C Library: Development binaries
+libcroco-tools PROVIDES: csslint-0.6 DESCRIPTION: Cascading Style Sheet (CSS) parsing and manipulation toolkit - utils
+libdb1-compat PROVIDES: db_dump185 DESCRIPTION: Berkeley database routines [glibc 2.0/2.1 compatibility]
+libfreetype6-dev PROVIDES: freetype-config DESCRIPTION: FreeType 2 font engine, development files
+libfribidi-bin PROVIDES: fribidi DESCRIPTION: Free Implementation of the Unicode BiDi algorithm (utility)
+libgcj-common PROVIDES: rebuild-security-providers DESCRIPTION: Java runtime library (common files)
+libgdk-pixbuf2.0-dev PROVIDES: gdk-pixbuf-csource gdk-pixbuf-query-loaders DESCRIPTION: GDK Pixbuf library (development files)
+libgksu2-0 PROVIDES: gksu-properties DESCRIPTION: library providing su and sudo functionality
+libglib2.0-0-dbg PROVIDES: gdbus glib-genmarshal gobject-query gsettings DESCRIPTION: Debugging symbols for the GLib libraries
+libglib2.0-bin PROVIDES: gio-querymodules glib-compile-schemas DESCRIPTION: Programs for the GLib library
+libglib2.0-dev PROVIDES: gdbus-codegen glib-gettextize glib-mkenums DESCRIPTION: Development files for the GLib library
+libgnome2-0 PROVIDES: gnome-open DESCRIPTION: The GNOME library - runtime files
+libgnomevfs2-0-dbg PROVIDES: gnomevfs-cat gnomevfs-copy gnomevfs-df gnomevfs-info gnomevfs-ls gnomevfs-mkdir gnomevfs-monitor gnomevfs-mv gnomevfs-rm DESCRIPTION: GNOME Virtual File System (debugging libraries)
+libgpg-error-dev PROVIDES: gpg-error DESCRIPTION: library for common error values and messages in GnuPG components (development)
+libgtk2.0-bin PROVIDES: gtk-update-icon-cache DESCRIPTION: programs for the GTK+ graphical user interface library
+libgtk2.0-dev PROVIDES: dh_gtkmodules gtk-builder-convert DESCRIPTION: development files for the GTK+ library
+libgtk-3-bin PROVIDES: update-icon-caches DESCRIPTION: programs for the GTK+ graphical user interface library
+libjpeg-progs PROVIDES: cjpeg djpeg exifautotran jpegexiforient jpegtran rdjpgcom wrjpgcom DESCRIPTION: Programs for manipulating JPEG files
+liblockfile-bin PROVIDES: dotlockfile DESCRIPTION: support binaries for and cli utilities based on liblockfile
+libmysqlclient-dev PROVIDES: mysql_config DESCRIPTION: MySQL database development files
+libnss3-tools PROVIDES: certutil cmsutil crlutil modutil pk12util shlibsign signtool signver ssltap DESCRIPTION: Network Security Service tools
+libpango1.0-0-dbg PROVIDES: pango-querymodules pango-view DESCRIPTION: Pango library and debugging symbols
+libpango1.0-dev PROVIDES: dh_pangomodules DESCRIPTION: Development files for the Pango
+libpaper-utils PROVIDES: paperconf paperconfig DESCRIPTION: library for handling paper characteristics (utilities)
+libpcre3-dev PROVIDES: pcre-config DESCRIPTION: Perl 5 Compatible Regular Expression Library - development files
+libpng12-dev PROVIDES: libpng12-config DESCRIPTION: PNG library - development
+librep-dbg PROVIDES: rep rep-remote DESCRIPTION: debug symbols for librep
+librpm-dbg PROVIDES: rpm rpm2cpio rpmdb rpmgraph rpmsign DESCRIPTION: debugging symbols for RPM
+libruby1.8-dbg PROVIDES: ruby1.8 DESCRIPTION: Debugging symbols for Ruby 1.8
+libsnmp15 PROVIDES: net-snmp-config DESCRIPTION: SNMP (Simple Network Management Protocol) library
+libsqlite3-0-dbg PROVIDES: sqlite3 DESCRIPTION: SQLite 3 debugging symbols
+libtasn1-3-bin PROVIDES: asn1Coding asn1Decoding asn1Parser DESCRIPTION: Manage ASN.1 structures (binaries)
+libtool PROVIDES: libtool libtoolize DESCRIPTION: Generic library support script
+libuser PROVIDES: lchage lchfn lchsh lgroupadd lgroupdel lgroupmod lnewusers lpasswd luseradd luserdel lusermod DESCRIPTION: user and group account administration library
+libxfce4util-bin PROVIDES: xfce4-kiosk-query DESCRIPTION: tools for libxfce4util
+lighttpd PROVIDES: lighttpd lighttpd-angel DESCRIPTION: fast webserver with minimal memory footprint
+links PROVIDES: links DESCRIPTION: Web browser running in text mode
+links2 PROVIDES: links2 xlinks2 DESCRIPTION: Web browser running in both graphics and text mode
+loadlin PROVIDES: freeramdisk DESCRIPTION: loader (running under DOS) for LINUX kernel images
+lpr PROVIDES: lpd DESCRIPTION: BSD lpr/lpd line printer spooling system
+lrzsz PROVIDES: rx DESCRIPTION: Tools for zmodem/xmodem/ymodem file transfer
+lsof PROVIDES: lsof DESCRIPTION: Utility to list open files
+lwresd PROVIDES: lwresd DESCRIPTION: Lightweight Resolver Daemon
+lynx-cur PROVIDES: lynx DESCRIPTION: Text-mode WWW Browser with NLS support (development version)
+lzma-alone PROVIDES: lzma_alone DESCRIPTION: Compression and decompression in the LZMA format - legacy utility
+lzop PROVIDES: lzop DESCRIPTION: fast compression program
+m4 PROVIDES: m4 DESCRIPTION: a macro processing language
+make PROVIDES: make DESCRIPTION: An utility for Directing compilation.
+makedev PROVIDES: MAKEDEV DESCRIPTION: creates device files in /dev
+man2html-base PROVIDES: man2html DESCRIPTION: convert man pages into HTML format
+menu PROVIDES: install-menu su-to-root update-menus DESCRIPTION: generates programs menu for all menu-aware applications
+microcom PROVIDES: microcom DESCRIPTION: minimalistic terminal program
+mii-diag PROVIDES: mii-diag DESCRIPTION: A little tool to manipulate network cards
+mime-support PROVIDES: run-mailcap update-mime DESCRIPTION: MIME files 'mime.types' & 'mailcap', and support programs
+mingetty PROVIDES: mingetty DESCRIPTION: Console-only getty
+mpack PROVIDES: mpack munpack DESCRIPTION: tools for encoding/decoding MIME messages
+mtd-utils PROVIDES: nanddump nandwrite ubiattach ubidetach ubimkvol ubirmvol ubirsvol ubiupdatevol DESCRIPTION: Memory Technology Device Utilities
+mtools PROVIDES: amuFormat.sh mcheck mcomp mkmanifest mtools mxtar tgz uz DESCRIPTION: Tools for manipulating MSDOS files
+mtr PROVIDES: mtr DESCRIPTION: Full screen ncurses and X11 traceroute tool
+muddleftpd PROVIDES: ftpwho DESCRIPTION: A flexible and efficient FTP daemon
+mysql-client-5.5 PROVIDES: innochecksum myisam_ftdump mysql mysqlaccess mysqladmin mysqlbug mysqlcheck mysql_client_test mysqldump mysqldumpslow mysql_find_rows mysql_fix_extensions mysqlimport mysqlshow mysql_waitpid DESCRIPTION: MySQL database client binaries
+mysql-server-5.5 PROVIDES: msql2mysql myisamchk myisamlog myisampack mysqlbinlog mysql_convert_table_format mysqld_multi mysqld_safe mysqlhotcopy mysql_secure_installation mysql_setpermission mysqltest mysql_tzinfo_to_sql mysql_zap perror replace resolveip resolve_stack_dump DESCRIPTION: MySQL database server binaries and system database setup
+mysql-server-core-5.5 PROVIDES: my_print_defaults mysqld mysql_install_db mysql_upgrade DESCRIPTION: MySQL database server binaries
+nast PROVIDES: nast DESCRIPTION: packet sniffer and lan analyzer
+nbd-client PROVIDES: nbd-client DESCRIPTION: Network Block Device protocol - client
+ncftp PROVIDES: ncftpbatch ncftpget ncftpls ncftpput ncftpspooler DESCRIPTION: User-friendly and well-featured FTP client
+netatalk PROVIDES: adv1tov2 aecho afpd asip-status.pl atalkd cnid2_create cnid_dbd cnid_metad getzones lp2pap.sh macusers megatron nbplkup nbprgstr nbpunrgstr netatalk-uniconv pap papd papstatus psorder showppd timelord DESCRIPTION: AppleTalk user binaries
+nfs-common PROVIDES: gss_clnt_send_err gss_destroy_creds mount.nfs mount.nfs4 nfsstat rpcdebug rpc.gssd rpc.idmapd rpc.statd rpc.svcgssd showmount sm-notify start-statd umount.nfs umount.nfs4 DESCRIPTION: NFS support files common to client and server
+nfs-kernel-server PROVIDES: exportfs rpc.mountd rpc.nfsd DESCRIPTION: support for NFS kernel server
+nis PROVIDES: rpc.yppasswdd rpc.ypxfrd ypbind ypcat ypchfn ypchsh ypmatch yppasswd yppoll yppush ypserv ypserv_test ypset yptest ypwhich DESCRIPTION: clients and daemons for the Network Information Service (NIS)
+nmap PROVIDES: ncat ndiff nmap nping DESCRIPTION: The Network Mapper
+nscd PROVIDES: nscd DESCRIPTION: Embedded GNU C Library: Name Service Cache Daemon
+ntp PROVIDES: ntpd ntpdc ntp-keygen ntpq ntptime ntptrace ntp-wait sntp DESCRIPTION: Network Time Protocol daemon and utility programs
+ntpdate PROVIDES: ntpdate DESCRIPTION: client for setting system time from NTP servers
+ocaml PROVIDES: labltk ocamlbrowser DESCRIPTION: ML language implementation with a class-based object system
+ocaml-base-nox PROVIDES: ocamlrun DESCRIPTION: Runtime system for OCaml bytecode executables (no X)
+ocaml-interp PROVIDES: ocaml DESCRIPTION: OCaml interactive interpreter and standard libraries
+ocaml-nox PROVIDES: ocamlbuild.byte ocamlbuild.native ocamlc ocamlcp ocamldebug ocamldep ocamldoc ocamldumpobj ocamllex ocamlmklib ocamlmktop ocamlobjinfo ocamlopt ocamlprof ocamlyacc DESCRIPTION: ML implementation with a class-based object system (no X)
+odt2txt PROVIDES: sxw2txt DESCRIPTION: simple converter from OpenDocument Text to plain text
+omniidl PROVIDES: omnicpp omniidl DESCRIPTION: omniORB IDL to C++ and Python compiler
+openbsd-inetd PROVIDES: inetd DESCRIPTION: OpenBSD Internet Superserver
+openjdk-6-dbg PROVIDES: apt extcheck idlj javap jconsole jhat jinfo jmap jps jrunscript jsadebugd jstack jstat jstatd pack200 policytool schemagen servertool unpack200 wsgen wsimport xjc DESCRIPTION: Java runtime based on OpenJDK (debugging symbols)
+openresolv PROVIDES: resolvconf DESCRIPTION: management framework for resolv.conf
+openssh-client PROVIDES: scp sftp slogin ssh ssh-add ssh-agent ssh-argv0 ssh-copy-id ssh-keygen ssh-keyscan DESCRIPTION: secure shell (SSH) client, for secure access to remote machines
+openssh-server PROVIDES: sshd DESCRIPTION: secure shell (SSH) server, for secure access from remote machines
+openssl PROVIDES: c_rehash openssl DESCRIPTION: Secure Socket Layer (SSL) binary and related cryptographic tools
+openswan PROVIDES: ipsec DESCRIPTION: Internet Key Exchange daemon
+orbit2 PROVIDES: ior-decode-2 linc-cleanup-sockets typelib-dump DESCRIPTION: a CORBA ORB
+patch PROVIDES: patch DESCRIPTION: Apply a diff file to an original
+pciutils PROVIDES: lspci pcimodules setpci update-pciids DESCRIPTION: Linux PCI Utilities
+pcregrep PROVIDES: pcregrep DESCRIPTION: grep utility that uses perl 5 compatible regexes.
+picolisp PROVIDES: watchdog DESCRIPTION: Lisp interpreter and application server framework
+pidentd PROVIDES: identd ikeygen DESCRIPTION: TCP/IP IDENT protocol server with DES support
+pkg-config PROVIDES: pkg-config DESCRIPTION: manage compile and link flags for libraries
+policycoreutils PROVIDES: audit2allow audit2why chcat fixfiles genhomedircon load_policy newrole open_init_pty restorecon run_init secon se_dpkg semanage semodule semodule_deps semodule_expand semodule_link semodule_package sepolgen-ifgen sestatus setfiles setsebool DESCRIPTION: SELinux core policy utilities
+policykit-1 PROVIDES: pkaction pkcheck pkexec DESCRIPTION: framework for managing administrative policies and privileges
+postfix PROVIDES: postalias postcat postconf postdrop postfix postkick postlock postlog postmap postmulti postqueue postsuper qmqp-sink qmqp-source qshape smtp-sink smtp-source DESCRIPTION: High-performance mail transport agent
+powertop PROVIDES: powertop DESCRIPTION: Linux tool to find out what is using power on a laptop
+ppl-dev PROVIDES: ppl-config DESCRIPTION: Parma Polyhedra Library (development binaries)
+ppp PROVIDES: chat DESCRIPTION: Point-to-Point Protocol (PPP) - daemon
+proftpd-basic PROVIDES: ftpcount ftpdctl ftpshut ftptop proftpd DESCRIPTION: Versatile, virtual-hosting FTP daemon - binaries
+protoize PROVIDES: protoize unprotoize DESCRIPTION: Create/remove ANSI prototypes from C code
+pscan PROVIDES: pscan DESCRIPTION: Format string security checker for C files
+psmisc PROVIDES: fuser killall peekfd pstree pstree.x11 DESCRIPTION: utilities that use the proc file system
+pulseaudio PROVIDES: pulseaudio DESCRIPTION: PulseAudio sound server
+pulseaudio-esound-compat PROVIDES: esd esdcompat DESCRIPTION: PulseAudio ESD compatibility layer
+python PROVIDES: 2to3 pydoc DESCRIPTION: interactive high-level object-oriented language (default version)
+python2.6-dbg PROVIDES: python2.6 DESCRIPTION: Debug Build of the Python Interpreter (version 2.6)
+python-central PROVIDES: dh_pycentral pycentral py_compilefiles DESCRIPTION: register and build utility for Python packages
+python-minimal PROVIDES: python DESCRIPTION: minimal subset of the Python language (default version)
+python-support PROVIDES: dh_pysupport update-python-modules DESCRIPTION: automated rebuilding support for Python modules
+qmail PROVIDES: maildirmake DESCRIPTION: a secure, reliable, efficient, simple message transfer agent
+quagga PROVIDES: vtysh DESCRIPTION: BGP/OSPF/RIP routing daemon
+racoon PROVIDES: plainrsa-gen racoon racoonctl DESCRIPTION: IPsec Internet Key Exchange daemon
+radvd PROVIDES: radvd radvdump DESCRIPTION: Router Advertisement Daemon
+rdate PROVIDES: rdate DESCRIPTION: sets the system's date from a remote host
+readahead-fedora PROVIDES: readahead DESCRIPTION: Fedora's implementation of readahead to preload boot process files
+reportbug PROVIDES: querybts reportbug DESCRIPTION: reports bugs in the Debian distribution
+rlinetd PROVIDES: update-inetd DESCRIPTION: gruesomely over-featured inetd replacement
+roxterm-gtk2 PROVIDES: roxterm roxterm-config DESCRIPTION: Multi-tabbed GTK+/VTE terminal emulator - GTK2 version
+rpcbind PROVIDES: rpcbind DESCRIPTION: converts RPC program numbers into universal addresses
+rpm PROVIDES: gendiff rpmquery rpmverify DESCRIPTION: package manager for RPM
+rsync PROVIDES: rsync DESCRIPTION: fast, versatile, remote (and local) file-copying tool
+rtkit PROVIDES: rtkitctl DESCRIPTION: Realtime Policy and Watchdog Daemon
+ruby1.8 PROVIDES: erb1.8 testrb1.8 DESCRIPTION: Interpreter of object-oriented scripting language Ruby 1.8
+runit PROVIDES: chpst runsv runsvdir sv svlogd DESCRIPTION: system-wide service supervision
+rxvt PROVIDES: rclock rxvt-xpm rxvt-xterm DESCRIPTION: VT102 terminal emulator for the X Window System
+samba-common-bin PROVIDES: smbpasswd DESCRIPTION: common files used by both the Samba server and client
+sash PROVIDES: sash DESCRIPTION: Stand-alone shell
+sasl2-bin PROVIDES: saslauthd sasldblistusers2 saslpasswd2 testsaslauthd DESCRIPTION: Cyrus SASL - administration programs for SASL users database
+sawfish PROVIDES: sawfish sawfish-client sawfish-ui DESCRIPTION: a window manager for X11
+setserial PROVIDES: setserial DESCRIPTION: controls configuration of serial ports
+sgml-base PROVIDES: install-sgmlcatalog update-catalog DESCRIPTION: SGML infrastructure and SGML catalog file support
+sharutils PROVIDES: shar unshar uudecode uuencode DESCRIPTION: shar, unshar, uuencode, uudecode
+slapd PROVIDES: slapacl slapadd slapauth slapcat slapd slapdn slapindex slappasswd slapschema slaptest DESCRIPTION: OpenLDAP server (slapd)
+smartlist PROVIDES: digest DESCRIPTION: Versatile and Intelligent List Processor
+smistrip PROVIDES: smistrip DESCRIPTION: extract MIB from text files like RFC
+smitools PROVIDES: smicache smidiff smidump smilint smiquery smixlate DESCRIPTION: various tools operating on MIB module files
+snacc PROVIDES: berdecode mkchdr ptbl pval snacc snacc-config DESCRIPTION: ASN.1 to C or C++ or IDL compiler
+snmp PROVIDES: encode_keychange snmpbulkget snmpbulkwalk snmpdelta snmpdf snmpget snmpgetnext snmpinform snmpnetstat snmpset snmpstatus snmptable snmptest snmptranslate snmptrap snmpusm snmpvacm snmpwalk DESCRIPTION: SNMP (Simple Network Management Protocol) applications
+snmpd PROVIDES: snmpd snmptrapd DESCRIPTION: SNMP (Simple Network Management Protocol) agents
+socat PROVIDES: filan procan socat DESCRIPTION: multipurpose relay for bidirectional data transfer
+sshfs PROVIDES: sshfs DESCRIPTION: filesystem client based on SSH File Transfer Protocol
+ssl-cert PROVIDES: make-ssl-cert DESCRIPTION: simple debconf wrapper for OpenSSL
+strace PROVIDES: strace DESCRIPTION: A system call tracer
+sudo PROVIDES: sudo sudoedit sudoreplay visudo DESCRIPTION: Provide limited super user privileges to specific users
+sysfsutils PROVIDES: systool DESCRIPTION: sysfs query tool and boot-time setup
+sysstat PROVIDES: iostat mpstat DESCRIPTION: system performance tools for Linux
+tack PROVIDES: tack DESCRIPTION: terminfo action checker
+tcl8.4 PROVIDES: tclsh8.4 DESCRIPTION: Tcl (the Tool Command Language) v8.4 - run-time files
+tcm PROVIDES: tcpd DESCRIPTION: Toolkit for Conceptual Modeling (TCM)
+tcpd PROVIDES: safe_finger tcpdchk tcpdmatch try-from DESCRIPTION: Wietse Venema's TCP wrapper utilities
+tcpdump PROVIDES: tcpdump DESCRIPTION: command-line network traffic analyzer
+tcsh PROVIDES: tcsh DESCRIPTION: TENEX C Shell, an enhanced version of Berkeley csh
+telnet PROVIDES: telnet.netkit DESCRIPTION: The telnet client
+texinfo PROVIDES: makeinfo texi2dvi texi2pdf texindex DESCRIPTION: Documentation system for on-line information and printed output
+tftp PROVIDES: tftp DESCRIPTION: Trivial file transfer protocol client
+thunar PROVIDES: Thunar DESCRIPTION: File Manager for Xfce
+time PROVIDES: time DESCRIPTION: GNU time program for measuring CPU resource usage
+tk8.4 PROVIDES: wish8.4 DESCRIPTION: Tk toolkit for Tcl and X11, v8.4 - run-time files
+tshark PROVIDES: tshark DESCRIPTION: network traffic analyzer - console version
+ucf PROVIDES: lcf ucf ucfq ucfr DESCRIPTION: Update Configuration File: preserve user changes to config files.
+udev PROVIDES: udevadm udevd DESCRIPTION: /dev/ and hotplug management daemon
+udhcpc PROVIDES: udhcpc DESCRIPTION: Provides the busybox DHCP client implementation
+udhcpd PROVIDES: dumpleases udhcpd DESCRIPTION: Provides the busybox DHCP server implementation
+uml-utilities PROVIDES: tunctl DESCRIPTION: User-mode Linux (utility programs)
+unzip PROVIDES: unzip DESCRIPTION: De-archiver for .zip files
+usbutils PROVIDES: lsusb update-usbids usb-devices DESCRIPTION: Linux USB utilities
+usermode PROVIDES: consolehelper userhelper DESCRIPTION: Graphical tools for certain user account management tasks
+uuid-runtime PROVIDES: uuidgen DESCRIPTION: runtime components for the Universally Unique ID library
+vim PROVIDES: vim.basic DESCRIPTION: Vi IMproved - enhanced vi editor
+vim-addon-manager PROVIDES: vim-addons DESCRIPTION: manager of addons for the Vim editor
+vim-runtime PROVIDES: vimtutor DESCRIPTION: Vi IMproved - Runtime files
+vim-scripts PROVIDES: dtd2vim vimplate DESCRIPTION: plugins for vim, adding bells and whistles
+vlan PROVIDES: vconfig DESCRIPTION: user mode programs to enable VLANs on your ethernet devices
+vlock PROVIDES: vlock DESCRIPTION: Virtual Console locking program
+w3m PROVIDES: w3m w3mman DESCRIPTION: WWW browsable pager with excellent tables/frames support
+whois PROVIDES: mkpasswd whois DESCRIPTION: intelligent WHOIS client
+wireshark PROVIDES: wireshark DESCRIPTION: network traffic analyzer - GTK+ version
+wireshark-common PROVIDES: capinfos dumpcap editcap mergecap text2pcap DESCRIPTION: network traffic analyzer - common files
+wireshark-dev PROVIDES: asn2deb idl2deb idl2wrs DESCRIPTION: network traffic analyzer - development tools
+x11-apps PROVIDES: atobm bitmap bmtoa ico oclock x11perf x11perfcomp xbiff xcalc xclipboard xclock xconsole xcursorgen xcutsel xditview xedit xeyes xgc xload xlogo xmag xman xmore xwd xwud DESCRIPTION: X applications
+x11-session-utils PROVIDES: rstart rstartd smproxy xsm DESCRIPTION: X session utilities
+x11-utils PROVIDES: appres editres listres luit viewres xdpyinfo xdriinfo xev xfd xfontsel xkill xlsatoms xlsclients xlsfonts xmessage xprop xvinfo xwininfo DESCRIPTION: X11 utilities
+x11-xfs-utils PROVIDES: fslsfonts fstobdf showfont xfsinfo DESCRIPTION: X font server utilities
+x11-xkb-utils PROVIDES: setxkbmap xkbbell xkbcomp xkbevd xkbprint xkbvleds xkbwatch DESCRIPTION: X11 XKB utilities
+x11-xserver-utils PROVIDES: iceauth sessreg showrgb xcmsdb xgamma xhost xmodmap xrandr xrdb xrefresh xset xsetmode xsetpointer xsetroot xstdcmap xvidtune DESCRIPTION: X server utilities
+xauth PROVIDES: xauth DESCRIPTION: X authentication utility
+xdg-user-dirs PROVIDES: xdg-user-dir xdg-user-dirs-update DESCRIPTION: tool to manage well known user directories
+xdg-user-dirs-gtk PROVIDES: xdg-user-dirs-gtk-update DESCRIPTION: tool to manage well known user directories (Gtk extension)
+xdg-utils PROVIDES: xdg-desktop-icon xdg-desktop-menu xdg-email xdg-icon-resource xdg-mime xdg-open xdg-screensaver xdg-settings DESCRIPTION: desktop integration utilities from freedesktop.org
+xfce4-panel PROVIDES: xfce4-panel DESCRIPTION: panel for Xfce4 desktop environment
+xfce4-session PROVIDES: xfce4-session xfce4-session-logout xfce4-tips DESCRIPTION: Xfce4 Session Manager
+xfce4-terminal PROVIDES: xfce4-terminal xfce4-terminal.wrapper DESCRIPTION: Xfce terminal emulator
+xfce4-utils PROVIDES: startxfce4 xfbrowser4 xfce4-about xfhelp4 xflock4 xfmountdev4 xfrun4 xfterm4 DESCRIPTION: Various tools for Xfce
+xfdesktop4 PROVIDES: xfdesktop DESCRIPTION: xfce desktop background, icons and root menu manager
+xfonts-utils PROVIDES: bdftopcf bdftruncate mkfontdir mkfontscale ucs2any update-fonts-alias update-fonts-dir update-fonts-scale DESCRIPTION: X Window System font utility programs
+xfwm4 PROVIDES: xfwm4 DESCRIPTION: window manager of the Xfce project
+xinetd PROVIDES: itox xinetd DESCRIPTION: replacement for inetd with many enhancements
+xinit PROVIDES: startx xinit DESCRIPTION: X server initialisation tool
+xml-core PROVIDES: dh_installxmlcatalogs update-xmlcatalog DESCRIPTION: XML infrastructure and XML catalog file support
+xserver-xorg PROVIDES: X DESCRIPTION: X.Org X server
+xterm PROVIDES: koi8rxterm lxterm resize uxterm xterm DESCRIPTION: X terminal emulator
+xtermcontrol PROVIDES: xtermcontrol DESCRIPTION: dynamic configuration of xterm properties
+xtermset PROVIDES: xtermset DESCRIPTION: change the characteristics of an xterm
+xutils-dev PROVIDES: ccmakedep cleanlinks gccmakedep imake lndir makedepend makeg mergelib mkdirhier mkhtmlindex revpath xmkmf DESCRIPTION: X Window System utility programs for development
+xview-clients PROVIDES: clock cmdtool props textedit DESCRIPTION: XView client programs
+xviewg PROVIDES: capitalize insert_brackets remove_brackets shift_lines DESCRIPTION: XView shared libraries
+xvt PROVIDES: xvt DESCRIPTION: X terminal-emulator similar to xterm, but smaller

@@ -1,0 +1,8 @@
+bash-completion PROVIDES: dh_bash-completion DESCRIPTION: programmable completion for the bash shell
+epiphany-browser PROVIDES: epiphany DESCRIPTION: Intuitive GNOME web browser
+ipv6calc PROVIDES: ipv6calc DESCRIPTION: small utility for manipulating IPv6 addresses
+inetutils-inetd PROVIDES: inetutils-inetd DESCRIPTION: internet super server
+lynx PROVIDES: lynx DESCRIPTION: Text-mode WWW Browser
+rox-filer PROVIDES: rox-filer DESCRIPTION: A simple graphical file manager for X11
+rsyslog PROVIDES: rsyslogd DESCRIPTION: reliable system and kernel logging daemon
+ucspi-tcp-ipv6 PROVIDES: tcpclient tcpserver DESCRIPTION: command-line tools for building TCP client-server applications (IPv6)

@@ -1,0 +1,8 @@
+The compilation of buildroot may fail, depending on the git version.
+In this case, you can revert to a tested running version (May-June 2013) 
+getting a tarball from ous site:
+
+wget http://www.marionnet.org/downloads/buildroot/buildroot.2013-05.tar.xz
+rm -rf _build.buildroot
+tar xJf buildroot.2013-05.tar.xz
+make guignol

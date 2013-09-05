@@ -17,8 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.23
-# 2013.07.02
+# Script version: 0.90.24
+# 2013.09.05
 
 # Thanks:
 # - Lucas Nussbaum for the idea of having an option "--download-only/-O",
@@ -781,7 +781,7 @@ function echo_required_debian_packages {
  fi
 
  for i in \
-   libgtk2.0-dev libglade2-dev $EXTRA_FOR_GODI \
+   libgtk2.0-dev libglade2-dev liblablgtksourceview2-ocaml-dev $EXTRA_FOR_GODI \
    bridge-utils coreutils debianutils diffutils \
    net-tools uml-utilities util-linux x11-xserver-utils \
    coreutils findutils login procps gettext \

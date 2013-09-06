@@ -622,7 +622,7 @@ else
 fi 1>&2
 TGZ=$(grep <$TGZ -o ".*${BASENAME}-${LATEST}[0-9A-Za-z/_-]*")
 # Adjust relative href:
-if [[ ${TGZ#http://} = ${TGZ} ]] && [[ ${TGZ#ftp://} = ${TGZ} ]]; then
+if [[ ${TGZ#http://} = ${TGZ} ]] && [[ ${TGZ#https://} = ${TGZ} ]] && [[ ${TGZ#ftp://} = ${TGZ} ]]; then
 TGZ="${URL%/*}/$TGZ"
 fi
 { wget -O - $TGZ \

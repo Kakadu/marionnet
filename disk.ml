@@ -46,12 +46,28 @@ class terminal_manager () =
    method is_nox         = ((=)nox_name)
  end
 
+(** Some name filters (predicates on strings): *)
+module Filter = struct
+
+ let ending_with_dot_relay =
+   StrExtra.First.matchingp (Str.regexp "[.]relay\\($\\|[._-][a-zA-Z0-9._-]*[~]?$\\)")
+
+ let ending_with_dot_conf =
+   StrExtra.First.matchingp (Str.regexp "[.]conf[~]?$")
+
+ let exclude_names_ending_with_dot_conf_or_dot_relay x =
+    not ((ending_with_dot_conf x) || (ending_with_dot_relay x))
+
+end (* Filter *)
+
  (** Read the given directory searching for names like [~prefix ^ "xxxxx"];
      return the list of epithets ["xxxxx"]. *)
-let read_epithet_list ~prefix ~dir =
+(* let read_epithet_list ?(name_filter=fun _ -> true) ~prefix ~dir () = *)
+let read_epithet_list ?(name_filter=Filter.exclude_names_ending_with_dot_conf_or_dot_relay) ~prefix ~dir () =
   let prefix_length = String.length prefix in
   let remove_prefix s = String.sub s prefix_length ((String.length s) - prefix_length) in
   let name_filter file_name =
+    (name_filter file_name) &&
     ((String.length file_name) > prefix_length) &&
     ((String.sub file_name 0 prefix_length) = prefix)
   in
@@ -98,7 +114,7 @@ let make_epithet_to_dir_mapping ~kind ?realpath ~prefix ~directory_searching_lis
   let xss =
      List.map
        (fun dir ->
-          let epithet_list = read_epithet_list ~prefix ~dir in
+          let epithet_list = read_epithet_list ~prefix ~dir () in
           List.map (fun x -> (x, (normalize_dir dir))) epithet_list
         )
         searching_list
@@ -308,17 +324,10 @@ class virtual_machine_installations
   let filesystem_searching_list =
     List.append user_filesystem_searching_list root_filesystem_searching_list
   in
-  let filter_dot_relay =
-    StrExtra.First.matchingp (Str.regexp "[.]relay\\($\\|[._-][a-zA-Z0-9._-]*[~]?$\\)")
-  in
-  let filter_exclude_names_ending_with_dot_conf_or_dot_relay x =
-    not ((StrExtra.First.matchingp (Str.regexp "[.]conf[~]?$") x) || 
-         (filter_dot_relay x))
-  in
   (* The manager of all filesystem epithets: *)
   let filesystems : [`distrib] epithet_manager =
     new epithet_manager
-        ~filter:filter_exclude_names_ending_with_dot_conf_or_dot_relay
+        ~filter:Filter.exclude_names_ending_with_dot_conf_or_dot_relay
         ~kind:`distrib
 	~prefix
 	~directory_searching_list:filesystem_searching_list
@@ -328,7 +337,7 @@ class virtual_machine_installations
   (* The manager of all kernel epithets: *)
   let kernels : [`kernel] epithet_manager =
     new epithet_manager
-        ~filter:filter_exclude_names_ending_with_dot_conf_or_dot_relay
+        ~filter:Filter.exclude_names_ending_with_dot_conf_or_dot_relay
         ~kind:`kernel
         ~prefix:kernel_prefix
         ~directory_searching_list:kernel_searching_list
@@ -451,7 +460,7 @@ class virtual_machine_installations
 
   method relay_script_of filesystem_epithet =
     String_map.find (filesystem_epithet) (filesystem_relay_script_mapping)
-    
+
   (* Here, if we replace the first two lines of the following definition by:
     ---
     method supported_kernels_of (filesystem_epithet:[`distrib] epithet) : ([`kernel] epithet * (string option)) list =

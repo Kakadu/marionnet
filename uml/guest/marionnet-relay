@@ -252,7 +252,7 @@ fi
     unset LINE_PREFIX
     shift
   fi
-  local REQUIRED_CONSOLE_NO="$1"
+  local REQUIRED_CONSOLE_NO="${1:-1}"
   local ADDITIONAL_CONSOLES=$((REQUIRED_CONSOLE_NO-1))
   local TARGET=/etc/inittab
   local skip=0
@@ -295,6 +295,13 @@ fi
 
  if [[ $virtualfs_kind = "router" || $guestkind = "router" ]]; then
    /etc/init.d/quagga start
+   # Activate IP (v4/v6) forwarding:
+   echo 1 > /proc/sys/net/ipv4/ip_forward
+   echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+   # Fix quagga ownership, if required, in order to enable
+   # the user to save his configurations (write memory):
+   TARGET=/etc/quagga
+   { [[ -d $TARGET ]] && grep -q quagga /etc/group && ls -ld $TARGET |  awk '{print $4}' | grep -q root && chown -R quagga:quagga $TARGET; } || true
  fi
 
  ###########################################
@@ -331,25 +338,25 @@ fi
  ######################################
  #  Source `marionnet-relay' patches  #
  ######################################
- 
- # 1) Source generic patches:  
- #    /mnt/hostfs/marionnet-relay*  
+
+ # 1) Source generic patches:
+ #    /mnt/hostfs/marionnet-relay*
  #
- # 2) Source machine-specific (or router-specific) patches: 
- #    /mnt/hostfs/${virtualfs_name}.relay* 
+ # 2) Source machine-specific (or router-specific) patches:
+ #    /mnt/hostfs/${virtualfs_name}.relay*
 
  if [[ $HOSTFS_MOUNTED = yes ]]; then
    # Ex: machine-debian-wheezy-42007
-   virtualfs_name="${virtual_disk##*/}" 
+   virtualfs_name="${virtual_disk##*/}"
    local i
    for i in /mnt/hostfs/{marionnet-,$virtualfs_name.}relay*; do
      echo "Source-ing $i ..."
-     source "$i"; 
+     source "$i";
    done
  fi
 
  ###
- 
+
  echo "OK"
  clear
  # Instead of launching getty with option "-f /etc/issue.linuxlogo",

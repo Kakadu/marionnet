@@ -507,9 +507,10 @@ cp -f $QUAGGA_DIR/{*.conf,README.ports} etc/quagga/
 echo "quaggavty:x:116:" >> etc/group
 echo "quagga:x:117:" >> etc/group
 # TODO: FIX /home/quagga
-echo "quagga:x:108:99:Linux User,,,:/home/quagga:/bin/false" >> etc/passwd
+echo "quagga:x:108:117:Linux User,,,:/home/quagga:/bin/false" >> etc/passwd
 echo 'quagga:!:15815:0:99999:7:::' >> etc/shadow
-
+# Fix quagga ownership:
+chown -R 108:117 etc/quagga
 EOF
 fi
 

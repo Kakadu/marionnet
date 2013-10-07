@@ -17,12 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.24
-# 2013.09.05
+# Script version: 0.90.25
+# 2013.10.07
 
 # Thanks:
 # - Lucas Nussbaum for the idea of having an option "--download-only/-O",
 #   and for his patch proposal (July 2013)
+
+
 
 set -e
 shopt -s nullglob
@@ -604,6 +606,18 @@ function launch_and_log {
 # Support https:
 alias wget='wget --no-check-certificate'
 
+
+function download_tar_gz_from_definite_url {
+local BASENAME="$1" # ex: vde2
+local URL="$2" # ex: http://sourceforge.net/projects/vde/files/vde2/2.3.2/vde2-2.3.2.tar.gz
+{ wget -O - "$URL" \
+  | tar 1>&2 xvzf -
+  } || return 1
+ln -s ${BASENAME}-* ${BASENAME} || true
+return 0
+}
+
+
 function download_latest_tar_gz_from_url {
 local BASENAME="$1" # ex: vde2
 local VERSION="${2:-[0-9][0-9]*[.][0-9][0-9]*[.][0-9][0-9]*}"
@@ -692,10 +706,10 @@ function download_latest_lablgtk {
 }
 
 function download_latest_vde {
-  local VERSION=${VDE2_VERSION:-latest}
-  download_latest_tar_gz -v "$VERSION" vde2 \
-    "http://sourceforge.net/projects/vde/" \
-    $OUR_MIRROR
+  local VERSION=${VDE2_VERSION:-2.3.2}
+  local URL="http://sourceforge.net/projects/vde/files/vde2/2.3.2/vde2-2.3.2.tar.gz"
+  download_tar_gz_from_definite_url vde2 "$URL" || \
+    download_latest_tar_gz -v "$VERSION" vde2 $OUR_MIRROR
 }
 
 function download_latest_marionnet {
@@ -737,6 +751,23 @@ function are_we_in_ubuntu_11_or_greater {
    if [[ "$a" = "Ubuntu" ]]; then
      IFS="." read a c <<<"$b"
      [[ "$a" -ge 11 ]]
+   else
+     return 1
+   fi
+ else
+  return 1
+ fi
+}
+
+# (problems with the packaged version of vde2)
+function are_we_in_ubuntu_12_04 {
+ if [[ -f /etc/issue ]]; then
+   local A=$(head -n 1 /etc/issue)
+   local a b c
+   read a b c <<<"$A"
+   if [[ "$a" = "Ubuntu" ]]; then
+     IFS="." read a c d <<<"$b"
+     [[ "$a" = "12" && "$c" = "04" ]]
    else
      return 1
    fi
@@ -1578,7 +1609,7 @@ if ps -A -o cmd | grep -q '^[a-zA-Z0-9/]*X.*[-]nolisten tcp'; then
 fi
 
 # =============================================================
-#                  Fix problems in ubuntu
+#                  Fix problems in Ubuntu
 # =============================================================
 
 if are_we_in_ubuntu_11_or_greater ; then
@@ -1598,6 +1629,28 @@ if are_we_in_ubuntu_11_or_greater ; then
   read z
   if [[ $z != n && $z != N ]]; then
     append_line_if_needed "alias marionnet='UBUNTU_MENUPROXY=0 marionnet'" $DEST
+  fi
+fi
+
+function is_the_packaged_vde2_version_lt_2_3_0 {
+ local VDE2_VERSION
+ if type 1>&2 aptitude && type 1>&2 vde_switch; then
+   VDE2_VERSION=$(aptitude show vde2 | awk '/^Version.*[2-9][.][0-9][.][0-9].*/ {print $2}' | awk -F '-' '{print $1}')
+   VDE2_VERSION=$(echo $VDE2_VERSION | awk -F '.' '(($2 * 100 + $3 * 10 + $4) <= 230) {print}')
+   [[ -n "$VDE2_VERSION" ]]
+ else
+   return 1
+ fi
+}
+
+if are_we_in_ubuntu_12_04 && is_the_packaged_vde2_version_lt_2_3_0; then
+  echo "* Warning: Ubuntu 12.04 systems have an old packaged version of vde2"
+  echo "  => The problem may be solved installing a vde2 backport (Virtualization)"
+  echo "     (see: https://launchpad.net/~pdffs/+archive/precise-virt)"
+  echo -n "     Shall I install the vde2 backport ([y]/n)? "
+  read z
+  if [[ $z != n && $z != N ]]; then
+    launch_and_log --sudo "Installing vde2 backport for Ubuntu 12.04" "add-apt-repository -y ppa:pdffs/precise-virt && aptitude update && aptitude install -y vde2"
   fi
 fi
 

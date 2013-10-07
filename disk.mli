@@ -108,10 +108,13 @@ class virtual_machine_installations :
     method relay_script_of       : [`distrib] epithet -> filename option
     method supported_kernels_of  : [`distrib] epithet -> ([`kernel] epithet * (string option)) list
     method get_kernel_console_arguments : [`distrib] epithet -> [`kernel] epithet -> string option
-    
+
 
     method terminal_manager_of            : [`distrib] epithet -> terminal_manager
     method multiple_consoles_supported_by : [`distrib] epithet -> bool
+
+    method memory_min_size_of       : [`distrib] epithet -> int option
+    method memory_suggested_size_of : [`distrib] epithet -> int option
 
     (* filesystem epithet -> dirname *)
     method root_export_dirname : [`distrib] epithet -> dirname

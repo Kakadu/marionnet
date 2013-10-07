@@ -508,6 +508,14 @@ class virtual_machine_installations
     let x = Configuration_files.get_bool_variable "MULTIPLE_CONSOLES_SUPPORT" (Option.extract config) in
     (x = Some true)
 
+  method memory_min_size_of epithet =
+    let config = String_map.find (epithet) (filesystem_config_mapping) in
+    Option.bind config (Configuration_files.get_int_variable "MEMORY_MIN_SIZE")
+
+  method memory_suggested_size_of epithet =
+    let config = String_map.find (epithet) (filesystem_config_mapping) in
+    Option.bind config (Configuration_files.get_int_variable "MEMORY_SUGGESTED_SIZE")
+
   method check_filesystems_MTIME_consistency () =
     let check =
       fun filesystem_epithet ->

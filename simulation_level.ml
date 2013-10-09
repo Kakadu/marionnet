@@ -763,27 +763,37 @@ let make_ethernet_cable_process
 ;;
 
 let ethernet_interface_to_boot_parameters_bindings umid port_index hublet =
-(*   let name = Printf.sprintf "eth_%s_eth%i" umid index in *)
   let port_index_as_string = string_of_int port_index in
   let ifconfig = Treeview_ifconfig.extract () in
-  [
-   "mac_address_eth"^port_index_as_string,
-   ifconfig#get_port_attribute_by_index umid port_index "MAC address";
-   "mtu_eth"^port_index_as_string,
-   ifconfig#get_port_attribute_by_index umid port_index "MTU";
-   "ipv4_address_eth"^port_index_as_string,
-   ifconfig#get_port_attribute_by_index umid port_index "IPv4 address";
-   "ipv4_broadcast_eth"^port_index_as_string,
-   ifconfig#get_port_attribute_by_index umid port_index "IPv4 broadcast";
-   "ipv4_netmask_eth"^port_index_as_string,
-   ifconfig#get_port_attribute_by_index umid port_index "IPv4 netmask";
-   "ipv6_address_eth"^port_index_as_string,
-   ifconfig#get_port_attribute_by_index umid port_index "IPv6 address";
-(*   "ipv6_broadcast_eth"^port_index_as_string,
-     ifconfig#get_port_attribute_by_index umid port_index "IPv6 broadcast";
-     "ipv6_netmask_eth"^port_index_as_string,
-     ifconfig#get_port_attribute_by_index umid port_index "IPv6 netmask"; *)
-  ];;
+  let make_port_binding ~prefix ~key =
+    ((prefix ^ port_index_as_string), (ifconfig#get_port_attribute_by_index umid port_index key))
+  in
+  (* We treat the ipv4_address in a special way because some small distributions (e.g. buildroot)
+     may have a version of `ifconfig' which doesn't support the CIDR notation. So, we split the 
+     address/cidr into the address and netmask: *)
+  let ipv4_address_related_bindings =
+    let x = ifconfig#get_port_attribute_by_index umid port_index "IPv4 address" in
+    match (Ipv4.String.is_valid_ipv4 x), (Ipv4.String.is_valid_config x) with
+    | false, false -> []
+    | true,  false -> [(("ipv4_address_eth" ^ port_index_as_string), x)]
+    | false, true  ->
+        let config  : ((int*int*int*int) * int) = Ipv4.config_of_string x in
+        let address = Ipv4.to_string (fst config) in
+        let netmask = Ipv4.to_string (Ipv4.netmask_of_cidr (snd config)) in
+        [(("ipv4_address_eth" ^ port_index_as_string), address);
+         (("ipv4_netmask_eth" ^ port_index_as_string), netmask) ]
+    | true, true -> [] (* assert false *)
+  in
+  List.append
+    (ipv4_address_related_bindings)
+    [
+     make_port_binding "mac_address_eth"  "MAC address";
+     make_port_binding "mtu_eth"          "MTU";
+     make_port_binding "ipv4_gateway_eth" "IPv4 gateway";
+     make_port_binding "ipv6_address_eth" "IPv6 address";
+     make_port_binding "ipv6_gateway_eth" "IPv6 gateway";
+    ]
+  ;;
 
 (** Convert the tuple we use to represent information about an ethernet interface
     into a command line argument for UML *)
@@ -1093,19 +1103,19 @@ class uml_process =
     with _ -> ());
     (* Now fill this directory: *)
     (* Copy the `filesystem_relay_script' if exists: *)
-    let () = 
-      Option.iter 
-        (fun relay -> 
+    let () =
+      Option.iter
+        (fun relay ->
            let dest = Filename.concat (self#hostfs_directory_pathname) (Filename.basename relay) in
-           UnixExtra.file_copy relay dest) 
+           UnixExtra.file_copy relay dest)
         (filesystem_relay_script)
     in
     (* Create the file `boot_parameters_pathname': *)
     let descriptor =
-      Unix.openfile boot_parameters_pathname [Unix.O_WRONLY; Unix.O_CREAT] 0o777 
+      Unix.openfile boot_parameters_pathname [Unix.O_WRONLY; Unix.O_CREAT] 0o777
     in
     let out_channel =
-      Unix.out_channel_of_descr descriptor 
+      Unix.out_channel_of_descr descriptor
     in
     List.iter
       (fun (name, value) -> Printf.fprintf out_channel "%s='%s'\n" name value)

@@ -441,12 +441,8 @@ class router
   let network_alias = network in
   (* The ifconfig treeview wants a port 0 configuration at creation time:*)
   let ifconfig_port_row_completions =
-     let (ipv4,cidr) = port_0_ip_config in (* the class parameter *)
-     let netmask_string = (Ipv4.to_string (Ipv4.netmask_of_cidr cidr)) in
-     [ ("port0",
-	    [ "IPv4 address", Treeview.Row_item.String (Ipv4.to_string ipv4);
-	      "IPv4 netmask", Treeview.Row_item.String netmask_string; ])
-     ]
+     let config = Ipv4.string_of_config (port_0_ip_config) in (* the class parameter *)
+     [ ("port0", [ "IPv4 address", Treeview.Row_item.String config]) ]
   in
 
   object (self) inherit OoExtra.destroy_methods ()
@@ -583,39 +579,19 @@ class router
 
  method get_mac_addresses  = self#get_assoc_list_from_ifconfig ~key:"MAC address"
  method get_ipv4_addresses = self#get_assoc_list_from_ifconfig ~key:"IPv4 address"
-(* other: "MTU", "IPv4 netmask", "IPv4 broadcast", "IPv6 address" *)
 
  method get_port_0_ip_config =
   let name = self#get_name in
-  let ipv4 =
-    Ipv4.of_string
-      (network#ifconfig#get_port_attribute_by_index
-         name 0 "IPv4 address")
-  in
-  let cidr =
-    Ipv4.cidr_of_netmask
-      (Ipv4.netmask_of_string
-	 (network#ifconfig#get_port_attribute_by_index
-	  name 0 "IPv4 netmask"))
-    in
-  (ipv4, cidr)
-
-
- method set_port_0_ipv4_address (ipv4:Ipv4.t) =
-   network#ifconfig#set_port_string_attribute_by_index
-     self#get_name 0 "IPv4 address"
-     (Ipv4.to_string ipv4);
-
- method set_port_0_ipv4_netmask_by_cidr cidr =
-   let netmask_as_string = Ipv4.to_string (Ipv4.netmask_of_cidr cidr) in
-   network#ifconfig#set_port_string_attribute_by_index
-     self#get_name 0 "IPv4 netmask"
-     netmask_as_string
+  let x = network#ifconfig#get_port_attribute_by_index name 0 "IPv4 address" in
+  match (Ipv4.import x) with
+  | Some (Either.Right config)  -> config
+  | Some (Either.Left  address) -> (address, 24)
+  | None                        -> Const.port_0_ip_config_default
 
  method set_port_0_ip_config port_0_ip_config =
-   let (ipv4,cidr) = port_0_ip_config in
-   self#set_port_0_ipv4_address ipv4;
-   self#set_port_0_ipv4_netmask_by_cidr cidr;
+   network#ifconfig#set_port_string_attribute_by_index
+     self#get_name 0 "IPv4 address"
+     (Ipv4.string_of_config port_0_ip_config);
 
  method update_router_with ~name ~label ~port_0_ip_config ~port_no ~kernel ~show_unix_terminal =
    (* first action: *)

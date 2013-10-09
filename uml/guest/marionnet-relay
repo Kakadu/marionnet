@@ -136,9 +136,10 @@ fi
     mac_address=`lookup mac_address $i`
     mtu=`lookup mtu $i`
     ipv4_address=`lookup ipv4_address $i`
-    ipv4_broadcast=`lookup ipv4_broadcast $i`
+    ipv4_gateway=`lookup ipv4_gateway $i`
     ipv4_netmask=`lookup ipv4_netmask $i`
     ipv6_address=`lookup ipv6_address $i`
+    ipv6_gateway=`lookup ipv6_gateway $i`
     [[ -z $mac_address ]] || ifconfig eth$i hw ether $mac_address
     [[ -z $mtu ]] || ifconfig eth$i mtu $mtu
     # IPv4 configuration.
@@ -158,12 +159,30 @@ fi
         ifconfig eth$i $ipv4_address
       fi
     fi
+    if [[ -n $ipv4_gateway ]]; then
+      route add default gw $ipv4_gateway eth$i || \
+      route add default gw $ipv4_gateway || \
+      echo 1>&2 "The Ipv4 gateway address (device eth$i) cannot be set"
+    fi
     # IPv6 configuration.
     # The variable `ipv6_address' may be defined via the Marionnet GUI with the
     # CIDR notation. So, the command executed here may have a form like:
     # ifconfig eth0 inet6 add 2003:abd::1/32
     if [[ -n $ipv6_address ]]; then
-        ifconfig eth$i inet6 add $ipv6_address
+      # Try several commands: 
+      ifconfig eth$i add $ipv6_address || \
+      ifconfig eth$i inet6 add $ipv6_address || \
+      ip addr add $ipv6_address dev eth0 eth$i || \
+      ip -6 addr add $ipv6_address dev eth0 eth$i || \
+      echo 1>&2 "The Ipv6 address cannot be set, neither with \`ifconfig' nor with \`ip'"
+    fi
+    if [[ -n $ipv6_gateway ]]; then
+      # Try several commands:
+      route -A inet6 add default gw $ipv6_gateway eth$i || \
+      route -A inet6 add default gw $ipv6_gateway || \
+      ip -6 route add to default via $ipv6_gateway dev eth$i || \
+      ip -6 route add to default via $ipv6_gateway || \
+      echo 1>&2 "The Ipv6 gateway address (device eth$i) cannot be set, neither with \`route' nor with \`ip'"
     fi
   done
 

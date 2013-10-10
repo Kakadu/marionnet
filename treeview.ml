@@ -359,14 +359,16 @@ fun ~(treeview:treeview)
         [ `EDITABLE true;
           `FOREGROUND treeview#get_highlight_foreground_color;
           `STYLE (if italic then `ITALIC else `NORMAL);
-          `WEIGHT (if bold then `BOLD else `NORMAL); ] in
+          `WEIGHT (if bold then `BOLD else `NORMAL); ]
+    in
     let col = GTree.view_column
         ~title:self#shown_header
         ~renderer:(renderer, [ "text", column#gtree_column;
                                "foreground_set", (highlight_column#gtree_column);
                                "cell_background_set", (highlight_column#gtree_column);
                                "cell_background", (highlight_color_column#gtree_column); ])
-        () in
+        ()
+    in
     let _ = view#append_column col in
     ignore(renderer#connect#edited ~callback:(fun path new_content -> self#on_edit path new_content));
     col#set_resizable true;
@@ -849,12 +851,12 @@ object(self)
     ignore (view#connect#row_collapsed ~callback:self#on_row_collapse);
     ignore (view#connect#row_expanded ~callback:self#on_row_expand);
     ignore (view#event#connect#button_press
-              ~callback:(fun event ->
-                           if GdkEvent.Button.button event = 3 then begin
-                             self#show_contextual_menu event;
-                             true (* we handled the event *)
-                           end else
-                             false (* we didn't handle the event *)));
+      ~callback:(fun event ->
+		    if GdkEvent.Button.button event = 3 then begin
+		      self#show_contextual_menu event;
+		      true (* we handled the event *)
+		    end else
+		      false (* we didn't handle the event *)));
     view#set_model (Some the_tree_store#coerce)
 
   method store =

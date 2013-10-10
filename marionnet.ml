@@ -76,8 +76,20 @@ let () =
  in
  Treeview_history.Startup_functions.set (can_startup, startup)
 
+let dialog_confirm_device_restart ~(devkind:string) ~(device_name:string) =
+  let question =
+    Printf.sprintf (f_ "Your changes will be applied after the reboot of %s.\nDo you want to restart this %s now?")
+      device_name
+      devkind
+  in
+  Gui_bricks.Dialog.yes_or_cancel_question
+    ~title:(s_ "Reboot")
+    ~markup:question
+    ~context:()
+    ()
+
 let shutdown_or_restart_relevant_device device_name =
-  Log.printf "Shutdown or restart \"%s\".\n" device_name;
+  Log.printf "Shutdown or restart \"%s\"?\n" device_name;
   try
     (* Is the device a cable? If so we have to restart it (and do nothing if it
        was not connected) *)
@@ -89,8 +101,14 @@ let shutdown_or_restart_relevant_device device_name =
   with _ -> begin
     (* Ok, the device is not a cable. We have to destroy it, so that its cables
        and hublets are restarted: *)
-    let d = st#network#get_node_by_name device_name in
-    d#destroy_my_simulated_device;
+    let node = st#network#get_node_by_name device_name in
+    if not node#can_gracefully_shutdown
+    then Log.printf "No, \"%s\" doesn't need to be restarted\n" device_name
+    else (* continue: *)
+    let devkind = node#string_of_devkind in
+    match dialog_confirm_device_restart ~devkind ~device_name with
+    | None    -> ()
+    | Some () -> node#gracefully_restart
   end
 
 let after_user_edit_callback x =

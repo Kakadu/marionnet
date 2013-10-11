@@ -128,13 +128,14 @@ $ socat TCP-LISTEN:6000,fork,reuseaddr,range=172.23.0.254 TCP:202.54.1.5:6003   
 let fix_X_problems : unit =
   let socketfile = Printf.sprintf "/tmp/.X11-unix/X%s" display in
   let socketfile_exists = Sys.file_exists socketfile in
-  let no_fork = None (* Yes, fork for each connections *) in
+  let no_fork = None (* Yes fork, i.e. create a process for each connections *) in
+  (* let no_fork = Some () (* use Marionnet's threads *) in *)
   let range4 = "172.23.0.0/24" in
   match is_X_server_listening_TCP_connections, host_addr with
 
   (* Case n°1: an X server runs on localhost:0 and accepts TCP connection: *)
   | true,  "127.0.0.1" when port=6000 ->
-      Log.printf "No X problems have to be fixed: connection seems working fine. Ok.\n"
+      Log.printf "(case 1) No X problems have to be fixed: connection seems working fine. Ok.\n"
 
   (* Case n°2: an X server runs on localhost and accepts TCP connection,
       but on a display Y<>0. We morally set up a PAT (Port Address Translation)
@@ -143,7 +144,7 @@ let fix_X_problems : unit =
       able to connect to the host X server: *)
   | true,  "127.0.0.1" when port<>6000 && socketfile_exists ->
       (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr UNIX-CONNECT:/tmp/.X11-unix/X? *)
-      Log.printf "Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
+      Log.printf "(case 2) Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
       ignore (Network.Socat.inet4_of_unix_stream_server ?no_fork ~range4 ~port:6000 ~socketfile ())
 
   (* Case n°3: an X server seems to run on localhost accepting TCP connection,
@@ -155,7 +156,7 @@ let fix_X_problems : unit =
       provide the X cookies in ~/.Xauthority to the virtual machines. *)
   | true,  "127.0.0.1" when port<>6000 && (not socketfile_exists) ->
       (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr TCP:host_addr:port *)
-      Log.printf "Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
+      Log.printf "(case 3) Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
       ignore (Network.Socat.inet4_of_inet_stream_server ?no_fork ~range4 ~port:6000 ~ipv4_or_v6:host_addr ~dport:port ())
 
   (* Case n°4: probably a telnet or a ssh -X connection.
@@ -163,18 +164,18 @@ let fix_X_problems : unit =
       provide the X cookies in ~/.Xauthority to the virtual machines.    *)
   | true,  _  (* when host_addr<>"127.0.0.1" *) ->
       (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr TCP:host_addr:port *)
-      Log.printf "Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
+      Log.printf "(case 4) Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
       ignore (Network.Socat.inet4_of_inet_stream_server ?no_fork ~range4 ~port:6000 ~ipv4_or_v6:host_addr ~dport:port ())
 
   (* Case n°5: an X server seems to run on localhost but it doesn't accept TCP connections.
       We simply redirect connection requests to the unix socket: *)
   | false, "127.0.0.1" when socketfile_exists ->
       (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr UNIX-CONNECT:/tmp/.X11-unix/X? *)
-      Log.printf "Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
+      Log.printf "(case 5) Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
       ignore (Network.Socat.inet4_of_unix_stream_server ?no_fork ~range4 ~port:6000 ~socketfile ())
 
   | false, _ ->
-      Log.printf "Warning: X connections are not available for virtual machines.\n"
+      Log.printf "(case 6) Warning: X connections are not available for virtual machines.\n"
 ;;
 
 (** This has to be performed *early* in the initialization process: *)

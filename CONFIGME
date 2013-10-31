@@ -47,7 +47,7 @@ localeprefix=${prefix}/share/locale
 # default setting:
 documentationprefix=${prefix}/share/doc
 
-# Location of the standard Ocaml libraries required to compile
+# Location of the standard Ocaml libraries required to compile 
 # and link the project.
 # *No* trailing slash should be included.
 ocaml_libraryprefix=$(ocamlc -where || exit -1)
@@ -55,10 +55,13 @@ ocaml_libraryprefix=$(ocamlc -where || exit -1)
 #ocaml_libraryprefix=/mystrangepath
 
 # Installation prefix for OCaml libraries built by the project.
-# By default they will be installed into ${ocaml_libraryprefix}, but you
-# can change it if you really want to install into a different, custom prefix.
+# By default they will be installed into the same directory of the `lablgtk2' 
+# library or into ${ocaml_libraryprefix}, but you  can change it if you really 
+# want to install into a different, custom prefix.
 # *No* trailing slash should be included.
-libraryprefix=${ocaml_libraryprefix}
+libraryprefix=$(which 1>/dev/null ocamlfind && ocamlfind query lablgtk2)
+libraryprefix=${libraryprefix%/lablgtk2}
+libraryprefix=${libraryprefix:-$ocaml_libraryprefix}
 #
 # This definition may be appropriate for debian packaging:
 #libraryprefix=debian/tmp/${ocaml_libraryprefix}
@@ -67,7 +70,7 @@ libraryprefix=${ocaml_libraryprefix}
 # the already configured OCaml source; in alternative, is your GNU/Linux
 # distribution packages OCaml headers (debian and its offspring install
 # headers in /usr/include/caml), you can set this to the full path of
-# the directory containing OCaml headers.
+# the directory containing OCaml headers.  
 ocaml_sources=${ocaml_libraryprefix}/caml
 #
 # This definition is appropriate for debian-like distributions:

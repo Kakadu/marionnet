@@ -22,7 +22,7 @@ DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade lablgtksourceview2 oc
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade lablgtksourceview2 ocamlbricks
 C_OBJECTS_TO_LINK +=
 
-OCAMLBRICKS=$(OCAML_LIBRARYPREFIX)/ocamlbricks
+OCAMLBRICKS=$(LIBRARYPREFIX)/ocamlbricks
 PP_OPTION = camlp4of -I $(OCAMLBRICKS) gettext_extract_pot_p4.cmo option_extract_p4.cmo raise_p4.cmo log_module_loading_p4.cmo -I chip
 
 OBJECTS_TO_LINK = gtkThread
@@ -67,14 +67,14 @@ _build/chip/chip_parser_p4.cmo: chip/chip_parser_p4.ml
 _build/chip/chip_example_expanded.ml : chip/chip_example.ml _build/chip/chip_parser_p4.cmo
 	@camlp4of -I _build/chip/ -printer Camlp4OCamlRevisedPrinter chip_parser_p4.cmo -o $@ $<
 
-CHIP_CMDLINE=-custom -I _build/chip/ -I _build/gettext/ -I +threads unix.cma threads.cma str.cma \
-  -I +ocamlbricks ocamlbricks.cma meta.cmo log.cmo version.cmo configuration.cmo gettext.cmo initialization.cmo global_options.cmo chip.cmo
+CHIP_CMDLINE=-I _build/chip/ -I _build/gettext/ -I +threads -I $(LIBRARYPREFIX)/lablgtk2 unix.cma threads.cma str.cma lablgtk.cma \
+  -I $(OCAMLBRICKS) ocamlbricks.cma meta.cmo log.cmo version.cmo configuration.cmo gettext.cmo initialization.cmo global_options.cmo chip.cmo
 
 _build/chip/chip_example_expanded.byte : _build/chip/chip_example_expanded.ml
-	@ocamlc -thread -pp camlp4rf -I _build/ $(CHIP_CMDLINE) -o $@ $<
+	ocamlc -thread -pp camlp4rf -I _build/ $(CHIP_CMDLINE) -o $@ $<
 
 _build/chip/chip_example_expanded.mli : _build/chip/chip_example_expanded.ml
-	@ocamlc -i -thread -pp camlp4rf -I _build/ $(CHIP_CMDLINE) $< >$@
+	ocamlc -i -thread -pp camlp4rf -I _build/ $(CHIP_CMDLINE) $< >$@
 
 run: marionnet.byte
 	(export WORKING=`pwd`; OCAMLRUNPARAM="b" $$WORKING/_build/marionnet.byte) | tee /tmp/LOG

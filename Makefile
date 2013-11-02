@@ -84,16 +84,14 @@ libraries: c-modules libraries-local
 	@($(call BUILD_NATIVE_ANDOR_BYTECODE,libraries) ) # Spaces are ok
 
 # Build programs; bytecode, native, or both:
-# Force the meta.ml regeneration at next make call
 programs: c-modules programs-local
 	@($(call BUILD_NATIVE_ANDOR_BYTECODE,programs) ) # Spaces are ok
-	touch META
 
 # Build the native and/or bytecode version of $(1). $(1) may be either
 # "libraries" or "programs". *Don't* put a space before the argument.
 BUILD_NATIVE_ANDOR_BYTECODE = \
 	(if [ "$$( $(call NATIVE) )" == 'native' ]; then \
-	  echo "Builing native $(1)..."; \
+	  echo "Building native $(1)..."; \
 	  if $(MAKE) native-$(1); then \
 	    echo "Success: native $(1) were built."; \
 	  else \
@@ -101,7 +99,7 @@ BUILD_NATIVE_ANDOR_BYTECODE = \
 	    exit -1; \
 	  fi; \
 	else \
-	  echo "NOT builing native $(1)..."; \
+	  echo "NOT building native $(1)..."; \
 	fi; \
 	if [ "$$( $(call BYTE) )" == 'byte' ]; then \
 	  echo "Builing bytecode $(1)..."; \
@@ -112,7 +110,7 @@ BUILD_NATIVE_ANDOR_BYTECODE = \
 	    exit -1; \
 	  fi; \
 	else \
-	  echo "NOT builing bytecode $(1)..."; \
+	  echo "NOT building bytecode $(1)..."; \
 	fi)
 
 # Build only native programs:
@@ -235,7 +233,7 @@ OTHER_DATA_TO_INSTALL =
 OTHER_DOCUMENTATION_TO_INSTALL =
 
 # Install the documentation from this package (_build/doc) into $prefix/share/$name:
-install-documentation: install-documentation-local
+install-documentation: META CONFIGME install-documentation-local
 	@($(call READ_CONFIG, documentationprefix); \
 	$(call READ_META, name); \
 	directory=$$documentationprefix/$$name; \
@@ -272,7 +270,7 @@ install-documentation: install-documentation-local
 install-doc: install-documentation
 
 # Install the data from this package into $prefix/share/$name:
-install-data: main install-data-local
+install-data: META CONFIGME main install-data-local
 	@($(call READ_CONFIG, prefix); \
 	$(call READ_META, name); \
 	directory=$$prefix/share/$$name; \
@@ -306,7 +304,7 @@ install-data: main install-data-local
 	fi)
 
 # Install the software configuration files, if any:
-install-configuration: install-configuration-local
+install-configuration: META CONFIGME install-configuration-local
 	@($(call READ_CONFIG, configurationprefix); \
 	$(call READ_META, name); \
 	if [ -e etc ]; then \
@@ -326,7 +324,7 @@ install-configuration: install-configuration-local
 	fi)
 
 # Uninstall the software configuration files, if any:
-uninstall-configuration: uninstall-configuration-local
+uninstall-configuration: CONFIGME uninstall-configuration-local
 	@($(call READ_CONFIG, configurationprefix); \
 	if [ -e etc ]; then \
 	  echo "Removing configuration files from $$configurationprefix..."; \
@@ -344,7 +342,7 @@ uninstall-configuration: uninstall-configuration-local
 	fi)
 
 # Remove the data of this package from $prefix/share/$name:
-uninstall-data: uninstall-data-local
+uninstall-data: META CONFIGME uninstall-data-local
 	@( ($(call READ_CONFIG, prefix); \
 	$(call READ_META, name); \
 	directory=$$prefix/share/$$name; \
@@ -359,7 +357,7 @@ uninstall-data: uninstall-data-local
 	echo 'Data uninstallation was successful.')
 
 # Remove the documentation of this package from $documentationprefix/$name:
-uninstall-documentation: uninstall-documentation-local
+uninstall-documentation: META CONFIGME uninstall-documentation-local
 	@( ($(call READ_CONFIG, documentationprefix); \
 	$(call READ_META, name); \
 	directory=$$documentationprefix/$$name; \
@@ -383,7 +381,7 @@ ROOT_NATIVE_PROGRAMS =
 ROOT_BYTE_PROGRAMS =
 
 # Install the programs from this package into $prefix/bin:
-install-programs: programs install-programs-local
+install-programs: META CONFIGME programs install-programs-local
 	@($(call READ_CONFIG, prefix); 		     \
 	$(call READ_META, name);   		     \
 	echo "Creating $$prefix/bin/..."; \
@@ -407,7 +405,7 @@ install-programs: programs install-programs-local
 	echo 'Program installation was successful.'
 
 # Remove the programs from this package from $prefix/bin:
-uninstall-programs: main uninstall-programs-local
+uninstall-programs: META CONFIGME main uninstall-programs-local
 	@($(call READ_CONFIG, prefix); 		     \
 	$(call READ_META, name);   		     \
 	echo "Removing $$name programs..."; \
@@ -636,6 +634,7 @@ BUILD_WITH_OCAMLBUILD = \
 
 #####################################################################
 # Some macros, used internally and possibly by Makefile.local:
+#####################################################################
 
 # Return 'native' if we have a native compiler available, otherwise
 # ''.
@@ -669,18 +668,21 @@ NATIVE_OR_BYTE = \
 
 PROCESSOR_NO = $(shell grep "^processor.*:" /proc/cpuinfo | sort | uniq | wc -l)
 
+# The log location with respect to the directory _build/
+# So, with respect to the Makefile, the log location is _build/_build/_log
+OCAMLBUILD_LOG=_build/_log
+LOGFILE=_build/$(OCAMLBUILD_LOG)
 # Return the proper command line for ocamlbuild, including an option
 # -byte-plugin if needed:
 OCAMLBUILD_COMMAND_LINE = \
 	(if [ $$( $(call NATIVE_OR_BYTE) ) == 'byte' ]; then \
-	  echo 'ocamlbuild -j $(PROCESSOR_NO) -byte-plugin -verbose 2 -log _build/_log'; \
+	  echo 'ocamlbuild -j $(PROCESSOR_NO) -byte-plugin -verbose 2 -log $(OCAMLBUILD_LOG)'; \
 	else \
-	  echo 'ocamlbuild -j $(PROCESSOR_NO) -verbose 2 -log _build/_log'; \
+	  echo 'ocamlbuild -j $(PROCESSOR_NO) -verbose 2 -log $(OCAMLBUILD_LOG)'; \
 	fi)
 
 # Macro extracting, via source, the value associated to some keys
 # $(2),..,$(9) in a file $(1).
-#
 # Example:
 #	$(call SOURCE_AND_TEST,CONFIGME,prefix);
 #	$(call SOURCE_AND_TEST,CONFIGME,prefix,libraryprefix);
@@ -701,7 +703,6 @@ SOURCE_AND_TEST = \
 
 # Macro extracting, via grep, the value associated to keys
 # $(2),..,$(9) in a file $(1).
-#
 # Examples:
 #	$(call GREP_AND_TEST,META,name);
 #	$(call GREP_AND_TEST,META,name,version);
@@ -717,7 +718,6 @@ GREP_AND_TEST = \
 
 # Instance of SOURCE_AND_TEST: source the file "CONFIGME" and test
 # if the given names are defined
-#
 # Example:
 # 	$(call READ_CONFIG,prefix,libraryprefix);
 #
@@ -725,8 +725,7 @@ READ_CONFIG = \
 	$(call SOURCE_AND_TEST,CONFIGME,$(1),$(2),$(3),$(4),$(5),$(6),$(7),$(8),$(9))
 
 # Instance of GREP_AND_TEST: read the file "META" searching for a names
-# for all given names
-#
+# for all given names.
 # Example:
 #	$(call READ_META,name,version);
 #
@@ -786,29 +785,12 @@ PROJECT_NAME = \
 # target name is never created as a file. This is intentional: those
 # two targets should be re-generated every time.
 ocamlbuild-stuff: _tags myocamlbuild.ml meta.ml
-#	@(echo '_tags and myocamlbuild.ml were (re-)generated with success.')
 
 # We automatically generate the _tags file needed by OCamlBuild.
 # Every subdirectory containing sources is included. This may be more than what's needed,
 # but it will always work and require no per-project customization. sed is used to remove
 # the initial './' from each directory. We refer some settings implemented in our (still
 # automatically generated) $(OCAMLBUILD) plugin.
-# _tags:
-# 	(echo -e "# This file is automatically generated. Please don't edit it.\n" > $@; \
-# 	for directory in $$( $(call SOURCE_SUBDIRECTORIES) ); do \
-# 		directory=`echo $$directory | sed s/^.\\\\///`; \
-# 		echo "<$$directory>: include" >> $@; \
-# 	done; \
-# 	echo >> $@; \
-# 	echo "<**/*.{ml,mli,byte,native,cma}>: ourincludesettings" >> $@; \
-# 	echo "<**/*.cmxa>: ourincludesettings" >> $@; \
-# 	echo "<**/*.cmx>: ournativecompilesettings" >> $@; \
-# 	echo "<**/*.cmo>: ourbytecompilesettings" >> $@; \
-# 	echo "<**/*.byte>: ourincludesettings, ourbytelinksettings" >> $@; \
-# 	echo "<**/*.native>: ourincludesettings, ournativelinksettings" >> $@; \
-# 	echo "<**/*.{ml,mli}>: ourocamldocsettings" >> $@ ; \
-# 	echo "<**/*.{ml,mli}>: ourppsettings" >> $@)
-
 _tags:
 	@(echo -e "# This file is automatically generated. Please don't edit it.\n" > $@; \
 	for directory in $$( $(call SOURCE_SUBDIRECTORIES) ); do \
@@ -908,7 +890,7 @@ myocamlbuild.ml:
 
 # Auto-generate a source file including meta information and configuration-time
 # settings, which become accessible at runtime:
-meta.ml: META
+meta.ml: META CONFIGME
 	@(echo "Building $@..." && \
 	$(call READ_META, name, version); \
 	$(call READ_CONFIG, prefix, configurationprefix, documentationprefix localeprefix); \

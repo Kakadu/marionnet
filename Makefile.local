@@ -26,7 +26,7 @@ OCAMLBRICKS=$(LIBRARYPREFIX)/ocamlbricks
 PP_OPTION = camlp4of -I $(OCAMLBRICKS) gettext_extract_pot_p4.cmo option_extract_p4.cmo raise_p4.cmo log_module_loading_p4.cmo -I chip
 
 OBJECTS_TO_LINK = gtkThread
-BYTE_PROGRAMS = marionnet.byte chip_example.byte
+BYTE_PROGRAMS = marionnet.byte
 ROOT_BYTE_PROGRAMS = marionnet-daemon.byte
 
 native: marionnet.native marionnet-daemon.native
@@ -51,11 +51,10 @@ MANUALLY_PRE_COPY_IN_build =     \
   chip/chip_parser_p4.ml         \
   scripts/can-directory-host-sparse-files.sh
 
-MANUALLY_PRE_MAKE_IN_build =      \
-  chip/chip_parser_p4.cmo         \
-  chip/chip_example_expanded.ml
+MANUALLY_PRE_MAKE_IN_build =     \
+  chip/chip_parser_p4.cmo
 
-MANUALLY_POST_MAKE_IN_build = chip/chip_example_expanded.byte chip/chip_example_expanded.mli
+MANUALLY_POST_MAKE_IN_build = 
 
 marionnet.byte marionnet.native : manually_pre_actions version.ml gui.ml
 
@@ -63,18 +62,6 @@ marionnet.byte marionnet.native : manually_pre_actions version.ml gui.ml
 
 _build/chip/chip_parser_p4.cmo: chip/chip_parser_p4.ml
 	@ocamlc -c -I +camlp4 -pp camlp4of camlp4lib.cma -o $@ $<
-
-_build/chip/chip_example_expanded.ml : chip/chip_example.ml _build/chip/chip_parser_p4.cmo
-	@camlp4of -I _build/chip/ -printer Camlp4OCamlRevisedPrinter chip_parser_p4.cmo -o $@ $<
-
-CHIP_CMDLINE=-I _build/chip/ -I _build/gettext/ -I +threads -I $(LIBRARYPREFIX)/lablgtk2 unix.cma threads.cma str.cma lablgtk.cma \
-  -I $(OCAMLBRICKS) ocamlbricks.cma meta.cmo log.cmo version.cmo configuration.cmo gettext.cmo initialization.cmo global_options.cmo chip.cmo
-
-_build/chip/chip_example_expanded.byte : _build/chip/chip_example_expanded.ml
-	ocamlc -thread -pp camlp4rf -I _build/ $(CHIP_CMDLINE) -o $@ $<
-
-_build/chip/chip_example_expanded.mli : _build/chip/chip_example_expanded.ml
-	ocamlc -i -thread -pp camlp4rf -I _build/ $(CHIP_CMDLINE) $< >$@
 
 run: marionnet.byte
 	(export WORKING=`pwd`; OCAMLRUNPARAM="b" $$WORKING/_build/marionnet.byte) | tee /tmp/LOG
@@ -168,7 +155,7 @@ update-po: pot
 	echo "Updated "$$i.po; \
 	done;)
 
-install-mo: compile-mo
+install-mo: CONFIGME compile-mo
 	@($(call READ_CONFIG,localeprefix); \
 	cd po/; \
 	for i in $(call LANGUAGES); \
@@ -180,7 +167,7 @@ clean-mo:
 	@(cd po/; \
 	rm -rf *.mo *~ ;)
 
-uninstall-mo:
+uninstall-mo: CONFIGME
 	@($(call READ_CONFIG,localeprefix); \
 	for i in $(call LANGUAGES); \
 	do rm -f $$localeprefix/$$i/LC_MESSAGES/marionnet.mo; \

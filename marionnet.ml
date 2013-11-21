@@ -154,9 +154,6 @@ end (* Just_for_testing *)
                    M A I N
  * ***************************************** *)
 
-(** Ignore some signals (for instance CTRL-C *)
-(* List.iter (fun x -> (Sys.set_signal x  Sys.Signal_ignore)) [1;2;3;4;5;6;10;12;15] ;; *)
-
 (** Timeout for refresh the state_coherence *)
 (* let id = GMain.Timeout.add ~ms:1000 ~callback:(fun () -> st#state_coherence ();true) ;; *)
 
@@ -351,14 +348,61 @@ let () =
       end
 in
 
+(* Ignore some signals: *)
+(* List.iter (fun x -> (Sys.set_signal x  Sys.Signal_ignore)) [1;2;3;4;5;6;10;12;15] ;; *)
+
+(* This is very appropriate: a signal 15 may be received by Marionnet in some very complicated cases.
+   For instance when a graphical program running in background on a virtual machine is showing its
+   window on the X server (by the mean of a "socat" process or thread). If the command `halt' is
+   launched on the virtual machine, a signal 15 is sent to Marionnet, probably as consequence of
+   the broken connection (and the death of the "socat" process or thread). *)
+let () = Sys.set_signal 15 (Sys.Signal_handle (fun _ -> GtkThread.main ())) in
+
+(* I we receive a CTRL-C from the terminal (2) we react as if the user click on the window close button: *)
+let () =
+ let callback _ =
+   let () = Created_window_MARIONNET.Created_menubar_MARIONNET.Created_entry_project_quit.callback () in
+   if st#quit_async_called then () else GtkThread.main ()
+ in
+ Sys.set_signal 2 (Sys.Signal_handle callback)
+in
+
+let () = SysExtra.log_signal_reception ~except:[26] () in
+
+(* Try to kill all remaining descendants when exiting: *)
+let () =
+  let kill_orphan_descendants =
+    Descendants_monitor.start_monitor_and_get_kill_method ()
+  in
+  Pervasives.at_exit
+    (fun () ->
+       begin
+         Log.printf "at_exit: killing all current descendants before exiting...\n";
+         (* Note here that the parameter `wait_delay' is set to 0. in order to kill the whole hierarchy in the quickest way
+            (and directly with the must brutal signal `Sys.sigkill'). We need to be so violent because the UML Linux kernels
+            (of the series 3.2.x) react to some signals restarting immediately a port-helper. This process will be attached
+            to init (1) and will remain unnecessarily in the system. Furthermore, it may busy inexplicably the port 6000
+            instead of Marionnet, when Marionnet exits. Thus, when Marionnet is restarted, it believes that the port is taken
+            by a real X server! *)
+         Linux.Process.kill_descendants ~signal_sequence:[Sys.sigkill] ~wait_delay:0. ~node_max_retries:2 ~root_max_retries:2 ();
+         Log.printf "at_exit: killing all orphans before exiting...\n";
+         kill_orphan_descendants ();
+       end)
+in
+
 (* st#mainwin#notebook_CENTRAL#coerce#misc#set_sensitive false; *)
 (** Enter the GTK+ main loop: *)
-try
-  GtkThread.main ()
-with e ->
-  begin
-   Log.print_backtrace ();
-   raise e
-  end
+let rec main_loop () =
+  try
+    GtkThread.main ()
+  with e ->
+    begin
+    Log.printf "Marionnet's main loop interrupted by the following exception:\n";
+    Log.print_backtrace ();
+    Thread.delay 1.;
+    if st#quit_async_called then (raise e) else main_loop ()
+    end
+
+in main_loop ()
 
 end

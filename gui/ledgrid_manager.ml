@@ -19,7 +19,7 @@
 
 let blinker_thread_socket_file_name =
   let result = UnixExtra.temp_file ~prefix:".marionnet-blinker-server-socket-" () in
-  Log.printf "The blinker server socket is %s\n" result;
+  Log.printf "ledgrid_manager: The blinker server socket is %s\n" result;
   result;;
 
 class ledgrid_manager =
@@ -113,7 +113,7 @@ object (self)
     (* Make a label which we don't need to name: *)
     ignore (GMisc.label ~text:"Activity" ~packing:box#add ());
     ignore (window#event#connect#delete
-             ~callback:(fun _ -> Log.printf "Sorry, no, you can't\n"; true));
+             ~callback:(fun _ -> Log.printf "ledgrid_manager: Sorry, no, you can't\n"; true));
     let device =
       new Ledgrid.device_led_grid
         ~packing:box#add ~ports:port_no ~show_100_mbs:false
@@ -132,26 +132,26 @@ object (self)
   method make_device_ledgrid ~id ~title ~label ~port_no ?port_labelling_offset ~image_directory
       ?connected_ports:(connected_ports=[])() =
     self#lock;
-    Log.printf "Making a ledgrid with title %s (id=%d) with %d ports.\n" title id port_no;
+    Log.printf "ledgrid_manager: Making a ledgrid with title %s (id=%d) with %d ports.\n" title id port_no;
     let ledgrid_widget, window_widget =
       self#make_widget ~id ~port_no ?port_labelling_offset ~title ~label ~image_directory () in
     Hashmap.add id_to_data id (ledgrid_widget, window_widget, title, connected_ports);
     ignore (List.map
               (fun port -> self#set_port_connection_state ~id ~port ~value:true ())
               connected_ports);
-    Log.printf ~v:2 "Ok, done.\n";
-    Log.printf ~v:2 "Testing (1): is id=%d present in the table?...\n" id;
+    Log.printf ~v:2 "ledgrid_manager: Ok, done.\n";
+    Log.printf ~v:2 "ledgrid_manager: Testing (1): is id=%d present in the table?...\n" id;
     (try
       let _ = self#id_to_device id in
-      Log.printf ~v:2 "Ok, passed.\n";
+      Log.printf ~v:2 "ledgrid_manager: Ok, passed.\n";
     with _ ->
-      Log.printf ~v:2 "FAILED.\n");
-    Log.printf ~v:2 "Testing (2): is id=%d present in the table?...\n" id;
+      Log.printf ~v:2 "ledgrid_manager: FAILED.\n");
+    Log.printf ~v:2 "ledgrid_manager: Testing (2): is id=%d present in the table?...\n" id;
     (try
       let _ = self#lookup id in
-      Log.printf ~v:2 "Ok, passed.\n";
+      Log.printf ~v:2 "ledgrid_manager: Ok, passed.\n";
     with _ ->
-      Log.printf ~v:2 "FAILED.\n");
+      Log.printf ~v:2 "ledgrid_manager: FAILED.\n");
     self#unlock
 
   method show_device_ledgrid ~id () =
@@ -159,7 +159,7 @@ object (self)
     (try
       (self#id_to_window id)#show ();
     with _ ->
-      Log.printf "Warning: id %d unknown in show_device_ledgrid\n" id);
+      Log.printf "ledgrid_manager: Warning: id %d unknown in show_device_ledgrid\n" id);
     self#unlock
 
   method hide_device_ledgrid ~id () =
@@ -167,25 +167,25 @@ object (self)
     (try
       (self#id_to_window id)#misc#hide ();
     with _ ->
-      Log.printf "Warning: id %d unknown in show_device_ledgrid\n" id);
+      Log.printf "ledgrid_manager: Warning: id %d unknown in show_device_ledgrid\n" id);
     self#unlock
 
   method destroy_device_ledgrid ~id () =
     self#lock;
-    Log.printf "Destroying the ledgrid with id %d\n" id;
+    Log.printf "ledgrid_manager: Destroying the ledgrid with id %d\n" id;
     (try
       (self#id_to_window id)#misc#hide ();
       (self#id_to_window id)#destroy ();
       Hashmap.remove id_to_data id
      with _ ->
-      Log.printf "WARNING: failed in destroy_device_ledgrid: id is %d\n" id
+      Log.printf "ledgrid_manager: WARNING: failed in destroy_device_ledgrid: id is %d\n" id
     );
     self#unlock
 
   method set_port_connection_state ~id ~port ~value () =
     self#lock;
     Log.printf
-      "Making the port %d of device %d %s\n"
+      "ledgrid_manager: Making the port %d of device %d %s\n"
        port id (if value then " connected" else " disconnected");
     (try
       (self#id_to_device id)#set port value;
@@ -196,7 +196,7 @@ object (self)
           List.filter (fun p -> p != port) (self#id_to_connected_ports id) in
       self#update_connected_ports id new_connected_ports;
     with _ ->
-      Log.printf "WARNING: failed in set_port_connection_state: id=%d port=%d\n" id port
+      Log.printf "ledgrid_manager: WARNING: failed in set_port_connection_state: id=%d port=%d\n" id port
     );
     self#unlock
 
@@ -231,18 +231,18 @@ object (self)
     | None -> assert false
 
   method private make_blinker_thread =
-    Log.printf ("Making a blinker thread\n");
+    Log.printf ("ledgrid_manager: Making a blinker thread\n");
     Thread.create
       (fun () ->
-        Log.printf ("Making the socket\n");
+        Log.printf ("ledgrid_manager: Making the socket\n");
         let socket = Unix.socket Unix.PF_UNIX Unix.SOCK_DGRAM 0 in
         let _ = try Unix.unlink blinker_thread_socket_file_name with _ -> () in
-        Log.printf ("Binding the socket\n");
+        Log.printf ("ledgrid_manager: Binding the socket\n");
         let _ = Unix.bind socket (Unix.ADDR_UNIX blinker_thread_socket_file_name) in
-        Log.printf ("Still alive\n");
+        Log.printf ("ledgrid_manager: Still alive\n");
         let maximum_message_size = 1000 in
         let buffer = String.create maximum_message_size in
-        Log.printf ("Ok, entering the thread main loop\n");
+        Log.printf ("ledgrid_manager: Ok, entering the thread main loop\n");
         while true; do
           (* ==== Beginning of the reasonable version ==== *)
 (** This commented-out version was absolutely reasonable and it worked with the old
@@ -291,13 +291,13 @@ object (self)
               let _ =
                 Scanf.sscanf message "please-die" (fun x -> x)
               in
-              Log.printf ("Exiting the LEDgrid manager blinker thread\n");
+              Log.printf ("ledgrid_manager: Exiting the LEDgrid manager blinker thread\n");
               Unix.close socket;
               let _ = try Unix.unlink blinker_thread_socket_file_name with _ -> () in
               Thread.exit ();
-              Log.printf ("!!! This should never be reached !!!\n");
+              Log.printf ("ledgrid_manager: !!! This should never be reached !!!\n");
             with _ ->
-              Log.printf "Warning: can't understand the message '%s'\n" message;
+              Log.printf "ledgrid_manager: Warning: can't understand the message '%s'\n" message;
         done)
       ()
 
@@ -312,7 +312,7 @@ object (self)
       Filename.temp_file "blinker-killer-client-socket-" "" in
     (try Unix.unlink client_socket_file_name with _ -> ());
     Unix.bind client_socket (Unix.ADDR_UNIX client_socket_file_name);
-    Log.printf "Sending the message \"please-die\" to the blinker thread...\n";
+    Log.printf "ledgrid_manager: Sending the message \"please-die\" to the blinker thread...\n";
     flush_all ();
     let message = "please-die" in
     (try
@@ -324,13 +324,13 @@ object (self)
                 []
                 (Unix.ADDR_UNIX blinker_thread_socket_file_name));
     with _ -> begin
-      Log.printf "VERY SERIOUS: sending the message \"please-die\" to the blinker thread failed.\n";
+      Log.printf "ledgrid_manager: VERY SERIOUS: sending the message \"please-die\" to the blinker thread failed.\n";
     end);
-    Log.printf "  Ok.\n";
+    Log.printf "ledgrid_manager:   Ok.\n";
     (* Make sure this arrives right now: *)
 (*     flush_all (); *)
 (*     Thread.join (self#blinker_thread); *)
-    Log.printf "Ok, the blinker thread has exited now.\n";
+    Log.printf "ledgrid_manager: Ok, the blinker thread has exited now.\n";
     (try Unix.unlink client_socket_file_name with _ -> ());
     (try Unix.unlink blinker_thread_socket_file_name with _ -> ());
 (*     Thread.kill self#blinker_thread *)

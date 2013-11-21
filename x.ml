@@ -128,7 +128,7 @@ $ socat TCP-LISTEN:6000,fork,reuseaddr,range=172.23.0.254 TCP:202.54.1.5:6003   
 let fix_X_problems : unit =
   let socketfile = Printf.sprintf "/tmp/.X11-unix/X%s" display in
   let socketfile_exists = Sys.file_exists socketfile in
-  let no_fork = None (* Yes fork, i.e. create a process for each connections *) in
+  let no_fork = None (* Yes fork, i.e. create a process for each connection *) in
   (* let no_fork = Some () (* use Marionnet's threads *) in *)
   let range4 = "172.23.0.0/24" in
   match is_X_server_listening_TCP_connections, host_addr with

@@ -19,7 +19,7 @@
 %str_item escape_raise_filter
 ;;
 
-(* Initialized later, by Global_options, in order to break the ciclic dependency: *)
+(*(* Initialized later, by Global_options, in order to break the ciclic dependency: *)
 include Log_builder.Make (struct
   let debug_level () = 0           (* the debug_level must be greater or equal to the verbosity, otherwise do nothing *)
   let verbosity = 1                (* the default value of verbosity for printing functions *)
@@ -29,7 +29,19 @@ include Log_builder.Make (struct
 
 (* Setting the ocamlbricks log verbosity to the same value: *)
 let () = Ocamlbricks_log.Tuning.Set.verbosity   (Tuning.verbosity ())
-;;
+;;*)
+
+module T = struct
+  let debug_level () = 0           (* the debug_level must be greater or equal to the verbosity, otherwise do nothing *)
+  let verbosity = 1                (* the default value of verbosity for printing functions *)
+ end;;
+
+(* Setting the ocamlbricks log verbosity to the same value: *)
+let () = Ocamlbricks_log.Tuning.Set.verbosity   (T.verbosity) ;;
+let () = Ocamlbricks_log.Tuning.Set.debug_level (T.debug_level) ;;
+
+include Ocamlbricks_log
+
 
 (* Wrappers providing a logged version of functions defined elsewhere. *)
 

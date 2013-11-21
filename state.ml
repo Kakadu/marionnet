@@ -652,7 +652,7 @@ class globalState = fun () ->
      | NoActiveProject -> ()
      | _ -> app_state#set  (* TODO: this is a rule (chip) in a reactive system! *)
               (if self#network#nodes#get = []
-                 then ActiveNotRunnableProject 
+                 then ActiveNotRunnableProject
                  else ActiveRunnableProject)
     end;
     if app_state <> old then self#gui_coherence () else ()
@@ -721,13 +721,15 @@ class globalState = fun () ->
 
  (* End of functions moved from talking.ml *)
 
+ (* When quit_async is called we have to quit really (for instance in a signal callback): *)
+ val mutable quit_async_called = false
+ method quit_async_called = quit_async_called
+
  method quit_async () =
    let quit () =
      begin
       Log.printf "Starting the last job...\n";
       self#network#destroy_process_before_quitting ();
-(*    Log.printf "Killing the task runner thread...\n";
-      Task_runner.the_task_runner#terminate; *)
       Log.printf "Killing the blinker thread...\n";
       self#network#ledgrid_manager#kill_blinker_thread;
       Log.printf "Ok, the blinker thread was killed.\n";
@@ -738,6 +740,7 @@ class globalState = fun () ->
      end
    in
    begin
+   quit_async_called <- true;
    Task_runner.the_task_runner#schedule ~name:"quit" quit;
    Log.printf "Main thread: quit has been scheduled.\n";
    end

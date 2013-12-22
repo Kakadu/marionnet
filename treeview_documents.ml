@@ -101,7 +101,7 @@ object(self)
         (match dialog#filename with
           Some result ->
             dialog#destroy ();
-            Log.printf "* Ok: \"%s\"\n" result; flush_all ();
+            Log.printf1 "* Ok: \"%s\"\n" result;
             result
         | None -> begin
             dialog#destroy ();
@@ -109,7 +109,7 @@ object(self)
           end)
     | _ ->
         dialog#destroy ();
-        Log.printf "* Cancel\n"; flush_all ();
+        Log.printf "* Cancel\n";
         failwith "You cancelled");
 
 

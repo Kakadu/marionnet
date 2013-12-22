@@ -43,16 +43,16 @@ let localeprefix =
   in
   match locale with
   | Some dir ->
-      Log.printf "Gettext: `%s' found as expected in a candidate directory\n" file_dot_mo;
+      Log.printf1 "Gettext: `%s' found as expected in a candidate directory\n" file_dot_mo;
       dir
   | None     ->
       (* It's a desperate situation, but we try to find it ourself: *)
       (match try_to_infer_localeprefix_searching_marionnet_dot_mo_in_usr () with
        | Some dir ->
-           Log.printf "Gettext: `%s' found in a /usr sub-directory\n" file_dot_mo;
+           Log.printf1 "Gettext: `%s' found in a /usr sub-directory\n" file_dot_mo;
            dir
        | None     ->
-           Log.printf "Gettext: Warning: `%s' not found\n" file_dot_mo;
+           Log.printf1 "Gettext: Warning: `%s' not found\n" file_dot_mo;
            List.hd localeprefix_candidates (* so much for that... *)
        )
 ;;
@@ -64,4 +64,4 @@ include
       let directory = localeprefix
      end);;
 
-Log.printf "Gettext instanciated with directory `%s'\n" localeprefix;;
+Log.printf1 "Gettext instanciated with directory `%s'\n" localeprefix;;

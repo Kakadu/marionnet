@@ -95,7 +95,7 @@ object(self)
       | Some variant_name -> (variant_name, (Printf.sprintf " : variant \"%s\"" variant_name))
       )
     in
-    Log.printf "Treeview_history.t#add_device: adding the device %s with variant name=\"%s\"\n" name variant_name;
+    Log.printf2 "Treeview_history.t#add_device: adding the device %s with variant name=\"%s\"\n" name variant_name;
     let row_id =
       self#add_row_with ~name ~icon
 	~comment:(prefixed_filesystem ^ comment_suffix)
@@ -228,7 +228,7 @@ object(self)
     let relevant_states =
       Forest.to_list relevant_forest
     in (* the forest should be a tree *)
-    Log.printf "Relevant states for %s are %i\n" name (List.length relevant_states);
+    Log.printf2 "Relevant states for %s are %i\n" name (List.length relevant_states);
     assert ((List.length relevant_states) > 0);
     let result =
     List.fold_left

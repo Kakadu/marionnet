@@ -46,7 +46,7 @@ include F
                 Menu "Project"
  * **************************************** *)
 
-let project         = add_menu (s_ "_Project" )
+let project = add_menu (s_ "_Project" )
 
 module Common_dialogs = struct
 
@@ -348,8 +348,9 @@ let options_debug_mode =
  add_check_item (s_ "Debug mode")
   ~active:(Global_options.Debug_level.are_we_debugging ())
   ~callback:(fun active ->
-         Log.printf "You toggled the option (debug)\n";
-         Global_options.Debug_level.set 1)
+         Log.printf1 ~force:true "You toggled the option (debug), now to %b\n" active;
+         let level = if active then 1 else 0 in
+         Global_options.Debug_level.set level)
  ()
 
 let options_keep_all_snapshots_when_saving =

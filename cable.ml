@@ -114,7 +114,7 @@ module Make_menus
      let label = c#get_label in
      let left_user_endpoint  = (c#get_left#node#get_name,  c#get_left#user_port_name) in
      let right_user_endpoint = (c#get_right#node#get_name, c#get_right#user_port_name) in
-     Log.printf "Calling Dialog_add_or_update with (%s,%s) (%s,%s)\n"
+     Log.printf4 "Calling Dialog_add_or_update with (%s,%s) (%s,%s)\n"
        c#get_left#node#get_name  c#get_left#user_port_name
        c#get_right#node#get_name c#get_right#user_port_name
        ;
@@ -275,7 +275,7 @@ let make
       ListExtra.filter_map (fun e->e) [left_user_endpoint; right_user_endpoint]
     in
     let updating = (force_to_be_included <> []) in
-    List.iter (fun (n,p) -> Log.printf "Forced to be included: (%s,%s)\n" n p) force_to_be_included;
+    List.iter (fun (n,p) -> Log.printf2 "Forced to be included: (%s,%s)\n" n p) force_to_be_included;
     let free_node_port_list as xys = network#free_endpoint_list_humanly_speaking ~force_to_be_included in
     let ((n0,p0),(n1,p1)) = match updating with
     | true  -> ((n0,p0),(n1,p1))
@@ -359,7 +359,7 @@ module Eval_forest_child = struct
    | ("cable", attrs) ->
 	(* Cables represent a special case: they must be built knowing their endpoints. *)
 	let name = List.assoc "name"    attrs in
-        Log.printf "Importing cable \"%s\"...\n" name;
+        Log.printf1 "Importing cable \"%s\"...\n" name;
 	let ln = List.assoc "leftnodename"    attrs in
 	let lr = List.assoc "leftreceptname"  attrs in
 	let rn = List.assoc "rightnodename"   attrs in
@@ -375,7 +375,7 @@ module Eval_forest_child = struct
 	    ()
         in
         x#from_tree ("cable", attrs) children ;
-        Log.printf "Cable \"%s\" successfully imported.\n" name;
+        Log.printf1 "Cable \"%s\" successfully imported.\n" name;
         true
    | _ ->
         false
@@ -486,7 +486,7 @@ and virtual cable_defects_zone ~network () =
    match
      (network#defects:Treeview_defects.t)#unique_row_exists_with_binding "Name" self#get_name
    with
-   | true -> Log.printf "The cable %s has already defects defined...\n" self#get_name
+   | true -> Log.printf1 "The cable %s has already defects defined...\n" self#get_name
    | false ->
        network#defects#add_cable
          ~cable_name:self#get_name
@@ -496,7 +496,7 @@ and virtual cable_defects_zone ~network () =
          ()
 
   method private destroy_my_defects =
-    Log.printf "component \"%s\": destroying my defects.\n" self#get_name;
+    Log.printf1 "component \"%s\": destroying my defects.\n" self#get_name;
     network#defects#remove_subtree_by_name self#get_name;
 
   initializer
@@ -695,7 +695,7 @@ and cable =
       | ("rightreceptname" , x) -> () (* these attributes have been already read *)
       | (key,_) ->
           let msg = Printf.sprintf "cable#eval_forest_attribute: unknown attribute `%s'" key in
-          let () = Log.printf "%s\n" msg in
+          let () = Log.printf1 "%s\n" msg in
           failwith msg
 
     (** A cable may be either connected or disconnected; it's connected by default: *)
@@ -709,7 +709,7 @@ and cable =
       Recursive_mutex.with_mutex mutex
         (fun () ->
           (if not self#is_connected then begin
-            Log.printf "Connecting the cable %s...\n" self#get_name;
+            Log.printf1 "Connecting the cable %s...\n" self#get_name;
             (* Turn on the relevant LEDgrid lights: *)
             let involved_node_and_port_index_list = self#involved_node_and_port_index_list in
             List.iter
@@ -731,7 +731,7 @@ and cable =
       Recursive_mutex.with_mutex mutex
         (fun () ->
           (if self#is_connected then begin
-            Log.printf "Disconnecting the cable %s...\n" self#get_name;
+            Log.printf1 "Disconnecting the cable %s...\n" self#get_name;
             (* Turn off the relevant LEDgrid lights: *)
             let involved_node_and_port_index_list = self#involved_node_and_port_index_list in
             List.iter
@@ -768,7 +768,7 @@ and cable =
     Recursive_mutex.with_mutex mutex
       (fun () ->
         assert((!alive_endpoint_no >= 0) && (!alive_endpoint_no <= 3));
-        Log.printf "The reference count is now %d\n" !alive_endpoint_no;
+        Log.printf1 "The reference count is now %d\n" !alive_endpoint_no;
        )
 
    (** Record the fact that an endpoint has been created (at a lower level
@@ -824,8 +824,8 @@ and cable =
            | false -> None
            | true  -> Some (Printf.sprintf "(id: %i; port: %i)" right_endpoint#node#id right_endpoint#port_index)
          in
-         Log.printf "Left hublet process socket name is \"%s\"\n" left_hublet_process#get_socket_name;
-         Log.printf "Right hublet process socket name is \"%s\"\n" right_hublet_process#get_socket_name;
+         Log.printf1 "Left hublet process socket name is \"%s\"\n" left_hublet_process#get_socket_name;
+         Log.printf1 "Right hublet process socket name is \"%s\"\n" right_hublet_process#get_socket_name;
          new Simulation_level.ethernet_cable
            ~parent:self
            ~left_end:left_hublet_process
@@ -875,7 +875,7 @@ and cable =
    initializer
      (if left_endpoint#node#has_hublet_processes  then self#increment_alive_endpoint_no);
      (if right_endpoint#node#has_hublet_processes then self#increment_alive_endpoint_no);
-     Log.printf "The reference count for the just-created cable %s is %d\n" self#get_name !alive_endpoint_no;
+     Log.printf2 "The reference count for the just-created cable %s is %d\n" self#get_name !alive_endpoint_no;
 end
 
 end (* module User_level_cable *)

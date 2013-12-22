@@ -102,7 +102,7 @@ module Make_menus (Params : sig
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_nodes_that_can_startup ~devkind:`Switch ()
+    let dynlist () = st#network#get_node_names_that_can_startup ~devkind:`Switch ()
 
     let dialog name () =
      let d = (st#network#get_node_by_name name) in
@@ -165,7 +165,7 @@ module Make_menus (Params : sig
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_gracefully_shutdown ~devkind:`Switch ()
+    let dynlist () = st#network#get_node_names_that_can_gracefully_shutdown ~devkind:`Switch ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#gracefully_shutdown
 
@@ -174,7 +174,7 @@ module Make_menus (Params : sig
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_suspend ~devkind:`Switch ()
+    let dynlist () = st#network#get_node_names_that_can_suspend ~devkind:`Switch ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#suspend
 
@@ -183,7 +183,7 @@ module Make_menus (Params : sig
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_resume ~devkind:`Switch ()
+    let dynlist () = st#network#get_node_names_that_can_resume ~devkind:`Switch ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#resume
 
@@ -350,10 +350,10 @@ module Eval_forest_child = struct
     | ("switch", attrs) ->
     	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
-        Log.printf "Importing switch \"%s\" with %d ports...\n" name port_no;
+        Log.printf2 "Importing switch \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_switch.switch ~network ~name ~port_no () in
 	x#from_tree ("switch", attrs) children;
-        Log.printf "Switch \"%s\" successfully imported.\n" name;
+        Log.printf1 "Switch \"%s\" successfully imported.\n" name;
         true
 
     (* backward compatibility *)
@@ -363,12 +363,12 @@ module Eval_forest_child = struct
 	let kind = List.assoc "kind" attrs in
 	(match kind with
 	| "switch" ->
-            Log.printf "Importing switch \"%s\" with %d ports...\n" name port_no;
+            Log.printf2 "Importing switch \"%s\" with %d ports...\n" name port_no;
 	    let x = new User_level_switch.switch ~network ~name ~port_no () in
 	    x#from_tree ("device", attrs) children; (* Just for the label... *)
             Log.printf "This is an old project: we set the user port offset to 1...\n";
 	    network#defects#change_port_user_offset ~device_name:name ~user_port_offset:1;
-	    Log.printf "Switch \"%s\" successfully imported.\n" name;
+	    Log.printf1 "Switch \"%s\" successfully imported.\n" name;
 	    true
 	| _ -> false
 	)
@@ -543,7 +543,7 @@ let get_vde_switch_boolean_answer (ch:Network.stream_channel) : bool =
   let rec loop () =
     Log.printf "Waiting for an answer...\n";
     let answer = ch#input_line () in
-    Log.printf "Received answer `%s'\n" answer;
+    Log.printf1 "Received answer `%s'\n" answer;
     try (Scanf.sscanf answer "vde$ 1000 Success" ()); true with _ ->
     try (Scanf.sscanf answer "vde$ %d %s" ignore2); false with _ ->
     loop ()
@@ -555,14 +555,14 @@ let send_commands_to_vde_switch_and_get_answers ~socketfile ~commands ()
   : (exn, (string * bool) list) Either.t
   =
   let lines = get_lines_removing_comments commands in
-  Log.printf "Sending commands to a switch:\n---\n%s\n---\n" commands;
+  Log.printf1 "Sending commands to a switch:\n---\n%s\n---\n" commands;
   let protocol (ch:Network.stream_channel) =
     List.map
        (fun line ->
-          Log.printf "Sending line: %s\n" line;
+          Log.printf1 "Sending line: %s\n" line;
           ch#output_line line;
           let answer = get_vde_switch_boolean_answer ch in
-          Log.printf "Received boolean answer: %b\n" (answer);
+          Log.printf1 "Received boolean answer: %b\n" (answer);
           (line, answer))
        lines
   in
@@ -577,7 +577,7 @@ let send_commands_to_vde_switch_ignoring_answers ~socketfile ~commands () =
     ignore (Thread.create (repeat_until_exception ch#input_line) ());
     List.iter
        (fun line ->
-          Log.printf "Sending line: %s\n" line;
+          Log.printf1 "Sending line: %s\n" line;
           ch#output_line line;
           Thread.delay 0.01;
           ())
@@ -620,8 +620,8 @@ object(self)
         let socketfile = Option.extract self#get_management_socket_name in
         let numports = ref (Either.extract (ask_vde_switch_for_current_active_ports ~socketfile ())) in
         let name = parent#get_name in
-        Log.printf "The vde_switch %s has currently %d active ports.\n" name !numports;
-        Log.printf "Spawning internal cables for switch %s...\n" name;
+        Log.printf2 "The vde_switch %s has currently %d active ports.\n" name !numports;
+        Log.printf1 "Spawning internal cables for switch %s...\n" name;
 	List.iter (fun thunk -> thunk ())
 	  (List.map (* Here map returns a list of thunks *)
 	     begin fun internal_cable_process () ->
@@ -635,8 +635,10 @@ object(self)
 	       let answer =
 	         Either.extract (wait_vde_switch_until_ports_will_be_allocated ~numports:(!numports) ~socketfile ())
 	       in
-	       (if answer <> !numports then Log.printf "Unexpected vde_switch %s answer: %d instead of the expected value %d. Ignoring.\n" name answer !numports);
-	       Log.printf "Ok, the vde_switch %s has now %d allocated ports.\n" name !numports;
+	       (if answer <> !numports then 
+	          Log.printf3 "Unexpected vde_switch %s answer: %d instead of the expected value %d. Ignoring.\n" name answer !numports
+	        );
+	       Log.printf2 "Ok, the vde_switch %s has now %d allocated ports.\n" name !numports;
 	       end
  	     self#get_internal_cable_processes);
  	(* Now send rc commands to the switch: *)
@@ -661,7 +663,7 @@ object(self)
  	~unexpected_death_callback:
  	   (fun i _ ->
  	      Death_monitor.stop_monitoring i;
- 	      Log.printf "Terminal of switch %s closed (pid %d).\n" name i)
+ 	      Log.printf2 "Terminal of switch %s closed (pid %d).\n" name i)
 	())
 
 end;;

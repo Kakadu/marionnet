@@ -84,11 +84,11 @@ let do_not_print_splash_message =
 
 (* else continue: *)
 let () = if do_not_print_splash_message = false then
-Log.printf ~v:0 ~banner:false
+Log.printf7 ~v:0 ~banner:false
   "=======================================================
  Welcome to %s
  Version              : %s
- Source revision      : %s - %s
+ Source revision      : %s
  Ocamlbricks revision : %s - %s
 
  Built in date %s on system:
@@ -105,7 +105,7 @@ Log.printf ~v:0 ~banner:false
 =======================================================\n"
   Meta.name
   Meta.version
-  Meta.revision Meta.source_date
+  (Printf.sprintf "%s - %s" Meta.revision Meta.source_date)
   Meta_ocamlbricks.revision Meta_ocamlbricks.source_date
   Meta.build_date
   (StringExtra.fmt ~tab:8 ~width:40 Meta.uname)
@@ -125,7 +125,7 @@ let cwd_at_startup_time =
 
 (** Workaround for Ubuntu with Unity.
     Ugly: it's a pain to write code depending to the GNU/Linux distribution!
-    I accept because the workaround is very simple. J.V. Loddo *)  
+    I accept because the workaround is very simple. J.V. Loddo *)
 let () = Unix.putenv "UBUNTU_MENUPROXY" "0" ;;
 
 (** Firstly read if the debug mode must be activated.
@@ -151,7 +151,7 @@ module Debug_level = struct
   let redirection () =
     if are_we_debugging () then "" else " >/dev/null 2>/dev/null "
 
-end
+end (* Initialization.Debug_level *)
 
 (** Link the function used by the marionnet's and the ocamlbricks's logs with Debug_mode.get: *)
 let () =
@@ -159,7 +159,7 @@ let () =
   Ocamlbricks_log.Tuning.Set.debug_level Debug_level.get
 ;;
 
-Log.printf
+Log.printf2
   "MARIONNET_DEBUG is %b (debug level %d)\n"
   (Debug_level.are_we_debugging ()) (* is true iff you read the message *)
   (Debug_level.get ())
@@ -167,7 +167,7 @@ Log.printf
 
 (* Student exam mode: *)
 let are_we_in_exam_mode = (!option_exam = Some ()) ;;
-let () = Log.printf "Student exam mode: %b\n" are_we_in_exam_mode ;;
+let () = Log.printf1 "Student exam mode: %b\n" are_we_in_exam_mode ;;
 let window_title = match are_we_in_exam_mode with
  | false -> "Marionnet"
  | true  -> "Marionnet (EXAM)"
@@ -294,7 +294,7 @@ let router_port0_default_ipv4_config  =
  let parse arg = Ipv4.config_of_string arg in
  try parse value
  with _ -> begin
-   Log.printf ~force:true "Warning: ill-formed value for %s\n" variable_name;
+   Log.printf1 ~force:true "Warning: ill-formed value for %s\n" variable_name;
    parse default
    end
 ;;

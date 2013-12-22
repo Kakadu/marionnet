@@ -71,18 +71,18 @@ let make_fresh_tap_name_for_socket () =
 
 (** Actaully make a tap at the OS level: *)
 let make_system_tap (tap_name : tap_name) uid ip_address =
-  Log.printf "Making the tap %s...\n" tap_name;
+  Log.printf1 "Making the tap %s...\n" tap_name;
   let command_line =
     Printf.sprintf
       "{ tunctl -u %i -t %s && ifconfig %s 172.23.0.254 netmask 255.255.255.255 up; route add %s %s; }"
       uid tap_name tap_name ip_address tap_name in
   Log.system_or_fail command_line;
-  Log.printf "The tap %s was created with success\n" tap_name
+  Log.printf1 "The tap %s was created with success\n" tap_name
   ;;
 
 (** Actually make a tap at the OS level for the bridge socket component: *)
 let make_system_tap_for_socket (tap_name : tap_name) uid bridge_name =
-  Log.printf "Making the tap %s...\n" tap_name;
+  Log.printf1 "Making the tap %s...\n" tap_name;
   let command_line =
     Printf.sprintf
       "{ tunctl -u %i -t %s && ifconfig %s 0.0.0.0 promisc up && brctl addif %s %s; }"
@@ -92,31 +92,31 @@ let make_system_tap_for_socket (tap_name : tap_name) uid bridge_name =
       bridge_name tap_name in
   let on_error = Printf.sprintf "tunctl -d %s" tap_name in
   Log.system_or_fail ~on_error command_line;
-  Log.printf "The tap %s was created with success\n" tap_name
+  Log.printf1 "The tap %s was created with success\n" tap_name
   ;;
 
 (** Actually destroy a tap at the OS level: *)
 let destroy_system_tap (tap_name : tap_name) =
-  Log.printf "Destroying the tap %s...\n" tap_name;
+  Log.printf1 "Destroying the tap %s...\n" tap_name;
   let redirection = Global_options.Debug_level.redirection () in
   let command_line =
     Printf.sprintf
       "while ! (ifconfig %s down && tunctl -d %s %s); do echo 'I can not destroy %s yet %s...'; sleep 1; done&"
       tap_name tap_name redirection tap_name redirection  in
   Log.system_or_fail ~hide_output:false ~hide_errors:false command_line;
-  Log.printf "The tap %s was destroyed with success\n" tap_name
+  Log.printf1 "The tap %s was destroyed with success\n" tap_name
   ;;
 
 (** Actually destroy a tap at the OS level for the socket component: *)
 let destroy_system_tap_for_socket (tap_name : tap_name) uid bridge_name =
-  Log.printf "Destroying the tap %s...\n" tap_name;
+  Log.printf1 "Destroying the tap %s...\n" tap_name;
   let command_line =
     (* This is currently disabled. We have to decide what to do about this: *)
     Printf.sprintf
       "{ ifconfig %s down && brctl delif %s %s && tunctl -d %s; }"
       tap_name bridge_name tap_name tap_name in
   Log.system_or_fail command_line;
-  Log.printf "The tap %s was destroyed with success\n" tap_name;
+  Log.printf1 "The tap %s was destroyed with success\n" tap_name;
   ;;
 
 (** Instantiate the given pattern, actually create the system object, and return
@@ -148,16 +148,16 @@ let make_resource client resource_pattern =
     (fun () ->
       try
         (* Create a resource satisfying the given specification, and return it: *)
-        Log.printf
+        Log.printf2
           "Making %s for %s\n"
           (string_of_daemon_resource_pattern resource_pattern)
           (string_of_client client);
         let resource = make_system_resource resource_pattern in
-        Log.printf "Adding %s for %s\n" (string_of_daemon_resource resource) (string_of_client client);
+        Log.printf2 "Adding %s for %s\n" (string_of_daemon_resource resource) (string_of_client client);
         resource_map#add client resource;
         resource
       with e -> begin
-        Log.printf "Failed (%s) when making the resource %s for %s; bailing out.\n"
+        Log.printf3 "Failed (%s) when making the resource %s for %s; bailing out.\n"
           (Printexc.to_string e)
           (string_of_daemon_resource_pattern resource_pattern)
           (string_of_client client);
@@ -170,14 +170,14 @@ let destroy_resource client resource =
   Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       try
-        Log.printf "Removing %s %s\n" (string_of_client client) (string_of_daemon_resource resource);
-        Log.printf "** resource_map has %i bindings\n" (List.length resource_map#to_list); flush_all ();
+        Log.printf2 "Removing %s %s\n" (string_of_client client) (string_of_daemon_resource resource);
+        Log.printf1 "** resource_map has %i bindings\n" (List.length resource_map#to_list);
         resource_map#remove_key_value_or_fail client resource;
         (* resource_map#remove_key_value client resource; *)
-        Log.printf "** resource_map has %i bindings\n" (List.length resource_map#to_list); flush_all ();
+        Log.printf1 "** resource_map has %i bindings\n" (List.length resource_map#to_list);
         destroy_system_resource resource;
       with e -> begin
-        Log.printf "WARNING: failed (%s) when destroying %s for %s.\n"
+        Log.printf3 "WARNING: failed (%s) when destroying %s for %s.\n"
           (Printexc.to_string e)
           (string_of_daemon_resource resource)
           (string_of_client client);
@@ -188,14 +188,13 @@ let destroy_all_client_resources client =
   Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
       try
-        Log.printf "Removing all %s's resources:\n" (string_of_client client);
+        Log.printf1 "Removing all %s's resources:\n" (string_of_client client);
         List.iter
           (fun resource -> destroy_resource client resource)
           (resource_map#lookup client);
-        Log.printf "All %s's resources were removed with success.\n" (string_of_client client);
-        flush_all ();
+        Log.printf1 "All %s's resources were removed with success.\n" (string_of_client client);
       with e -> begin
-        Log.printf "Failed (%s) when removing %s's resources; continuing anyway.\n"
+        Log.printf2 "Failed (%s) when removing %s's resources; continuing anyway.\n"
           (Printexc.to_string e)
           (string_of_client client);
       end);;
@@ -208,7 +207,7 @@ let destroy_all_resources () =
           try
             destroy_all_client_resources client
           with e -> begin
-            Log.printf "Failed (%s) when removing %s's resources (while removing *all* resources); continuing anyway.\n"
+            Log.printf2 "Failed (%s) when removing %s's resources (while removing *all* resources); continuing anyway.\n"
               (Printexc.to_string e)
               (string_of_client client);
           end))
@@ -223,14 +222,14 @@ let keep_alive_client client =
         let current_time = Unix.time () in
         let death_time = current_time +. timeout_interval in
         client_death_time_map#add client death_time;
-        Log.printf
+        Log.printf3
           "I will not kill %s until %f (it's now %f)\n"
           (string_of_client client)
           death_time
           current_time;
         flush_all ();
       with Not_found -> begin
-        Log.printf
+        Log.printf1
           "keep_client_alive failed because the client %s is not alive.\n"
           (string_of_client client);
         failwith ("keep_alive_client: " ^ (string_of_client client) ^ " is not alive.");
@@ -270,7 +269,6 @@ let increment_client_no () =
         Log.printf "There is at least one client now. Creating global resources...\n";
         make_global_resources_unlocked_ ();
         Log.printf "Global resources were created with success.\n";
-        flush_all ();
       end);
       client_no := !client_no + 1);;
 let decrement_client_no () =
@@ -281,7 +279,6 @@ let decrement_client_no () =
         Log.printf "There are no more clients now. Destroying global resources...\n";
         destroy_global_resources_unlocked_ ();
         Log.printf "Global resources were destroyed with success.\n";
-        flush_all ();
       end));;
 
 (** Create a new client on which we're going to interact with the given socket,
@@ -296,50 +293,44 @@ let make_client =
         next_client_no := !next_client_no + 1;
         (* First add any number to the data structure, then call keep_alive_client to make
            the death time correct: *)
-        Log.printf "Creating %s.\n" (string_of_client result); flush_all ();
+        Log.printf1 "Creating %s.\n" (string_of_client result);
         client_death_time_map#add result 42.42;
         socket_map#add result socket;
         keep_alive_client result;
         increment_client_no ();
-        Log.printf "Created %s.\n" (string_of_client result); flush_all ();
+        Log.printf1 "Created %s.\n" (string_of_client result);
         result);;
 
 let destroy_client client =
   Recursive_mutex.with_mutex the_daemon_mutex
     (fun () ->
-      Log.printf "Killing %s.\n" (string_of_client client); flush_all ();
+      Log.printf1 "Killing %s.\n" (string_of_client client);
       (try client_death_time_map#remove client with _ -> ());
       (try destroy_all_client_resources client with _ -> ());
       decrement_client_no ();
       (try
         Unix.close (socket_map#lookup client);
-        Log.printf
-          "The socket serving the client %i was closed with success.\n" client;
-        flush_all ();
+        Log.printf1 "The socket serving the client %i was closed with success.\n" client;
       with e -> begin
-        Log.printf
+        Log.printf2
           "Closing the socket serving the client %i failed (%s).\n"
           client (Printexc.to_string e);
-        flush_all ();
       end);
       (try socket_map#remove client with _ -> ());
-      Log.printf "%s was killed.\n" (string_of_client client); flush_all ());;
+      Log.printf1 "%s was killed.\n" (string_of_client client));;
 
 let debugging_thread_thunk () =
   while true do
     Thread.delay debug_interval;
     Recursive_mutex.with_mutex the_daemon_mutex
       (fun () ->
-        Log.printf "--------------------------------------------\n";
-        Log.printf "Currently existing non-global resources are:\n";
+        Log.printf "--------------------------------------------\nCurrently existing non-global resources are:\n";
         List.iter
           (fun (client, resource) ->
-            Log.printf "* %s (owned by %s)\n" (string_of_daemon_resource resource) (string_of_client client))
+            Log.printf2 "* %s (owned by %s)\n" (string_of_daemon_resource resource) (string_of_client client))
           (resource_map#to_list);
         Log.printf "--------------------------------------------\n";
-        flush_all ();
         );
-    flush_all ();
   done;;
 
 (** The 'timeout thread' wakes up every timeout_interval seconds and kills
@@ -360,12 +351,10 @@ let timeout_thread_thunk () =
         List.iter
           (fun (client, death_time) ->
             if current_time >= death_time then begin
-              Log.printf "Client %s didn't send enough keep-alive's.\n" (string_of_client client);
+              Log.printf1 "Client %s didn't send enough keep-alive's.\n" (string_of_client client);
               destroy_client client;
-              flush_all ();
             end)
-          client_death_times;
-        flush_all ());
+          client_death_times);
   done;;
 
 (** Serve the given single request from the given client, and return the
@@ -388,10 +377,9 @@ let serve_request request client =
     to be open: *)
 let connection_server_thread (client, socket) =
   try
-    Log.printf "This is the connection server thread for client %i.\n" client;
-    flush_all ();
+    Log.printf1 "This is the connection server thread for client %i.\n" client;
     while true do
-      Log.printf "Beginning of the iteration.\n"; flush_all ();
+      Log.printf "Beginning of the iteration.\n";
       (* We want the message to be initially invalid, at every iteration, to
          avoid the risk of not seeing a receive error. Just to play it extra
         safe: *)
@@ -399,18 +387,16 @@ let connection_server_thread (client, socket) =
       (* We don't want to block indefinitely on read() because the socket could
          be closed by another thread; so we simply select() with a timeout: *)
       let (ready_for_read, _, failed) =
-(****)
         try
           Unix.select [socket] [] [socket] select_timeout
         with _ -> begin
           Log.printf "!!!!FAILED IN select (connection_server_thread)!!!!\n";
-          flush_all ();
           failwith "select() failed";
           (* ([], [], []); *)
         end
-in
-(****)
-        (* Unix.select [socket] [] [socket] select_timeout in *)
+      in
+      (* --- *)
+      (* Unix.select [socket] [] [socket] select_timeout in *)
       if (List.length failed) > 0 then
         failwith "select() reported failure with the socket"
       else if (List.length ready_for_read) > 0 then begin
@@ -420,7 +406,7 @@ in
           failwith "recv() failed, or the message is ill-formed"
         else begin
           let request = parse_request buffer in
-          Log.printf "The request is\n  %s\n" (string_of_daemon_request request); flush_all ();
+          Log.printf1 "The request is\n  %s\n" (string_of_daemon_request request);
           keep_alive_client client;
           let response =
             try
@@ -428,7 +414,7 @@ in
             with e ->
               Error (Printexc.to_string e)
           in
-          Log.printf "My response is\n  %s\n" (string_of_daemon_response response); flush_all ();
+          Log.printf1 "My response is\n  %s\n" (string_of_daemon_response response);
           let sent_byte_no = Unix.send socket (print_response response) 0 message_length [] in
           (if not (sent_byte_no == sent_byte_no) then
             failwith "send() failed");
@@ -439,13 +425,12 @@ in
       end;
     done;
   with e -> begin
-    Log.printf
+    Log.printf2
       "Failed in connection_server_thread (%s) for client %i.\nBailing out.\n"
       (Printexc.to_string e)
       client;
     destroy_client client; (* This also closes the socket *)
-    Log.printf "Exiting from the thread which was serving client %i\n" client;
-    flush_all ();
+    Log.printf1 "Exiting from the thread which was serving client %i\n" client;
   end;;
 
 (** Remove an old socket file, remained from an old instance or from ours
@@ -453,23 +438,17 @@ in
 let remove_socket_file_if_any () =
   try
     Unix.unlink socket_name;
-    Log.printf "[Removed the old socket file %s]\n" socket_name;
-    flush_all ();
+    Log.printf1 "[Removed the old socket file %s]\n" socket_name;
   with _ ->
-    Log.printf "[There was no need to remove the socket file %s]\n" socket_name;;
+    Log.printf1 "[There was no need to remove the socket file %s]\n" socket_name;;
 
 (** Destroy all resources, destroy the socket and exit on either SIGINT and SIGTERM: *)
 let signal_handler signal =
-  Log.printf "=========================\n";
-  Log.printf "I received the signal %i!\n" signal;
-  Log.printf "=========================\n";
-  Log.printf "Destroying all resources...\n";
+  Log.printf1 "=========================\nI received the signal %i!\n=========================\nDestroying all resources...\n" signal;
   destroy_all_resources ();
-  Log.printf "Ok, all resources were destroyed.\n";
-  Log.printf "Removing the socket file...\n";
+  Log.printf "Ok, all resources were destroyed.\nRemoving the socket file...\n";
   remove_socket_file_if_any ();
   Log.printf "Ok, the socket file was removed.\n";
-  flush_all ();
   raise Exit;;
 
 (** Strangely, without calling this the program is uninterruptable from the
@@ -501,20 +480,17 @@ let the_server_main_thread =
   Unix.bind accepting_socket sock_addr;
   (* Everybody must be able to send messages to us: *)
   Unix.chmod socket_name 438 (* a+rw *);
-  Log.printf "I am waiting on %s.\n" socket_name; flush_all ();
+  Log.printf1 "I am waiting on %s.\n" socket_name;
   Unix.listen accepting_socket connection_no_limit;
   while true do
     try
-      Log.printf "Waiting for the next connection...\n"; flush_all ();
+      Log.printf "Waiting for the next connection...\n";
       let (socket_to_client, socket_to_client_address) = Unix.accept accepting_socket in
       let client_id = make_client socket_to_client in
-      Log.printf "A new connection was accepted; the new client id is %i\n" client_id; flush_all ();
+      Log.printf1 "A new connection was accepted; the new client id is %i\n" client_id;
       ignore (Thread.create connection_server_thread (client_id, socket_to_client));
     with e -> begin
-    Log.printf
-      "Failed in the main thread (%s). Bailing out.\n"
-      (Printexc.to_string e);
-      flush_all ();
+      Log.printf1 "Failed in the main thread (%s). Bailing out.\n" (Printexc.to_string e);
       raise e;
-    end;
+      end;
   done;;

@@ -105,7 +105,7 @@ object(self)
     ~user_port_offset
     ()
     =
-    Log.printf
+    Log.printf5
       "Making a defect treeview entry for %s \"%s\" with %d ports (prefix %s, user port offset %d).\n"
       device_type device_name port_no port_prefix user_port_offset;
     let row_id =

@@ -221,7 +221,7 @@ class globalState = fun () ->
          app_state#set NoActiveProject;
          (* Force GUI coherence. *)
          self#gui_coherence ();
-         Log.printf "Destroying the old working directory (%s)...\n" cmd;
+         Log.printf1 "Destroying the old working directory (%s)...\n" cmd;
          Log.system_or_ignore cmd;
          Log.printf "Done.\n";
         end (* there was an active project *)
@@ -247,7 +247,7 @@ class globalState = fun () ->
 
    (* Plan to restore the network if something goes wrong. *)
    let emergency = fun e ->
-         Log.printf "import_network: emergency (%s)!!!\n" (Printexc.to_string e);
+         Log.printf1 "import_network: emergency (%s)!!!\n" (Printexc.to_string e);
 	 self#network#restore_from_buffers;
          emergency ()
    in
@@ -369,7 +369,7 @@ class globalState = fun () ->
 	  self#networkFile
       with e ->
 	self#clear_treeviews;
-	Log.printf "Failed with exception %s\n" (Printexc.to_string e);
+	Log.printf1 "Failed with exception %s\n" (Printexc.to_string e);
       );
       self#register_state_after_save_or_open;
       ()
@@ -383,7 +383,7 @@ class globalState = fun () ->
 	      synchronous_loading ()
 	    with e ->
 	      begin
-		Log.printf "Failed loading the project `%s'. The next reported exception is harmless.\n" filename;
+		Log.printf1 "Failed loading the project `%s'. The next reported exception is harmless.\n" filename;
 		let error_msg =
 		  Printf.sprintf "<tt><small>%s</small></tt>\n\n%s"
 		    filename
@@ -466,8 +466,8 @@ class globalState = fun () ->
           Log.printf "Something has changed in treeviews: the project must be re-saved.\n";
           false
         end
-    | Some x, y -> (Log.printf "The project seems not already saved (x=%d, y=%d).\n" x y; false)
-    | None, y   -> (Log.printf "The project seems not already saved (x=None, y=%d).\n" y; false)
+    | Some x, y -> (Log.printf2 "The project seems not already saved (x=%d, y=%d).\n" x y; false)
+    | None, y   -> (Log.printf1 "The project seems not already saved (x=None, y=%d).\n" y; false)
     )
 
   (*** END: this part of code try to understand if the project must be really saved before exiting. *)
@@ -664,7 +664,7 @@ class globalState = fun () ->
     self#update_cable_sensitivity ();
 
  (* Begin of methods moved from talking.ml *)
- method make_names_and_thunks verb what_to_do_with_a_node =
+ method make_names_and_thunks ?(node_list=self#network#nodes#get) (verb) (what_to_do_with_a_node) =
   List.map
     (fun node -> (
       (verb ^ " " ^ node#get_name),
@@ -677,7 +677,7 @@ class globalState = fun () ->
 	begin try
 	  what_to_do_with_a_node node;
 	  with e ->
-	  Log.printf "Warning (q): \"%s %s\" raised an exception (%s)\n"
+	  Log.printf3 "Warning (q): \"%s %s\" raised an exception (%s)\n"
 	    verb
 	    node#name
 	    (Printexc.to_string e);
@@ -685,38 +685,45 @@ class globalState = fun () ->
 	end;
 	Simple_dialogs.destroy_progress_bar_dialog progress_bar))
     )
-    self#network#nodes#get
+    node_list
 
- method do_something_with_every_node_in_sequence verb what_to_do_with_a_node =
+ method do_something_with_every_node_in_sequence ?node_list (verb) (what_to_do_with_a_node) =
   List.iter
     (fun (name, thunk) -> Task_runner.the_task_runner#schedule ~name thunk)
-    (self#make_names_and_thunks verb what_to_do_with_a_node)
+    (self#make_names_and_thunks ?node_list verb what_to_do_with_a_node)
 
- method do_something_with_every_node_in_parallel verb what_to_do_with_a_node =
+ method do_something_with_every_node_in_parallel ?node_list (verb) (what_to_do_with_a_node) =
   Task_runner.the_task_runner#schedule_parallel
-    (self#make_names_and_thunks verb what_to_do_with_a_node);;
+    (self#make_names_and_thunks ?node_list verb what_to_do_with_a_node);;
 
  method startup_everything () =
   self#do_something_with_every_node_in_sequence
+    ~node_list:(self#network#get_nodes_that_can_startup ())
     "Startup" (fun node -> node#startup_right_now)
 
  method shutdown_everything () =
   self#do_something_with_every_node_in_parallel
-    "Shut down" (fun node -> node#gracefully_shutdown_right_now)
+    ~node_list:(self#network#get_nodes_that_can_gracefully_shutdown ())
+    "Shut down"
+    (fun node -> node#gracefully_shutdown_right_now)
 
  method poweroff_everything () =
-  self#do_something_with_every_node_in_sequence
+ (* self#do_something_with_every_node_in_sequence *)
+  self#do_something_with_every_node_in_parallel
+    ~node_list:(self#network#get_nodes_that_can_gracefully_shutdown ())
     "Power-off"
     (fun node -> node#poweroff_right_now)
 
 (** Return true iff there is some node on or sleeping *)
  method is_there_something_on_or_sleeping () =
-  let result = List.exists
-                (fun node -> node#can_gracefully_shutdown or node#can_resume)
-                self#network#nodes#get
-  in begin
-  Log.printf "is_there_something_on_or_sleeping: %s\n" (if result then "yes" else "no");
-  result
+  let result =
+    List.exists
+      (fun node -> node#can_gracefully_shutdown or node#can_resume)
+      (self#network#nodes#get)
+  in
+  begin
+   Log.printf1 "is_there_something_on_or_sleeping: %s\n" (if result then "yes" else "no");
+   result
   end
 
  (* End of functions moved from talking.ml *)

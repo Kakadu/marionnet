@@ -114,7 +114,7 @@ module Make_menus (Params : sig
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_nodes_that_can_startup ~devkind:`Machine ()
+    let dynlist () = st#network#get_node_names_that_can_startup ~devkind:`Machine ()
 
     let dialog name () =
      let m = (st#network#get_node_by_name name) in
@@ -201,7 +201,7 @@ module Make_menus (Params : sig
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_gracefully_shutdown ~devkind:`Machine ()
+    let dynlist () = st#network#get_node_names_that_can_gracefully_shutdown ~devkind:`Machine ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#gracefully_shutdown
 
@@ -210,7 +210,7 @@ module Make_menus (Params : sig
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_suspend ~devkind:`Machine ()
+    let dynlist () = st#network#get_node_names_that_can_suspend ~devkind:`Machine ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#suspend
 
@@ -219,7 +219,7 @@ module Make_menus (Params : sig
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_resume ~devkind:`Machine ()
+    let dynlist () = st#network#get_node_names_that_can_resume ~devkind:`Machine ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#resume
 
@@ -446,10 +446,10 @@ module Eval_forest_child = struct
     	let name  = List.assoc "name" attrs in
 	(* The key "eth" is also tried for backward-compatibility: *)
 	let port_no = int_of_string (ListExtra.Assoc.find_first ["port_no"; "eth"] attrs) in
-        Log.printf "Importing machine \"%s\" with %d ethernet cards...\n" name port_no;
+        Log.printf2 "Importing machine \"%s\" with %d ethernet cards...\n" name port_no;
 	let x = new User_level_machine.machine ~network ~name ~port_no () in
 	x#from_tree ("machine", attrs) children;
-        Log.printf "Machine \"%s\" successfully imported.\n" name;
+        Log.printf1 "Machine \"%s\" successfully imported.\n" name;
         true
    | _ -> false
    )
@@ -580,7 +580,7 @@ class machine
       self#create_cow_file_name_and_thunk_to_get_the_source
     in
     let () =
-     Log.printf
+     Log.printf5
        "About to start the machine %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n  xnest: %b\n"
        self#name
        self#get_filesystem_file_name
@@ -608,7 +608,7 @@ class machine
 
  (** Here we also have to manage cow files... *)
  method private gracefully_shutdown_right_now =
-    Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
+    Log.printf1 "Calling hostfs_directory_pathname on %s...\n" self#name;
     let hostfs_directory_pathname = self#hostfs_directory_pathname in
     Log.printf "Ok, we're still alive\n";
     (* Do as usual... *)
@@ -616,18 +616,18 @@ class machine
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Initialization.are_we_in_exam_mode then begin
       let treeview_documents = Treeview_documents.extract () in
-      Log.printf "Adding the report on %s to the texts interface\n" self#name;
+      Log.printf1 "Adding the report on %s to the texts interface\n" self#name;
       treeview_documents#import_report
         ~machine_or_router_name:self#name
         ~pathname:(hostfs_directory_pathname ^ "/report.html")
         ();
-      Log.printf "Added the report on %s to the texts interface\n" self#name;
-      Log.printf "Adding the history on %s to the texts interface\n" self#name;
+      Log.printf1 "Added the report on %s to the texts interface\n" self#name;
+      Log.printf1 "Adding the history on %s to the texts interface\n" self#name;
       treeview_documents#import_history
         ~machine_or_router_name:self#name
         ~pathname:(hostfs_directory_pathname ^ "/bash_history.text")
         ();
-      Log.printf "Added the history on %s to the texts interface\n" self#name;
+      Log.printf1 "Added the history on %s to the texts interface\n" self#name;
     end);
     (* ...And destroy, so that the next time we have to re-create the process command line
        can use a new cow file (see the make_simulated_device method) *)

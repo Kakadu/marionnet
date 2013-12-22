@@ -106,7 +106,7 @@ module Make_menus (Params : sig
   module Properties = struct
     include Data
 
-    let dynlist () = st#network#get_nodes_that_can_startup ~devkind:`World_gateway ()
+    let dynlist () = st#network#get_node_names_that_can_startup ~devkind:`World_gateway ()
 
     let dialog name () =
      let d = (st#network#get_node_by_name name) in
@@ -176,7 +176,7 @@ module Make_menus (Params : sig
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist = st#network#get_nodes_that_can_gracefully_shutdown ~devkind:`World_gateway
+    let dynlist = st#network#get_node_names_that_can_gracefully_shutdown ~devkind:`World_gateway
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#gracefully_shutdown
 
@@ -185,7 +185,7 @@ module Make_menus (Params : sig
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_suspend ~devkind:`World_gateway ()
+    let dynlist () = st#network#get_node_names_that_can_suspend ~devkind:`World_gateway ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#suspend
 
@@ -194,7 +194,7 @@ module Make_menus (Params : sig
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_resume ~devkind:`World_gateway ()
+    let dynlist () = st#network#get_node_names_that_can_resume ~devkind:`World_gateway ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#resume
 
@@ -334,10 +334,10 @@ module Eval_forest_child = struct
     	let port_no  =
 	  try int_of_string (List.assoc "port_no" attrs) with _ -> Const.port_no_default
 	in
-        Log.printf "Importing world gateway \"%s\" with %d ports...\n" name port_no;
+        Log.printf2 "Importing world gateway \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_world_gateway.world_gateway ~network ~name ~port_no () in
 	x#from_tree ("world_gateway", attrs) children;
-        Log.printf "World gateway \"%s\" successfully imported.\n" name;
+        Log.printf1 "World gateway \"%s\" successfully imported.\n" name;
         true
    | _ ->
         false

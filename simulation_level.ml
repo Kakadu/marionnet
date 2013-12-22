@@ -58,7 +58,9 @@ fun program
     ?stderr:(stderr=Unix.stderr)
     ~unexpected_death_callback
     ()
-  -> object(self)
+  ->
+  let basename = Filename.basename program in
+  object(self)
 
   val mutable arguments = arguments
   method append_arguments xs = (arguments <- List.append arguments xs)
@@ -82,10 +84,9 @@ fun program
       (Some _) ->
         raise (ProcessIsntInTheRightState "spawn")
     | None ->
-        let basename = Filename.basename program in
         let _just_for_logging =
           let cmdline = String.concat " " (program::arguments) in
-          Log.printf "process#spawn: `%s' called with %d arguments; the complete command line is:\n---\n%s\n---\n"
+          Log.printf3 "process#spawn: `%s' called with %d arguments; the complete command line is:\n---\n%s\n---\n"
             basename
             (List.length arguments)
             (StringExtra.fmt ~tab:2 ~width:60 cmdline)
@@ -99,19 +100,20 @@ fun program
             stderr
         in
         pid := (Some new_pid);
+        self#start_thread_waiting ~current_pid:new_pid;
         Death_monitor.start_monitoring new_pid program unexpected_death_callback;
-        Log.printf
-          "spawning process: a process (%s) was just spawned (pid %i).\n"
+        Log.printf2
+          "process#spawn: a process (%s) was just spawned (pid %i).\n"
           basename
           new_pid
 
-  method stop_monitoring =
+  method stop_monitoring ?(current_pid=self#get_pid) () =
     try
-      Log.printf "simulated_network: stop_monitoring the process %s (pid %i): BEGIN\n"
-        program self#get_pid;
-      Death_monitor.stop_monitoring self#get_pid;
-      Log.printf "simulated_network: stop_monitoring the process %s (pid %i): SUCCESS\n"
-        program self#get_pid;
+      Log.printf2 ~v:2 "process#stop_monitoring: about to call the Death_monitor for %s (pid %i)\n"
+        basename current_pid;
+      Death_monitor.stop_monitoring current_pid;
+      Log.printf2 ~v:2 "process#stop_monitoring: exited from Death_monitor for %s (pid %i). Success.\n"
+        basename current_pid;
     with _ ->
       () (* We allow to 'stop monitoring' a process more than once *)
 
@@ -139,36 +141,41 @@ fun program
       interaction, until the process is started again: *)
   method terminate =
     match !pid with
-      Some p ->
-        self#stop_monitoring;
-        self#kill_with_signal Sys.sigint;
+      Some current_pid ->
+        self#stop_monitoring ~current_pid ();
+        Thread.delay 0.1;
+        self#kill_with_signal ~current_pid Sys.sigint;
+        Thread.delay 0.1;
+        self#kill_with_signal ~tries:10 ~delay:0.1 ~current_pid Sys.sigkill;
         pid := None
     | None ->
         raise (ProcessIsntInTheRightState "terminate")
 
+  method private start_thread_waiting ~current_pid =
+    ignore
+      (Thread.create
+         (fun () ->
+            ignore (UnixExtra.Process.waitpid_non_intr current_pid);
+            Log.printf1 "process#start_thread_waiting: waitpid %d exited.\n" current_pid)
+          ())
+
   (** Note that this does *not* affect death monitoring. *)
-  method private kill_with_signal signal =
-    let p =
-      match !pid with
-        Some p -> p
-      | None -> raise (ProcessIsntInTheRightState "kill_with_signal")
-    in
-    Log.printf "About to terminate the process with pid %d...\n" p;
-    (try
-      (* Send the signal: *)
-      Unix.kill p signal;
-      Log.printf "SUCCESS: terminating the process with pid %i succeeded.\n" p;
-     with _ ->
-      Log.printf "WARNING: terminating the process with pid %i failed.\n" p
-     );
-    (* Wait for the subprocess to die, so that no zombie processes remain: *)
-    (try
-      Thread.delay 0.05;
-      ignore (ThreadUnix.waitpid [Unix.WNOHANG] p);
-    with _ ->
-      Log.printf "simulated_network: waitpid %i failed. (9)\n" p);
-    if self#is_alive then (* The process didn't die. Try again with something stronger :-) *)
-      self#kill_with_signal Sys.sigkill;
+  method private kill_with_signal ?(tries=1) ?(delay=0.1) ~current_pid signal =
+   let rec loop i =
+    begin
+      if not (UnixExtra.is_process_alive current_pid) then () else (* continue: *)
+      Log.printf1 ~v:2 "process#kill_with_signal: about to kill %d...\n" current_pid;
+      (try
+	(* Send the signal: *)
+	Unix.kill current_pid signal;
+	Log.printf1 ~v:2 "process#kill_with_signal: pid %d killed. Success.\n" current_pid;
+      with _ ->
+	Log.printf1 ~v:2 "process#kill_with_signal: failed to kill pid %d.\n" current_pid
+      );
+      if i >= tries then () else (Thread.delay delay; loop (i+1))
+      end
+   in
+   loop 1
 
   (** By default gracefully_terminate is just an alias for terminate.
       Of course some subclasses can override it to do something different *)
@@ -280,7 +287,7 @@ class reserved_socket_name ~prefix ~program () =
   method unlink = (try Unix.unlink socket_name with _ -> ())
 
   initializer
-    Log.printf "Socket name \"%s\" reserved for %s.\n" socket_name program;
+    Log.printf2 "reserved_socket_name#initializer:\n\tsocket name \"%s\" reserved for %s\n" socket_name program;
     self#unlink;
 
 end (* reserved_socket_name *)
@@ -330,7 +337,7 @@ class virtual process_which_creates_a_socket_at_spawning_time =
   (** vde_switch_processes need to be up before we connect cables or UMLs to
       them, so they have to be spawned in a *synchronous* way: *)
   method spawn =
-    Log.printf "Spawning the process which will create the socket %s\n" self#get_socket_name;
+    Log.printf1 "process_w_c_a_socket_at_s_time#spawn: spawning the process which will create the socket %s\n" self#get_socket_name;
     super#spawn;
     (* We also check that the process is alive: if spawning it failed than the death
        monitor will take care of everything it's needed and destroy the device: in
@@ -339,9 +346,9 @@ class virtual process_which_creates_a_socket_at_spawning_time =
       (* The socket is not ready yet, but the process is up: let's wait and then
          check again: *)
       Thread.delay 0.05;
-      Log.printf "The process has not created the socket yet.\n";
+      Log.printf "process_w_c_a_socket_at_s_time#spawn: the process has not created the socket yet.\n";
     done;
-    Log.printf "Ok, the socket now exists. Spawning succeeded.\n";
+    Log.printf "process_w_c_a_socket_at_s_time#spawn: Ok, the socket now exists. Spawning succeeded.\n";
     (* This should not be needed, but we want to play it super-safe for the first public
        release: *)
     Thread.delay 0.3;
@@ -350,7 +357,7 @@ class virtual process_which_creates_a_socket_at_spawning_time =
       process and explicitly delete the file: *)
   method terminate =
     super#terminate;
-    super#kill_with_signal Sys.sigkill;
+    (* super#kill_with_signal Sys.sigkill;*)
     listening_socket#unlink;
     Option.iter (fun s -> s#unlink) management_socket;
 
@@ -634,99 +641,6 @@ object(self)
       ()
       as super
 
-
-  (** This ugly kludge is a workaround for a stability problem in the version of
-      wirefitler we use, which may be related to our modifications. We just
-      periodically restart wirefilter cables. *)
-  val mutex = Recursive_mutex.create ()
-  val automatic_reboot_thread = ref None
-  method private get_automatic_reboot_thread =
-    Recursive_mutex.with_mutex mutex
-      (fun () -> !automatic_reboot_thread)
-  method private set_automatic_reboot_thread t =
-    Recursive_mutex.with_mutex mutex
-      (fun () -> automatic_reboot_thread := Some t)
-  method private unset_automatic_reboot_thread =
-    Recursive_mutex.with_mutex mutex
-      (fun () -> automatic_reboot_thread := None)
-
-  method private stop_automatic_reboot_thread =
-    (* Do nothing. This is not needed any more, as the reboot thread now checks
-       whether it should re-install another thread like itself before dying. *)
-    ()
-  method private start_automatic_reboot_thread =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        match self#get_automatic_reboot_thread with
-          Some thread ->
-            (* Do nothing, we already have a thread for this *)
-            ()
-        | None ->
-            (* Log.printf "\n\n(Re-)installing an automatic reboot thread\n\n"; flush_all (); *)
-            self#set_automatic_reboot_thread
-              (Thread.create
-                 (fun () ->
-                   (* Sleep for a randomized amount of time; we don't want all automatic
-                      reboot threads to wake up together: *)
-                   Thread.delay (Random.float (Global_options.automatic_reboot_thread_interval *. 2.0));
-                   Recursive_mutex.with_mutex mutex
-                     (fun () ->
-                       (* I want to avoid the loop because this makes exiting the
-                          thread easier.
-                          First unconditionally uninstall the thread... *)
-                       self#unset_automatic_reboot_thread;
-                       (* Now check whether we should re-install it: *)
-                       (match self#get_pid_option with
-                         Some pid -> begin
-                           (if Global_options.get_workaround_wirefilter_problem () then begin
-                             Log.printf "*** Rebooting the wirefilter with pid %i\n" pid;
-                             (* Restart the cable: *)
-                             super#terminate;
-                             super#spawn;
-                           end);
-                           (* Make a new thread for the next check: *)
-                           self#start_automatic_reboot_thread;
-                         end
-                       | None ->
-                           ())))
-                 ()))
-
-  (** We have to override this in order to be able to manage automatic restarts: *)
-  method spawn =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        super#spawn;
-        self#start_automatic_reboot_thread)
-
-  (** We have to override this in order to be able to manage automatic restarts: *)
-  method terminate =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        super#terminate;
-        self#stop_automatic_reboot_thread)
-
-  (** We have to override this in order to be able to manage automatic restarts: *)
-  method gracefully_terminate =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        super#gracefully_terminate;
-        self#stop_automatic_reboot_thread)
-
-  (** We have to override these just to add synchronization: *)
-  method get_pid_option =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        super#get_pid_option)
-  method stop =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        super#stop;
-        self#stop_automatic_reboot_thread)
-  method continue =
-    Recursive_mutex.with_mutex mutex
-      (fun () ->
-        super#continue;
-        self#stop_automatic_reboot_thread)
 end;;
 
 (* Simplified constructor. Defects are accessible by objects: *)
@@ -769,7 +683,7 @@ let ethernet_interface_to_boot_parameters_bindings umid port_index hublet =
     ((prefix ^ port_index_as_string), (ifconfig#get_port_attribute_by_index umid port_index key))
   in
   (* We treat the ipv4_address in a special way because some small distributions (e.g. buildroot)
-     may have a version of `ifconfig' which doesn't support the CIDR notation. So, we split the 
+     may have a version of `ifconfig' which doesn't support the CIDR notation. So, we split the
      address/cidr into the address and netmask: *)
   let ipv4_address_related_bindings =
     let x = ifconfig#get_port_attribute_by_index umid port_index "IPv4 address" in
@@ -871,7 +785,7 @@ class uml_process =
   let octet2 = truncated_id / 255 in
   let octet3 = truncated_id mod 254 in
   let ip42 = Printf.sprintf "172.23.%i.%i" octet2 octet3 in
-  let _ = Log.printf "eth42 has IP %s\n" ip42 in
+  let _ = Log.printf2 "uml_process: creating %s: eth42 has IP %s\n" umid ip42 in
   let tap_name =
     match Daemon_client.ask_the_server
             (Make (AnyTap((Unix.getuid ()),
@@ -941,7 +855,7 @@ class uml_process =
   let console_related_arguments =
     match kernel_console_arguments with
     | Some args ->
-        let () = Log.printf "using specific console arguments: %s\n" args in
+        let () = Log.printf2 "uml_process: creating %s: using specific console arguments: %s\n" umid args in
         [args]
     | None ->
         (* Undesirable situation: the couple (kernel, filesystem) is not well
@@ -949,10 +863,10 @@ class uml_process =
            the kernel version: *)
         match StrExtra.First.matchingp (Str.regexp "linux-2[.]6[.]") kernel_file_name with
         | true  ->
-            let () = Log.printf "Warning: using default console arguments for old pairs filesystem/kernels\n" in
+            let () = Log.printf1 "uml_process: creating %s: using default console arguments for old pairs filesystem/kernels\n" umid in
             [ "con=none"; "ssl="^console; "console=ttyS0" ]
         | false ->
-            let () = Log.printf "Warning: using default console arguments for new pairs filesystem/kernels\n" in
+            let () = Log.printf1 "uml_process: creating %s: using default console arguments for new pairs filesystem/kernels\n" umid in
             [ "con0="^console; ]
   in
   let command_line_arguments =
@@ -983,22 +897,22 @@ class uml_process =
           swap_file_name
       in
       Log.system_or_fail dd_command_line;
-      Log.printf "Created the swap file %s.\n" swap_file_name;
+      Log.printf2 "%s#create_swap_file: created the swap file %s.\n" umid swap_file_name;
       let mkswap_command_line =
         Printf.sprintf "export PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin; mkswap %s" swap_file_name
       in
       Log.system_or_fail mkswap_command_line;
-      Log.printf "Executed mkswap on the swap file %s.\n" swap_file_name;
+      Log.printf2 "%s#create_swap_file: executed mkswap on the swap file %s.\n" umid swap_file_name;
     with e -> begin
-      Log.printf "WARNING: creating the swap file %s failed (this might be serious).\n" swap_file_name;
+      Log.printf3 "%s#create_swap_file: WARNING: swap file %s creation failed (this might be serious): %s\n" umid swap_file_name (Printexc.to_string e);
     end
 
   method delete_swap_file =
     try
       Log.system_or_fail (Printf.sprintf "rm -f %s" swap_file_name);
-      Log.printf "Deleted the swap file %s.\n" swap_file_name;
+      Log.printf2 "%s#delete_swap_file: deleted the swap file %s.\n" umid swap_file_name;
     with e -> begin
-      Log.printf "WARNING: removing the swap file %s failed.\n" swap_file_name;
+      Log.printf2 ~v:2 "%s#delete_swap_file: WARNING: removing the swap file %s failed.\n" umid swap_file_name;
     end
 
 (*   (\** There is a specific and better way to stop a UML processes, using *)
@@ -1011,83 +925,162 @@ class uml_process =
 (*   method continue = *)
 (*     ignore (Unix.system ("uml_mconsole " ^ umid ^ " go 1>/dev/null 2>/dev/null")); *)
 
-  method private gracefully_terminate_with_mconsole =
-    self#stop_monitoring;
-    ignore (Daemon_client.ask_the_server (Destroy (Tap tap_name)));
-    let redirection = Global_options.Debug_level.redirection () in
-    Unix.system ("uml_mconsole " ^ umid ^ " cad "^redirection)
+  method private gracefully_terminate_with_mconsole ?(command="cad") ?(tries=1) ?(delay=1.) () : bool =
+    (* let redirection = Global_options.Debug_level.redirection () in *)
+    let redirection = "1>/dev/null 2>/dev/null" in (* anyway silently *)
+    let cmdline = Printf.sprintf "uml_mconsole %s %s %s" umid command redirection in
+    let rec loop i =
+      if i > tries then false (* abandon *) else (* retry *)
+      let status = Unix.system cmdline in
+      if status = (Unix.WEXITED 0)
+        then
+          begin
+            Log.printf3
+              "%s#gracefully_terminate: uml_mconsole succeeded in sending a '%s' to %s. Ok.\n"
+              umid command umid;
+            true (* success *)
+          end
+        else
+          begin
+            Log.printf5
+              "%s#gracefully_terminate: uml_mconsole failed in sending a '%s' to %s. Trying again (loop no. %d/%d)...\n"
+              umid command umid i tries;
+            Thread.delay delay;
+            loop (i+1)
+          end
+    in
+    loop 1
+
+  method private kill_descendants_then_myself ~pid =
+   try
+     Linux.Process.kill_descendants
+       ~signal_sequence:[Sys.sigkill] ~wait_delay:0. ~node_max_retries:2 ~root_max_retries:2 ~pid ();
+     Unix.kill pid Sys.sigkill;
+   with _ -> ()
 
   (** There is a specific and better way to terminate a UML processes, using
-      mconsole. Note that terminate (not overridden here) remains useful as a
+      mconsole. Note that `#terminate' (not overridden here) remains useful as a
       more drastic solution *)
   method gracefully_terminate =
-    self#revoke_host_x_server_access;
-    self#delete_swap_file;
-    Log.printf "About to gracefully terminate the UML process with pid %i...\n" (self#get_pid);
-    (* Tell UML to terminate, cleanly: *)
-    let did_we_succeed_immediately = ref true in
-    while not (self#gracefully_terminate_with_mconsole = (Unix.WEXITED 0)) do
-      Log.printf "uml_mconsole failed in sending a 'cad' message to %s. Trying again...\n" umid;
-      Thread.delay 1.0;
-      did_we_succeed_immediately := false;
-    done;
-    Log.printf "Ok, uml_mconsole succeeded in sending a 'cad' message to %s.\n" umid;
-    if not !did_we_succeed_immediately then begin
-      Log.printf ("Just to make sure (since it didn't work the first time), terminate again with uml_mconsole after ten seconds:\n");
-      Thread.delay 10.0;
-      ignore (self#gracefully_terminate_with_mconsole);
-      Log.printf ("Ok, done.\n");
-    end else begin
-      (* This is very ugly, but needed: sometimes uml_console succeeds when sending a 'cad'
-         message, but the UML process is just in an early stage of boot, and ignores the
-         message. Let's send *another* message after some seconds, just to be on the safe(r)
-         side: *)
-      let _ =
-        Thread.create
-          (fun () ->
-            Thread.delay 10.0;
-            try
-              ignore self#gracefully_terminate_with_mconsole
-            with _ ->
-              ())
-          () in
-      ();
-    end;
-    (* Wait for the process to die: *)
-    (try
-      ignore (ThreadUnix.waitpid [] self#get_pid);
-    with _ -> begin
-      Log.printf "simulated_network: waitpid %i failed. This might be irrelevant. (8)\n" self#get_pid;
-    end);
-    (* Remember that now there's no process any more: *)
-    pid := None
+   match !pid with
+   | None -> raise (ProcessIsntInTheRightState "gracefully_terminate")
+   | Some current_pid ->
+       Log.printf2 "%s#gracefully_terminate: about to terminate !!! the UML process with pid %d...\n" umid current_pid;
+       let descendants : int list = Linux.Process.get_descendants ~pid:current_pid () in
+       (* We set here a sort of timeout: we will wait no more than 30 seconds to kill the whole hierarchy.
+          This is very ugly, but needed: sometimes uml_console succeeds when sending a 'cad'
+          message, but the UML process is just in an early stage of boot, and ignores the
+          message. *)
+       let _ =
+         Thread.create
+           begin fun delay ->
+              (Thread.delay delay);
+              (if UnixExtra.is_process_alive (current_pid)
+                then self#kill_descendants_then_myself ~pid:current_pid
+                else ());
+              (* Kill anyway remaining descendants which may be now orphan: *)
+              (List.iter (fun pid -> try Unix.kill pid Sys.sigkill with _ -> ()) descendants);
+           end
+           (30.) (* timeout: no more than 30 seconds *)
+       in
+       (* Action 1: release some resources (in a distinct thread): *)
+       Log.printf2 "%s#gracefully_terminate: about to stop monitoring pid %d...\n" umid current_pid;
+       self#stop_monitoring ~current_pid ();
+       (* Action 2: tell UML to terminate, cleanly with `cad': *)
+       let uml_console_succeeded =
+         self#gracefully_terminate_with_mconsole ~command:"cad" ~tries:5 ~delay:1. ()
+       in
+       (* Action 3: else, tell UML to terminate, quite brutally with `halt': *)
+       let uml_console_succeeded =
+         if uml_console_succeeded then true else (* try with command "halt": *)
+         self#gracefully_terminate_with_mconsole ~command:"halt" ~tries:3 ~delay:2. ()
+       in
+       (* Action 4: else, kill all descendants and the process brutally: *)
+       let () =
+         if uml_console_succeeded then () else
+           begin
+             (* try without mconsole, directly killing all descendants then `current_pid': *)
+             Log.printf2 "%s#gracefully_terminate: killing whole hierarchy of pid %d with SIGKILL...\n" umid current_pid;
+             self#kill_descendants_then_myself ~pid:current_pid;
+           end
+       in
+       (* Wait for the process to die: *)
+       let () =
+	 try begin
+	  Log.printf2 "%s#gracefully_terminate: waiting pid %d...\n" umid current_pid;
+	  ignore (UnixExtra.Process.waitpid_non_intr current_pid);
+	  Log.printf2 "%s#gracefully_terminate: pid %d correctly waited. Fine.\n" umid current_pid;
+	 end with e ->
+	  begin
+	    Log.printf3 "%s#gracefully_terminate: pid %d uncorrectly waited: %s\n"
+	      umid current_pid (Printexc.to_string e);
+	  end
+       in
+       (* Remove other resources: *)
+       begin
+	Log.printf2 "%s#gracefully_terminate: removing swap file allocated for %d\n" umid current_pid;
+	self#delete_swap_file;
+	Log.printf2 "%s#gracefully_terminate: asking to remove tap allocated for %d\n" umid current_pid;
+	let _ = Daemon_client.ask_the_server (Destroy (Tap tap_name)) in
+	(* Remember that now there's no process any more: *)
+	pid := None;
+	Log.printf2 "%s#gracefully_terminate: UML process with pid %d successfully terminated.\n" umid current_pid;
+       end
+
 
   (** UML processes are not always very willing to die, and sometimes react to signals by
       going into infinite loops keeping a CPU 100% busy. But this should always work: *)
   method terminate =
-    self#revoke_host_x_server_access;
-    self#delete_swap_file;
-    let redirection = Global_options.Debug_level.redirection () in
-    match !pid with
-      Some p -> begin
-        self#stop_monitoring;
-        (* Tell the process to halt immediately, without cleanup: *)
-        (try ignore (Unix.system ("uml_mconsole " ^ umid ^ " halt "^redirection)) with _ -> ());
-        self#allow_for_some_seconds_to_die 2.0;
-        (* The process has not complied yet after interval seconds. Kill it the hard way: *)
-        (try
-          while self#is_alive do
-            self#allow_for_some_seconds_to_die 2.0;
-            (try self#kill_with_signal Sys.sigint with _ -> ());
-            self#allow_for_some_seconds_to_die 2.0;
-            (try self#kill_with_signal Sys.sigkill with _ -> ());
-          done;
-        with _ -> ());
-        pid := None;
-        ignore (Daemon_client.ask_the_server (Destroy (Tap tap_name)));
-      end
-    | None ->
-        raise (ProcessIsntInTheRightState "terminate")
+   match !pid with
+   | None -> raise (ProcessIsntInTheRightState "terminate")
+   | Some current_pid ->
+       let _ = self#stop_monitoring ~current_pid () in
+       let _ = self#gracefully_terminate_with_mconsole ~command:"sysrq e" () in
+       let _ = self#gracefully_terminate_with_mconsole ~command:"sysrq i" () in
+       let uml_console_succeeded = self#gracefully_terminate_with_mconsole ~command:"halt" ~tries:1 () in
+       let () =
+         if uml_console_succeeded then () else
+           begin
+             (* try without mconsole, directly killing all descendants then `current_pid': *)
+             Log.printf2 "%s#terminate: killing whole hierarchy of pid %d with SIGKILL...\n" umid current_pid;
+             self#kill_descendants_then_myself ~pid:current_pid;
+           end
+       in
+       let () = begin
+         self#allow_for_some_seconds_to_die 2.0;
+         (* The process has not complied yet after interval seconds. Kill it the hard way: *)
+         (try
+           while self#is_alive do
+             self#allow_for_some_seconds_to_die 2.0;
+             self#kill_with_signal ~current_pid Sys.sigint;
+             self#allow_for_some_seconds_to_die 2.0;
+             self#kill_with_signal ~tries:5 ~delay:0.1 ~current_pid Sys.sigkill;
+           done;
+         with _ -> ());
+        end
+       in
+       (* Wait for the process to die: *)
+       let () =
+	 try begin
+	  Log.printf2 "%s#terminate: waiting pid %d...\n" umid current_pid;
+	  ignore (UnixExtra.Process.waitpid_non_intr current_pid);
+	  Log.printf2 "%s#terminate: pid %d correctly waited. Fine.\n" umid current_pid;
+	 end with e ->
+	  begin
+	    Log.printf3 "%s#terminate: pid %d uncorrectly waited: %s\n"
+	      umid current_pid (Printexc.to_string e);
+	  end
+       in
+       (* Remove other resources: *)
+       begin
+	Log.printf2 "%s#terminate: removing swap file allocated for %d\n" umid current_pid;
+	self#delete_swap_file;
+	Log.printf2 "%s#terminate: asking to remove tap allocated for %d\n" umid current_pid;
+	let _ = Daemon_client.ask_the_server (Destroy (Tap tap_name)) in
+	(* Remember that now there's no process any more: *)
+	pid := None;
+	Log.printf2 "%s#terminate: UML process with pid %d successfully terminated.\n" umid current_pid;
+       end
 
   method hostfs_directory_pathname =
     hostfs_pathname
@@ -1148,16 +1141,16 @@ class uml_process =
     try
       ignore (Unix.system ("xhost +" ^ ip42 ^ " " ^ redirection))
     with _ -> begin
-      Log.printf "WARNING: granting host X server access to %s failed.\n" ip42
+      Log.printf2 "%s#grant_host_x_server_access: WARNING: granting host X server access to %s failed.\n" umid ip42
     end
 
-  method private revoke_host_x_server_access =
+(*  method private revoke_host_x_server_access =
     let redirection = Global_options.Debug_level.redirection () in
     try
       ignore (Unix.system ("xhost -" ^ ip42 ^ " " ^redirection))
     with _ -> begin
       Log.printf "WARNING: revoking host X server access to %s failed.\n" ip42
-    end
+    end*)
 
   method private copy_cow_file_if_needed =
     match dynamically_get_the_cow_file_name_source () with
@@ -1248,10 +1241,10 @@ class virtual ['parent] device
     Array.iter
       (fun sp ->
          let pid = try sp#get_pid with _ -> -1 in
-         Log.printf "Terminating a device hublet process (pid %i) of %s...\n" pid name;
+         Log.printf2 "device#terminate_hublets: terminating a device hublet process (pid %i) of %s...\n" pid name;
          (try sp#continue with _ -> ());
          (try sp#terminate with _ -> ());
-         Log.printf  "...ok, a hublet process (pid %i) of %s was terminated\n" pid name)
+         Log.printf2  "device#terminate_hublets: ok, a hublet process (pid %i) of %s was terminated\n" pid name)
       hublet_process_array;
 
   (** This is just to allow some implicit type conversions... *)
@@ -1293,16 +1286,14 @@ class virtual ['parent] device
       enough to boot the device again in a usable state *)
   method destroy =
     let name = parent#get_name in
-    Log.printf "The method destroy has been called on the device %s: begin\n" name;
-    Log.printf "Resuming %s before destruction (it might be needed)...\n" name;
+    Log.printf1 "device#destroy: resuming %s before destruction...\n" name;
     (try self#resume with _ -> ());
-    Log.printf  "Shutting down %s before destruction...\n" name;
+    Log.printf1  "device#destroy: shutting down %s before destruction...\n" name;
     (try self#shutdown with _ -> ());
-    Log.printf  "Now terminate %s's hublets...\n" name;
+    Log.printf1  "device#destroy: about to terminate %s's hublets...\n" name;
     self#terminate_hublets;
-    Log.printf "Ok, the hublets of %s were destroyed...\n" name;
+    Log.printf1 "device#destroy: Ok, the hublets of %s were destroyed.\n" name;
     state <- Destroyed;
-    Log.printf "The method destroy has been called on the device %s: end\n" name
 
   method (* protected *) execute_the_unexpected_death_callback pid process_name =
     let process_name = Filename.basename process_name in
@@ -1376,7 +1367,7 @@ object(self)
       internal_cable_processes :=
 	let hublets = self#get_hublet_process_list in
 	let name = parent#get_name in
-	Log.printf "spawn_processes: device=%s hublet_no=%d last_user_visible_port_index=%d\n" name hublet_no last_user_visible_port_index;
+	Log.printf3 "main_process_with_n_hublets_and_cables#spawn_processes: device=%s hublet_no=%d last_user_visible_port_index=%d\n" name hublet_no last_user_visible_port_index;
 	List.map
 	  (fun (i, hublet_process) ->
 	    if i <= last_user_visible_port_index then
@@ -1682,7 +1673,7 @@ object(self)
           !internal_cable_processes));
 
   method private terminate_processes_private ~gracefully  () =
-    Log.printf "** Terminating the internal cable processes of %s...\n" parent#get_name;
+    Log.printf1 "machine_or_router#terminate_processes_private: about to terminate the internal cable processes of %s...\n" parent#get_name;
     (* Terminate internal cables and unreference them: *)
     Task_runner.do_in_parallel
       ((fun () ->

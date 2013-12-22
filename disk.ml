@@ -77,8 +77,8 @@ let read_epithet_list ?(name_filter=Filter.exclude_names_ending_with_dot_conf_or
        ~name_filter
        ~name_converter:remove_prefix
        dir in
-  Log.printf ~v:2 "Searching in %s:\n" dir;
-  List.iter (fun x -> Log.printf ~v:2 " - found %s%s\n" prefix x) xs;
+  Log.printf1 ~v:2 "Searching in %s:\n" dir;
+  List.iter (fun x -> Log.printf2 ~v:2 " - found %s%s\n" prefix x) xs;
   xs
 
 
@@ -105,7 +105,7 @@ module String_map = MapExtra.String_map
 (* For a given choice the last binding with a directory will wins building the mapping.
    So we reverse the searching list: *)
 let make_epithet_to_dir_mapping ~kind ?realpath ~prefix ~directory_searching_list () =
-  Log.printf "Searching for a (%s) prefix: \"%s\"\n" (string_of_epithet_kind kind) prefix;
+  Log.printf2 "Searching for a (%s) prefix: \"%s\"\n" (string_of_epithet_kind kind) prefix;
   let normalize_dir = match realpath with
    | None    -> (fun x -> Some x)
    | Some () -> (fun x -> UnixExtra.realpath x)
@@ -122,7 +122,7 @@ let make_epithet_to_dir_mapping ~kind ?realpath ~prefix ~directory_searching_lis
   let yss = List.flatten xss in
   let yss = List.filter (fun (e,d)->d<>None) yss in
   let yss = List.map (function (e, Some dir)->(e,dir) | _ -> assert false) yss in
-  (List.iter (function (e,d) -> Log.printf "* %s -> %s\n" e d) yss);
+  (List.iter (function (e,d) -> Log.printf2 "* %s -> %s\n" e d) yss);
   String_map.of_list yss
 
 
@@ -381,7 +381,7 @@ class virtual_machine_installations
 	  match Sys.file_exists (config_file) with
 	  | false -> None
 	  | true  ->
-	      let () = Log.printf "configuration file found for \"%s\"\n" filesystem_epithet in
+	      let () = Log.printf1 "configuration file found for \"%s\"\n" filesystem_epithet in
 	      let config =
 		Configuration_files.make
 		  ~dont_read_environment:()
@@ -407,7 +407,7 @@ class virtual_machine_installations
 	  match Sys.file_exists (dot_relay_file) with
 	  | false -> None
 	  | true  ->
-	      let () = Log.printf "relay script found for \"%s\"\n" filesystem_epithet in
+	      let () = Log.printf1 "relay script found for \"%s\"\n" filesystem_epithet in
 	      Some (dot_relay_file)
 	in
 	result
@@ -431,13 +431,13 @@ class virtual_machine_installations
                let ks = List.filter (fun (k,r) -> r <> Either.Left ()) ks in
                let ks = List.map (fun (k,r) -> (k, Either.extract r)) ks in
                let () =
-                 Log.printf "Selected kernels for \"%s\": [%s]\n"
+                 Log.printf2 "Selected kernels for \"%s\": [%s]\n"
                    filesystem_epithet
                    (String.concat " " (List.map fst ks))
                in
                (Some ks)
              with Failure msg ->
-                 let () = Log.printf "%s => \"%s\" config file ignored!\n" msg filesystem_epithet in
+                 let () = Log.printf2 "%s => \"%s\" config file ignored!\n" msg filesystem_epithet in
                  None)
     in
     String_map.of_list (List.map (fun e -> (e, mill e)) filesystems#get_epithet_list)
@@ -485,7 +485,7 @@ class virtual_machine_installations
         List.assoc (kernel_epithet) ks
       with Not_found ->
         let () =
-          Log.printf
+          Log.printf2
             "Disk.virtual_machine_installations#get_kernel_console_arguments: couple (%s,%s) unknown!\n"
             (filesystem_epithet) (kernel_epithet)
         in None

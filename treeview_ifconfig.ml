@@ -90,11 +90,11 @@ object(self)
     (* Try again if we generated an invalid or already allocated address: *)
     if not (List.mem result self#currently_used_mac_addresses) then
       begin
-        Log.printf "Generated MAC address: %s\n" result;
+        Log.printf1 "Generated MAC address: %s\n" result;
         result
       end
     else begin
-      Log.printf "Generated MAC address: %s already in use!\n" result;
+      Log.printf1 "Generated MAC address: %s already in use!\n" result;
       self#generate_mac_address
     end
   (** This follows exactly the same logic as automatic MAC address generation.
@@ -206,12 +206,12 @@ object(self)
     (Ipv4.String.is_valid_ipv4 x)   ||  (* without CIDR, ex: 192.168.0.1 *)
     (Ipv4.String.is_valid_config x)     (* with CIDR, ex: 192.168.0.1/24 *)
 
-  (* The config (netmask) must be given or deductible: *)  
+  (* The config (netmask) must be given or deductible: *)
   method private is_a_valid_ipv4_address_for_router x =
     match (Ipv4.import x) with
     | Some (Either.Right config) -> true
     | _ -> false
-    
+
   method private is_a_valid_ipv4_gateway x =
    Ipv4.String.is_valid_ipv4 x
 

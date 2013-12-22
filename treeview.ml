@@ -389,7 +389,7 @@ fun ~(treeview:treeview)
       (!after_edit_commit_callback) id old_content new_content;
       treeview#run_after_update_callback id;
     with e -> begin
-      Log.printf
+      Log.printf1
         "on_edit: a callback raised an exception (%s), or a constraint was violated.\n"
         (Printexc.to_string e);
       flush_all ();
@@ -490,7 +490,6 @@ fun ~(treeview:treeview)
       treeview#run_after_update_callback id;
     with _ -> begin
       Log.printf "on_toggle: a callback raised an exception, or a constraint was violated.\n";
-      flush_all ();
     end);
 
   (** Bind a callback to be called just before an toggle is committed to data structures.
@@ -526,10 +525,10 @@ object(self)
   method private lookup predicate =
     let singleton = List.filter predicate strings_and_pixbufs in
     if not ((List.length singleton) = 1) then begin
-      Log.printf "ERROR: icon name lookup failed: found %i results instead of 1\n" (List.length singleton);
+      Log.printf1 "ERROR: icon name lookup failed: found %i results instead of 1\n" (List.length singleton);
       List.iter
         (fun (name, pixbuf) ->
-          Log.printf
+          Log.printf2
             "(predicate is %s for %s)\n"
             (if predicate (name, pixbuf) then "true" else "false")
             name)
@@ -680,7 +679,7 @@ object(self)
     try
       ((Hashtbl.find get_column header) :> column)
     with e -> begin
-      Log.printf "treeview: get_column: failed in looking for column \"%s\" (%s)\n" header (Printexc.to_string e);
+      Log.printf2 "treeview: get_column: failed in looking for column \"%s\" (%s)\n" header (Printexc.to_string e);
       raise e; (* re-raise *)
     end
 
@@ -820,7 +819,7 @@ object(self)
       | None ->
           self#unselect;
           None) in
-    Log.printf "Showing the contextual menu\n"; flush_all ();
+    Log.printf "Showing the contextual menu\n";
     let menu = GMenu.menu () in
 (*
     let _ = GMenu.menu_item ~label:!contextual_menu_title ~packing:menu#append () in
@@ -1021,7 +1020,7 @@ object(self)
               datum;
            end);
         with e -> begin
-          Log.printf "  - WARNING: unknown column %s (%s)\n" column_header (Printexc.to_string e); flush_all ();
+          Log.printf2 "  - WARNING: unknown column %s (%s)\n" column_header (Printexc.to_string e);
         end)
       row;
 
@@ -1108,7 +1107,7 @@ object(self)
               (if not (column_header = "_id") then
                  column#set row_id ~initialize:true ~row_iter:new_row_iter ~ignore_constraints:true datum);
             with e -> begin
-              Log.printf
+              Log.printf2
                 "WARNING: error (I guess the problem is an unknown column) %s (%s)\n"
                 column_header
                 (Printexc.to_string e);
@@ -1167,7 +1166,7 @@ object(self)
 
   method save ?(with_forest_treatment=fun x->x) () =
     let file_name = Option.extract filename#get in
-    Log.printf "treeview#save: saving into %s\n" file_name;
+    Log.printf1 "treeview#save: saving into %s\n" file_name;
     let forest = with_forest_treatment (self#get_complete_forest) in
     next_identifier_and_content_forest_marshaler#to_file
       (self#counter#get_next_fresh_value, forest)
@@ -1186,7 +1185,7 @@ object(self)
           (if (Global_options.Debug_level.get ()) >= 3 then (* we are manually setting the verbosity 3 *)
             Forest.print_forest ~string_of_node:Row.to_pretty_string ~channel:stderr complete_forest);
         with e -> begin
-          Log.printf "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e);
+          Log.printf2 "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e);
         end);
     (* This must be executed with the view attached, as it operates on the GUI: *)
     self#collapse_everything;

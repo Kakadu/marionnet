@@ -89,7 +89,7 @@ let dialog_confirm_device_restart ~(devkind:string) ~(device_name:string) =
     ()
 
 let shutdown_or_restart_relevant_device device_name =
-  Log.printf "Shutdown or restart \"%s\"?\n" device_name;
+  Log.printf1 "Shutdown or restart \"%s\"?\n" device_name;
   try
     (* Is the device a cable? If so we have to restart it (and do nothing if it
        was not connected) *)
@@ -103,7 +103,7 @@ let shutdown_or_restart_relevant_device device_name =
        and hublets are restarted: *)
     let node = st#network#get_node_by_name device_name in
     if not node#can_gracefully_shutdown
-    then Log.printf "No, \"%s\" doesn't need to be restarted\n" device_name
+    then Log.printf1 "No, \"%s\" doesn't need to be restarted\n" device_name
     else (* continue: *)
     let devkind = node#string_of_devkind in
     match dialog_confirm_device_restart ~devkind ~device_name with
@@ -241,11 +241,12 @@ let () =
 let () = begin
 Log.printf "Checking whether Marionnet is running as root...\n";
 if (Unix.getuid ()) = 0 then begin
-  Log.printf "\n**********************************************\n";
-  Log.printf "* Marionnet should *not* be run as root, for * \n";
-  Log.printf "* security reasons.                          *\n";
-  Log.printf "* Continuing anyway...                       *\n";
-  Log.printf "**********************************************\n\n";
+  Log.printf "
+**********************************************
+* Marionnet should *not* be run as root, for *
+* security reasons.                          *
+* Continuing anyway...                       *
+**********************************************\n\n";
   Simple_dialogs.warning
     (s_ "You should not be root!")
     (s_ "Marionnet is running with UID 0; this is bad from a security point of view... Continuing anyway.")
@@ -351,12 +352,23 @@ in
 (* Ignore some signals: *)
 (* List.iter (fun x -> (Sys.set_signal x  Sys.Signal_ignore)) [1;2;3;4;5;6;10;12;15] ;; *)
 
-(* This is very appropriate: a signal 15 may be received by Marionnet in some very complicated cases.
+(* This is very appropriate: a signal 15 (SIGTERM) may be received by Marionnet in some very complicated cases.
    For instance when a graphical program running in background on a virtual machine is showing its
    window on the X server (by the mean of a "socat" process or thread). If the command `halt' is
    launched on the virtual machine, a signal 15 is sent to Marionnet, probably as consequence of
    the broken connection (and the death of the "socat" process or thread). *)
-let () = Sys.set_signal 15 (Sys.Signal_handle (fun _ -> GtkThread.main ())) in
+let () =
+  let callback _ =
+   try
+    (* Printf.kfprintf flush stderr "******************* HERE *********************\n"; *)
+    let thread_id = Thread.id (Thread.self ()) in
+    if thread_id = 0
+    then GtkThread.main ()
+    else () (* Printf.kfprintf flush stderr "******************* IGNORING *********************\n" *)   (* ignore *)
+   with _ -> ()
+  in
+  Sys.set_signal Sys.sigterm (Sys.Signal_handle callback)
+in
 
 (* I we receive a CTRL-C from the terminal (2) we react as if the user click on the window close button: *)
 let () =
@@ -364,13 +376,14 @@ let () =
    let () = Created_window_MARIONNET.Created_menubar_MARIONNET.Created_entry_project_quit.callback () in
    if st#quit_async_called then () else GtkThread.main ()
  in
- Sys.set_signal 2 (Sys.Signal_handle callback)
+ Sys.set_signal Sys.sigint (Sys.Signal_handle callback)
 in
 
-let () = SysExtra.log_signal_reception ~except:[26] () in
+(* (* (* let () = SysExtra.log_signal_reception ~except:[26] () in *) *) *)
 
 (* Try to kill all remaining descendants when exiting: *)
 let () =
+  let marionnet_pid = Unix.getpid () in
   let kill_orphan_descendants =
     Descendants_monitor.start_monitor_and_get_kill_method ()
   in
@@ -385,8 +398,11 @@ let () =
             instead of Marionnet, when Marionnet exits. Thus, when Marionnet is restarted, it believes that the port is taken
             by a real X server! *)
          Linux.Process.kill_descendants ~signal_sequence:[Sys.sigkill] ~wait_delay:0. ~node_max_retries:2 ~root_max_retries:2 ();
-         Log.printf "at_exit: killing all orphans before exiting...\n";
-         kill_orphan_descendants ();
+         (* We kill orphans of the main program (not of its forks) *)
+         if (Unix.getpid () = marionnet_pid) then begin
+           Log.printf "at_exit: killing all orphans before exiting...\n";
+           kill_orphan_descendants ();
+           end;
        end)
 in
 

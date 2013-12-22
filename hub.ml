@@ -75,7 +75,7 @@ module Make_menus (Params : sig
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_nodes_that_can_startup ~devkind:`Hub ()
+    let dynlist () = st#network#get_node_names_that_can_startup ~devkind:`Hub ()
 
     let dialog name () =
      let d = (st#network#get_node_by_name name) in
@@ -126,7 +126,7 @@ module Make_menus (Params : sig
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_gracefully_shutdown ~devkind:`Hub ()
+    let dynlist () = st#network#get_node_names_that_can_gracefully_shutdown ~devkind:`Hub ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#gracefully_shutdown
 
@@ -135,7 +135,7 @@ module Make_menus (Params : sig
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_suspend ~devkind:`Hub ()
+    let dynlist () = st#network#get_node_names_that_can_suspend ~devkind:`Hub ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#suspend
 
@@ -144,7 +144,7 @@ module Make_menus (Params : sig
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_resume ~devkind:`Hub ()
+    let dynlist () = st#network#get_node_names_that_can_resume ~devkind:`Hub ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#resume
 
@@ -249,10 +249,10 @@ module Eval_forest_child = struct
     | ("hub", attrs) ->
     	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
-        Log.printf "Importing hub \"%s\" with %d ports...\n" name port_no;
+        Log.printf2 "Importing hub \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_hub.hub ~network ~name ~port_no () in
 	x#from_tree ("hub", attrs) children;
-        Log.printf "Hub \"%s\" successfully imported.\n" name;
+        Log.printf1 "Hub \"%s\" successfully imported.\n" name;
         true
 
     (* backward compatibility *)
@@ -262,12 +262,12 @@ module Eval_forest_child = struct
 	let kind = List.assoc "kind" attrs in
 	(match kind with
 	| "hub" ->
-            Log.printf "Importing hub \"%s\" with %d ports...\n" name port_no;
+            Log.printf2 "Importing hub \"%s\" with %d ports...\n" name port_no;
 	    let x = new User_level_hub.hub ~network ~name ~port_no () in
 	    x#from_tree ("hub", attrs) children; (* Just for the label... *)
             Log.printf "This is an old project: we set the user port offset to 1...\n";
 	    network#defects#change_port_user_offset ~device_name:name ~user_port_offset:1;
-	    Log.printf "Hub \"%s\" successfully imported.\n" name;
+	    Log.printf1 "Hub \"%s\" successfully imported.\n" name;
 	    true
 	| _ -> false
 	)

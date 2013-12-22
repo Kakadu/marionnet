@@ -77,8 +77,7 @@ let default_predicate pid =
 let start_monitoring ?(predicate=default_predicate) pid name callback =
   lock death_monitor_mutex;
   (if Map.mem pid !processes_to_be_monitored then begin
-    Log.printf "WARNING (THIS MAY BE SERIOUS): death_monitor: I was already monitoring %i" pid;
-    flush_all ();
+    Log.printf1 "WARNING (THIS MAY BE SERIOUS): death_monitor: I was already monitoring %d\n" pid;
   end
   else begin
     processes_to_be_monitored :=
@@ -89,7 +88,7 @@ let start_monitoring ?(predicate=default_predicate) pid name callback =
        the signal will see the process as existing. *)
     let _ =
       Thread.create
-        (fun () -> Unix.waitpid [] pid)
+        (fun () -> UnixExtra.Process.waitpid_non_intr ~wait_flags:[] pid)
         () in
     ();
   end);
@@ -103,8 +102,7 @@ let __stop_monitoring pid =
     map_size := !map_size - 1;
   end
   else begin
-    Log.printf "WARNING: death_monitor: I was not monitoring %i" pid;
-    flush_all ();
+    Log.printf1 "WARNING: death_monitor: I was not monitoring %d\n" pid;
   end;;
 
 (** Stop monitoring the process with the given pid. Thread-safe. *)
@@ -117,7 +115,7 @@ let stop_monitoring pid =
     (* Don't leave the death_monitor_mutex locked when raising: *)
     unlock death_monitor_mutex;
     (* Re-raise: *)
-    Log.printf "stop_monitoring: re-raising %s.\n" (Printexc.to_string e);
+    Log.printf1 "stop_monitoring: re-raising %s.\n" (Printexc.to_string e);
     raise e;
   end;;
 
@@ -161,7 +159,6 @@ let get_poll_interval seconds =
 let rec poll_in_a_loop interval_length =
   if interval_length <= 0.0 then begin
     Log.printf "Exiting from the infinite polling loop.\n";
-    flush_all ();
   end
   else begin
     poll ();
@@ -175,46 +172,23 @@ let rec poll_in_a_loop interval_length =
 
 (** Start polling in a loop: *)
 let start_polling_loop () =
-  Log.printf "Starting the infinite polling loop.\n"; flush_all ();
+  Log.printf "Starting the infinite polling loop.\n";
   poll_in_a_loop (get_poll_interval ());;
 
 (** Stop polling (at the end of the current interval). This version locks
     death_monitor_death_monitor_mutex, so it is thread safe. *)
 let stop_polling_loop () =
-  Log.printf "Stopping the infinite polling loop (locked).\n";
-  Log.printf "If the program hangs at this point then you are probably using the\n";
-  Log.printf "locked version within a callback. See the comment in death_monitor.ml .\n";
-  flush_all ();
+  Log.printf "Stopping the infinite polling loop (locked).
+If the program hangs at this point then you are probably using the
+locked version within a callback. See the comment in death_monitor.ml .\n";
   set_poll_interval (-1.0);;
 
 (** See the comment before stop_polling_loop. Non thread-safe. *)
 let __stop_polling_loop () =
-  Log.printf "Stopping the infinite polling loop (non-locked).\n"; flush_all ();
+  Log.printf "Stopping the infinite polling loop (non-locked).\n";
   poll_interval := -1.0;; (* this does not touch the death_monitor_mutex *)
 
 let _ =
   Thread.create
     (fun () -> start_polling_loop ())
     ();;
-
-(*  (\* A little stress-test (only the first iteration is heavy): *\)  *)
-(*  let rec interval ?(acc=[]) a b =  *)
-(*    if a > b then  *)
-(*      acc  *)
-(*    else  *)
-(*      interval ~acc:(b::acc) a (b - 1);;  *)
-(*  let r pid =  *)
-(*    start_monitoring  *)
-(*      pid  *)
-(*  (\*     (fun pid -> Log.printf "The process %i died unexpectedly.\n" pid);; *\)  *)
-(*      (fun _ -> ());;  *)
-(*  List.iter  *)
-(*    (fun i -> r i)  *)
-(*    (interval 1 65536);;  *)
-(*  start_polling_loop ();;  *)
-
-
-(* (\* Another nice test: *\) *)
-(* start_monitoring 20357 (fun _ -> __stop_polling_loop ());; *)
-(* start_polling_loop ();; *)
-

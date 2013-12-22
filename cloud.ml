@@ -79,7 +79,7 @@ module Make_menus (Params : sig
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_nodes_that_can_startup ~devkind:`Cloud ()
+    let dynlist () = st#network#get_node_names_that_can_startup ~devkind:`Cloud ()
 
     let dialog name () =
      let d = (st#network#get_node_by_name name) in
@@ -128,7 +128,7 @@ module Make_menus (Params : sig
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_gracefully_shutdown ~devkind:`Cloud ()
+    let dynlist () = st#network#get_node_names_that_can_gracefully_shutdown ~devkind:`Cloud ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#gracefully_shutdown
 
@@ -137,7 +137,7 @@ module Make_menus (Params : sig
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_suspend ~devkind:`Cloud ()
+    let dynlist () = st#network#get_node_names_that_can_suspend ~devkind:`Cloud ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#suspend
 
@@ -146,7 +146,7 @@ module Make_menus (Params : sig
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_resume ~devkind:`Cloud ()
+    let dynlist () = st#network#get_node_names_that_can_resume ~devkind:`Cloud ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#resume
 
@@ -226,10 +226,10 @@ module Eval_forest_child = struct
    (match root with
     | ("cloud", attrs) ->
     	let name  = List.assoc "name"  attrs in
-        Log.printf "Importing cloud \"%s\"...\n" name;
+        Log.printf1 "Importing cloud \"%s\"...\n" name;
         let x = new User_level_cloud.cloud ~network ~name () in
 	x#from_tree ("cloud", attrs) children  ;
-        Log.printf "Cloud \"%s\" successfully imported.\n" name;
+        Log.printf1 "Cloud \"%s\" successfully imported.\n" name;
         true
    | _ ->
         false

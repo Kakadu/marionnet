@@ -29,8 +29,7 @@ let do_in_parallel thunks =
             try
               thunk ()
             with e -> begin
-              Log.printf "!!!! do_in_parallel: a thunk failed (%s)\n" (Printexc.to_string e);
-              flush_all ();
+              Log.printf1 "!!!! do_in_parallel: a thunk failed (%s)\n" (Printexc.to_string e);
             end)
           ())
       thunks in
@@ -40,9 +39,8 @@ let do_in_parallel thunks =
       try
         Thread.join thread;
       with e -> begin
-        Log.printf "!!!!!!!!!!!!!!! This should not happen: join failed (%s)\n"
+        Log.printf1 "!!!!!!!!!!!!!!! This should not happen: join failed (%s)\n"
           (Printexc.to_string e);
-        flush_all ()
       end)
     threads;;
 
@@ -83,15 +81,15 @@ class task_runner = object(self)
   method run name task =
     flush_all ();
     try
-      Log.printf "task_runner: Executing the task \"%s\"\n" name;
+      Log.printf1 "task_runner: Executing the task \"%s\"\n" name;
       task ();
-      Log.printf "task_runner: The task \"%s\" succeeded.\n" name;
+      Log.printf1 "task_runner: The task \"%s\" succeeded.\n" name;
     with Kill_task_runner -> begin
       Log.printf "task_runner: The task runner was explicitly killed.\n";
       run_again := false;
     end
     | e -> begin
-      Log.printf
+      Log.printf2
         "task_runner: WARNING: the asynchronous task \"%s\" raised an exception\n\t(%s).\n\tTHIS MAY BE SERIOUS.\n\tAnyway, I'm going to continue with the next task.\n"
         name
         (Printexc.to_string e) ;
@@ -131,15 +129,15 @@ class task_runner = object(self)
             names_and_thunks in
         List.iter
           (fun (name, thread) ->
-            Log.printf "Joining \"%s\"...\n" name;
+            Log.printf1 "Joining \"%s\"...\n" name;
             (try
               Thread.join thread;
             with e -> begin
-              Log.printf
+              Log.printf1
                 "!!!!!!!!!!!!!!! This should not happen: join failed (%s)\n"
                 (Printexc.to_string e);
             end);
-            Log.printf "I have joined \"%s\" with success\n" name;)
+            Log.printf1 "I have joined \"%s\" with success\n" name;)
           threads in
 (*     self#schedule ~name:parallel_task_name parallel_task_thunk *)
     self#prepend ~name:parallel_task_name parallel_task_thunk

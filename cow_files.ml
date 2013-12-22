@@ -65,7 +65,7 @@ let duplicate_cow_file_into_states_directory
   in
   (Log.printf "About to making a copy of a cow file...\n");
   (if Sys.file_exists full_copy_pathname
-     then Log.printf "Strangely the cow file %s already exists!!!!\n" full_copy_pathname);
+     then Log.printf1 "Strangely the cow file %s already exists!!!!\n" full_copy_pathname);
   try
     Log.system_or_fail command_line;
     name_of_the_copy

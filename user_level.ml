@@ -264,7 +264,7 @@ let string_of_simulated_device_automaton_state = function
 
 exception ForbiddenTransition;;
 let raise_forbidden_transition msg =
- Log.printf "ForbiddenTransition raised in %s\n" msg;
+ Log.printf1 "ForbiddenTransition raised in %s\n" msg;
  raise ForbiddenTransition
 ;;
 
@@ -353,7 +353,7 @@ class virtual ['parent] simulated_device () = object(self)
           let message =
             Printf.sprintf "enqueue_task_with_progress_bar: %s %s failed (%s)"
               verb self#get_name (Printexc.to_string e) in
-          Log.printf "%s\n" message;
+          Log.printf1 "%s\n" message;
           Simple_dialogs.warning message message ();
           Log.printf "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
         end));
@@ -371,7 +371,7 @@ class virtual ['parent] simulated_device () = object(self)
     Task_runner.the_task_runner#schedule ~name:("create "^self#get_name) (fun () -> self#create_right_now)
 
   method (*private*) destroy_my_simulated_device =
-    Log.printf "component \"%s\": destroying my simulated device.\n" self#get_name;
+    Log.printf1 "component \"%s\": destroying my simulated device.\n" self#get_name;
     (* This is invisible for the user: don't set the next state *)
     Task_runner.the_task_runner#schedule ~name:("destroy "^self#get_name)(fun () -> self#destroy_right_now)
 
@@ -408,7 +408,7 @@ class virtual ['parent] simulated_device () = object(self)
   method (*private*) create_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.printf "About to create the simulated device %s: it's connected to %d cables.\n"
+        Log.printf2 "About to create the simulated device %s: it's connected to %d cables.\n"
           self#get_name
           (List.length (self#get_involved_cables));
 
@@ -420,7 +420,7 @@ class virtual ['parent] simulated_device () = object(self)
 	      (* An endpoint for cables linked to self was just added; we need to start some cables. *)
 	      ignore (List.map
 			(fun cable ->
-			   Log.printf "Working on cable %s\n" (cable#show "");
+			   Log.printf1 "Working on cable %s\n" (cable#show "");
 			   cable#increment_alive_endpoint_no)
 			(self#get_involved_cables)))
 
@@ -428,14 +428,14 @@ class virtual ['parent] simulated_device () = object(self)
 
   (** The unit parameter is needed: see how it's used in simulated_network: *)
   method private destroy_because_of_unexpected_death () =
-    Log.printf "You don't deadlock here %s, do you? -1\n" self#get_name;
+    Log.printf1 "You don't deadlock here %s, do you? -1\n" self#get_name;
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.printf "You don't deadlock here %s, do you? 0\n" self#get_name;
+        Log.printf1 "You don't deadlock here %s, do you? 0\n" self#get_name;
         (try
           self#destroy_right_now
         with e -> begin
-          Log.printf "WARNING: destroy_because_of_unexpected_death: failed (%s)\n"
+          Log.printf1 "WARNING: destroy_because_of_unexpected_death: failed (%s)\n"
             (Printexc.to_string e);
         end;
           self#set_next_simulated_device_state None)); (* don't show next-state icons for this *)
@@ -443,42 +443,42 @@ class virtual ['parent] simulated_device () = object(self)
   method (*private*) destroy_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.printf "About to destroy the simulated device %s \n" self#get_name;
+        Log.printf1 "About to destroy the simulated device %s \n" self#get_name;
         match !automaton_state, !simulated_device with
         | (DeviceOn | DeviceSleeping), Some(d) ->
-             Log.printf
+             Log.printf1
                "  (destroying the on/sleeping device %s. Powering it off first...)\n"
                self#get_name;
              self#poweroff_right_now; (* non-gracefully *)
              self#destroy_right_now
         | NoDevice, None ->
-            Log.printf
+            Log.printf1
              "  (destroying the already 'no-device' device %s. Doing nothing...)\n"
              self#get_name;
             () (* Do nothing, but don't fail. *)
         | DeviceOff, Some(d) ->
             ((* An endpoint for cables linked to self was just added; we
                 may need to start some cables. *)
-             Log.printf
+             Log.printf1
                "  (destroying the off device %s: decrementing its cables rc...)\n"
                self#get_name;
              List.iter
                (fun cable ->
-                 Log.printf "Unpinning the cable %s " (cable#show "");
+                 Log.printf1 "Unpinning the cable %s " (cable#show "");
                  cable#decrement_alive_endpoint_no;
-                 Log.printf ("The cable %s was unpinned with success\n") (cable#show "");
+                 Log.printf1 ("The cable %s was unpinned with success\n") (cable#show "");
                  )
                self#get_involved_cables;
-             Log.printf "  (destroying the simulated device implementing %s...)\n" self#get_name;
+             Log.printf1 "  (destroying the simulated device implementing %s...)\n" self#get_name;
              d#destroy; (* This is the a method from some object in Simulation_level *)
              simulated_device := None;
              automaton_state := NoDevice;
              self#set_next_simulated_device_state None;
-             Log.printf "We're not deadlocked yet (%s). Great.\n" self#get_name);
+             Log.printf1 "We're not deadlocked yet (%s). Great.\n" self#get_name);
         | _ ->
             raise_forbidden_transition "destroy_right_now"
         );
-    Log.printf "The simulated device %s was destroyed with success\n" self#get_name
+    Log.printf1 "The simulated device %s was destroyed with success\n" self#get_name
 
 
   method (*private*) startup_right_now =
@@ -487,12 +487,12 @@ class virtual ['parent] simulated_device () = object(self)
         (* Don't startup ``incorrect'' devices. This is currently limited to cables of the
            wrong crossoverness which the user has defined by mistake: *)
         if self#is_correct then begin
-          Log.printf "Starting up the device %s...\n" self#get_name;
+          Log.printf1 "Starting up the device %s...\n" self#get_name;
           match !automaton_state, !simulated_device with
           | NoDevice, None ->
-             (Log.printf "Creating processes for %s first...\n" self#get_name;
+             (Log.printf1 "Creating processes for %s first...\n" self#get_name;
               self#create_right_now;
-              Log.printf "Processes for %s were created...\n" self#get_name;
+              Log.printf1 "Processes for %s were created...\n" self#get_name;
               self#startup_right_now
               )
 
@@ -500,21 +500,21 @@ class virtual ['parent] simulated_device () = object(self)
              (d#startup;  (* This is the a method from some object in Simulation_level *)
               automaton_state := DeviceOn;
               self#set_next_simulated_device_state None;
-              Log.printf "The device %s was started up\n" self#get_name
+              Log.printf1 "The device %s was started up\n" self#get_name
               )
 
           | DeviceOn,  _ ->
-              Log.printf "startup_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
+              Log.printf1 "startup_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
 
           | _ -> raise_forbidden_transition "startup_right_now"
         end else begin
-          Log.printf "REFUSING TO START UP the ``incorrect'' device %s!!!\n" self#get_name
+          Log.printf1 "REFUSING TO START UP the ``incorrect'' device %s!!!\n" self#get_name
         end)
 
   method (*private*) suspend_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.printf "Suspending up the device %s...\n" self#get_name;
+        Log.printf1 "Suspending up the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
           DeviceOn, Some(d) ->
            (d#suspend; (* This is the a method from some object in Simulation_level *)
@@ -525,7 +525,7 @@ class virtual ['parent] simulated_device () = object(self)
   method (*private*) resume_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.printf "Resuming the device %s...\n" self#get_name;
+        Log.printf1 "Resuming the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
         | DeviceSleeping, Some(d) ->
            (d#resume; (* This is the a method from some object in Simulation_level *)
@@ -538,7 +538,7 @@ class virtual ['parent] simulated_device () = object(self)
     Recursive_mutex.with_mutex mutex
       (fun () ->
         let current_state = self#automaton_state_as_string in
-        (Log.printf "* Gracefully shutting down the device %s (from state: %s)...\n"
+        (Log.printf2 "* Gracefully shutting down the device %s (from state: %s)...\n"
           self#get_name
           current_state);
         match !automaton_state, !simulated_device with
@@ -552,14 +552,14 @@ class virtual ['parent] simulated_device () = object(self)
             self#gracefully_shutdown_right_now)
 
         | NoDevice,  _ | DeviceOff, _ ->
-            Log.printf "gracefully_shutdown_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
+            Log.printf1 "gracefully_shutdown_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
 
         | _ -> raise_forbidden_transition "gracefully_shutdown_right_now")
 
   method (*private*) poweroff_right_now =
     Recursive_mutex.with_mutex mutex
       (fun () ->
-        Log.printf "Powering off the device %s...\n" self#get_name;
+        Log.printf1 "Powering off the device %s...\n" self#get_name;
         match !automaton_state, !simulated_device with
         | DeviceOn, Some(d) ->
            (d#shutdown; (* non-gracefully *)
@@ -571,7 +571,7 @@ class virtual ['parent] simulated_device () = object(self)
              self#poweroff_right_now)
 
         | NoDevice,  _ | DeviceOff, _ ->
-            Log.printf "poweroff_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
+            Log.printf1 "poweroff_right_now: called in state %s: nothing to do.\n" (self#automaton_state_as_string)
 
         | _ -> raise_forbidden_transition "poweroff_right_now")
 
@@ -907,7 +907,7 @@ object (self)
         self#get_name
    with
    | true ->
-       Log.printf "The %s %s has already defects defined...\n"
+       Log.printf2 "The %s %s has already defects defined...\n"
          self#defects_device_type
          self#get_name
    | false ->
@@ -920,7 +920,7 @@ object (self)
          ()
 
   method private destroy_my_defects =
-    Log.printf "component \"%s\": destroying my defects.\n" self#get_name;
+    Log.printf1 "component \"%s\": destroying my defects.\n" self#get_name;
     network#defects#remove_subtree_by_name self#get_name;
 
   method private defects_update_port_no new_port_no =
@@ -1125,7 +1125,7 @@ class virtual node_with_ledgrid_and_defects
                busy_ports_indexes)
 
   method destroy_my_ledgrid : unit =
-    Log.printf "component \"%s\": destroying my ledgrid.\n" self#get_name;
+    Log.printf1 "component \"%s\": destroying my ledgrid.\n" self#get_name;
     (network#ledgrid_manager:Ledgrid_manager.ledgrid_manager)#destroy_device_ledgrid
       ~id:(self#id)
       ()
@@ -1219,7 +1219,7 @@ class virtual virtual_machine_with_history_and_ifconfig
     Obj.magic
       (Printf.ksprintf
         (fun x-> let msg = self#banner^x in
-                 let () = Log.printf "%s\n" msg in
+                 let () = Log.printf1 "%s\n" msg in
                  failwith msg))
 
   (** A machine has a Linux filesystem *)
@@ -1289,7 +1289,7 @@ class virtual virtual_machine_with_history_and_ifconfig
    let icon = self#history_icon in
    let name = self#get_name in
    match ((network#history:Treeview_history.t)#number_of_states_with_name name) > 0 with
-   | true -> Log.printf "The virtual machine %s has already history defined...\n" name
+   | true -> Log.printf1 "The virtual machine %s has already history defined...\n" name
    | false ->
       network#history#add_device
           ~name
@@ -1307,7 +1307,7 @@ class virtual virtual_machine_with_history_and_ifconfig
         "Name"
         self#get_name
    with
-   | true  -> Log.printf "The %s %s has already ifconfig defined...\n" self#ifconfig_device_type self#get_name
+   | true  -> Log.printf2 "The %s %s has already ifconfig defined...\n" self#ifconfig_device_type self#get_name
    | false ->
       begin
       network#ifconfig#add_device
@@ -1318,11 +1318,11 @@ class virtual virtual_machine_with_history_and_ifconfig
       end
 
   method destroy_my_ifconfig =
-    Log.printf "component \"%s\": destroying my ifconfig.\n" self#get_name;
+    Log.printf1 "component \"%s\": destroying my ifconfig.\n" self#get_name;
     network#ifconfig#remove_subtree_by_name self#get_name;
 
   method destroy_my_history =
-    Log.printf "component \"%s\": destroying my history.\n" self#get_name;
+    Log.printf1 "component \"%s\": destroying my history.\n" self#get_name;
     network#history#remove_device_tree self#get_name;
 
   method update_virtual_machine_with ~name ~port_no kernel =
@@ -1461,9 +1461,8 @@ class network () =
     the task runner method [wait_for_all_currently_scheduled_tasks]. *)
  method reset ?(scheduled=false) () =
   begin
-   Log.print_string "---\n";
-   Log.printf "network#reset: begin\n";
-   Log.printf "\tDestroying all cables...\n";
+   Log.printf "---\n";
+   Log.printf "network#reset: begin\n\tDestroying all cables...\n";
    (List.iter
       (fun cable -> try cable#destroy with _ -> ())
       cables#get);
@@ -1479,9 +1478,7 @@ class network () =
    Log.printf "\tWait for all devices to terminate...\n";
    (** Make sure that all devices have actually been terminated before going
        on: we don't want them to lose filesystem access: *)
-   Log.printf "\tAll devices did terminate.\n";
-   Log.printf "network#reset: end (success)\n";
-   Log.print_string "---\n";
+   Log.printf "\tAll devices did terminate.\nnetwork#reset: end (success)\n---\n";
   end
 
  method destroy_process_before_quitting () =
@@ -1528,7 +1525,7 @@ class network () =
   | false ->
       let ((nodename, attrs), _) = f in
         let name  = List.assoc "name" attrs in
-        (Log.printf "network#eval_forest_child: I can't interpret this \"%s\" name \"%s\".\n" nodename name)
+        (Log.printf2 "network#eval_forest_child: I can't interpret this \"%s\" name \"%s\".\n" nodename name)
         (* Forward-compatibility *)
 
  method names = (List.map (fun x->x#get_name) self#components)
@@ -1672,20 +1669,46 @@ class network () =
  method get_node_names  =
    List.map (fun x->x#get_name) (nodes#get)
 
- method get_nodes_that_can_startup ~devkind () =
-  ListExtra.filter_map
-    (fun x -> if (x#devkind = devkind) && x#can_startup then Some x#get_name else None)
-    nodes#get
+ method private predicate_of_optional_devkind ?devkind () =
+  match devkind with
+  | Some devkind -> (fun x -> x#devkind = devkind)
+  | None         -> (fun x -> true)
 
- method get_nodes_that_can_gracefully_shutdown ~devkind () =
-  ListExtra.filter_map
-    (fun x -> if (x#devkind = devkind) && x#can_gracefully_shutdown then Some x#get_name else None)
-    nodes#get
+ method get_nodes_such_that ?devkind (predicate) =
+  let devkindp = self#predicate_of_optional_devkind ?devkind () in
+  List.filter (fun x -> (devkindp x) && (predicate x)) (nodes#get)
 
- method get_nodes_that_can_suspend ~devkind () =
-  ListExtra.filter_map
-    (fun x -> if (x#devkind = devkind) && x#can_suspend then Some x#get_name else None)
-    nodes#get
+ (* --- can_startup --- *)
+
+ method get_nodes_that_can_startup ?devkind () =
+  self#get_nodes_such_that ?devkind (fun x -> x#can_startup)
+
+ method get_node_names_that_can_startup ?devkind () =
+  List.map (fun x -> x#get_name) (self#get_nodes_that_can_startup ?devkind ())
+
+ (* --- can_gracefully_shutdown --- *)
+
+ method get_nodes_that_can_gracefully_shutdown ?devkind () =
+  self#get_nodes_such_that ?devkind (fun x -> x#can_gracefully_shutdown)
+
+ method get_node_names_that_can_gracefully_shutdown ?devkind () =
+  List.map (fun x -> x#get_name) (self#get_nodes_that_can_gracefully_shutdown ?devkind ())
+
+ (* --- can_suspend --- *)
+
+ method get_nodes_that_can_suspend ?devkind () =
+  self#get_nodes_such_that ?devkind (fun x -> x#can_suspend)
+
+ method get_node_names_that_can_suspend ?devkind () =
+  List.map (fun x -> x#get_name) (self#get_nodes_that_can_suspend ?devkind ())
+
+ (* --- can_resume --- *)
+
+ method get_nodes_that_can_resume ?devkind () =
+  self#get_nodes_such_that ?devkind (fun x -> x#can_resume)
+
+ method get_node_names_that_can_resume ?devkind () =
+  List.map (fun x -> x#get_name) (self#get_nodes_that_can_resume ?devkind ())
 
  (* Including cables (suspend=disconnect, resume=reconnect). The boolean in the result
     indicates if the component is suspended (sleeping): *)
@@ -1698,11 +1721,6 @@ class network () =
          then Some (x#get_name, node_or_cable, (Lazy.force can_resume))
          else None)
     self#disjoint_union_of_nodes_and_cables
-
- method get_nodes_that_can_resume ~devkind () =
-  ListExtra.filter_map
-    (fun x -> if (x#devkind = devkind) && x#can_resume then Some x#get_name else None)
-    nodes#get
 
  (** List of direct cable names in the network *)
  method get_direct_cable_names  =
@@ -1739,12 +1757,12 @@ class network () =
         (String.concat " , "
         (List.map (fun d->d#get_name^" ("^(d#string_of_devkind)^")") nodes#get))
         with _ -> ""
-   in Log.printf "Nodes \r\t\t: %s\n" msg;
+   in Log.printf1 "Nodes \r\t\t: %s\n" msg;
   (* show links *)
    let msg=try
         (String.concat "\n" (List.map (fun c->(c#show "\r\t\t  ")) cables#get))
         with _ -> ""
-   in Log.printf "Cables \r\t\t: %s\n" msg
+   in Log.printf1 "Cables \r\t\t: %s\n" msg
 
 
  (** {b Consider cable as Edge.edges} *)

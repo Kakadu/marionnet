@@ -109,7 +109,7 @@ module Make_menus (Params : sig
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_nodes_that_can_startup ~devkind:`Router ()
+    let dynlist () = st#network#get_node_names_that_can_startup ~devkind:`Router ()
 
     let dialog name () =
      let r = (st#network#get_node_by_name name) in
@@ -186,7 +186,7 @@ module Make_menus (Params : sig
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_gracefully_shutdown ~devkind:`Router ()
+    let dynlist () = st#network#get_node_names_that_can_gracefully_shutdown ~devkind:`Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#gracefully_shutdown
 
@@ -195,7 +195,7 @@ module Make_menus (Params : sig
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_suspend ~devkind:`Router ()
+    let dynlist () = st#network#get_node_names_that_can_suspend ~devkind:`Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#suspend
 
@@ -205,7 +205,7 @@ module Make_menus (Params : sig
     type t = string (* just the name *)
 
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_resume ~devkind:`Router ()
+    let dynlist () = st#network#get_node_names_that_can_resume ~devkind:`Router ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#resume
 
@@ -390,10 +390,10 @@ module Eval_forest_child = struct
     | ("router", attrs) ->
     	let name  = List.assoc "name" attrs in
 	let port_no = int_of_string (List.assoc "port_no" attrs) in
-        Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
+        Log.printf2 "Importing router \"%s\" with %d ports...\n" name port_no;
 	let x = new User_level_router.router ~network ~name ~port_no () in
 	x#from_tree ("router", attrs) children;
-        Log.printf "Router \"%s\" successfully imported.\n" name;
+        Log.printf1 "Router \"%s\" successfully imported.\n" name;
         true
 
    (* backward compatibility *)
@@ -403,11 +403,11 @@ module Eval_forest_child = struct
       let kind = List.assoc "kind" attrs in
       (match kind with
       | "router" ->
-          Log.printf "Importing router \"%s\" with %d ports...\n" name port_no;
+          Log.printf2 "Importing router \"%s\" with %d ports...\n" name port_no;
 	  let r = new User_level_router.router ~network ~name ~port_no () in
 	  let x = (r :> User_level.node_with_ledgrid_and_defects) in
 	  x#from_tree ("device", attrs) children ;
-          Log.printf "Router \"%s\" successfully imported.\n" name;
+          Log.printf1 "Router \"%s\" successfully imported.\n" name;
           true
       | _ -> false
       )
@@ -493,7 +493,7 @@ class router
       self#create_cow_file_name_and_thunk_to_get_the_source
     in
     let () =
-     Log.printf
+     Log.printf4
        "About to start the router %s\n  with filesystem: %s\n  cow file: %s\n  kernel: %s\n"
        self#name
        self#get_filesystem_file_name
@@ -522,18 +522,18 @@ class router
     self_as_node_with_ledgrid_and_defects#gracefully_shutdown_right_now;
     (* We have to manage the hostfs stuff (when in exam mode) and
        destroy the simulated device, so that we can use a new cow file the next time: *)
-    Log.printf "Calling hostfs_directory_pathname on %s...\n" self#name;
+    Log.printf1 "Calling hostfs_directory_pathname on %s...\n" self#name;
     let hostfs_directory_pathname = self#hostfs_directory_pathname in
     Log.printf "Ok, we're still alive\n";
     (* If we're in exam mode then make the report available in the texts treeview: *)
     (if Initialization.are_we_in_exam_mode then begin
       let treeview_documents = Treeview_documents.extract () in
-      Log.printf "Adding the report on %s to the texts interface\n" self#name;
+      Log.printf1 "Adding the report on %s to the texts interface\n" self#name;
       treeview_documents#import_report
 	~machine_or_router_name:self#name
 	~pathname:(hostfs_directory_pathname ^ "/report.html")
 	();
-      Log.printf "Added the report on %s to the texts interface\n" self#name;
+      Log.printf1 "Added the report on %s to the texts interface\n" self#name;
     end);
     (* ...And destroy, so that the next time we have to re-create the process command line
 	can use a new cow file (see the make_simulated_device method) *)

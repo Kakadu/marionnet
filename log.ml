@@ -19,84 +19,19 @@
 %str_item escape_raise_filter
 ;;
 
-(*(* Initialized later, by Global_options, in order to break the ciclic dependency: *)
-include Log_builder.Make (struct
+(* Initialized later, by Global_options, in order to break the cyclic dependency: *)
+module Self = Log_builder.Make (struct
   let debug_level () = 0           (* the debug_level must be greater or equal to the verbosity, otherwise do nothing *)
   let verbosity = 1                (* the default value of verbosity for printing functions *)
   let log_channel = `stderr        (* put messages here *)
   let synchronized = true          (* using threads *)
  end);;
 
-(* Setting the ocamlbricks log verbosity to the same value: *)
-let () = Ocamlbricks_log.Tuning.Set.verbosity   (Tuning.verbosity ())
-;;*)
-
-module T = struct
-  let debug_level () = 0           (* the debug_level must be greater or equal to the verbosity, otherwise do nothing *)
-  let verbosity = 1                (* the default value of verbosity for printing functions *)
- end;;
+include (Log_builder.Extend_with_wrappers (Self)) ;;
 
 (* Setting the ocamlbricks log verbosity to the same value: *)
-let () = Ocamlbricks_log.Tuning.Set.verbosity   (T.verbosity) ;;
-let () = Ocamlbricks_log.Tuning.Set.debug_level (T.debug_level) ;;
-
-include Ocamlbricks_log
-
-
-(* Wrappers providing a logged version of functions defined elsewhere. *)
-
-(** Wrapper for [UnixExtra.system_or_fail]: run system with the given argument,
-    and raise exception in case of failure; return unit on success.
-    Commands are automatically logged in debug mode. Furthermore, when debugging
-    is not enable, a command redirection (/bin/sh compatible, i.e. 1>/dev/null
-    2>/dev/null) is automatically appended to the command. In order to prevent
-    this behaviour, the function provides the optional parameters ?hide_output
-    and ?hide_errors: setting both these parameters to false, you ensure that
-    nothing will be appended to the command (in debug mode or not). *)
-let system_or_fail ?on_error ?hide_output ?hide_errors command_line =
-  let extract_hide_decision h = match h with
-  | None          -> not (Tuning.is_log_enabled ())
-  | Some decision -> decision in
-  let hide_output = extract_hide_decision hide_output in
-  let hide_errors = extract_hide_decision hide_errors in
-  printf "Executing: %s\n" command_line;
-  try
-    UnixExtra.system_or_fail ~hide_output ~hide_errors command_line
-  with e ->
-   begin
-    (match on_error with
-    | None         -> ()
-    | Some command ->
-        try UnixExtra.system_or_fail ~hide_output ~hide_errors command with _ -> ()
-    );
-    raise e
-   end
-
-(** Equivalent to [ignore (Unix.system command_line)] but with
-    logging features. Notice that if the command_line terminates
-    with '&' (background), no exceptions will be raised.
-    Thus, using '&', there is no effect in setting [~force:true], because the
-    shell well exit in any case. However, Log.system_or_ignore
-    is preferable with respect to [(ignore (Unix.system command_line))]
-    because it shows shell errors only in the debug mode. *)
-let system_or_ignore ?on_error ?hide_output ?hide_errors command_line =
- try
-  system_or_fail ?on_error ?hide_output ?hide_errors command_line
- with e ->
-   begin
-   let fmt = format_of_string "Ignoring exception: %s\n" in
-   let msg = Printexc.to_string e in
-   (match hide_errors with
-    | None       -> printf fmt msg
-    | Some false -> printf ~force:true fmt msg
-    | Some true  -> ()
-    )
-    end
-
-let print_backtrace () =
-  printf
-    "Backtrace:\n%s\n"
-    (StringExtra.tab ~tab:2 (Printexc.get_backtrace ()))
+let () = Ocamlbricks_log.Tuning.Set.verbosity (Tuning.verbosity ())
+;;
 
 (** Wrappers for system_or_ignore: the command is performed by Unix.system
     with logging features. In case of failure, the function doesn't produce

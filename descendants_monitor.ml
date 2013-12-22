@@ -30,7 +30,7 @@ let start_monitor_and_get_kill_method ?(pid=Unix.getpid ()) ?(wake_up_interval=4
 	if garbage_collection then
 	  Process_set.filter (fun (pid,_starttime) -> UnixExtra.is_process_alive pid) pset
       in
-      Log.printf ~v:2 "Descendants monitor: %d descendants currently observed\n" (Process_set.cardinal pset);
+      Log.printf1 ~v:2 "Descendants monitor: %d descendants currently observed\n" (Process_set.cardinal pset);
     end
   in
   let rec loop i =
@@ -46,7 +46,7 @@ let start_monitor_and_get_kill_method ?(pid=Unix.getpid ()) ?(wake_up_interval=4
   let kill_process_set () =
     let kill_action (pid,_starttime) =
       begin
-        Unix.kill pid Sys.sigkill;
+        try Unix.kill pid Sys.sigkill with _ -> ();
       end
     in
     apply_with_mutex (Process_set.iter kill_action) pset

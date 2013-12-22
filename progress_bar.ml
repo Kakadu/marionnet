@@ -32,7 +32,6 @@ let update_interval = 200;; (* in milliseconds *)
 
 let destroy_progress_bar_dialog window = begin
   Log.printf "A progress bar dialog window was destroyed.\n";
-  flush_all ();
   window#destroy ();
   progress_bars := List.filter (fun (w,_,_)->w!=window) !progress_bars
   end

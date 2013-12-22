@@ -82,7 +82,7 @@ module Make (M: Parents) = struct
  (* Now tools: *)
 
  let not_implemented_yet _ = Log.printf "NOT IMPLEMENTED YET!!!!!\n"
- let monitor label _ = Log.printf "Menu entry with label \"%s\" selected by user\n" label
+ let monitor label _ = Log.printf1 "Menu entry with label \"%s\" selected by user\n" label
 
  let add_item ?(menu = get_current_menu ()) ?submenu ?(key=0) label ?(callback=(monitor label)) () =
    let result = menu#add_item label ~key ~callback in
@@ -134,7 +134,7 @@ module Side_effects_of
           "--- Dialog result:\n%s------------------\n"
           (E.to_string t)
       in
-      (Log.printf "%s" msg)
+      (Log.printf1 "%s" msg)
  end
 
 let compose ?none_effect ?some_effect (heuristic:'a -> 'b option) (procedure:'b -> unit) =

@@ -55,7 +55,7 @@ module Make (S : sig val st:State.globalState end) = struct
     wn:(GObj.widget list))
     -> () =
     let print_log () =
-      Log.printf
+      Log.printf4
            "sensitiveness_manager: the project is in the state: %s #wa=%d #wr=%d #wn=%d\n"
             st#app_state_as_string
             (List.length wa) (List.length wr) (List.length wn)
@@ -150,7 +150,7 @@ module Make (S : sig val st:State.globalState end) = struct
 	  ());
         end
       with e ->
-        (Log.printf
+        (Log.printf1
            "Warning: exception raised in sketch_refresher:\n%s\nIgnoring.\n"
            (Printexc.to_string e))
     end

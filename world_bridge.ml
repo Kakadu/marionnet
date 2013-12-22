@@ -81,7 +81,7 @@ module Make_menus (Params : sig
 
   module Properties = struct
     include Data
-    let dynlist () = st#network#get_nodes_that_can_startup ~devkind:`World_bridge ()
+    let dynlist () = st#network#get_node_names_that_can_startup ~devkind:`World_bridge ()
 
     let dialog name () =
      let d = (st#network#get_node_by_name name) in
@@ -130,7 +130,7 @@ module Make_menus (Params : sig
   module Stop = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_gracefully_shutdown ~devkind:`World_bridge ()
+    let dynlist () = st#network#get_node_names_that_can_gracefully_shutdown ~devkind:`World_bridge ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#gracefully_shutdown
 
@@ -139,7 +139,7 @@ module Make_menus (Params : sig
   module Suspend = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_suspend ~devkind:`World_bridge ()
+    let dynlist () = st#network#get_node_names_that_can_suspend ~devkind:`World_bridge ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#suspend
 
@@ -148,7 +148,7 @@ module Make_menus (Params : sig
   module Resume = struct
     type t = string (* just the name *)
     let to_string = (Printf.sprintf "name = %s\n")
-    let dynlist () = st#network#get_nodes_that_can_resume ~devkind:`World_bridge ()
+    let dynlist () = st#network#get_node_names_that_can_resume ~devkind:`World_bridge ()
     let dialog = Menu_factory.no_dialog_but_simply_return_name
     let reaction name = (st#network#get_node_by_name name)#resume
 
@@ -246,10 +246,10 @@ module Eval_forest_child = struct
     | ("world_bridge", attrs)
     | ("gateway" (* retro-compatibility *), attrs) ->
     	let name  = List.assoc "name"  attrs in
-        Log.printf "Importing world bridge \"%s\"...\n" name;
+        Log.printf1 "Importing world bridge \"%s\"...\n" name;
         let x = new User_level_world_bridge.world_bridge ~network ~name () in
 	x#from_tree ("world_bridge", attrs) children  ;
-        Log.printf "World bridge \"%s\" successfully imported.\n" name;
+        Log.printf1 "World bridge \"%s\" successfully imported.\n" name;
         true
    | _ ->
         false
@@ -401,7 +401,7 @@ object(self)
                                      (Unix.getuid ()),
                                      bridge_name))));
     with e -> begin
-      Log.printf
+      Log.printf1
         "WARNING: Failed in destroying a host tap for a world bridge: %s\n"
         (Printexc.to_string e);
     end);

@@ -16,7 +16,6 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-
 let fail x = failwith (Printf.sprintf "Ill-formed DISPLAY string: '%s'" x)
 ;;
 
@@ -109,7 +108,7 @@ let is_X_server_listening_TCP_connections =
   is_local_service_open ~host_addr ~port ()
 ;;
 
-Log.printf
+Log.printf6
   "---\nHost X data from $DISPLAY:\nHost: %s\nHost address: %s\nDisplay: %s\nScreen: %s\nListening on port %d: %b\n---\n"
   host host_addr
   display
@@ -144,7 +143,7 @@ let fix_X_problems : unit =
       able to connect to the host X server: *)
   | true,  "127.0.0.1" when port<>6000 && socketfile_exists ->
       (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr UNIX-CONNECT:/tmp/.X11-unix/X? *)
-      Log.printf "(case 2) Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
+      Log.printf1 "(case 2) Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
       ignore (Network.Socat.inet4_of_unix_stream_server ?no_fork ~range4 ~port:6000 ~socketfile ())
 
   (* Case n°3: an X server seems to run on localhost accepting TCP connection,
@@ -156,7 +155,7 @@ let fix_X_problems : unit =
       provide the X cookies in ~/.Xauthority to the virtual machines. *)
   | true,  "127.0.0.1" when port<>6000 && (not socketfile_exists) ->
       (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr TCP:host_addr:port *)
-      Log.printf "(case 3) Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
+      Log.printf2 "(case 3) Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
       ignore (Network.Socat.inet4_of_inet_stream_server ?no_fork ~range4 ~port:6000 ~ipv4_or_v6:host_addr ~dport:port ())
 
   (* Case n°4: probably a telnet or a ssh -X connection.
@@ -164,14 +163,14 @@ let fix_X_problems : unit =
       provide the X cookies in ~/.Xauthority to the virtual machines.    *)
   | true,  _  (* when host_addr<>"127.0.0.1" *) ->
       (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr TCP:host_addr:port *)
-      Log.printf "(case 4) Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
+      Log.printf2 "(case 4) Starting a socat service: 0.0.0.0:6000 -> %s:%d\n" host_addr port;
       ignore (Network.Socat.inet4_of_inet_stream_server ?no_fork ~range4 ~port:6000 ~ipv4_or_v6:host_addr ~dport:port ())
 
   (* Case n°5: an X server seems to run on localhost but it doesn't accept TCP connections.
       We simply redirect connection requests to the unix socket: *)
   | false, "127.0.0.1" when socketfile_exists ->
       (* Equivalent to: socat TCP-LISTEN:6000,fork,reuseaddr UNIX-CONNECT:/tmp/.X11-unix/X? *)
-      Log.printf "(case 5) Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
+      Log.printf1 "(case 5) Starting a socat service: 0.0.0.0:6000 -> %s\n" socketfile;
       ignore (Network.Socat.inet4_of_unix_stream_server ?no_fork ~range4 ~port:6000 ~socketfile ())
 
   | false, _ ->

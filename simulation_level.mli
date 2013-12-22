@@ -37,7 +37,7 @@ class virtual process :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -60,7 +60,7 @@ class xnest_process :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -85,7 +85,7 @@ class virtual process_which_creates_a_socket_at_spawning_time :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -110,7 +110,7 @@ class vde_switch_process :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -131,7 +131,7 @@ class switch_process :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -152,7 +152,7 @@ class hub_process :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -171,7 +171,7 @@ class hublet_process :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -190,7 +190,7 @@ class slirpvde_process :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -208,7 +208,7 @@ class unixterm_process :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -251,7 +251,7 @@ class ethernet_cable_process :
     method is_alive : bool
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method terminate : unit
   end
 
@@ -315,7 +315,7 @@ class uml_process :
     method remove_hostfs_directory : unit
     method spawn : unit
     method stop : unit
-    method stop_monitoring : unit
+    method stop_monitoring : ?current_pid:int -> unit -> unit
     method swap_file_name : string
     method terminate : unit
   end

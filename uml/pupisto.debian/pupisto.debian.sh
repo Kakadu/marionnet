@@ -193,9 +193,9 @@ Defaults:
 Notes
   - If the kernel is compiled (you can disable it with -K) it will
     compiled outside the Debian filesystem.
-  - We suggest to add a line like   
+  - We suggest to add a line like
     'Defaults timestamp_timeout=60'
-    in your /etc/sudoers, to prevent the script to ask the sudo 
+    in your /etc/sudoers, to prevent the script to ask the sudo
     password several times
 
 Examples:
@@ -639,6 +639,12 @@ function fix_etc_issue {
 }
 
 
+# Note that the option "-a reboot" of the command `exec'
+# provokes a deadlock with kernel 3.2.x
+# So we replace the line:
+# exec -a reboot /sbin/halt "$@" -f
+# with the simpler:
+# exec /sbin/halt "$@" -f
 function fix_reboot_as_root {
  # global DEBIANROOT
  local ROOT=${1:-$DEBIANROOT}
@@ -650,7 +656,8 @@ function fix_reboot_as_root {
 #!/bin/bash
 
 # The option -f prevent a Marionnet crash using kernels 3.2.x
-exec -a reboot /sbin/halt "$@" -f
+# For a similar reason, the option "-a reboot" must no be used:
+exec /sbin/halt "$@" -f
 EOF
  # ---
  chmod +x $TARGET

@@ -216,7 +216,7 @@ $ ${0##*/} --no-kernel --router --name pulcinella"
 # successfully buildroot compilation (2.6.18 fails)
 # Another possible default could be 2.6.32 (last statically-linked
 # available version of our patched (ghost2) kernel)
-DEFAULT_KERNEL_VERSION=3.2.48
+DEFAULT_KERNEL_VERSION=3.2.51
 
 # Manage now your options in a convenient order
 #
@@ -385,6 +385,8 @@ BASHRC=$PWD/$PUPISTO_FILES/bashrc
 SSH_DIR=$PWD/$PUPISTO_FILES/ssh
 RADVD_DIR=$PWD/$PUPISTO_FILES/radvd
 DHCPD_DIR=$PWD/$PUPISTO_FILES/dhcpd
+REBOOT_WRAPPER=$PWD/$PUPISTO_FILES/reboot
+LINUXLOGO=$PWD/$PUPISTO_FILES/gnu_linux_logo
 
 cat 1>$OUR_TUNING_SCRIPT <<EOF
 #!/bin/bash
@@ -461,6 +463,14 @@ if [[ -f "\$RADVD" ]]; then
   cp $RADVD_DIR/radvd.conf.example* etc/
 fi
 
+# reboot
+REBOOT=\$(find sbin/ -name "reboot")
+if [[ -f "\$REBOOT" ]]; then
+  rm $REBOOT
+  cp $REBOOT_WRAPPER sbin/reboot
+  chmod +x sbin/reboot
+fi
+
 # dhcpd
 DHCPD=\$(find etc/init.d/ -maxdepth 1 -type f -name "*dhcp-server")
 if [[ -f \$DHCPD ]]; then
@@ -480,17 +490,21 @@ fi
 # Login message.
 # Note that setting BR2_TARGET_GENERIC_ISSUE no gives the expected effect,
 # so we write the message directly in the good place:
-cat >etc/issue <<\EOF_issue
-#######################################################
-Welcome to \`$DISTRIBUTION_NAME', a compact GNU/Linux filesystem
-conceived for Marionnet, based on Busybox and made with
-Buildroot ($(LC_ALL=us date "+%B %Y")).
-#######################################################
-Running with kernel \r
-
-Use the account root/root or student/student
-
-EOF_issue
+# # # cat >etc/issue <<\EOF_issue
+# # # #######################################################
+# # # Welcome to \`$DISTRIBUTION_NAME', a compact GNU/Linux filesystem
+# # # conceived for Marionnet, based on Busybox and made with
+# # # Buildroot ($(LC_ALL=us date "+%B %Y")).
+# # # #######################################################
+# # # Running with kernel \r
+# # #
+# # # Use the account root/root or student/student
+# # #
+# # # EOF_issue
+#
+cp $LINUXLOGO etc/issue
+sed -i -e "s/DISTRIBUTION_NAME/$DISTRIBUTION_NAME/" etc/issue
+sed -i -e "s/DATE/$(LC_ALL=us date "+%B %Y")/" etc/issue
 
 EOF
 
@@ -510,7 +524,7 @@ echo "quagga:x:117:" >> etc/group
 echo "quagga:x:108:117:Linux User,,,:/home/quagga:/bin/false" >> etc/passwd
 echo 'quagga:!:15815:0:99999:7:::' >> etc/shadow
 # Fix quagga ownership:
-chown -R 108:117 etc/quagga
+# # # chown -R 108:117 etc/quagga # NOT PERMITTED!!! => to do in marionnet_relay!
 EOF
 fi
 
@@ -713,8 +727,9 @@ EOF
   fi
 }
 
+
 # Add now our package `ethghost'
-ETHGHOST_VERSION=$(make -s -C ../ethghost print_version)
+ETHGHOST_VERSION=$(\make --quiet -C ../ethghost print_version)
 add_extra_buildroot_package $PUPISTO_FILES/ethghost $ETHGHOST_VERSION ../ethghost
 
 #######################################

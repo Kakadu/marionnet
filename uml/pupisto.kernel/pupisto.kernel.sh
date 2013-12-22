@@ -225,6 +225,9 @@ function create_kernel_config_from {
  sed -i -e 's/CONFIG_X86_CMPXCHG64=y/CONFIG_X86_CMPXCHG64=n/' .config
  # Looking http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=084189a
  sed -i -e 's/CONFIG_CMPXCHG_LOCAL=y/CONFIG_CMPXCHG_LOCAL=n/' .config
+ # The modern `systemd' mechanism requires DEVTMPFS:
+ echo 'CONFIG_DEVTMPFS=y' >> .config
+ echo 'CONFIG_DEVTMPFS_MOUNT=n' >> .config
  # Now switch to "yes" (=y) all remaining things set as module (=m).
  # In the case of kernel 3.2.44 (LTS) we have only this settings:
  # CONFIG_UML_SOUND=m

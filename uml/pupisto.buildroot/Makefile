@@ -27,7 +27,7 @@
 #                     Building `guignol'
 # =============================================================
 
-KERNEL_VERSION=3.2.48
+KERNEL_VERSION=3.2.51
 
 guignol: dependencies buildroot
 	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --router --name guignol $(OPTIONS)

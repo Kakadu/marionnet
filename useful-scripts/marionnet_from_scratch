@@ -17,14 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.25
-# 2013.10.07
+# Script version: 0.90.26
+# 2014.03.27
 
 # Thanks:
-# - Lucas Nussbaum for the idea of having an option "--download-only/-O",
+# - Lucas Nussbaum for the idea of option "--download-only/-O",
 #   and for his patch proposal (July 2013)
-
-
 
 set -e
 shopt -s nullglob
@@ -1607,6 +1605,18 @@ if ps -A -o cmd | grep -q '^[a-zA-Z0-9/]*X.*[-]nolisten tcp'; then
    fi
  fi
 fi
+
+# =============================================================
+#               Fix problems in Debian or derived
+# =============================================================
+
+if are_we_in_debian_or_derived; then
+  if type update-rc.d; then
+    $SUDO_OR_NOTHING update-rc.d marionnet-daemon defaults
+  elif type insserv; then
+    $SUDO_OR_NOTHING insserv marionnet-daemon
+  fi
+fi 1>/dev/null 2>/dev/null
 
 # =============================================================
 #                  Fix problems in Ubuntu

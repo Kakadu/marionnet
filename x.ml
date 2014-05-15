@@ -57,6 +57,22 @@ let get_host_display_screen () =
 let host, display, screen = get_host_display_screen ()
 ;;
 
+let get_cookie_by_xauth ?(display="0") ?(screen="0") () : string option =
+  let command = Printf.sprintf "xauth list :%s.%s" display screen in
+  let result, code = UnixExtra.run (command) in
+  if code <> Unix.WEXITED 0 then None else (* continue: *)
+  let xss = StringExtra.Text.Matrix.of_string result in (* [["socrates/unix:12"; "MIT-MAGIC-COOKIE-1"; "0fca956092856af8f4cfae3951f837e7"]] *)
+  match xss with
+  | [hostname; "MIT-MAGIC-COOKIE-1"; cookie]::_ -> Some cookie
+  | _ -> None
+
+(* Global variable set to the MIT-MAGIC-COOKIE-1 of the current display and screen: *)
+let mit_magic_cookie_1 : string option =
+  get_cookie_by_xauth ~display ~screen ()
+
+(* Just an alias: *)
+let cookie = mit_magic_cookie_1
+
 let _last_used_local_display_index =
   ref 0;;
 
@@ -108,11 +124,12 @@ let is_X_server_listening_TCP_connections =
   is_local_service_open ~host_addr ~port ()
 ;;
 
-Log.printf6
-  "---\nHost X data from $DISPLAY:\nHost: %s\nHost address: %s\nDisplay: %s\nScreen: %s\nListening on port %d: %b\n---\n"
+Log.printf7
+  "---\nHost X data from $DISPLAY:\nHost: %s\nHost address: %s\nDisplay: %s\nScreen: %s\nCookie: %s\nListening on port %d: %b\n---\n"
   host host_addr
   display
   screen
+  (Option.extract_or cookie "None")
   port
   is_X_server_listening_TCP_connections
 ;;

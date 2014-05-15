@@ -19,8 +19,11 @@
 
 (* The syntax of $DISPLAY is: [host]:display[.screen] *)
 
-val host    : string  (* "localhost" by default *)
+val host    : string        (* "localhost" by default *)
 val display : string
-val screen  : string  (* "0" by default *)
+val screen  : string        (* "0" by default *)
+
+val mit_magic_cookie_1 : string option  (* The result of `xauth list $DISPLAY' *)
+val cookie             : string option  (* Just an alias for `mit_magic_cookie_1' *)
 
 val get_unused_local_display : unit -> string

@@ -1660,7 +1660,7 @@ if are_we_in_ubuntu_12_04 && is_the_packaged_vde2_version_lt_2_3_0; then
   echo -n "     Shall I install the vde2 backport ([y]/n)? "
   read z
   if [[ $z != n && $z != N ]]; then
-    launch_and_log --sudo "Installing vde2 backport for Ubuntu 12.04" "add-apt-repository -y ppa:pdffs/precise-virt && aptitude update && aptitude install -y vde2"
+    launch_and_log --sudo "Installing vde2 backport for Ubuntu 12.04" "add-apt-repository -y ppa:pdffs/precise-virt && { aptitude update; aptitude install -y vde2; }"
   fi
 fi
 

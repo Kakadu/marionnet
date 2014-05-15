@@ -169,7 +169,7 @@ fi
     # CIDR notation. So, the command executed here may have a form like:
     # ifconfig eth0 inet6 add 2003:abd::1/32
     if [[ -n $ipv6_address ]]; then
-      # Try several commands: 
+      # Try several commands:
       ifconfig eth$i add $ipv6_address || \
       ifconfig eth$i inet6 add $ipv6_address || \
       ip addr add $ipv6_address dev eth0 eth$i || \
@@ -242,12 +242,18 @@ fi
  ###########################################
 
  # Setting DISPLAY
- x11_display_number=${x11_display_number#:}
+ x11_display_number=${x11_display_number#:} # x11_display_number is currently unused
  DISPLAY_VALUE=172.23.0.254:${x11_display_number:-0}
 
  # Support for `ssh' tunnelling:
- if [[ -n "$x11_display_cookie" ]] && type -t xauth &>/dev/null; then
-  xauth add $DISPLAY_VALUE . $x11_display_cookie
+ if [[ -n "${mit_magic_cookie_1}" ]] && type -t xauth &>/dev/null; then
+   # We set XAUTHORITY in order to have a configuration
+   # suitable for all users, not just for `root':
+   mkdir -p /etc/X11
+   export XAUTHORITY="/etc/X11/Xauthority"
+   >$XAUTHORITY
+   chmod a+r $XAUTHORITY
+   xauth add $DISPLAY_VALUE . ${mit_magic_cookie_1}
  fi
 
  # Find a suitable shell configuration file and append the line setting the
@@ -255,6 +261,7 @@ fi
  for i in /etc/profile /etc/bash.bashrc /root/.bash_profile /root/.bashrc; do
   if [[ -f $i ]]; then
     append_line_if_needed "export DISPLAY=$DISPLAY_VALUE" $i
+    if [[ -n $XAUTHORITY ]]; then append_line_if_needed "export XAUTHORITY=$XAUTHORITY" $i; fi
     break;
   fi
  done

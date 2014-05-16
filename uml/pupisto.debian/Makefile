@@ -20,7 +20,7 @@
 #                     Building `guignol'
 # =============================================================
 
-KERNEL_VERSION=3.2.48
+KERNEL_VERSION=3.2.58
 
 wheezy: dependencies
 	./pupisto.debian.sh --kernel $(KERNEL_VERSION) -t ext2 -r wheezy
@@ -52,7 +52,7 @@ squeeze-edit:
 # =============================================================
 
 # REQUIRED_PACKAGES=debootstrap fakeroot fakechroot
-REQUIRED_PACKAGES=debootstrap
+REQUIRED_PACKAGES=debootstrap realpath
 dependencies:
 	@echo "Required packages: $(REQUIRED_PACKAGES)"
 	@which dpkg 1>/dev/null || { echo "Not a Debian system (oh my god!); please install packages corresponding to: $(REQUIRED_PACKAGES)"; exit 1; }

@@ -38,6 +38,7 @@ else
   EXIT_CODE_FILE=$(mktemp /tmp/exit_code_${MY_BASENAME}.XXXXXX)
   echo -e "Log file of command:\n$0" "$@" "\n---" | tee $LOGFILE
   COLUMNS=$(tput cols)
+  # Recursive call to this script, but with logging capabilities:
   { time $0 "$LOGFILE" "$@"; echo $? >$EXIT_CODE_FILE; } 2>&1 | tee -a "$LOGFILE" | cut -c1-$((COLUMNS))
   read EXIT_CODE <$EXIT_CODE_FILE
   rm -f $EXIT_CODE_FILE
@@ -204,11 +205,13 @@ $ ${0##*/} -k 3.0.8 --custom -t ext4 -r wheezy"
  exit $1
 }
 
+# http://http.debian.net/debian
+
 # Note that 2.6.30 is the first header's version allowing a
 # successfully buildroot compilation (2.6.18 fails)
 # Another possible default could be 2.6.32 (last statically-linked
 # available version of our patched (ghost2) kernel)
-DEFAULT_KERNEL_VERSION=3.2.48
+DEFAULT_KERNEL_VERSION=3.2.58
 
 # We set this default to "ext2" in order to obtain smaller filesystems:
 DEFAULT_FSTYPE="ext2"
@@ -294,7 +297,7 @@ set_tracing
 # =============================================================
 
 source ../pupisto.common/toolkit_config_files.sh
-# Exported functions available from now:
+# Exported functions available now:
 #   tabular_file_update
 #   user_config_set
 #   set_default_config_file
@@ -355,7 +358,7 @@ INSTALL_LINUXLOGO=y
 #                      DEBOOTSTRAP
 # =============================================================
 
-function launch_debootstrap_and_fix_problems_with_apt {
+function launch_debootstrap_and_then_apt_get_install {
  # global DEBIAN_FRONTEND RELEASE DEBIANROOT HTTP_SERVER INSTALL_LOCALES (input)
  # global INCLUDED_PACKAGES (output)
  local ROOT=${1:-$DEBIANROOT}
@@ -370,15 +373,13 @@ function launch_debootstrap_and_fix_problems_with_apt {
  fi
  INCLUDED_PACKAGES=$( (for i in $MANDATORY_PACKAGES; do echo $i; done; awk <$SELECTION '$1 !~ /^#/ {print $1}') | sort -d | uniq)
  INCLUDED_PACKAGES=$(echo $INCLUDED_PACKAGES)
- INCLUDED_PACKAGES=${INCLUDED_PACKAGES// /,}
 
  local EXCLUDED_PACKAGES="udev"
  EXCLUDED_PACKAGES=$(echo $EXCLUDED_PACKAGES)
- EXCLUDED_PACKAGES=${EXCLUDED_PACKAGES// /,}
 
  # Note: without --foreign
- local INCLUDE="--include=$INCLUDED_PACKAGES"
- local EXCLUDE="--exclude=$EXCLUDED_PACKAGES"
+ local INCLUDE="--include=${INCLUDED_PACKAGES// /,}" # unused in this version
+ local EXCLUDE="--exclude=${EXCLUDED_PACKAGES// /,}"
 
  # Relevant for a non-interactive debootstrap running:
  export DEBIAN_FRONTEND=noninteractive
@@ -386,14 +387,35 @@ function launch_debootstrap_and_fix_problems_with_apt {
  # Ask sudo password once, please:
  sudo -v -p "[sudo] password for %u (required for chroot/mount actions): "
 
- if once --register-anyway sudo debootstrap --no-check-gpg --arch=${ARCH} $INCLUDE $EXCLUDE $RELEASE ${ROOT} ${HTTP_SERVER}; then
-   echo "Happily \`debootstrap' managed the installation of all packages!"
+ # --- Launch debootstrap:
+ if once --register-anyway sudo debootstrap --no-check-gpg --arch=${ARCH} --include="aptitude" $EXCLUDE $RELEASE ${ROOT} ${HTTP_SERVER}; then
+   echo "Ok, \`debootstrap' managed the installation of the basic set of packages"
  else
-   sudo -v # update cached credentials
-   echo "I try now to continue with \`apt-get -f install'..."
-   once sudo_careful_chroot ${ROOT} apt-get -y --force-yes -f install
+   echo "Error: something goes wrong installing the basic set of packages with \`debootstrap'"
+   return 1
  fi
+ #---
+
  sudo -v # update cached credentials
+
+ # --- Don't try to launch services (tricks found at http://askubuntu.com/q/74061, thanks!) running apt-get:
+ local POLICY_RC=$ROOT/usr/sbin/policy-rc.d
+ echo -e '#!/bin/sh\nexit 101\n' | sudo_write_to_file $POLICY_RC
+ sudo chmod +x $POLICY_RC
+ local DPKG_CUSTOM=$ROOT/etc/dpkg/dpkg.cfg.d/custom
+ echo 'no-triggers' | sudo_write_to_file $DPKG_CUSTOM
+ # ---
+
+ # --- Launch apt-get install:
+ echo "I try now to continue the installation with \`apt-get'..."
+ once sudo_careful_chroot ${ROOT} apt-get -y --force-yes -f install $INCLUDED_PACKAGES
+ # ---
+
+ # --- Mr proper:
+ sudo rm -f $POLICY_RC $DPKG_CUSTOM
+ #---
+
+ return 0
 }
 
 # =============================================================
@@ -404,13 +426,11 @@ function fix_apt_sources_update_and_upgrade {
  # global DEBIANROOT HTTP_SERVER RELEASE
  local ROOT=${1:-$DEBIANROOT}
  local TARGET=$ROOT/etc/apt/sources.list
- local TMPFILE=$(mktemp)
- cat 1>$TMPFILE <<EOF
+ { cat <<EOF
 deb $HTTP_SERVER $RELEASE main
 deb http://security.debian.org/ $RELEASE/updates main
 EOF
- sudo_fcall rewrite $TARGET with cat $TMPFILE
- rm -f $TMPFILE
+ } | sudo_write_to_file $TARGET
  # Update:
  # sudo_careful_chroot ${ROOT} aptitude update
  sudo_careful_chroot ${ROOT} apt-get update
@@ -452,7 +472,7 @@ function fix_etc_inittab {
  # Note that th -L option is very relevant to obtain a console quicly reacting to CTRL-C/CTRL-Z etc:
  sudo awk -v line="0:12345:respawn:/sbin/getty -L 38400 tty0 xterm" "$AWK_PROGRAM" "$ROOT/etc/inittab" > $TMPFILE
  tabular_file_update --ignore-unchanged -i -d ":" -k 1 --key-value "ca" -f 4 --field-value "/sbin/halt" $TMPFILE
- sudo_fcall rewrite $ROOT/etc/inittab with cat $TMPFILE
+ sudo_write_to_file $ROOT/etc/inittab <$TMPFILE
  rm -f $TMPFILE
 }
 
@@ -472,7 +492,7 @@ devpts /dev/pts devpts gid=5,mode=620 0 0
 sysfs /sys sysfs defaults 0 0
 tmpfs /run/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=1M 0 0
 EOF
- sudo_fcall rewrite $ROOT/etc/fstab with cat $TMPFILE
+ sudo_write_to_file $ROOT/etc/fstab <$TMPFILE
  rm -f $TMPFILE
 }
 
@@ -501,7 +521,7 @@ function fix_etc_securetty {
  if ! \grep -q "^tty0$" $TARGET; then
    local TMPFILE=$(mktemp)
    sudo awk '/^tty1$/ {print "tty0"} {print}' "$TARGET" > $TMPFILE
-   sudo_fcall rewrite "$TARGET" with cat $TMPFILE
+   sudo_write_to_file "$TARGET" <$TMPFILE
    rm -f $TMPFILE
  fi
 }
@@ -777,7 +797,7 @@ function clean_debian_filesystem {
 
  # 2) apt-clean
  echo "* Cleaning..."
- sudo chroot "$ROOT" bash -c "apt-get clean; apt-get autoremove"
+ sudo chroot "$ROOT" bash -c "apt-get -y clean; apt-get -y autoremove"
  sudo chroot "$ROOT" bash -c "dpkg -l | grep '^rc' && COLUMNS=200 dpkg -l | grep '^rc' | awk '{print \$2}' | xargs dpkg -P" || true
 
  # 3) deborphan
@@ -802,7 +822,7 @@ function clean_debian_filesystem {
 
  # 7) accelerate future 'apt-get update' (very slow with cow-files):
  local TARGET=$ROOT/etc/apt/apt.conf.d/99translations
- sudo_fcall rewrite $TARGET with 'echo Acquire::Languages \"none\"\;'
+ sudo_write_to_file $TARGET 'echo Acquire::Languages \"none\"\;'
  sudo find $ROOT/var/lib/apt/lists -name "*i18n_Translation*" -exec rm {} \;
 
  # 8) remove /var/lib/apt/lists/*
@@ -818,22 +838,6 @@ function clean_debian_filesystem {
  echo "Success."
 }
 
-# VERSIONE DI TEST ************************************************************************
-# function clean_debian_filesystem {
-#  # global DEBIANROOT INSTALL_LOCALES
-#  local ROOT=${1:-$DEBIANROOT}
-#  [[ -n $ROOT ]] || return 1
-#
-#  # 2) apt-clean
-#  echo "* Cleaning..."
-#  sudo chroot "$ROOT" bash -c "apt-get clean; apt-get autoremove"
-#
-#  # IN PIU:
-#  sudo chroot "$ROOT" bash -c "apt-get update; aptitude update"
-# #  sudo chroot "$ROOT" bash -c "apt-get upgrade; aptitude safe-upgrade"
-#
-#  echo "Success."
-# }
 
 function make_the_image {
  # global DEBIANROOT IMAGE (or TWDIR and RELEASE)
@@ -843,8 +847,8 @@ function make_the_image {
  local RETURN_CODE=0
  # ---
  FS_SIZE=$(sudo du -sm $DEBIANROOT | awk '{print $1}')
- # Add 5%
- let IMAGE_SIZE="FS_SIZE*120/100"
+ # Add 25%
+ let IMAGE_SIZE="FS_SIZE*125/100"
  echo "Creating the image (${IMAGE_SIZE}M) ..."
  dd if=/dev/zero of=$IMAGE bs=1M count=$IMAGE_SIZE
  # ---
@@ -995,7 +999,7 @@ function make_or_link_the_kernel {
 # =============================================================
 
 # The first step is to create the Debian directory with debootstrap:
-once launch_debootstrap_and_fix_problems_with_apt
+once launch_debootstrap_and_then_apt_get_install
 
 # Fix apt sources, update and upgrade:
 once fix_apt_sources_update_and_upgrade

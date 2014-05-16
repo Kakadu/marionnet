@@ -23,11 +23,12 @@
 # =============================================================
 
 # In order to prevent annoying messages related to locales:
+GLOBAL_LOCALE="en_US.utf8"
 shopt -s expand_aliases
-alias chroot='LANG=us LC_ALL=$LANG LC_MESSAGES=$LANG LANGUAGE=$LANG chroot'
+alias chroot='LANG='$GLOBAL_LOCALE' LC_ALL=$LANG LC_MESSAGES=$LANG LANGUAGE=$LANG chroot'
 
-# Create a temporary file in /tmp/ starting with "$1", plus de current
-# timestamp:
+# Create a temporary file in /tmp/ starting with "$1" and followed by
+# the current timestamp:
 function mkTMPFILE {
  mktemp /tmp/${1}.$(date +%H\h%M | tr -d " ").XXXXXX
 }
@@ -62,17 +63,44 @@ function rewrite {
  local TARGET="$1"
  shift 2
  local TMPFILE=$(mktemp)
+ local CODE=0
  if [[ -z $FOLLOW ]]; then
    if [[ -z $APPEND ]]; then
      "$@" > $TMPFILE
+     CODE=$?
    else
      "$@" >> $TMPFILE
+     CODE=$?
    fi
  else
      "$@" | tee $APPEND $TMPFILE
+     CODE=$?
  fi
  cat $TMPFILE > $TARGET
  rm -f $TMPFILE
+ return $CODE
+}
+
+# A straightforward alternative to `sudo_fcall rewrite':
+function sudo_write_to_file {
+  local TARGET="$1"
+  shift 1 || return 1
+  if [[ $# = 0 ]]; then
+    sudo dd if=/dev/stdin of="$TARGET" status=noxfer
+  else
+    sudo dd if=/dev/stdin of="$TARGET" status=noxfer <<<"$@"
+  fi
+}
+
+# A straightforward alternative to `sudo_fcall rewrite --append':
+function sudo_append_to_file {
+  local TARGET="$1"
+  shift 1 || return 1
+  if [[ $# = 0 ]]; then
+    sudo dd if=/dev/stdin of="$TARGET" oflag=append status=noxfer
+  else
+    sudo dd if=/dev/stdin of="$TARGET" oflag=append status=noxfer <<<"$@"
+  fi
 }
 
 # Return the list of pids still rooted in $1
@@ -109,7 +137,7 @@ function restore_files {
 }
 
 # Usage: sudo_fcall FUNCTION ACTUALS..
-# Limitations: the called function can call itself only exported functions;
+# Limitations: the called function can call itself only the exported functions;
 # you can show these functions with `export -fp'.
 function sudo_fcall {
  # global COOL_SUDO
@@ -120,17 +148,32 @@ function sudo_fcall {
    export COOL_SUDO
    chmod +x $COOL_SUDO
  fi
+ # ---
  echo '#!/bin/bash'       > $COOL_SUDO
  # Put the definition of all exported functions:
  export -pf              >> $COOL_SUDO
+ # ---
  # Put the definition of all exported variables:
- export -p               >> $COOL_SUDO
+ {
+ echo 'PATH_BACKUP=$PATH';        # save the current root's setting
+ export -p;
+ echo 'PATH=$PATH_BACKUP:$PATH';  # restore the root's setting;
+ } >> $COOL_SUDO
+ # ---
  # Put all current set-options (-e, -x, ..):
- echo "set -$-"          >> $COOL_SUDO
+ echo "set -$-";
+ # ---
  # Put the definition of the called function:
  type $FUNC | tail -n +2 >> $COOL_SUDO
+ # ---
+ # Tracing:
+ if [[ $BASH_XTRACING = y ]]; then
+   echo "PS4='+ [$COOL_SUDO] $PS4'" >> $COOL_SUDO
+ fi
+ # ---
  # Put now the command that we want to execute as root:
- echo "$@"               >> $COOL_SUDO
+ echo "$@" >> $COOL_SUDO
+ # ---
  # Finally call the script with sudo:
  sudo $COOL_SUDO
 }
@@ -139,6 +182,7 @@ function sudo_fcall {
 # and exits very cleanly (killing, unmounting,..).
 # Usage: sudo_fcall careful_chroot ...
 function careful_chroot {
+ # global GLOBAL_LOCALE
  [[ $# -ge 1 ]] || return 2
  local ROOT=$(realpath "$1")
  shift
@@ -168,8 +212,9 @@ function careful_chroot {
  fi
 
  # Mount /proc and /sys
- mount -t proc  proc  ./proc
- mount -t sysfs sysfs ./sys
+ local LEAVE_PROC_MOUNTED LEAVE_SYS_MOUNTED
+ mount -t proc  proc  ./proc || LEAVE_PROC_MOUNTED=y
+ mount -t sysfs sysfs ./sys  || LEAVE_SYS_MOUNTED=y
 
  # Save relevant files
  local TICKET=$(save_files "etc/resolv.conf" "root/.bashrc" "etc/fstab")
@@ -185,7 +230,7 @@ function careful_chroot {
  >etc/fstab
 
  # Go:
- local L="us"
+ local L="${GLOBAL_LOCALE:-en_US.utf8}"
  LANG=$L LC_ALL=$L LC_MESSAGES=$L LANGUAGE=$L chroot $PWD "$@"
  local RETURN_CODE=$?
  sync
@@ -230,7 +275,8 @@ function careful_chroot {
  LIST=$(fsmounted $PWD)
  if [[ -z $LIST ]]; then
    # Finally umount /proc and /sys
-   for i in proc sys; do umount $i 2>/dev/null; done
+   [[ $LEAVE_PROC_MOUNTED = y ]] || umount ./proc
+   [[ $LEAVE_SYS_MOUNTED  = y ]] || umount ./sys
  else
    echo 1>&2 "WARNING: the following list of filesystems are still mounted in $ROOT"
    cat /proc/mounts | \grep "$ROOT/" 1>&2

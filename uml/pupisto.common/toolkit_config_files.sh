@@ -178,9 +178,6 @@ function test_quoting_for_grep {
 # 1 => successfully finished but file unchanged (and --ignore-unchanged is not set)
 # 2 => failed somewhere
 function user_config_set {
-  local KEY_VALUE="$1"
-  local DELIMITER="$2" # '=', ':', ..
-  local FIELD_VALUE="$3"
   local RETURN_CODE_WHEN_UNCHANGED=1 # by default
   local IGNORE_UNCHANGED
   # ---
@@ -190,6 +187,9 @@ function user_config_set {
     shift
   fi
   # ---
+  local KEY_VALUE="$1"
+  local DELIMITER="$2" # '=', ':', ..
+  local FIELD_VALUE="$3"
   # Check actuals:
   [[ $# -ge 3 && -n $KEY_VALUE && -n $DELIMITER ]] || {
     echo "Usage: user_config_set <KEY_VALUE> <DELIMITER> <FIELD_VALUE> [<FILE>].."

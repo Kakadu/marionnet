@@ -322,6 +322,7 @@ source ../pupisto.common/toolkit_chroot.sh
 # sudo_careful_chroot
 # copy_content_into_directory
 # sudo_chroot_binary_list
+# sudo_fprintf
 
 source ../pupisto.common/toolkit_image.sh
 # Defined functions:
@@ -400,15 +401,18 @@ function launch_debootstrap_and_then_apt_get_install {
 
  # --- Don't try to launch services (tricks found at http://askubuntu.com/q/74061, thanks!) running apt-get:
  local POLICY_RC=$ROOT/usr/sbin/policy-rc.d
- echo -e '#!/bin/sh\nexit 101\n' | sudo_write_to_file $POLICY_RC
+ sudo_fprintf $POLICY_RC '#!/bin/sh\nexit 101\n'
+
  sudo chmod +x $POLICY_RC
  local DPKG_CUSTOM=$ROOT/etc/dpkg/dpkg.cfg.d/custom
- echo 'no-triggers' | sudo_write_to_file $DPKG_CUSTOM
+ sudo_fprintf $DPKG_CUSTOM "no-triggers\n"
  # ---
 
  # --- Launch apt-get install:
+ trap "sudo umount $ROOT/{proc,sys}" EXIT
  echo "I try now to continue the installation with \`apt-get'..."
  once sudo_careful_chroot ${ROOT} apt-get -y --force-yes -f install $INCLUDED_PACKAGES
+ trap "echo Bye." EXIT
  # ---
 
  # --- Mr proper:
@@ -426,11 +430,7 @@ function fix_apt_sources_update_and_upgrade {
  # global DEBIANROOT HTTP_SERVER RELEASE
  local ROOT=${1:-$DEBIANROOT}
  local TARGET=$ROOT/etc/apt/sources.list
- { cat <<EOF
-deb $HTTP_SERVER $RELEASE main
-deb http://security.debian.org/ $RELEASE/updates main
-EOF
- } | sudo_write_to_file $TARGET
+ sudo_fprintf $TARGET "%s\n%s\n" "deb $HTTP_SERVER $RELEASE main" "deb http://security.debian.org/ $RELEASE/updates main"
  # Update:
  # sudo_careful_chroot ${ROOT} aptitude update
  sudo_careful_chroot ${ROOT} apt-get update
@@ -472,7 +472,7 @@ function fix_etc_inittab {
  # Note that th -L option is very relevant to obtain a console quicly reacting to CTRL-C/CTRL-Z etc:
  sudo awk -v line="0:12345:respawn:/sbin/getty -L 38400 tty0 xterm" "$AWK_PROGRAM" "$ROOT/etc/inittab" > $TMPFILE
  tabular_file_update --ignore-unchanged -i -d ":" -k 1 --key-value "ca" -f 4 --field-value "/sbin/halt" $TMPFILE
- sudo_write_to_file $ROOT/etc/inittab <$TMPFILE
+ sudo cp $TMPFILE $ROOT/etc/inittab
  rm -f $TMPFILE
 }
 
@@ -492,7 +492,7 @@ devpts /dev/pts devpts gid=5,mode=620 0 0
 sysfs /sys sysfs defaults 0 0
 tmpfs /run/shm tmpfs rw,nosuid,nodev,noexec,relatime,size=1M 0 0
 EOF
- sudo_write_to_file $ROOT/etc/fstab <$TMPFILE
+ sudo cp $TMPFILE $ROOT/etc/fstab
  rm -f $TMPFILE
 }
 
@@ -521,7 +521,7 @@ function fix_etc_securetty {
  if ! \grep -q "^tty0$" $TARGET; then
    local TMPFILE=$(mktemp)
    sudo awk '/^tty1$/ {print "tty0"} {print}' "$TARGET" > $TMPFILE
-   sudo_write_to_file "$TARGET" <$TMPFILE
+   sudo cp $TMPFILE $TARGET
    rm -f $TMPFILE
  fi
 }
@@ -822,7 +822,8 @@ function clean_debian_filesystem {
 
  # 7) accelerate future 'apt-get update' (very slow with cow-files):
  local TARGET=$ROOT/etc/apt/apt.conf.d/99translations
- sudo_write_to_file $TARGET 'echo Acquire::Languages \"none\"\;'
+ sudo_fprintf $TARGET 'Acquire::Languages "none";\n'
+
  sudo find $ROOT/var/lib/apt/lists -name "*i18n_Translation*" -exec rm {} \;
 
  # 8) remove /var/lib/apt/lists/*
@@ -847,13 +848,15 @@ function make_the_image {
  local RETURN_CODE=0
  # ---
  FS_SIZE=$(sudo du -sm $DEBIANROOT | awk '{print $1}')
- # Add 25%
- let IMAGE_SIZE="FS_SIZE*125/100"
+ # Add 20%
+ let IMAGE_SIZE="FS_SIZE*120/100"
  echo "Creating the image (${IMAGE_SIZE}M) ..."
  dd if=/dev/zero of=$IMAGE bs=1M count=$IMAGE_SIZE
  # ---
  echo "Formatting the image ($FSTYPE) ..."
- sudo mkfs.$FSTYPE -q -F $IMAGE ### TODO: check the existence of mkfs.$FSTYPE at the beginning of the script
+ local MKFS_OPTIONS
+ case $FSTYPE in ext?) MKFS_OPTIONS="-q -F";; esac
+ sudo mkfs.$FSTYPE $MKFS_OPTIONS $IMAGE ### TODO: check the existence of mkfs.$FSTYPE at the beginning of the script
  # ---
  MOUNTDIR=$IMAGE.mnt
  mkdir -v -p $MOUNTDIR
@@ -973,23 +976,25 @@ function make_or_link_the_kernel {
  # ---
  # Option -K/--no-kernel
  if [[ -z ${option_K} ]]; then
-  EXISTING_KERNEL_DIR=$(find ../pupisto.kernel/ -maxdepth 1 -type d -name "_build.linux-$KERNEL_VERSION*" | sort | tail -n 1)
-  if [[ -d $EXISTING_KERNEL_DIR ]]; then
-    echo 1>&2 "A directory \`$EXISTING_KERNEL_DIR' already exists: making a symlink to!"
-    ln -s ../"$EXISTING_KERNEL_DIR" "$TWDIR/linux-$KERNEL_VERSION"
-  else
-    # In order to have a unique log, we will use the script as
-    # a library of functions instead of as a standalone program:
-    source ../pupisto.kernel/pupisto.kernel.sh --source
-    # Now call the function:
-    download_patch_and_compile_kernel ${KERNEL_VERSION} ${TWDIR} ${DOWNLOADS_DIRECTORY}
-    # Move the whole directory to the good place (../pupisto.kernel/)
-    # in order to potentially share it among other filesystem building:
-    BUILT_DIR=_build.linux-${KERNEL_VERSION}.$(date +%Y-%m-%d.%H\h%M).$RANDOM
-    echo "Moving \`$TWDIR/linux-$KERNEL_VERSION' -> \`../pupisto.kernel/$BUILT_DIR'"
-    mv $TWDIR/linux-$KERNEL_VERSION ../pupisto.kernel/$BUILT_DIR
-    ln -s ../../pupisto.kernel/$BUILT_DIR $TWDIR/linux-$KERNEL_VERSION
-  fi
+   EXISTING_KERNEL_DIR=$(find ../pupisto.kernel/ -maxdepth 1 -type d -name "_build.linux-$KERNEL_VERSION*" | sort | tail -n 1)
+   if [[ -d $EXISTING_KERNEL_DIR ]]; then
+     echo 1>&2 "A directory \`$EXISTING_KERNEL_DIR' already exists: making a symlink to!"
+     ln -s ../"$EXISTING_KERNEL_DIR" "$TWDIR/linux-$KERNEL_VERSION"
+   else
+     # In order to have a unique log, we will use the script as
+     # a library of functions instead of as a standalone program:
+     source ../pupisto.kernel/pupisto.kernel.sh --source
+     # Now call the function:
+     download_patch_and_compile_kernel ${KERNEL_VERSION} ${TWDIR} ${DOWNLOADS_DIRECTORY}
+     # Move the whole directory to the good place (../pupisto.kernel/)
+     # in order to potentially share it among other filesystem building:
+     BUILT_DIR=_build.linux-${KERNEL_VERSION}.$(date +%Y-%m-%d.%H\h%M).$RANDOM
+     echo "Moving \`$TWDIR/linux-$KERNEL_VERSION' -> \`../pupisto.kernel/$BUILT_DIR'"
+     mv $TWDIR/linux-$KERNEL_VERSION ../pupisto.kernel/$BUILT_DIR
+     ln -s ../../pupisto.kernel/$BUILT_DIR $TWDIR/linux-$KERNEL_VERSION
+   fi
+ else # --no-kernel
+   echo 1>&2 "Option -K (--no-kernel) selected: nothing to do"
  fi
 } # make_or_link_the_kernel
 

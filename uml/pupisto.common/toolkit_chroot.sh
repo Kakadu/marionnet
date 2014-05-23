@@ -81,26 +81,34 @@ function rewrite {
  return $CODE
 }
 
-# A straightforward alternative to `sudo_fcall rewrite':
-function sudo_write_to_file {
-  local TARGET="$1"
-  shift 1 || return 1
-  if [[ $# = 0 ]]; then
-    sudo dd if=/dev/stdin of="$TARGET" status=noxfer
-  else
-    sudo dd if=/dev/stdin of="$TARGET" status=noxfer <<<"$@"
+# A straightforward alternative to `sudo_fcall rewrite'.
+# Note that it's important to leave the sudo stdin empty
+# in order to prevent `sudo' from asking the password every time.
+#
+# Usage: sudo_fprintf [-a|--append] [-m|--mode|--chmod MODE] FILE FORMAT [ARGUMENT]...
+function sudo_fprintf {
+  local APPEND
+  if [[ $1 = "-a" || $1 = "--append" ]]; then
+    APPEND="y"
+    shift
   fi
-}
-
-# A straightforward alternative to `sudo_fcall rewrite --append':
-function sudo_append_to_file {
-  local TARGET="$1"
-  shift 1 || return 1
-  if [[ $# = 0 ]]; then
-    sudo dd if=/dev/stdin of="$TARGET" oflag=append status=noxfer
-  else
-    sudo dd if=/dev/stdin of="$TARGET" oflag=append status=noxfer <<<"$@"
+  # ---
+  local MODALITIES
+  if [[ $1 = "-m" || $1 = "--mode" || $1 = "--chmod" ]]; then
+    MODALITIES="$2"
+    shift 2 || return 1
   fi
+  # ---
+  local TARGET="$1"
+  shift
+  # ---
+  local TMPFILE=$(mktemp)
+  if [[ -n $APPEND && -f $TARGET ]]; then
+    sudo cp "$TARGET" "$TMPFILE"
+  fi
+  printf "$@" >>$TMPFILE && sudo cp $TMPFILE "$TARGET"
+  if [[ -n $MODALITIES ]]; then sudo chmod $MODALITIES $TARGET; fi
+  rm $TMPFILE
 }
 
 # Return the list of pids still rooted in $1

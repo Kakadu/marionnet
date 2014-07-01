@@ -1,8 +1,23 @@
 The compilation of buildroot may fail, depending on the git version.
-In this case, you can revert to a tested running version (May-June 2013) 
-getting a tarball from ous site:
+In this case, you can revert to a tested running version (May-June 2013
+or June 2014) getting a tarball from our website:
 
-wget http://www.marionnet.org/downloads/buildroot/buildroot.2013-05.tar.xz
+#TARBALL=buildroot.2013-05.tar.xz   # May-June 2013
+TARBALL=buildroot.2014-06.tar.xz    # June 2014
+
+wget http://www.marionnet.org/downloads/buildroot/$TARBALL
 rm -rf _build.buildroot
-tar xJf buildroot.2013-05.tar.xz
+tar xJf $TARBALL
 make guignol
+
+Note also that `make guignol' may fail for a reason that I don't understand
+currently (and I have no time to understand). But forcing the command to
+restart in the same directory, the error disappears and the virtual machine
+is correctly built:
+
+OPTIONS='-c _build.guignol-with-linux-3.2.60.2014-06-30.16h14/' make guignol
+
+or directly something like:
+
+./pupisto.buildroot.sh --kernel 3.2.60 --router --name guignol -c _build.guignol-with-linux-3.2.60.2014-06-30.16h14/
+

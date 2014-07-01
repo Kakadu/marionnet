@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # This file is part of marionnet
-# Copyright (C) 2013  Jean-Vincent Loddo
+# Copyright (C) 2013, 2014  Jean-Vincent Loddo
+# Copyright (C) 2013, 2014  Université Paris 13
 # Copyright (C) 2013  Antoine Seignard
-# Copyright (C) 2013  Université Paris 13
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -216,7 +216,7 @@ $ ${0##*/} --no-kernel --router --name pulcinella"
 # successfully buildroot compilation (2.6.18 fails)
 # Another possible default could be 2.6.32 (last statically-linked
 # available version of our patched (ghost2) kernel)
-DEFAULT_KERNEL_VERSION=3.2.51
+DEFAULT_KERNEL_VERSION=3.2.60
 
 # Manage now your options in a convenient order
 #
@@ -291,6 +291,9 @@ fi
 
 # Annexes of this script:
 PUPISTO_FILES=pupisto.buildroot.sh.files
+
+# KERNEL_VERSION=3.2.x => KERNEL_FAMILY=3.2
+KERNEL_FAMILY=${KERNEL_VERSION%.*}
 
 # Distribution and filesystem names:
 if [[ -z $DISTRIBUTION_NAME ]]; then
@@ -382,6 +385,7 @@ IFCONFIG_WRAPPER=$PWD/$PUPISTO_FILES/ifconfig
 ZTOOLS_WRAPPER=$PWD/$PUPISTO_FILES/zgrep_zdiff_zless
 GROUPS_WRAPPER=$PWD/$PUPISTO_FILES/groups
 BASHRC=$PWD/$PUPISTO_FILES/bashrc
+NANORC=$PWD/$PUPISTO_FILES/nanorc
 SSH_DIR=$PWD/$PUPISTO_FILES/ssh
 RADVD_DIR=$PWD/$PUPISTO_FILES/radvd
 DHCPD_DIR=$PWD/$PUPISTO_FILES/dhcpd
@@ -466,9 +470,15 @@ fi
 # reboot
 REBOOT=\$(find sbin/ -name "reboot")
 if [[ -f "\$REBOOT" ]]; then
-  rm $REBOOT
-  cp $REBOOT_WRAPPER sbin/reboot
-  chmod +x sbin/reboot
+  rm "\$REBOOT"
+  cp $REBOOT_WRAPPER "\$REBOOT"
+  chmod +x "\$REBOOT"
+fi
+
+# nanorc
+NANO=\$(find /usr/bin/ -name "nano")
+if [[ -f "\$NANO" ]]; then
+  cp $NANORC etc/nanorc
 fi
 
 # dhcpd
@@ -768,7 +778,7 @@ set_config_variable "BR2_PACKAGE_LIGHTTPD_OPENSSL" "y"
 set_config_variable "BR2_PACKAGE_LIGHTTPD_BZIP2" "y"
 set_config_variable "BR2_PACKAGE_LINKS" "y"
 set_config_variable "BR2_PACKAGE_NANO" "y"
-set_config_variable "BR2_PACKAGE_NANO_TINY" "y"
+set_config_variable "BR2_PACKAGE_NANO_TINY" "n"
 set_config_variable "BR2_PACKAGE_NCFTP" "y"
 # set_config_variable "BR2_PACKAGE_NETCAT" "y" # busybox!
 set_config_variable "BR2_PACKAGE_NMAP" "y"
@@ -829,6 +839,19 @@ fi
 set_config_variable "BR2_KERNEL_HEADERS_VERSION" "y"
 set_config_variable "BR2_DEFAULT_KERNEL_VERSION" '"'$KERNEL_VERSION'"'
 set_config_variable "BR2_DEFAULT_KERNEL_HEADERS" '"'$KERNEL_VERSION'"'
+set_config_variable "BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_${KERNEL_FAMILY//./_}" "y" # Ex: BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_3_2
+set_config_variable "BR2_KERNEL_HEADERS_${KERNEL_FAMILY//./_}" "y"                    # Ex: BR2_KERNEL_HEADERS_3_2
+
+# Mr proper:
+set_config_variable "BR2_ENABLE_LOCALE_PURGE" "y"
+set_config_variable "BR2_ENABLE_LOCALE_WHITELIST" "C en_US de fr"
+
+# Some features are not supported anymore for i386, so:
+set_config_variable "BR2_x86_i486" "y"
+
+# Optimization:
+PROCESSOR_NO=$(\grep "^processor.*:" /proc/cpuinfo | sort | uniq | wc -l)
+set_config_variable "BR2_JLEVEL" "$PROCESSOR_NO"
 
 #######################################
 #  (Step 1) custom_packages_{yes,no}  #
@@ -1005,6 +1028,7 @@ cp $BUSYBOX_BUILT_DIR/{.config,.config.orig}
 cp $BUSYBOX_BUILT_DIR/{.config.merged,.config}
 # The second time we want execute the our filesystem tuning script:
 set_config_variable "BR2_ROOTFS_POST_BUILD_SCRIPT" '"'$OUR_TUNING_SCRIPT'"' $BUILDROOT/.config
+set_config_variable "BR2_ROOTFS_POST_SCRIPT_ARGS" '""' $BUILDROOT/.config
 
 ############################
 #  (Second round) Compile  #
@@ -1012,6 +1036,7 @@ set_config_variable "BR2_ROOTFS_POST_BUILD_SCRIPT" '"'$OUR_TUNING_SCRIPT'"' $BUI
 
 # Note that the target `busybox-rebuild' doesn't have the expected behaviour:
 once make -C $BUILDROOT busybox-reconfigure
+once make -C $BUILDROOT all
 
 ####################################
 #  (Second round) Store the image  #

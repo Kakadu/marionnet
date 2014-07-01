@@ -267,6 +267,19 @@ fi
  done
 
  ###########################################
+ #          export TERM=xterm              #
+ ###########################################
+
+ # Find a suitable shell configuration file and append the line setting the
+ # variable TERM:
+ for i in /etc/profile /etc/bash.bashrc /root/.bash_profile /root/.bashrc; do
+  if [[ -f $i ]]; then
+    append_line_if_needed "export TERM=xterm" $i
+    break;
+  fi
+ done
+
+ ###########################################
  #   Additional consoles (tty1, tty2,..)   #
  ###########################################
 

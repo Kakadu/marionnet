@@ -1,6 +1,6 @@
 # This file is part of marionnet
-# Copyright (C) 2013  Jean-Vincent Loddo
-# Copyright (C) 2013  Université Paris 13
+# Copyright (C) 2013, 2014  Jean-Vincent Loddo
+# Copyright (C) 2013, 2014  Université Paris 13
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #                     Building `guignol'
 # =============================================================
 
-KERNEL_VERSION=3.2.59
+KERNEL_VERSION=3.2.60
 
 guignol: dependencies buildroot
 	./pupisto.buildroot.sh --kernel $(KERNEL_VERSION) --router --name guignol $(OPTIONS)

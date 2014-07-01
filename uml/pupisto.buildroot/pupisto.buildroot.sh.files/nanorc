@@ -1,0 +1,2534 @@
+## Sample initialization file for GNU nano.
+##
+## Please note that you must have configured nano with --enable-nanorc
+## for this file to be read!  Also note that this file should not be in
+## DOS or Mac format, and that characters specially interpreted by the
+## shell should not be escaped here.
+##
+## To make sure a value is disabled, use "unset <option>".
+##
+## For the options that take parameters, the default value is given.
+## Other options are unset by default.
+##
+## Quotes inside string parameters don't have to be escaped with
+## backslashes.  The last double quote in the string will be treated as
+## its end.  For example, for the "brackets" option, ""')>]}" will match
+## ", ', ), >, ], and }.
+
+## Use auto-indentation.
+# set autoindent
+
+## Backup files to filename~.
+set backup
+
+## The directory to put unique backup files in.
+# set backupdir ""
+
+## Do backwards searches by default.
+# set backwards
+
+## Use bold text instead of reverse video text.
+# set boldtext
+
+## The characters treated as closing brackets when justifying
+## paragraphs.  They cannot contain blank characters.  Only closing
+## punctuation, optionally followed by closing brackets, can end
+## sentences.
+##
+# set brackets ""')>]}"
+
+## Do case sensitive searches by default.
+# set casesensitive
+
+## Constantly display the cursor position in the statusbar.  Note that
+## this overrides "quickblank".
+# set const
+
+## Use cut to end of line by default.
+# set cut
+
+## Set the line length for wrapping text and justifying paragraphs.
+## If fill is 0 or less, the line length will be the screen width less
+## this number.
+##
+# set fill -8
+
+## Enable ~/.nano_history for saving and reading search/replace strings.
+set historylog
+
+## Enable vim-style lock-files.  This is just to let a vim user know you
+## are editing a file [s]he is trying to edit and vice versa. There are
+## no plans to implement vim-style undo state in these files
+# set locking
+
+## The opening and closing brackets that can be found by bracket
+## searches.  They cannot contain blank characters.  The former set must
+## come before the latter set, and both must be in the same order.
+##
+# set matchbrackets "(<[{)>]}"
+
+## Use the blank line below the titlebar as extra editing space.
+# set morespace
+
+## Enable mouse support, if available for your system.  When enabled,
+## mouse clicks can be used to place the cursor, set the mark (with a
+## double click), and execute shortcuts.  The mouse will work in the X
+## Window System, and on the console when gpm is running.
+##
+set mouse
+
+## Allow multiple file buffers (inserting a file will put it into a
+## separate buffer).  You must have configured with --enable-multibuffer
+## for this to work.
+##
+# set multibuffer
+
+## Don't convert files from DOS/Mac format.
+# set noconvert
+
+## Don't follow symlinks when writing files.
+# set nofollow
+
+## Don't display the helpful shortcut lists at the bottom of the screen.
+# set nohelp
+
+## Don't add newlines to the ends of files.
+# set nonewlines
+
+## Don't wrap text at all.
+# set nowrap
+
+## Set operating directory.  nano will not read or write files outside
+## this directory and its subdirectories.  Also, the current directory
+## is changed to here, so any files are inserted from this dir.  A blank
+## string means the operating directory feature is turned off.
+##
+# set operatingdir ""
+
+## Preserve the XON and XOFF keys (^Q and ^S).
+# set preserve
+
+## The characters treated as closing punctuation when justifying
+## paragraphs.  They cannot contain blank characters.  Only closing
+## punctuation, optionally followed by closing brackets, can end
+## sentences.
+##
+# set punct "!.?"
+
+## Do quick statusbar blanking.  Statusbar messages will disappear after
+## 1 keystroke instead of 26.  Note that "const" overrides this.
+##
+# set quickblank
+
+## The email-quote string, used to justify email-quoted paragraphs.
+## This is an extended regular expression if your system supports them,
+## otherwise a literal string.  Default:
+# set quotestr "^([ 	]*[#:>\|}])+"
+## if you have extended regular expression support, otherwise:
+# set quotestr "> "
+
+## Fix Backspace/Delete confusion problem.
+# set rebinddelete
+
+## Fix numeric keypad key confusion problem.
+set rebindkeypad
+
+## Do extended regular expression searches by default.
+set regexp
+
+## Make the Home key smarter.  When Home is pressed anywhere but at the
+## very beginning of non-whitespace characters on a line, the cursor
+## will jump to that beginning (either forwards or backwards).  If the
+## cursor is already at that position, it will jump to the true
+## beginning of the line.
+# set smarthome
+
+## Use smooth scrolling as the default.
+# set smooth
+
+## Enable soft line wrapping (AKA full line display).
+# set softwrap
+
+## Use this spelling checker instead of the internal one.  This option
+## does not properly have a default value.
+##
+# set speller "aspell -x -c"
+
+## Allow nano to be suspended.
+set suspend
+
+## Use this tab size instead of the default; it must be greater than 0.
+set tabsize 4
+
+## Convert typed tabs to spaces.
+# set tabstospaces
+
+## Save automatically on exit, don't prompt.
+# set tempfile
+
+## Enable the new (EXPERIMENTAL) generic undo code, not just for line
+## cuts.
+set undo
+
+## Disallow file modification.  Why would you want this in an rcfile? ;)
+# set view
+
+## The two single-column characters used to display the first characters
+## of tabs and spaces.  187 in ISO 8859-1 (0000BB in Unicode) and 183 in
+## ISO-8859-1 (0000B7 in Unicode) seem to be good values for these.
+# set whitespace "  "
+
+## Detect word boundaries more accurately by treating punctuation
+## characters as parts of words.
+# set wordbounds
+
+
+## Color setup
+##
+## Format:
+##
+## syntax "short description" ["filename regex" ...]
+##
+## The "none" syntax is reserved; specifying it on the command line is
+## the same as not having a syntax at all.  The "default" syntax is
+## special: it takes no filename regexes, and applies to files that
+## don't match any other syntax's filename regexes.
+##
+## color foreground,background "regex" ["regex"...]
+## or
+## icolor foreground,background "regex" ["regex"...]
+##
+## "color" will do case sensitive matches, while "icolor" will do case
+## insensitive matches.
+##
+## Valid colors: white, black, red, blue, green, yellow, magenta, cyan.
+## For foreground colors, you may use the prefix "bright" to get a
+## stronger highlight.
+##
+## To use multi-line regexes, use the start="regex" end="regex"
+## [start="regex" end="regex"...] format.
+##
+## If your system supports transparency, not specifying a background
+## color will use a transparent color.  If you don't want this, be sure
+## to set the background color to black or white.
+##
+## If you wish, you may put your syntaxes in separate files.  You can
+## make use of such files (which can only include "syntax", "color", and
+## "icolor" commands) as follows:
+##
+## include "/path/to/syntax_file.nanorc"
+##
+## Unless otherwise noted, the name of the syntax file (without the
+## ".nanorc" extension) should be the same as the "short description"
+## name inside that file.  These names are kept fairly short to make
+## them easier to remember and faster to type using nano's -Y option.
+##
+## All regexes should be extended regular expressions.
+
+## Key bindings
+## Please see nanorc(5) for more details on this
+##
+## Here are some samples to get you going
+##
+# bind M-W nowrap main
+# bind M-A casesens search
+# bind ^S research main
+
+## Set this if your backspace key sends delete most of the time (2.1.3+)
+# bind kdel backspace all
+
+### ================> apache2.nanorc <================
+
+## Apache httpd.conf highlighting
+##
+#how to add sites-enabled files?  "default" is too generic to keep in here I think
+syntax "Apache2" "httpd.conf$"
+color brightwhite "(ServerRoot|LoadModule|(Lock|Pid)File|Timeout|(Max)?KeepAlive(Requests|Timeout)?)"
+color brightwhite "(User|Group|LogFormat|ErrorLog|Include|(Script)?Alias)"
+color brightwhite "(ErrorDocument|AccessFileName|UseCanonicalName|TypesConfig|DefaultType)"
+color brightwhite "(HostnameLookups|IndexOptions|(Readme|Header)Name|LanguagePriority)"
+color brightwhite "(AddIcon(ByEncoding|ByType)?|DefaultIcon|IndexIgnore|BrowserMatch)"
+color brightwhite "(Add(Encoding|Language|(Default)?Charset|Type|Handler)|DirectoryIndex)"
+color brightwhite "(DocumentRoot|Server(Admin|Signature)|LogLevel|CustomLog)"
+color brightwhite "((Force)?LanguagePriority|NameVirtualHost)"
+color brightyellow "(SetHandler|Order|Deny|Allow|SetOutputFilter)"
+color yellow "(AllowOverride|FileInfo|AuthConfig|Limit)"
+color yellow "([^A-Z0-9a-z]Options|Indexes|(\+|\-)?SymLinksIfOwnerMatch)"
+color yellow "(Includes(NoExec)?|(\+|\-)?MultiViews)"
+color yellow "(None|allow,deny|deny,allow|(allow)? from (all)?|Prefer|Fallback)"
+color yellow "(Add(Handler|OutputFilter)|NumServers|AcceptMutex)"
+color yellow "((Min|Max)Spare(Threads|Servers|Processors)|Start(Threads|Servers))"
+color yellow "(MaxClients|(Min|Max)?ThreadsPerChild|MaxRequestsPerChild)"
+color yellow "(FancyIndexing|VersionSort|ExecCGI|FollowSymLinks|(Min|Max)Processors)"
+color yellow "hostmaster@[A-Za-z0-9\.]*"
+color brightred "(On|Off)[[:space:]]*$"
+color brightred "[[:space:]]+(debug|info|notice|warn|error|crit|alert|emerg)[[:space:]]*$"
+color brightred "[[:space:]]+(combined|common|referer|agent)[[:space:]]*$"
+color brightred "[[:space:]]+(redirect\-carefully|nokeepalive)[[:space:]]*"
+color brightred "[[:space:]]+(force\-response\-1\.0)[[:space:]]*"
+color brightred "[[:space:]]+(downgrade\-1\.0)[[:space:]]*"
+color brightred "[[:space:]]+application/[a-zA-Z\-]+[[:space:]]*"
+color brightred "[[:space:]]+type-map[[:space:]]*"
+color magenta "[[:space:]]+[0-9]+[[:space:]]*"
+color magenta "(/)?(2[0-5]{2}|1[0-9]{2}|[1-9][0-9]|[1-9])(\.(2[0-5]{2}|1[0-9]{2}|[1-9][0-9]|[0-9])){3}([[:space:]]+::(2[0-5]{2}|1[0-9]{2}|[1-9][0-9]|[0-9])/(2[0-5]{2}|1[0-9]{2}|[1-9][0-9]|[0-9]))?"
+color brightcyan start="<" end=">"
+color white ""(\\.|[^\"])*""
+# Unix-based paths
+# can't use \] in the regex for some reason?!? Maybe a bug?
+# this is preventing a 100% "to the end of the line" match for a few
+# lines (the trailing characters from ] to the EOL are not highlighted.
+# if anyone knows how to make it work, let me know.. ;)
+color white "[[:space:]]+(/[/\[\^#A-Za-z0-9\.\*\_\-]+)+"
+color green "^[[:space:]]*#.*" 
+color cyan "\b(ServerName|Serveralias|DocumentRoot|DirectoryIndex|ErrorLog|CustomLog)\b"
+
+
+### ================> apacheconf.nanorc <================
+
+# Apache files
+syntax "apacheconf" "httpd\.conf|mime\.types|\.conf$"
+color yellow ".+"
+color brightcyan "(AcceptMutex|AcceptPathInfo|AccessFileName|Action|AddAlt|AddAltByEncoding|AddAltByType|AddCharset|AddDefaultCharset|AddDescription|AddEncoding)"
+color brightcyan "(AddHandler|AddIcon|AddIconByEncoding|AddIconByType|AddInputFilter|AddLanguage|AddModuleInfo|AddOutputFilter|AddOutputFilterByType|AddType|Alias|AliasMatch)"
+color brightcyan "(Allow|AllowCONNECT|AllowEncodedSlashes|AllowOverride|Anonymous|Anonymous_Authoritative|Anonymous_LogEmail|Anonymous_MustGiveEmail|Anonymous_NoUserID)"
+color brightcyan "(Anonymous_VerifyEmail|AssignUserID|AuthAuthoritative|AuthDBMAuthoritative|AuthDBMGroupFile|AuthDBMType|AuthDBMUserFile|AuthDigestAlgorithm)"
+color brightcyan "(AuthDigestDomain|AuthDigestFile|AuthDigestGroupFile|AuthDigestNcCheck|AuthDigestNonceFormat|AuthDigestNonceLifetime|AuthDigestQop|AuthDigestShmemSize)"
+color brightcyan "(AuthGroupFile|AuthLDAPAuthoritative|AuthLDAPBindDN|AuthLDAPBindPassword|AuthLDAPCharsetConfig|AuthLDAPCompareDNOnServer|AuthLDAPDereferenceAliases)"
+color brightcyan "(AuthLDAPEnabled|AuthLDAPFrontPageHack|AuthLDAPGroupAttribute|AuthLDAPGroupAttributeIsDN|AuthLDAPRemoteUserIsDN|AuthLDAPUrl|AuthName|AuthType|AuthUserFile)"
+color brightcyan "(BrowserMatch|BrowserMatchNoCase|BS2000Account|BufferedLogs|CacheDefaultExpire|CacheDirLength|CacheDirLevels|CacheDisable|CacheEnable|CacheExpiryCheck)"
+color brightcyan "(CacheFile|CacheForceCompletion|CacheGcClean|CacheGcDaily|CacheGcInterval|CacheGcMemUsage|CacheGcUnused|CacheIgnoreCacheControl|CacheIgnoreHeaders)"
+color brightcyan "(CacheIgnoreNoLastMod|CacheLastModifiedFactor|CacheMaxExpire|CacheMaxFileSize|CacheMinFileSize|CacheNegotiatedDocs|CacheRoot|CacheSize|CacheTimeMargin)"
+color brightcyan "(CGIMapExtension|CharsetDefault|CharsetOptions|CharsetSourceEnc|CheckSpelling|ChildPerUserID|ContentDigest|CookieDomain|CookieExpires|CookieLog|CookieName)"
+color brightcyan "(CookieStyle|CookieTracking|CoreDumpDirectory|CustomLog|Dav|DavDepthInfinity|DavLockDB|DavMinTimeout|DefaultIcon|DefaultLanguage|DefaultType)"
+color brightcyan "(DeflateBufferSize|DeflateCompressionLevel|DeflateFilterNote|DeflateMemLevel|DeflateWindowSize|Deny|Directory|DirectoryIndex|DirectoryMatch|DirectorySlash)"
+color brightcyan "(DocumentRoot|DumpIOInput|DumpIOOutput|EnableExceptionHook|EnableMMAP|EnableSendfile|ErrorDocument|ErrorLog|Example|ExpiresActive|ExpiresByType)"
+color brightcyan "(ExpiresDefault|ExtendedStatus|ExtFilterDefine|ExtFilterOptions|FileETag|Files|FilesMatch|ForceLanguagePriority|ForceType|ForensicLog|Group|Header)"
+color brightcyan "(HeaderName|HostnameLookups|IdentityCheck|IfDefine|IfModule|IfVersion|ImapBase|ImapDefault|ImapMenu|Include|IndexIgnore|IndexOptions|IndexOrderDefault)"
+color brightcyan "(ISAPIAppendLogToErrors|ISAPIAppendLogToQuery|ISAPICacheFile|ISAPIFakeAsync|ISAPILogNotSupported|ISAPIReadAheadBuffer|KeepAlive|KeepAliveTimeout)"
+color brightcyan "(LanguagePriority|LDAPCacheEntries|LDAPCacheTTL|LDAPConnectionTimeout|LDAPOpCacheEntries|LDAPOpCacheTTL|LDAPSharedCacheFile|LDAPSharedCacheSize)"
+color brightcyan "(LDAPTrustedCA|LDAPTrustedCAType|Limit|LimitExcept|LimitInternalRecursion|LimitRequestBody|LimitRequestFields|LimitRequestFieldSize|LimitRequestLine)"
+color brightcyan "(LimitXMLRequestBody|Listen|ListenBackLog|LoadFile|LoadModule|Location|LocationMatch|LockFile|LogFormat|LogLevel|MaxClients|MaxKeepAliveRequests)"
+color brightcyan "(MaxMemFree|MaxRequestsPerChild|MaxRequestsPerThread|MaxSpareServers|MaxSpareThreads|MaxThreads|MaxThreadsPerChild|MCacheMaxObjectCount|MCacheMaxObjectSize)"
+color brightcyan "(MCacheMaxStreamingBuffer|MCacheMinObjectSize|MCacheRemovalAlgorithm|MCacheSize|MetaDir|MetaFiles|MetaSuffix|MimeMagicFile|MinSpareServers|MinSpareThreads)"
+color brightcyan "(MMapFile|ModMimeUsePathInfo|MultiviewsMatch|NameVirtualHost|NoProxy|NumServers|NWSSLTrustedCerts|NWSSLUpgradeable|Options|Order|PassEnv|PidFile)"
+color brightcyan "(ProtocolEcho|Proxy|ProxyBadHeader|ProxyBlock|ProxyDomain|ProxyErrorOverride|ProxyIOBufferSize|ProxyMatch|ProxyMaxForwards|ProxyPass|ProxyPassReverse)"
+color brightcyan "(ProxyPreserveHost|ProxyReceiveBufferSize|ProxyRemote|ProxyRemoteMatch|ProxyRequests|ProxyTimeout|ProxyVia|ReadmeName|Redirect|RedirectMatch)"
+color brightcyan "(RedirectPermanent|RedirectTemp|RemoveCharset|RemoveEncoding|RemoveHandler|RemoveInputFilter|RemoveLanguage|RemoveOutputFilter|RemoveType|RequestHeader)"
+color brightcyan "(Require|RewriteBase|RewriteCond|RewriteEngine|RewriteLock|RewriteLog|RewriteLogLevel|RewriteMap|RewriteOptions|RewriteRule|RLimitCPU|RLimitMEM|RLimitNPROC)"
+color brightcyan "(Satisfy|ScoreBoardFile|Script|ScriptAlias|ScriptAliasMatch|ScriptInterpreterSource|ScriptLog|ScriptLogBuffer|ScriptLogLength|ScriptSock|SecureListen)"
+color brightcyan "(SendBufferSize|ServerAdmin|ServerAlias|ServerLimit|ServerName|ServerPath|ServerRoot|ServerSignature|ServerTokens|SetEnv|SetEnvIf|SetEnvIfNoCase|SetHandler)"
+color brightcyan "(SetInputFilter|SetOutputFilter|SSIEndTag|SSIErrorMsg|SSIStartTag|SSITimeFormat|SSIUndefinedEcho|SSLCACertificateFile|SSLCACertificatePath)"
+color brightcyan "(SSLCARevocationFile|SSLCARevocationPath|SSLCertificateChainFile|SSLCertificateFile|SSLCertificateKeyFile|SSLCipherSuite|SSLEngine|SSLMutex|SSLOptions)"
+color brightcyan "(SSLPassPhraseDialog|SSLProtocol|SSLProxyCACertificateFile|SSLProxyCACertificatePath|SSLProxyCARevocationFile|SSLProxyCARevocationPath|SSLProxyCipherSuite)"
+color brightcyan "(SSLProxyEngine|SSLProxyMachineCertificateFile|SSLProxyMachineCertificatePath|SSLProxyProtocol|SSLProxyVerify|SSLProxyVerifyDepth|SSLRandomSeed|SSLRequire)"
+color brightcyan "(SSLRequireSSL|SSLSessionCache|SSLSessionCacheTimeout|SSLUserName|SSLVerifyClient|SSLVerifyDepth|StartServers|StartThreads|SuexecUserGroup|ThreadLimit)"
+color brightcyan "(ThreadsPerChild|ThreadStackSize|TimeOut|TraceEnable|TransferLog|TypesConfig|UnsetEnv|UseCanonicalName|User|UserDir|VirtualDocumentRoot)"
+color brightcyan "(VirtualDocumentRootIP|VirtualHost|VirtualScriptAlias|VirtualScriptAliasIP|Win32DisableAcceptEx|XBitHack)"
+color yellow "<[^>]+>"
+color brightcyan "</?[A-Za-z]+"
+color brightcyan "(<|</|>)"
+color green "\"(\\.|[^\"])*\""
+color white "#.*"
+
+### ================> asm.nanorc <================
+
+## Here is an example for assembler.
+##
+syntax "asm" "\.(S|s|asm)$"
+color red "\b[A-Z_]{2,}\b"
+color brightgreen "\.(data|subsection|text)"
+color green "\.(align|file|globl|global|hidden|section|size|type|weak)"
+color brightyellow "\.(ascii|asciz|byte|double|float|hword|int|long|short|single|struct|word)"
+icolor brightred "^[[:space:]]*[.0-9A-Z_]*:"
+color brightcyan "^[[:space:]]*#[[:space:]]*(define|undef|include|ifn?def|endif|elif|else|if|warning|error)"
+## Highlight strings (note: VERY resource intensive)
+color brightyellow "<[^= 	]*>" ""(\\.|[^"])*""
+color brightyellow start=""(\\.|[^"])*\\[[:space:]]*$" end="^(\\.|[^"])*""
+## Highlight comments
+color brightblue "//.*"
+color brightblue start="/\*" end="\*/"
+## Highlight trailing whitespace
+color ,green "[[:space:]]+$"
+
+### ================> bash.nanorc <================
+
+# Bash Syntax Highlighting
+#
+# Bram Schoenmakers <me@bramschoenmakers.nl>
+#
+# Version 1.1
+
+syntax "bash" "\.sh$"
+
+# Some Bash syntax first
+
+# Control
+color magenta "\b(if|else|for|function|case|esac|in|select|until|while|do|elif|then|set|\.|done|fi)\b"
+
+# Brackets and redirects
+color yellow "[(){}[;|<>]"
+color yellow "\]"
+
+# Builtins
+color red "\b(source|alias|bg|bind|break|builtin|cd|command|compgen|complete|continue|dirs|disown|echo|enable|eval|exec|exit|fc|fg|getopts|hash|help|history|jobs|kill|let|logout|popd|printf|pushd|pwd|return|set|shift|shopt|suspend|test|times|trap|type|ulimit|umask|unalias|wait)\b"
+
+# Unix Commands
+color red "\b(arch|awk|bash|bunzip2|bzcat|bzcmp|bzdiff|bzegrep|bzfgrep|bzgrep|bzip2|bzip2recover|bzless|bzmore|cat|chattr|chgrp|chmod|chown|chvt|cp|date|dd|deallocvt|df|dir|dircolors|dmesg|dnsdomainname|domainname|du|dumpkeys|echo|ed|egrep|false|fgconsole|fgrep|fuser|gawk|getkeycodes|gocr|grep|groups|gunzip|gzexe|gzip|hostname|igawk|install|kbd_mode|kbdrate|killall|last|lastb|link|ln|loadkeys|loadunimap|login|ls|lsattr|lsmod|lsmod.old|mapscrn|mesg|mkdir|mkfifo|mknod|mktemp|more|mount|mv|nano|netstat|nisdomainname|openvt|pgawk|pidof|ping|ps|pstree|pwd|rbash|readlink|red|resizecons|rm|rmdir|run-parts|sash|sed|setfont|setkeycodes|setleds|setmetamode|setserial|sh|showkey|shred|sleep|ssed|stat|stty|su|sync|tar|tempfile|touch|true|umount|uname|unicode_start|unicode_stop|unlink|utmpdump|uuidgen|vdir|wall|wc|ypdomainname|zcat|zcmp|zdiff|zegrep|zfgrep|zforce|zgrep|zless|zmore|znew|zsh)\b"
+
+# More Unix Commands
+color red "\b(aclocal|aconnect|aplay|apm|apmsleep|apropos|ar|arecord|as|as86|autoconf|autoheader|automake|awk|basename|bc|bison|c++|cal|cat|cc|cdda2wav|cdparanoia|cdrdao|cd-read|cdrecord|chfn|chgrp|chmod|chown|chroot|chsh|clear|cmp|co|col|comm|cp|cpio|cpp|cut|dc|dd|df|diff|diff3|dir|dircolors|directomatic|dirname|du|env|expr|fbset|file|find|flex|flex++|fmt|free|ftp|funzip|fuser|g++|gawk|gc|gcc|gdb|getent|getopt|gettext|gettextize|gimp|gimp-remote|gimptool|gmake|gs|head|hexdump|id|install|join|kill|killall|ld|ld86|ldd|less|lex|ln|locate|lockfile|logname|lp|lpr|ls|lynx|m4|make|man|mkdir|mknod|msgfmt|mv|namei|nasm|nawk|nice|nl|nm|nm86|nmap|nohup|nop|od|passwd|patch|pcregrep|pcretest|perl|perror|pidof|pr|printf|procmail|prune|ps2ascii|ps2epsi|ps2frag|ps2pdf|ps2ps|psbook|psmerge|psnup|psresize|psselect|pstops|rcs|rev|rm|scp|sed|seq|setterm|shred|size|size86|skill|slogin|snice|sort|sox|split|ssh|ssh-add|ssh-agent|ssh-keygen|ssh-keyscan|stat|strings|strip|sudo|suidperl|sum|tac|tail|tee|test|tr|uniq|unlink|unzip|updatedb|updmap|uptime|users|vmstat|w|wc|wget|whatis|whereis|which|who|whoami|write|xargs|yacc|yes|zip|zsoelim)\b"
+
+# Strings
+color blue "\"(\\.|[^\"])*\""
+color blue "'(\\.|[^\"])*'"
+
+# Variables, keep it below the strings, such that vars are highlighted inside strings.
+color cyan start="[$@%]" end="[[:alnum:]]*"
+
+# Comments
+color brightblack "#.*$"
+### ================> c-file.nanorc <================
+
+syntax "c-file" "\.(c|h)$"
+color red "\b[A-Z_]{2,}\b" 
+color green "\b(float|double|char|int|short|long|enum|void|static|const|struct|union|typedef|extern|signed|unsigned|inline)\b"
+color brightyellow "\b(for|if|while|do|else|case|switch|goto|continue|break|return)\b"
+color brightcyan "^ *# *(define|undef|include|ifn?def|endif|elif|else|if)"
+color brightmagenta "'([^\]|(\\['abfnrtv\\]))'" "'\\(([0-7][0-7]?)|([0-3][0-7][0-7]))'" "'\\x[0-9A-Fa-f][0-9A-Fa-f]?'"
+color brightyellow "<[^= ]*>" ""(\\.|[^\"])*""
+color brightyellow start=""(\\.|[^\"])*\\ *$" end="^(\\.|[^\"])*""
+color brightblue "//.*"
+color brightblue start="/\*" end="\*/"
+
+### ================> c.nanorc <================
+
+## Here is an example for C/C++.
+##
+syntax "c" "\.(c(c|pp|xx)?|C)$" "\.(h(h|pp|xx)?|H)$" "\.ii?$"
+color brightred "\b[A-Z_][0-9A-Z_]+\b" 
+color brightred "\b[p][i][p][p][o]\b"
+color green "\b((s?size)|((u_?)?int(8|16|32|64|ptr)))_t\b"
+color green "\b(class|namespace|template|public|protected|private|typename|this|friend|virtual|using|mutable|volatile|register|explicit)\b"
+color brightyellow "\b(for|if|while|do|else|case|default|switch)\b"
+color brightyellow "\b(try|throw|catch|operator|new|delete)\b"
+color magenta "\b(goto|continue|break|return)\b"
+color brightcyan "^[[:space:]]*#[[:space:]]*(define|include|(un|ifn?)def|endif|el(if|se)|if|warning|error)"
+color brightmagenta "'([^'\]|(\\["'abfnrtv\\]))'" "'\\(([0-3]?[0-7]{1,2}))'" "'\\x[0-9A-Fa-f]{1,2}'"
+##
+## GCC builtins
+color cyan "__attribute__[[:space:]]*\(\([^)]*\)\)" "__(aligned|asm|builtin|hidden|inline|packed|restrict|section|typeof|weak)__"
+##
+## String highlighting.  You will in general want your comments and
+## strings to come last, because syntax highlighting rules will be
+## applied in the order they are read in.
+color brightyellow "<[^= 	]*>" ""(\\.|[^"])*""
+##
+## This string is VERY resource intensive!
+color brightyellow start=""(\\.|[^"])*\\[[:space:]]*$" end="^(\\.|[^"])*""
+
+## Comment highlighting
+color brightblue "//.*"
+color brightblue start="/\*" end="\*/"
+
+## Trailing whitespace
+color ,green "[[:space:]]+$"
+
+### ================> changelog.nanorc <================
+
+syntax "changelog" "ChangeLog$"
+color brightgreen "^\+.*"
+color green "^\+\+\+.*"
+color brightblue "^ .*"
+color brightred "^-.*"
+color red "^---.*"
+color red "(\d\d\s\w\+\s\d\{4\})"
+color brightyellow "^@@.*"
+color magenta "^diff.*"
+
+#syn region GentooChangeLogRelease start=/^\*/ end=/$/ contains=GentooChangeLogReleaseDate
+#syn match GentooChangeLogReleaseDate contained /(\d\d\s\w\+\s\d\{4\})/
+#syn region GentooChangeLogEntry start=/^\s\+/ end=/\n\n/
+#           \ contains=GentooChangeLogEntryDate,GentooBug
+#syn region GentooChangeLogEntryDate contained start=/\d\?\d\s\w\+\s\d\{4\}/ end=/;/
+#           \ nextgroup=GentooChangeLogEntryAuthor,GentooChangeLogEntryEmail skipwhite skipnl
+#syn region GentooChangeLogEntryAuthor contained start=/\S/ end=/\( <\)\@=/
+#           \ nextgroup=GentooChangeLogEntryEmail skipwhite skipnl
+#syn match  GentooChangeLogEntryEmail contained /<\?[a-zA-Z0-9\.\-\_]\+@[a-zA-Z0-9\.\-\_]\+>\?/
+#           \ nextgroup=GentooChangeLogFiles skipwhite skipnl
+#syn region GentooChangeLogFiles contained start=/\(\S\)\@=/ end=/:/
+#           \ contains=GentooChangeLogAddFile,GentooChangeLogDelFile,GentooChangeLogModFile
+#" Add / delete / changed files
+#syn region GentooChangeLogAddFile contained start=/+/ end=/\([,:]\)\@=/
+#syn region GentooChangeLogDelFile contained start=/-/ end=/\([,:]\)\@=/
+#syn region GentooChangeLogModFile contained start=/[a-zA-Z0-9]/ end=/\([,:]\)\@=/
+
+
+### ================> changelogs.nanorc <================
+
+## Changelog file syntax
+##
+syntax "changelogs" "ChangeLog*$" "HISTORY$" "NEWS$"
+
+color green "\+"
+color red "\-"
+color brightwhite "[0-9]"
+color brightblue "[0-9][0-9]\:[0-9][0-9]\:[0-9][0-9]"
+color blue "[0-9][0-9][0-9][0-9]\-[0-9][0-9]\-[0-9][0-9]"
+color blue "[0-9][0-9][0-9][0-9]\/[0-9][0-9]\/[0-9][0-9]"
+color blue "\b(CEST|CET|CST||CDT|EDT)\b"
+color yellow "[0-9]\..*$"
+color cyan "\*.*$"
+color brightblue "\b(pre.*$|beta.*$|rc.*$|release.*$)\b"
+color green "#.*$"
+icolor brightred "^[[:space:]]*[.0-9A-Z_]*:"
+color magenta "[.0-9A-Za-z_]*[[:space:]]*[.0-9A-Za-z_]*[[:space:]]<"
+color brightyellow  "<(\\.|[^\"])*>"
+color brightwhite "commit[[:space:]]*[.0-9A-Z_]*$"
+
+### ================> clike.nanorc <================
+
+## Here is an example for C/C++.
+##
+syntax "clike" "\.(m|pch)$"
+color brightred "\b[A-Z_][0-9A-Z_]+\b" 
+color green "\b(float|double|bool|char|int|short|long|sizeof|enum|void|static|const|struct|union|typedef|extern|(un)?signed|inline)\b"
+color green "\b((s?size)|((u_?)?int(8|16|32|64|ptr)))_t\b"
+color green "\b(class|namespace|template|public|protected|private|typename|this|friend|virtual|using|mutable|volatile|register|explicit)\b"
+color brightyellow "\b(for|if|while|do|else|case|default|switch)\b"
+color brightyellow "\b(try|throw|catch|operator|new|delete)\b"
+color magenta "\b(goto|continue|break|return)\b"
+color brightcyan "^[[:space:]]*#[[:space:]]*(define|include|(un|ifn?)def|endif|el(if|se)|if|warning|error)"
+color brightmagenta "'([^'\]|(\\["'abfnrtv\\]))'" "'\\(([0-3]?[0-7]{1,2}))'" "'\\x[0-9A-Fa-f]{1,2}'"
+##
+## GCC builtins
+color cyan "__attribute__[[:space:]]*\(\([^)]*\)\)" "__(aligned|asm|builtin|hidden|inline|packed|restrict|section|typeof|weak)__"
+##
+## String highlighting.  You will in general want your comments and
+## strings to come last, because syntax highlighting rules will be
+## applied in the order they are read in.
+color brightyellow "<[^= 	]*>" ""(\\.|[^"])*""
+##
+## This string is VERY resource intensive!
+color brightyellow start=""(\\.|[^"])*\\[[:space:]]*$" end="^(\\.|[^"])*""
+
+## Comment highlighting
+color brightblue "//.*"
+color brightblue start="/\*" end="\*/"
+
+### ================> conf.nanorc <================
+
+# Generic *.conf file syntax highlighting
+#
+
+syntax "conf" "\.(c(onf|nf|fg))$"
+
+# string
+icolor yellow ""(\\.|[^"])*""
+
+# variable name & value
+icolor brightyellow start="=" end="$"
+icolor magenta start="(^|[[:space:]])[0-9a-z-]" end="="
+
+# bracket/parenthesis
+icolor brightred "(^|[[:space:]])((\[|\()[0-9a-z_!@#$%^&*-]+(\]|\)))"
+
+# number
+color green "[[:space:]][0-9.KM]+"
+
+# comment
+color cyan start="(^|[[:space:]])(#|;).*$" end="$"
+color brightblue "(^|[[:space:]])(#|;)"
+
+### ================> config.nanorc <================
+
+### several config files
+syntax "config" "(\.|/|)config$" "(\.|/|)logout$" "(\.|/|)COLORS$" "(\.|/|)colors$"
+color red "/.*$" "TERM" "\..*$" "=.*$" "\*.*$"
+color white ":unscaled" "[0-9]"
+color blue "setenv|export" "\;"
+color green "#.*$"
+
+
+### ================> config2.nanorc <================
+
+### more config files
+syntax "config2" "(\.|/|)env$" "(\.|/|)server.$" "hosts" "gpm" "local.*$" "bootsplash" "crypto-loop"
+color red "/.*$" "http\:\/\/.*$"
+color white ":unscaled"
+color blue "setenv|export"
+color brightwhite "[0-9]"
+color green "#.*$"
+color white "http\:\/\/" "ftp\:\/\/" "rsync\:\/\/" 
+
+
+### ================> config3.nanorc <================
+
+### even more config files ;-)
+syntax "config3" "iptables" "ntp.*$" "rsyncd" "xfs" "saslauthd" "timidity" "net.*$" "hdparm" "esound" "login.*$"
+color red "/.*$" "http\:\/\/.*$" ""(\\.|[^\"])*"" "\b(server)\b" "\b(logfile)\b""\b(driftfile)\b"
+color white ":unscaled" "http\:\/\/" "ftp\:\/\/" "rsync\:\/\/"
+color blue "setenv|export"
+color brightwhite "[0-9]"
+color green "#.*$"
+
+
+### ================> configfiles.nanorc <================
+
+### all *conf files  (e.g. make.conf, xorg.conf, grub.conf, make.globals, Xfce files...)
+syntax "configfiles" "(\.|/|)conf$" "(\.|/|)ample$" "(\.|/|)globals$" "xfce.*$" "syslog-ng" "sudoers"
+color brightwhite "\b(alias)\b"
+color blue "<(\\.|[^'])*>"
+color magenta "[a-zA-Z0-9\_]+="
+color white ">(\\.|[^'><])*</"
+color green "//.*$"
+color red ""(\\.|[^\"])*""
+color red "title.*$" "\b(server)\b" "\b(logfile)\b" "\b(driftfile)\b" "\b(restrict)\b"
+color white ":unscaled" "http\:\/\/" "ftp\:\/\/" "rsync\:\/\/"
+color magenta "'(\\.|[^'])*'"
+color brightwhite "[0-9]"
+color brightwhite "[<>]"
+color magenta "Section" "EndSection" "SubSection" "EndSubSection"
+color red "\b(root)\b"
+color brightred,blue "^.*-->" start="<!--.*" end="$"
+color green "#.*$" start="<!--" end="-->"
+
+
+### ================> conky.nanorc <================
+
+## Conky config highlighting
+##
+syntax "Conky" ".conkyrc$"
+color brightblue "(use_spacer|background|use_xft|xftfont|xftalpha)"
+color brightblue "(mail_spool|update_interval|own_window)"
+color brightblue "(double_buffer|minimum_size)"
+color brightblue "(draw_(outline|borders|shades)|stippled_borders)"
+color brightblue "border_(margin|width)"
+color brightblue "default_((shade_|outline_)?color)"
+color brightblue "(alignment|gap_x|gap_y|no_buffers|uppercase)"
+color brightblue "^TEXT[[:space:]]*$"
+color brightred "[[:space:]]+(yes|no)[[:space:]]*"
+color brightred "(top_left|top_right|bottom_left|bottom_right)[[:space:]]*$"
+color magenta "[[:space:]]+([[:space:]]*([0-9]\.?))+[[:space:]]*"
+color brightred "\$\{?[a-zA-Z_0-9\# ]+\}?"
+color green "^[[:space:]]*#.*"
+color white "[[:space:]]+\#[0-9A-Fa-f]{6}" 
+
+### ================> css.nanorc <================
+
+##############################################################################
+#
+# Syntax highlighting for CSS files
+#  
+# Author:  Simon Rupf, simon.rupf(a)int-ag.ch
+# License: GPL 2  or later
+#
+# Version: 2005-02-14
+#
+##############################################################################
+
+syntax "css" "\.css$"
+color brightred     "."
+color brightyellow  start="\{" end="\}"
+color brightwhite           start=":" end="[;^\{]"
+color brightblue    ":active|:focus|:hover|:link|:visited|:link|:after|:before|$"
+color brightblue    start="\/\*" end="\\*/"
+color green         ";|:|\{|\}"
+
+
+### ================> debian.nanorc <================
+
+## Here is an exmaple for apt's sources.list
+## Adapted from http://milianw.de/blog/Syntax-Highlighting-in-Nano
+## (mail@milianw.de).
+##
+syntax "apt/sources.list" "sources\.list(\.old|~)?$"
+# component
+color brightmagenta "^deb(-src)? ((http|file|ftp):/[^ ]+|cdrom:\[[^\]]+\]/|cdrom:\[[-a-zA-Z0-9\._\(\) ]+\]/) [^ ]+ .+$"
+# distribution
+color brightred "^deb(-src)? ((http|file|ftp):/[^ ]+|cdrom:\[[^\]]+\]/|cdrom:\[[-a-zA-Z0-9\._\(\) ]+\]/) [^ ]+"
+# URI
+color brightgreen "(http|file|ftp):/[^ ]+"
+# cdroms
+# [^\]] does not work...
+color brightgreen "cdrom:\[[-a-zA-Z0-9\._\(\) ]+\]/"
+# deb / deb-src
+color yellow "^deb"
+color yellow "^deb-src"
+# comments
+color brightblue "#.*"
+
+
+### ================> default.nanorc <================
+
+syntax "default"
+color green "^#.*" 
+color brightgreen "^##.*"
+color yellow "^###.*"
+#color green "^[ \t]*#.*
+
+### ================> delphi.nanorc <================
+
+syntax "Delphi Source" "\.pas$"
+color brightcyan "\b(boolean|byte|char|double|float|integer|long|new|short|this|transient|void)\b"
+color brightred "\b(break|case|catch|continue|default|do|else|finally|for|if|then|return|switch|throw|try|while|function)\b"
+#color cyan "\b(abstract|unit|class|extends|final|implements|import|instanceof|interface|native|package|private|protected|public|static|strictfp|super|$color brightyellow "\b(until|repeat|var|uses|type|begin|end|const)\b"
+color magenta "\b(true|false|null|procedure)\b"
+color brightblue "//.*"
+color brightblue start="\{" end="\}"
+
+### ================> desc.nanorc <================
+
+### all *desc files ( e.g. use.desc, use.local.desc )
+syntax "use" "(\.|/|)desc$"
+color green ".*\-"
+color white "\:.*$"
+color white "\-.*$"
+color magenta "\:(\\.|[^'])*\-"
+color blue "\-(\\.|[^'])*\:"
+color yellow "\/(\\.|[^'])*\:"
+color red "x86" "http\:\/\/.*$"
+color brightred "\!\!(\\.|[^'])*\!\!" "DO NOT SET THIS FLAG YOURSELF!"
+color green "#.*$" 
+
+### ================> dotemacs.nanorc <================
+
+syntax "dotemacs" "^.emacs$"
+color green  "^;.*"
+
+### ================> dummy.nanorc <================
+
+##########################################################################
+##########################################################################
+#
+#
+# D U M M Y Ruleset
+#
+#
+# If you want to create your own rules you can use this simple example:
+#
+# syntax "Dummy" "(\.|/|)foo$"  -> this creates the ruleset "Dummy" and it
+#               matches all filenames ending with foo
+#      "foo"         -> this matches foo exactly
+#      "foo.*$"   -> this matches files beginning with foo
+#
+#
+#
+# After you selected the files you can define rulesets for this file:
+#
+#
+# color blue "#.*$"      -> colors all after "#" blue on this line
+# color red "\@"      -> colors all "@" red, \ means to handle it _not_
+#               as a special sign
+# color yellow "\b(profi)\b"   -> colors only the word profi yellow
+# color yellow "profi"      -> colors all strings "profi" yellow, also in
+#               profile
+# color black "[0-9]"      -> colors all numbers black
+# color magenta "'(\\.|[^'])*'" -> colors all between ' and ' magenta,
+#               but only on the same line
+# color red "[A-Z0-9\_]+="      -> matches everything folowed  by =
+# color green "setenv|export"   -> matches the string setenv OR export
+# color cyan "^.*(foobar).*$"   -> colors the whole line cyan, by matching foobar
+#                                  on that line
+#
+# color brightred,blue start="<!--" end="-->"
+#
+#                               -> colors all between <!-- and --> brightred on blue
+#                                  even if there are more lines between
+#
+#
+########################################################################### 
+
+### ================> ebuild.nanorc <================
+
+## Here is an example for ebuilds/eclasses
+##
+syntax "ebuild" "\.e(build|class)$"
+## All the standard portage functions
+color brightgreen "^src_(unpack|compile|install|test)" "^pkg_(config|nofetch|setup|(pre|post)(inst|rm))"
+## Highlight bash related syntax
+color green "\b(case|do|done|elif|else|esac|exit|fi|for|function|if|in|local|read|return|select|shift|then|time|until|while)\b"
+color green "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|=|&|\|)"
+color green "-(e|d|f|r|g|u|w|x|L)\b"
+color green "-(eq|ne|gt|lt|ge|le|s|n|z)\b"
+## Highlight variables ... official portage ones in red, all others in bright red
+color brightred "\$\{?[a-zA-Z_0-9]+\}?"
+color red "\b(ARCH|HOMEPAGE|DESCRIPTION|IUSE|SRC_URI|LICENSE|SLOT|KEYWORDS|FILESDIR|WORKDIR|(P|R)?DEPEND|PROVIDE|DISTDIR|RESTRICT)\b"
+color red "\b(S|D|T|PV|PF|P|PN|A)\b" "\bC(XX)?FLAGS\b"
+## Highlight portage commands
+color magenta "\buse(_(with|enable))?\b [a-z0-9X ]*" "inherit.*"
+color brightblue "e(begin|end|conf|install|make|warn|infon?|error|patch)"
+color brightblue "\bdie\b" "\buse((v|_(with|enable)))?\b" "\binherit\b" "\bhas\b" "\b(has|best)_version\b" "\bunpack\b"
+color brightblue "\b(do|new)(ins|s?bin|doc|lib(|\.so|\.a)|man|info|exe)\b"
+color brightblue "\bdo(python|sed|dir|hard|sym|html|jar|mo)\b" "\bkeepdir\b" 
+color brightblue "prepall(|docs|info|man|strip)" "prep(info|lib|lib\.so|man|strip)"
+color brightblue "\b(|doc|ins|exe)into\b" "\bf(owners|perms)\b" "\b(exe|ins|dir)opts\b"
+## Highlight common commands used in ebuilds
+color blue "\bmake\b" "\b(cat|cd|chmod|chown|cp|echo|env|export|grep|let|ln|mkdir|mv|rm|sed|set|tar|touch|unset)\b"
+## Highlight comments (doesnt work that well)
+color yellow "#.*$"
+## Highlight strings (doesnt work that well)
+color brightyellow "'(\\.|[^\"])*'" "'(\\.|[^'])*'"
+### ================> ekghistory.nanorc <================
+
+syntax "ekghistory" "(\.|/|).gg/history"
+icolor cyan start="<" end=">"
+icolor green ",(\\.|[^\"])*,"
+color yellow "chatrecv"
+color cyan "chatsend"
+color brightwhite "[0-9]"
+
+
+### ================> etc-stuff.nanorc <================
+
+## /etc/ stuff syntax
+##
+#syntax "etcconf.d" "conf.d/(\.|/|)"
+#color magenta "\".*$"
+#color blue "#.*$"
+
+syntax "group" "group$"
+color green "[0-9]\:.*$"
+color brightwhite "[0-9]"
+icolor brightred "^[[:space:]]*[.0-9A-Z_]*:"
+
+syntax "modules" "modules.conf$" "modules.d/(\.|/|)"
+color brightwhite "[0-9]"
+color red "alias"
+color brightred "(probeall|options)"
+color green "#.*$"
+
+syntax "modprobe" "modprobe.conf$"
+color brightwhite "[0-9]"
+color red "alias"
+color brightred "options"
+color magenta "[a-zA-Z0-9\_]+="
+color green "#.*$"
+
+syntax "hosts" "hosts$"
+#color brightwhite "[0-9]"
+color yellow "^[[:space:]]*[.0-9A-Z_]*.*$"
+color brightblue "^[[:space:]]*[.0-9A-Z_]*"
+color red "127.0.0.1"
+color cyan "\:\:"
+color green "#.*$"
+
+syntax "mplayer" "mplayer.conf$"
+color brightgreen "\=.*$"
+color brightred "no"
+color cyan "\="
+color green "#.*$"
+
+syntax "mplayerplugin" "mplayerplug\-in.conf$"
+color brightgreen "\=.*$"
+color brightred "0"
+color cyan "\="
+color green "#.*$"
+
+syntax "sensors" "sensors.conf$"
+color brightyellow "\".*$"
+color yellow "\b(label|compute|set|chip)\b"
+color green "#.*$"
+
+syntax "sysctl" "sysctl.conf$"
+color brightwhite "[0-9]"
+color cyan "\="
+color green "#.*$"
+
+syntax "dircolors" "DIR_COLORS$"
+color yellow "\b(TERM|NORMAL|FILE|DIR|LINK|FIFO|SOCK|DOOR|BLK|CHR|ORPHAN|MISSING|SETUID|SETGID)\b"
+color yellow "\b(STICKY|EXEC|STICKY_OTHER_WRITABLE|OTHER_WRITABLE)\b"
+color brightblack "[0-9][0-9]\;.*$"
+color cyan "\.[.0-9A-Z_]*[[:space:]]"
+color green "#.*$"
+
+syntax "modes" "fb.modes$"
+color yellow "\b(mode|endmode)\b"
+color cyan "\b(geometry|timings|hsync|vsync|double)\b"
+color green "#.*$"
+
+syntax "serial" "serial.conf$"
+color brightwhite "[0-9]"
+color cyan "\b(uart|port|irq|fourport)\b"
+color green "#.*$"
+
+syntax "services" "services$"
+color cyan "/tcp"
+color magenta "udp"
+color brightblack "/"
+color brightwhite "[0-9]"
+color green "#.*$"
+
+syntax "crontab" "crontab$"
+color brightwhite "[0-9]"
+color cyan "\*"
+color yellow "[[:space:]]/.*$"
+color brightblack "(&|>)"
+color green "#.*$"
+
+syntax "nscd" "nscd.conf$"
+color cyan "(passwd|group|hosts)"
+color yellow "([0-9]|yes)"
+color green "#.*$"
+
+syntax "rsync" "rsyncd.conf$"
+color cyan "(hosts|(u|g)id|pid\ file|use\ chroot|read\ only|address|max\ connections|motd\ file)"
+color cyan "(log\ format|syslog\ facility|timeout)"
+color yellow "(path|comment|exclude)"
+color brightyellow  start="\[" end="\]"
+color green "#.*$"
+
+syntax "lilo" "lilo.conf$"
+color cyan "(boot|map|install|menu\-scheme|timeout|delay|prompt|vga|default)"
+color brightwhite "[0-9]"
+color magenta "(lba32|linear|compact|image)"
+color brightyellow  "(root|label|read\-only)"
+color yellow "\/.*$"
+color green "#.*$"
+
+syntax "hdparm" "hdparm$"
+color cyan "(pata|sata)_all_args"
+color cyan "[A-Za-z0-9]*_args"
+color magenta "\".*$"
+color green "#.*$"
+
+syntax "ini" "\.ini$"
+color yellow "\[.*]"
+color green "\;.*$"
+
+syntax "smbconf" "smb.conf$"
+color brightcyan "\=.*$"
+color cyan "\/.*$"
+color brightred "(no|No)"
+color brightgreen "(yes|Yes)"
+color brightyellow "(workgroup.*$|hosts\ allow.*$|interfaces.*$|netbios\ name.*$)"
+color yellow "\[.*]|\="
+icolor magenta "^[[:space:]]*[.A-Z]*"
+icolor magenta "^[[:space:]]*[.A-Z]*[[:space:]]*[.A-Z]*"
+icolor magenta "^[[:space:]]*[.A-Z]*[[:space:]]*[.A-Z]*[[:space:]]*[.A-Z]*"
+color green "\;.*$"
+color green "#.*$"
+
+syntax "mke2fs" "mke2fs.conf$"
+color cyan "(base_features|blocksize|inode_ratio)"
+color yellow "(small|floppy|news|largefile|largefile4)"
+color brightwhite "[0-9]"
+color brightyellow  start="\[" end="\]"
+color blue "\{|\}"
+color brightblack "\="
+color green "#.*$"
+
+#this on may need fewer colors ;)
+syntax "squidconf" "squid.conf$"
+color brightyellow "(http_port|hierarchy_stoplist|maximum_object_size|cache_dir|dns_testnames)"
+color brightyellow "(coredump_dir|pipeline_prefetch|cache_mgr|visible_hostname|ftp_user|client_netmask)"
+color cyan "(acl|refresh_pattern|quick_abort_(min|max)|(cache|memory)_replacement_policy|(access|cache|cache_store)_log|cache_host)"
+color yellow "((http|icp|snmp)_access|snmp_port|parent|sibling|anonymize_headers|fake_user_agent)"
+color brightgreen "(allow|transparent|[[:space:]]on)"
+color brightred "(deny|reload\-into\-ims|override\-expire|override\-lastmod|[[:space:]]off)"
+color magenta "(src|dst|method)"
+color brightcyan "(seconds|minutes|hours|(G|M|K)B)"
+color brightblack "[0-9]"
+color green "#.*$"
+
+syntax "distcchosts" "/etc/distcc/hosts$"
+color brightblue "[0-9]"
+color yellow "localhost"
+color magenta "(/|@|:)"
+color green "#.*$"
+
+syntax "logrotate" "logrotate.conf$"
+color brightwhite "[0-9]"
+color magenta start="/" end="[[:space:]]"
+color cyan "(create|compress|include|notifempty|nomail|noolddir|\{|\})"
+color yellow "(weekly|daily|rotate|postrotate|sharedscripts)"
+color magenta "logrotate"
+color green "#.*$"
+
+syntax "ppppears" "/etc/ppp/peers/(\.|/|)"
+color brightwhite "user.*$"
+color brightyellow "user"
+color brightyellow start="\"" end="\""
+color yellow "lcp\-(echo\-(interval|failure)|max\-configure|restart)"
+color yellow "(debug|sync|no(ccp|pcomp|accomp)|deflate|bsdcomp|usepeerdns|pty)"
+color cyan "(lock|defaultroute|noipdefault|noauth|holdoff|maxfail|persist|asyncmap|detach|updetach|cdtrcts)"
+color brightwhite "[0-9]"
+color magenta "(\@|\,|\.)"
+color green "#.*$"
+
+syntax "dhcpconf" "dhcpd.conf$"
+icolor brightgreen "^[[:space:]]*[.A-Z]*[[:space:]]*[.A-Z]*|ad\-hoc|interim"
+color cyan "(authoritative|ddns\-update\-style|subnet|host|log\-facility)"
+color brightblue "(netmask|routers|option|(netbios|domain)-nam(e|e-servers)|(default|max)-lease-time)|range|broadcast\-address|subnet-mask"
+color brightyellow  start="\"" end="\""
+color yellow  "(hardware|ethernet|fixed\-address)"
+color brightblack "\:|\;|\{|\})""
+color green "#.*$"
+
+syntax "hibernateconf" "/etc/hibernate/common.conf$"
+color magenta "^[[:space:]]*[.A-Z]*"
+color brightwhite start="'" end="'"
+color brightgreen "yes"
+color brightred "no"
+color brightcyan "auto"
+color green "#.*$"
+color brightcyan "##.*$"
+color yellow "###.*$"
+color cyan "####.*$"
+
+syntax "nsswitch" "nsswitch.conf$"
+icolor cyan "^[[:space:]]*[.0-9A-Z_]*:"
+color magenta "\:"
+color green "#.*$"
+
+syntax "sane" "sane.d/(\.|/|)"
+color brightgreen "(scsi|usb|parport|auto)"
+color brightred "option"
+color yellow "(override|vendor|model)"
+color cyan "/.*$"
+color green "#.*$"
+
+syntax "syslogconf" "syslog.conf$"
+icolor cyan "(\*|\;|\.|\,|\\)"
+color magenta "/.*$"
+color brightblue "-.*$"
+color brightwhite "\="
+color green "#.*$"
+
+## these colors need to change...
+syntax "udevrules" "\.rules$"
+color brightwhite "[0-9]"
+color brightblack "(ACTION|SUBSYSTEM|DEVPATH|OPTIONS|WAIT_FOR_SYSFS|ENV|KERNEL|NAME|MODE|GROUP|SYMLINK|DRIVERS|PROGRAM|RUN)"
+color brightblack "(GOTO|IMPORT|ATTRS|SUBSYSTEMS|DVB|IR|BUS|SYSFS|ATTR|LABEL)"
+color yellow "(add|net|scsi|drivers|module|address|bus|devices|ioerr_cnt|ignore_device|svga|video|tt(y(S|USB)|y|s)|last_rule)"
+color yellow "(pnp|(au|ra)dio|tape|disk|snd|microcode|f(b|d|loppy|irmware)|usb|lp|kbd|parport|block|ide|misc|netlink|input)"
+color yellow "(mouse|event|joystick|psmouse|atkbd|spkr|pcspkr|ir|dvb|persistent|storage|end|scanner|sound|dialout|console)"
+color yellow "(cdrom|cdrw|dvd|dvdrw|isdn|pty|vcs|vcsa|ippp|dcbri|ircomm|capi|card|nvidia|rtc|agpgart|psaux|ptmx|sd|dasd|)"
+color yellow "(ataraid|cciss|ida|rd|3dfx|control|hw|pcm|midi|timer|seq|cpu|msr|dm|i2c|mice|js|ts|loop|md|uinput|inotify|aoe)"
+color brightyellow "(ID_(SERIAL|PATH|CLASS|EDD|CDROM|CDROM_(DVD|DVD_R|CD_RW))|program|parent|removable|GENERATED|COMMENT)"
+color brightyellow "(id(Vendor|Product)|PHYSDEVBUS|(UDEV|UDEVD)_EVENT|INTERFACE_NEW|MODALIAS|modalias|alias|name)"
+color brightred "(\%(k|r|c|n))"
+color blue "(\;|\.|\"|\,)"
+color brightblue "(\=|\*|\?)"
+color green "#.*$"
+
+syntax "mailalias" "/etc/mail/aliases$"
+icolor brightblue "^[[:space:]]*[.0-9A-Z_]*:"
+icolor brightblue "^[[:space:]]*[.0-9A-Z_]*\-[.0-9A-Z_]*:"
+color yellow "(\/.*$|root)"
+color green "#.*$"
+
+syntax "wifiradar" "wifi-radar.conf$"
+color brightwhite "[0-9]"
+color yellow "((f|F)alse|eth[.0-9])|yes|no|[[:space:]]auto|ssid"
+color brightgreen start="\[" end="\]"
+color green "#.*$"
+
+syntax "irssi" "irssi.conf$"
+icolor brightwhite "(^[[:space:]]*[.0-9A-Z_]*[[:space:]]=|address|name|chatnet|port|autojoin)"
+color brightblue ""(\\.|[^\"])*""
+color yellow "(\{|\}|\;)"
+color brightblack "\="
+color brightgreen "(Y|y)es|[0-9]"
+color brightred "No"
+color blue "\""
+color cyan "(servers|chatnets|channels|aliases|statusbar)"
+color green "#.*$"
+
+syntax "proftpd" "proftpd.conf$"
+icolor yellow "^[[:space:]]*[.0-9A-Z_]*[[:space:]]"
+color brightyellow "ServerType|DefaultServer|ServerIdent|Port[[:space:]]|Umask|MaxInstances|User|Group"
+color yellow "(UserAlias|UseFtpUsers)"
+color brightgreen "([[:space:]]on|[0-9]|AllowAll)"
+color brightred "(off|DenyAll)"
+icolor cyan start="<" end=">"
+icolor cyan start=""" end="""
+color cyan "xinetd|inetd|standalone"
+color green "#.*$"
+
+syntax "xinetd" "xinetd.conf$"
+icolor yellow "^[[:space:]]*[.0-9A-Z_]*[[:space:]]"
+color brightgreen "([0-9]|yes)"
+color brightred "(off|no)"
+color magenta "defaults"
+color brightblack "="
+color brightyellow "(\{|\})"
+color cyan "/.*$"
+color green "#.*$"
+
+syntax "xinetd.d" "xinetd.d/(\.|/|)"
+icolor yellow "^[[:space:]]*[.0-9A-Z_]*[[:space:]]"
+color brightgreen "([0-9]|yes)"
+color brightred "(off|[[:space:]]no)"
+color brightblack "="
+color brightyellow "(\{|\})"
+color cyan "/.*$"
+color green "#.*$"
+
+syntax "localegen" "locale(.gen|s.build)"
+color cyan "ISO.*$"
+color yellow "UTF.*$"
+color green "#.*$"
+
+syntax "clamd" "clamd.conf$"
+color brightblack "[0-9]M"
+color brightwhite "[0-9]"
+color yellow "^[[:space:]]*[.0-9A-Z_]*"
+color cyan "^[[:space:]]*[.0-9A-Z_]*[[:space:]]"
+color green "#.*$"
+
+syntax "grcconf" "grc.conf$"
+color cyan "conf\..*$"
+color yellow "\(.*$|\\.*$"
+color green "#.*$"
+
+syntax "freshclamconf" "freshclam.conf$"
+icolor brightcyan "^[[:space:]]*[.A-Z]*[[:space:]]*[.A-Z_]*"
+color cyan "\/.*$|[0-9]"
+icolor yellow "^[[:space:]]*[.A-Z]*"
+color green "#.*$"
+
+syntax "colorlightbg" "colordiffrc-lightbg$"
+color brightblue "=.*$"
+icolor yellow "^[[:space:]]*[.A-Z_]*"
+color brightblack "="
+color green "#.*$"
+
+syntax "etc-limits" "limits$"
+icolor yellow "^[[:space:]]*[.A-Z_]*"
+color green "#.*$"
+
+syntax "screenrc" "screenrc$"
+icolor yellow "^[[:space:]]*[.A-Z_]*"
+color blue ""(\\.|[^\"])*""
+color brightwhite "[0-9]"
+color red "[[:space:]]off"
+color brightgreen "[[:space:]]on"
+color magenta "'.*$"
+color magenta "[A-Z0-9\_]+="
+color green "#.*$"
+
+syntax "fdparm" "fdprm$"
+icolor brightgreen "^[[:space:]]*[0-9\/a-z]*"
+color green "#.*$"
+
+syntax "securetty" "securetty$"
+color cyan "console"
+color brightwhite "[0-9]"
+color red "vc"
+color brightgreen "tt(y|yS|s)"
+color green "#.*$"
+
+syntax "logindefs" "login.defs"
+
+icolor yellow "^[[:space:]]*[0-9\/a-z_]*"
+color brightwhite "[0-9]"
+color brightred "no"
+color brightgreen "yes"
+color green "#.*$"
+
+syntax "mysql" "my.cnf"
+icolor yellow "^[[:space:]]*[0-9\/a-z_-]*"
+color cyan start="\[" end="\]"
+color green "#.*$"
+
+syntax "manconf" "man.conf$"
+icolor yellow "^[[:space:]]*[.A-Z_0-9]*"
+color brightgreen "/.*$"
+color green "#.*$"
+
+syntax "sshdconf" "sshd_config$"
+icolor yellow "^[[:space:]]*[.A-Z_0-9]*"
+color brightwhite "[0-9]"
+color brightblue "/.*$"
+color brightred "no"
+color brightgreen "yes"
+color green "#.*$"
+
+#these look stupid if you ask me, but hey do better :P
+syntax "protocols" "protocols$"
+icolor brightgreen "[0-9][[:space:]][[:space:]]*[.A-Z0-9-]*"
+icolor brightblue "[.a-z0-9][[:space:]][[:space:]]*[.0-9]"
+icolor brightblue "[.a-z0-9][[:space:]][[:space:]]*[.0-9][.0-9]"
+icolor brightblue "[.a-z0-9][[:space:]][[:space:]]*[.0-9][.0-9][.0-9]"
+icolor yellow "^[[:space:]]*[.A-Z0-9-]*"
+color green "#.*$"
+
+### ================> etcxml.nanorc <================
+
+##############################################################################
+#
+# Syntax highlighting for XML files (/etc/fonts/*)
+#
+# Author:  Josef 'Jupp' Schugt, jupp(a)rubyforge.org
+# License: GPL 2  or later
+#
+# Version: 2004-02-25
+#
+##############################################################################
+
+syntax "etcxml" "/etc/fonts/(\.|/|)" "/etc/xdg/(\.|/|)"
+color white "^.+$"
+color green  start="<" end=">"
+color cyan   "<[^> ]+"
+color cyan   ">"
+color yellow start="<!DOCTYPE" end="[/]?>"
+color yellow start="<!--" end="-->"
+color red    "&[^;]*;"
+
+syntax "etcxml2" "gentoorc$"
+color white "^.+$"
+color green  start="<" end=">"
+color cyan   "<[^> ]+"
+color cyan   ">"
+color yellow start="<!DOCTYPE" end="[/]?>"
+color yellow start="<!--" end="-->"
+color red    "&[^;]*;"
+
+
+### ================> gentoo.nanorc <================
+
+## Here is an example for Gentoo ebuilds/eclasses
+##
+syntax "ebuild" "\.e(build|class)$"
+## All the standard portage functions
+color brightgreen "^src_(unpack|compile|install|test)" "^pkg_(config|nofetch|setup|(pre|post)(inst|rm))"
+## Highlight bash related syntax
+color green "\b(case|do|done|elif|else|esac|exit|fi|for|function|if|in|local|read|return|select|shift|then|time|until|while|continue|break)\b"
+color green "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|=|&|\|)"
+color green "-(e|d|f|r|g|u|w|x|L)\b"
+color green "-(eq|ne|gt|lt|ge|le|s|n|z)\b"
+## Highlight variables ... official portage ones in red, all others in bright red
+color brightred "\$\{?[a-zA-Z_0-9]+\}?"
+color red "\b(ARCH|HOMEPAGE|DESCRIPTION|IUSE|SRC_URI|LICENSE|SLOT|KEYWORDS|FILESDIR|WORKDIR|(P|R)?DEPEND|PROVIDE|DISTDIR|RESTRICT|USERLAND)\b"
+color red "\b(S|D|T|PV|PF|P|PN|A)\b" "\bC(XX)?FLAGS\b" "\bLDFLAGS\b" "\bC(HOST|TARGET|BUILD)\b"
+## Highlight portage commands
+color magenta "\buse(_(with|enable))?\b [!a-zA-Z0-9_+ -]*" "inherit.*"
+color brightblue "\be(begin|end|conf|install|make|warn|infon?|error|log|patch|new(group|user))\b"
+color brightblue "\bdie\b" "\buse(_(with|enable))?\b" "\binherit\b" "\bhas\b" "\b(has|best)_version\b" "\bunpack\b"
+color brightblue "\b(do|new)(ins|s?bin|doc|lib(|\.so|\.a)|man|info|exe|initd|confd|envd|pam|menu|icon)\b"
+color brightblue "\bdo(python|sed|dir|hard|sym|html|jar|mo)\b" "\bkeepdir\b"
+color brightblue "prepall(|docs|info|man|strip)" "prep(info|lib|lib\.(so|a)|man|strip)"
+color brightblue "\b(|doc|ins|exe)into\b" "\bf(owners|perms)\b" "\b(exe|ins|dir)opts\b"
+## Highlight common commands used in ebuilds
+color blue "\bmake\b" "\b(cat|cd|chmod|chown|cp|echo|env|export|grep|let|ln|mkdir|mv|rm|sed|set|tar|touch|unset)\b"
+## Highlight comments (doesnt work that well)
+color yellow "#.*$"
+## Highlight strings (doesnt work that well)
+color brightyellow ""(\\.|[^\"])*"" "'(\\.|[^'])*'"
+## Trailing space is bad!
+color ,green "[[:space:]]+$"
+
+## Here is an example for Portage control files
+##
+syntax "/etc/portage" "\.(keywords|mask|unmask|use)$"
+## Base text:
+color green "^.+$"
+## Use flags:
+color brightred "[[:space:]]+\+?[a-zA-Z0-9_-]+"
+color brightblue "[[:space:]]+-[a-zA-Z0-9_-]+"
+## Likely version numbers:
+color magenta "-[[:digit:]].*([[:space:]]|$)"
+## Accepted arches:
+color white "[~-]?\b(alpha|amd64|arm|hppa|ia64|mips|ppc|ppc64|s390|sh|sparc|x86|x86-fbsd)\b"
+color white "[[:space:]][~-]?\*"
+## Categories:
+color cyan "^[[:space:]]*.*/"
+## Masking regulators:
+color brightmagenta "^[[:space:]]*(=|~|<|<=|=<|>|>=|=>)"
+## Comments:
+color yellow "#.*$"
+
+### ================> groff.nanorc <================
+
+## Here is an example for groff.
+##
+syntax "groff" "\.m[ems]$" "\.rof" "\.tmac$" "^tmac."
+## The argument of .ds or .nr
+color cyan "^\.(ds|nr) [^[[:space:]]]*"
+## Single character escapes
+color brightmagenta "\\."
+## Highlight the argument of \f or \s in the same color
+color brightmagenta "\\f." "\\f\(.." "\\s(\+|\-)?[0-9]"
+## Newlines
+color cyan "(\\|\\\\)n(.|\(..)"
+color cyan start="(\\|\\\\)n\[" end="]"
+## Requests
+color brightgreen "^\.[[:space:]]*[^[[:space:]]]*"
+## Comments
+color yellow "^\.\\".*$"
+## Strings
+color green "(\\|\\\\)\*(.|\(..)"
+color green start="(\\|\\\\)\*\[" end="]"
+## Characters
+color brightred "\\\(.."
+color brightred start="\\\[" end="]"
+## Macro arguments
+color brightcyan "\\\\\$[1-9]"
+
+### ================> havp.nanorc <================
+
+
+syntax "havp" "havp.config$"
+color brightred "REMOVETHISLINE" 
+color red "(deleteme|false)"
+color brightgreen "true"
+color brightwhite "[0-9]"
+color yellow "\ \/.*$"
+color brightyellow "--[a-z]*"
+color cyan "^[[:space:]]*[.A-Z_0-9]*"
+color green "#.*$"
+
+### ================> html.nanorc <================
+
+## Here is a short example for HTML.
+##
+syntax "html" "\.html$"
+color blue start="<" end=">"
+color red "&[^;[[:space:]]]*;"
+
+### ================> httpstatuscodes.nanorc <================
+
+##############################################################################
+#
+# Syntax highlighting for HTTP codes
+#
+# Author:  Josef 'Jupp' Schugt, jupp(a)rubyforge.org
+# License: GPL 2  or later
+#
+# Version: 2004-02-25
+#
+##############################################################################
+
+syntax "urls"
+color brightmagenta   "^.*$"
+color cyan      "^(1[0-9][0-9]|20[256]|30[45]).*$"
+color green      "^20[03].*$"
+color brightyellow   "^(201|30[0-37]).*$"
+color brightred      "^(204|[45][0-9][0-9]|666).*$"
+### ================> info.nanorc <================
+
+## *.Info file syntax
+##
+syntax "info" "Info.txt$"
+color green "[0-9]"
+color brightblue "\b(video|codec|bitrate|width|height|General|FileSize|Format|OveralBitRate|PlayTime)\b"
+color brightblue "\b(Video|Codec|Bitrate|BitRate|Width|Height|AspectRatio|FrameRate|Bits|SamplingRate)\b"
+color brightblue "\b(audio|channel|V(i|I)DEO|CODEC|FORMAT|B(I|i)TRATE|METHOD|R(I|i)P|AUD(I|i)O|RESOLUT(I|i)ON|GENRE)\b"
+color brightblue "\b(Audio|Channel|Sound|ASPECT|RAT(i|I)O|MOV(I|i)E|S(i|I)ZE|RUNT(I|i)ME)\b"
+color magenta "Movie.*$"
+color blue "\b(KHz|kHz|Kbps|fps|MB|KB|channels|MiB|min|kbit\/s|Min)\b"
+color brightyellow "\b(DivX|XviD|MPEG\-4|AAC\ LC|H\.264|LAME|NTSC|MPEG1|AVI)\b"
+color brightblack "\="
+icolor brightcyan "[.0-9A-Z_]*:"
+icolor brightyellow "http:.*$"
+
+
+
+
+
+### ================> ini.nanorc <================
+
+# ini highlighting
+syntax "ini" "\.ini(\.old|~)?$"
+ 
+# values
+color brightred "=.*$"
+# equal sign
+color green "="
+# numbers
+color brightblue "-?[0-9\.]+\s*($|;)"
+# ON/OFF
+color brightmagenta "ON|OFF|On|Off|on|off\s*($|;)"
+# sections
+color brightcyan "^\s*\[.*\]"
+# keys
+color cyan "^\s*[a-zA-Z0-9_\.]+"
+# comments
+color brightyellow ";.*$"
+### ================> initng.nanorc <================
+
+## InitNG syntax
+##
+syntax "initngscripts"  "\.i$"
+icolor brightgreen "^[0-9A-Z_]+\(\)"
+color magenta "(daemon|virtual)"
+color brightwhite "virtual/.*$"
+color brightblack "daemon/.*$"
+color yellow "(need|use|respawn|exec\ daemon|also_stop)"
+color green "\b(case|do|done|elif|else|esac|exit|fi|for|function|if|in|local|read|return|select|shift|then|time|until|while)\b"
+color green "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|=|&|\|)"
+color green "-[Ldefgruwx]\b"
+color green "-(eq|ne|gt|lt|ge|le|s|n|z)\b"
+color brightblue "\b(cat|cd|chmod|chown|cp|echo|env|export|grep|install|let|ln|make|mkdir|mv|rm|sed|set|tar|touch|umask|unset)\b"
+icolor brightred "\$\{?[0-9A-Z_!@#$*?-]+\}?"
+color cyan "(^|[[:space:]])#.*$"
+color brightyellow ""(\\.|[^"])*"" "'(\\.|[^'])*'"
+
+syntax "initng-settings" "system.virtual$" "\.runlevel$"
+color magenta "daemon"
+color cyan "system"
+color blue "net"
+color red "debug"
+
+### ================> initscript.nanorc <================
+
+## initscripts syntax (stolen from gentoo.nanorc) ;)
+##
+syntax "initscript" "/etc/init.d/(\.|/|)"
+## All the standard portage functions
+#color brightgreen "^src_(unpack|compile|install|test)" "^pkg_(config|nofetch|setup|(pre|post)(inst|rm))"
+## Highlight bash related syntax
+color green "\b(case|do|done|elif|else|esac|exit|fi|for|function|if|in|local|read|return|select|shift|then|time|until|while)\b"
+color green "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|=|&|\|)"
+color green "-(e|d|f|r|g|u|w|x|L)\b"
+color green "-(eq|ne|gt|lt|ge|le|s|n|z)\b"
+## Highlight variables ... official portage ones in red, all others in bright red
+color brightred "\$\{?[a-zA-Z_0-9]+\}?"
+color red "\b(ARCH|HOMEPAGE|DESCRIPTION|IUSE|SRC_URI|LICENSE|SLOT|KEYWORDS|FILESDIR|WORKDIR|(P|R)?DEPEND|PROVIDE|DISTDIR|RESTRICT|USERLAND)\b"
+color red "\b(S|D|T|PV|PF|P|PN|A)\b" "\bC(XX)?FLAGS\b" "\bLDFLAGS\b" "\bC(HOST|TARGET|BUILD)\b"
+## Highlight portage commands
+color magenta "\buse(_(with|enable))?\b [!a-zA-Z0-9_+ -]*" "inherit.*"
+color brightblue "\be(begin|end|conf|install|make|warn|infon?|error|patch)\b"
+color brightblue "\bdie\b" "\buse(_(with|enable))?\b" "\binherit\b" "\bhas\b" "\b(has|best)_version\b" "\bunpack\b"
+color brightblue "\b(do|new)(ins|s?bin|doc|lib(|\.so|\.a)|man|info|exe|initd|confd|envd|pam|menu|icon)\b"
+color brightblue "\bdo(python|sed|dir|hard|sym|html|jar|mo)\b" "\bkeepdir\b"
+color brightblue "prepall(|docs|info|man|strip)" "prep(info|lib|lib\.(so|a)|man|strip)"
+color brightblue "\b(|doc|ins|exe)into\b" "\bf(owners|perms)\b" "\b(exe|ins|dir)opts\b"
+## Highlight common commands used in ebuilds
+color blue "\bmake\b" "\b(cat|cd|chmod|chown|cp|echo|env|export|grep|let|ln|mkdir|mv|rm|sed|set|tar|touch|unset)\b"
+## Highlight comments (doesnt work that well)
+color yellow "#.*$"
+## Highlight strings (doesnt work that well)
+color brightyellow ""(\\.|[^\"])*"" "'(\\.|[^'])*'"
+
+### ================> java.nanorc <================
+
+## Here is an example for Java.
+##
+syntax "java" "\.java$"
+color green "\b(boolean|byte|char|double|float|int|long|new|short|this|transient|void)\b"
+color red "\b(break|case|catch|continue|default|do|else|finally|for|if|return|switch|throw|try|while)\b"
+color cyan "\b(abstract|class|extends|final|implements|import|instanceof|interface|native|package|private|protected|public|static|strictfp|super|synchronized|throws|volatile)\b"
+color red ""[^"]*""
+color yellow "\b(true|false|null)\b"
+color blue "//.*"
+color blue start="/\*" end="\*/"
+color brightblue start="/\*\*" end="\*/"
+color ,green "[[:space:]]+$"
+
+### ================> js.nanorc <================
+
+### all *js files  ( e.g. Firefox user.js, prefs.js )
+
+## Old version
+
+#syntax "jsfiles" "(\.|/|)js$"
+#color green "//.*$" start="\/\*" end="\*\/"
+#color blue "'(\\.|[^'])*'"
+#color red ""(\\.|[^\"])*""
+#color brightgreen "\b(true)\b"
+#color brightred "\b(false)\b" "http\:\/\/.*$"
+#color brightmagenta "[0-9](\\.|[^\"])*)"
+
+## New updated taken from http://wiki.linuxhelp.net/index.php/Nano_Syntax_Highlighting
+
+syntax "JavaScript" "\.(js)$"
+## Default
+color white "^.+$"
+## Decimal, cotal and hexadecimal numbers
+color yellow "\b[-+]?([1-9][0-9]*|0[0-7]*|0x[0-9a-fA-F]+)([uU][lL]?|[lL][uU]?)?\b"
+## Floating point number with at least one digit before decimal point
+color yellow "\b[-+]?([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([EePp][+-]?[0-9]+)?[fFlL]?"
+color yellow "\b[-+]?([0-9]+[EePp][+-]?[0-9]+)[fFlL]?"
+## Keywords
+color green "\b(break|case|catch|continue|default|delete|do|else|finally)\b"
+color green "\b(for|function|if|in|instanceof|new|null|return|switch)\b"
+color green "\b(switch|this|throw|try|typeof|undefined|var|void|while|with)\b"
+## Type specifiers
+color red "\b(Array|Boolean|Date|Enumerator|Error|Function|Math)\b"
+color red "\b(Number|Object|RegExp|String)\b"
+color red "\b(true|false)\b"
+## String
+color brightyellow "L?\"(\\"|[^"])*\""
+color brightyellow "L?'(\'|[^'])*'"
+## Escapes
+color red "\\[0-7][0-7]?[0-7]?|\\x[0-9a-fA-F]+|\\[bfnrt'"\?\\]"
+## Comments
+color magenta start="/\*" end="\*/"
+color magenta "//.*$"
+
+### ================> log-stuff.nanorc <================
+
+## to have logs interpreted for you in just about 1000 ways use log analyzers
+## this only helps in viewing them directly
+
+## TODO
+# getdelta, others...
+
+syntax "logs" "midentd.log$" "mldonkey.log$"
+color brightwhite "[0-9]"
+color brightblue "[0-9][0-9]\:[0-9][0-9]\:[0-9][0-9]"
+color blue "[0-9][0-9][0-9][0-9]"
+color cyan "\].*$"
+color brightblack start="\[" end="\]"
+
+syntax "emergelog" "emerge.log$"
+color brightwhite "[0-9]"
+color yellow ">>>.*$"
+color cyan "\*\*\*.*$"
+color magenta "\:\:\:.*$"
+color green start="\(" end="\)"
+color brightblue "[0-9][0-9]\:[0-9][0-9]\:[0-9][0-9]"
+color blue "[0-9][0-9][0-9][0-9]"
+icolor red "^[[:space:]]*[.0-9A-Z_]*:"
+
+syntax "ntplog" "ntp.log$"
+icolor red "^[[:space:]]*[.0-9A-Z_]*:"
+color brightwhite "[0-9]"
+color brightblue "[0-9][0-9]\:[0-9][0-9]\:[0-9][0-9]"
+color cyan "\].*$"
+color brightblack start="\[" end="\]"
+
+syntax "cronlog" "cron.log$"
+color cyan "/.*$"
+color brightblue "[0-9][0-9]\-[.A-Z_]*\-[0-9][0-9]"
+color brightwhite "[0-9][0-9]\:[0-9][0-9]"
+color magenta "(FILE|USER)"
+color yellow "(pid|cmd)"
+
+syntax "miniserv" "miniserv.log$" "miniserv.error$"
+color cyan "Bad\ Request.*$"
+color brightred "Access\ denied.*$"
+color brightwhite "[0-9]"
+color green "(POST|GET|HTTP)"
+color brightred "\""
+color yellow "(\:|\+|/|\.|\-)"
+color green ".*started$"
+
+### ================> maincf.nanorc <================
+
+### all *cf files (e.g. main.cf, Postfix )
+syntax "maincf" "(\.|/|)cf$"
+color magenta "\=.*$"
+color green "#.*$"
+color cyan "[A-Z0-9\_]+="
+color blue ""(\\.|[^\"])*""
+color red "\@"
+
+
+### ================> makefile.nanorc <================
+
+## my own
+
+#syntax "makefile" "(m|M)akefile$" "\.mak$"
+#icolor yellow start="^[[:space:]]*[.0-9A-Z_]" end="\=[[:space:]]|\:|\:\:|\/"
+#color brightgreen "((C|CXX|LD)FLAGS)|LIBADD|LIBS|include"
+#icolor cyan start="\{" end="\}"
+#icolor cyan start="\(" end="\)"
+#color brightyellow "\$"
+#color green "#.*$"
+
+## taken form http://wiki.linuxhelp.net/index.php/Nano_Syntax_Highlighting
+
+#syntax "makefile" "^Makefile\.?"
+#color red "[:=]"
+#color magenta "\b(if|ifeq|else|endif)\b"
+#color blue "\$\{.*}"
+#color brightblue "\w+:"
+#color green "#.*$"
+
+## two of the above compiled
+syntax "makefile" "(m|M)akefile$" "\.mak$"
+#icolor yellow start="^[[:space:]]*[.0-9A-Z_]" end="\=[[:space:]]|\:|\:\:|\/"
+color brightgreen "((C|CXX|LD)FLAGS)|LIBADD|LIBS|include"
+icolor cyan start="\{" end="\}"
+icolor cyan start="\(" end="\)"
+color brightyellow "\$"
+color green "#.*$"
+
+color red "[:=]"
+color magenta "\b(if|ifeq|else|endif)\b"
+color blue "\$\{.*}"
+color brightblue "\w+:"
+color green "#.*$"
+
+### ================> man.nanorc <================
+
+## Here is an example for manpages.
+##
+syntax "man" "\.[1-9]x?$"
+color green "\.(S|T)H.*$"
+color brightgreen "\.(S|T)H" "\.TP"
+color brightred "\.(BR?|I[PR]?).*$"
+color brightblue "\.(BR?|I[PR]?|PP)"
+color brightwhite "\\f[BIPR]"
+color yellow "\.(br|DS|RS|RE|PD)"
+
+### ================> mcchangelog.nanorc <================
+
+## Changelog file syntax 
+## 
+syntax "changelogs" "ChangeLog*" 
+
+color green "\+" 
+color red "\-" 
+color brightwhite "[0-9]" 
+color brightblue "[0-9][0-9]\:[0-9][0-9]\:[0-9][0-9]" 
+color blue "[0-9][0-9][0-9][0-9]\-[0-9][0-9]\-[0-9][0-9]" 
+color blue "[0-9][0-9][0-9][0-9]\/[0-9][0-9]\/[0-9][0-9]" 
+color blue "\b(CEST|CET|CST||CDT|EDT)\b" 
+color yellow "[0-9]\..*$" 
+color cyan "\*.*$" 
+color brightblue "\b(pre.*$|beta.*$|rc.*$|release.*$)\b" 
+color green "#.*$" 
+icolor brightred "^[[:space:]]*[.0-9A-Z_]*:" 
+color green "[[:space:]]*[.0-9A-Z_]*[[:space:]]*[.0-9A-Z_]*[[:space:]]<" 
+color brightyellow "<.*>$" 
+color brightwhite "commit[[:space:]]*[.0-9A-Z_]*$"
+### ================> mimetype.nanorc <================
+
+syntax "mimetype" "mime.types"
+icolor cyan "[.A-Z_]*/"
+color brightwhite "/"
+color green "[[:space:]].*$"
+## comments
+color green "#.*$"
+
+### ================> mutt.nanorc <================
+
+## Here is an example for quoted emails (under e.g. mutt).
+##
+syntax "mutt"
+color green "^>.*"
+
+### ================> named.nanorc <================
+
+## named.conf syntax
+##
+syntax "named" "named.conf"
+
+color brightcyan "(\{|\}|\;)"
+color brightwhite "[0-9]"
+color magenta "(options|zone|IN)"
+color yellow "(type|file|allow\-update|notify)"
+color cyan "(directory|statistics\-file|forward\ first|forwarders|listen\-on\-v6|listen\-on|allow\-query)"
+color cyan "(query\-source\ address|pid\-file)"
+color brightyellow ""(\\.|[^\"])*"" "'(\\.|[^'])*'"
+## comments
+color green "#.*$"
+color green "//.*$"
+
+### ================> nanorc.nanorc <================
+
+## Here is an example for nanorc files.
+##
+syntax "nanorc" "\.?nanorc$"
+## Possible errors and parameters
+icolor brightwhite "^[[:space:]]*((un)?set|include|syntax|i?color).*$"
+## Keywords
+icolor brightgreen "^[[:space:]]*(set|unset)[[:space:]]+(autoindent|backup|backupdir|backwards|boldtext|brackets|casesensitive|const|cut|fill|historylog|matchbrackets|morespace|mouse|multibuffer|noconvert|nofollow|nohelp|nonewlines|nowrap|operatingdir|preserve|punct)\b" "^[[:space:]]*(set|unset)[[:space:]]+(quickblank|quotestr|rebinddelete|rebindkeypad|regexp|smarthome|smooth|speller|suspend|tabsize|tabstospaces|tempfile|view|whitespace|wordbounds)\b"
+icolor green "^[[:space:]]*(set|unset|include|syntax)\b"
+## Colors
+icolor yellow "^[[:space:]]*i?color[[:space:]]*(bright)?(white|black|red|blue|green|yellow|magenta|cyan)?(,(white|black|red|blue|green|yellow|magenta|cyan))?\b"
+icolor magenta "^[[:space:]]*i?color\b" "\b(start|end)="
+## Strings
+icolor white ""(\\.|[^"])*""
+## Comments
+icolor brightblue "^[[:space:]]*#.*$"
+icolor cyan "^[[:space:]]*##.*$"
+
+### ================> nscd.nanorc <================
+
+syntax "nscd" "nscd.conf$"
+color cyan "(passwd|group|hosts)"
+color yellow "([0-9]|yes)"
+color green "#.*$"
+
+
+### ================> others.nanorc <================
+
+syntax "infile" ".in$" ".am$"
+icolor brightgreen start="\{" end="\}"
+color magenta "(if[[:space:]]|endif|else)"
+color yellow "^[[:space:]]*[.0-9A-Z_](\\.|[^\"])*(\=|\:)"
+color cyan "\((\\.|[^\"])*\)"
+color cyan "@(\\.|[^\"])*@"
+color brightblack "(\-[.a-z]*|\HAVE[.a-zA-Z_]*)"
+color yellow "\/"
+color brightblue ""(\\.|[^\"])*""
+color brightyellow "(\$|dnl.*$)"
+color green "#.*$"
+
+
+syntax "spec" ".spec$"
+color brightwhite "[0-9]"
+color cyan "stub"
+color yellow "pascal|stdcall|varargs|cdecl"
+color brightyellow "\((\\.|[^\"])*\)"
+color brightgreen "\@"
+color green "#.*$"
+
+syntax "configurelog" "config.log$"
+color cyan "(\:.*$|\=.*$)"
+color yellow ""(\\.|[^\"])*""
+color magenta "[.0-9A-Z_a-z]*:"
+color yellow "[.A-Z_a-z]*:[0-9]*:"
+color cyan start="\/\*" end="\*\/"
+color brightgreen "[[:space:]]yes"
+color brightred "[[:space:]]no"
+color green "#.*$"
+color brightgreen "\|.*$"
+
+syntax "texi" ".texi$"
+color brightcyan "\((\\.|[^\"])*\)"
+color yellow "(\{|\})"
+color brightblue "\$"
+color brightblack "\[(\\.|[^\"])*\]"
+color brightyellow "@[.a-zA-Z_]*"
+color cyan "^[[:space:]]*[.a-zA-Z_]*\:"
+color brightred "@c[.a-zA-Z_]*"
+color green "#.*$"
+
+
+syntax "desktop" "\.desktop$"
+color brightblue "\[(\\.|[^\"])*\]"
+color yellow "=.*$"
+color brightgreen "\="
+
+syntax "lua" "\.lua$"
+color brightwhite "[0-9]"
+color cyan "local.*$"
+color brightblack "\{|\}"
+color brightgreen "\="
+color red "\[|\]"
+color yellow "\"(\\.|[^\"])*\""
+color green "\-\-.*$"
+
+syntax "m3u" "\.m3u$"
+color green "#.*$"
+color brightgreen "http.*$"
+color yellow "\/"
+color cyan "[.0-9a-zA-Z_-]*\.mp3"
+
+syntax "bat" "\.bat$"
+color yellow "%(\\.|[^\"])*%"
+color brightyellow "set[[:space:]]"
+color brightgreen "\="
+color green "REM.*$"
+
+syntax "authors" "AUTHORS$"
+color brightgreen "((T|t)ranslators|(D|d)ocumenters|(A|a)uthors|(C|c)ontributors)"
+color brightyellow "<(\\.|[^\"])*>"
+color yellow "\@"
+color cyan "\*.*$"
+color brightcyan "\:"
+color brightblue "\((\\.|[^\"])*\)"
+color green "#.*$"
+
+syntax "kconfig" "Kconfig$" "Kconfig.(cpu|debug)$"
+color brightyellow "(<(\\.|[^\"])*>|\!)"
+color brightyellow "\((\\.|[^\"])*\)"
+color blue "source.*$"
+color brightgreen "(ult[[:space:]]y|\"(\\.|[^\"])*\")"
+color brightblue "ult[[:space:]]m"
+color brightred "ult[[:space:]]n"
+color magenta "default"
+color cyan "config.*$"
+color yellow "config|menu|(main|end)menu|choice|endchoice"
+color brightcyan "(^[[:space:]](bool|def_bool|tristate|depends[[:space:]]on|select|prompt|range|help|string|int|hex))"
+color brightmagenta "(\||\&)"
+color brightred "\"off\""
+color green "#.*$"
+
+syntax "la_file" "\.la$"
+icolor yellow "^[[:space:]]*[.0-9A-Z_]*="
+color white "\="
+color brightgreen "yes"
+color brightred "no"
+color brightwhite "[0-9]"
+color brightyellow  "'(\\.|[^\"])*'"
+color green "#.*$"
+
+syntax "contents" "CONTENTS$"
+color brightwhite "[[:space:]][a-z0-9].*$"
+color green "dir[[:space:]].*$"
+icolor cyan "^[[:space:]]*[.0-9A-Z_]*"
+color brightgreen "/usr/shar(e|e/(doc|e/man))/|/include/|/lib/|/usr/"
+color yellow "/etc/"
+color brightblue "/usr/bin(/|)|/usr/sbin|/bin|/sbin|/etc/init.d/"
+color brightyellow "/etc/conf.d/"
+color red "/va(r/|r/cache|r/lib/)"
+color brightred "/var/cache/"
+
+### ================> paludis.nanorc <================
+
+## Here is an example for Paludis control files
+##
+
+syntax "bashrc" "bashrc$"
+## Base text:
+color brightblack "^.+$"
+## sh syntax:
+color brightwhite "\b(case|do|done|elif|else|esac|exit|fi|for|function|if|in|local|read|return|select|shift|then|time|until|while)\b"
+icolor magenta "(.+\)|\[.+\])"
+color brightwhite "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|==|&|\|)"
+color brightwhite "-[Ldefgruwx]\b"
+color brightwhite "-(eq|ne|gt|lt|ge|le|s|n|z)\b"
+color brightblue "\b(cat|cd|chmod|chown|cp|echo|env|export|grep|install|let|ln|make|mkdir|mv|rm|sed|set|tar|touch|umask|unset)\b"
+icolor brightred "\$\{?[0-9A-Z_!@#$*?-]+\}?"
+color ,green "[[:space:]]+$"
+color green "\".*\""
+color brightwhite "case[[:space:]]\".+\""
+color brightgreen "\$\{.+\}"
+## Package name:
+color brightmagenta "\$\{PN\}"
+## Keywords:
+color brightwhite "(CHOST|CFLAGS|CXXFLAGS|MAKEOPTS)="
+color white "(SKIP_FUNCTIONS|PATH|CCACHE_SIZE|CCACHE_DIR|PALUDIS_USE_SAFE_RESUME)="
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "license-use" "(licenses|use)\.conf$"
+## Base text:
+color brightblack "^.+$"
+## Package name:
+color brightblue "/.*[[:space:]]"
+## Categories:
+color cyan "^.*/"
+## Version number:
+color white "-[[:digit:]]+(\.|[[:digit:]]|-.)*([[:space:]]|::)"
+## Repository name:
+color magenta "::.*[[:space:]]"
+## licenses and use:
+color green "[[:space:]][^[:space:]]*"
+color red "[[:space:]]-[^[:space:]]*"
+## Masking regulators:
+color brightred "^(<|<=|=|>=|>)*"
+color brightwhite "^(<|<=|=|>=|>)"
+## Additional variables:
+color brightgreen "(ALSA_CARDS|INPUT_DEVICES|LANGUAGE|LINGUAS|VIDEO_CARDS|PALUDIS_HOOKS):?"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "keywords" "keywords\.conf$"
+## Base text:
+color brightblack "^.+$"
+## Package name:
+color brightblue "/.*[[:space:]]"
+## Categories:
+color cyan "^.*/"
+## Version number:
+color white "-[[:digit:]]+(\.|[[:digit:]]|-.)*([[:space:]]|::)"
+## Repository name:
+color magenta "::.*[[:space:]]"
+## Accepted arches:
+color green "[[:space:]][~]?(alpha|amd64|arm|hppa|ia64|mips|ppc|ppc64|s390|sh|sparc|x86|x86-fbsd|\*)"
+color red "-\*"
+## Masking regulators:
+color brightred "^(<|<=|=|>=|>)*"
+color brightwhite "^(<|<=|=|>=|>)"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "mask-unmask" "package_(mask|unmask)\.conf$"
+## Base text:
+color brightblack "^.+$"
+## Package name:
+color brightblue "/.*"
+## Categories:
+color cyan "^.*/"
+## Version number:
+color white "-[[:digit:]]+(\.|[[:digit:]]|-.)*($|::)"
+## Repository name:
+color magenta "::.*$"
+## Masking regulators:
+color brightred "^(<|<=|=|>=|>)*"
+color brightwhite "^(<|<=|=|>=|>)"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "mirrors" "mirrors\.conf$"
+## Base text:
+color red "^.+$"
+## Serwer name:
+color brightwhite "^.*[[:space:]]"
+## Adress
+color brightblue "[[:space:]](ftp://|http://).*$"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "repositories" "repo"
+## Base text:
+color brightblack "^.+$"
+## Parameters:
+color magenta "=[[:space:]].+$"
+color brightwhite "^.*[[:space:]]=[[:space:]]"
+## Path:
+color green "/.+"
+color brightgreen "\$\{.*\}"
+## Adress:
+color brightblue "(svn\+https|svn\+http|http|rsync)://.*$"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+### ================> passwd.nanorc <================
+
+###  etc/passwd
+syntax "passwd" "(\.|/|)passwd$" "(\.|/|)shadow$"
+color white ".*$"
+color blue "\:.*$"
+color yellow "\:*\:"
+color cyan "/.*$"
+color red "/bin/false"
+color brightred "root"
+color brightgreen "/bin/.*sh"
+color white "[0-9]"
+color magenta "\:\/.*\:"
+
+
+### ================> patch.nanorc <================
+
+## Here is an example for patch files.
+##
+syntax "patch" "\.(patch|diff)$"
+color brightgreen "^\+.*"
+color green "^\+\+\+.*"
+color brightblue "^ .*"
+color brightred "^-.*"
+color red "^---.*"
+color brightyellow "^@@.*"
+color magenta "^diff.*"
+
+### ================> perl.nanorc <================
+
+## Here is an example for Perl.
+##
+syntax "perl" "\.p[lm]$"
+color red "\b(accept|alarm|atan2|bin(d|mode)|c(aller|h(dir|mod|op|own|root)|lose(dir)?|onnect|os|rypt)|d(bm(close|open)|efined|elete|ie|o|ump)|e(ach|of|val|x(ec|ists|it|p))|f(cntl|ileno|lock|ork))\b" "\b(get(c|login|peername|pgrp|ppid|priority|pwnam|(host|net|proto|serv)byname|pwuid|grgid|(host|net)byaddr|protobynumber|servbyport)|([gs]et|end)(pw|gr|host|net|proto|serv)ent|getsock(name|opt)|gmtime|goto|grep|hex|index|int|ioctl|join)\b" "\b(keys|kill|last|length|link|listen|local(time)?|log|lstat|m|mkdir|msg(ctl|get|snd|rcv)|next|oct|open(dir)?|ord|pack|pipe|pop|printf?|push|q|qq|qx|rand|re(ad(dir|link)?|cv|do|name|quire|set|turn|verse|winddir)|rindex|rmdir|s|scalar|seek(dir)?)\b" "\b(se(lect|mctl|mget|mop|nd|tpgrp|tpriority|tsockopt)|shift|shm(ctl|get|read|write)|shutdown|sin|sleep|socket(pair)?|sort|spli(ce|t)|sprintf|sqrt|srand|stat|study|substr|symlink|sys(call|read|tem|write)|tell(dir)?|time|tr(y)?|truncate|umask)\b" "\b(un(def|link|pack|shift)|utime|values|vec|wait(pid)?|wantarray|warn|write)\b"
+color magenta "\b(continue|else|elsif|do|for|foreach|if|unless|until|while|eq|ne|lt|gt|le|ge|cmp|x|my|sub|use|package|can|isa)\b"
+icolor cyan start="[$@%]" end="( |[^0-9A-Z_]|-)"
+color yellow "".*"|qq\|.*\|"
+color white "[sm]/.*/"
+color white start="(^use| = new)" end=";"
+color green "#.*"
+color yellow start="<< 'STOP'" end="STOP"
+
+### ================> php.nanorc <================
+
+## Here is an example for PHP
+##
+syntax "php" "\.php[2345s~]?$"
+
+## php markings
+color brightgreen "(<\?(php)?|\?>)"
+
+## functions
+color white "\b[a-z_]*\("
+
+## types
+color green "\b(var|float|global|double|bool|char|int|enum|const)\b"
+
+## structure
+color brightyellow "\b(class|new|private|public|function|for|foreach|if|while|do|else|elseif|case|default|switch)\b"
+
+## control flow
+color magenta "\b(goto|continue|break|return)\b"
+
+## strings
+color brightyellow "<[^=       ]*>" ""(\.|[^"])*""
+
+## comments
+color brightblue "//.*"
+color brightblue start="/\*" end="\*/"
+#color blue start="<" end=">"
+#color red "&[^;[[:space:]]]*;"
+
+## Trailing whitespace
+color ,green "[[:space:]]+$"
+
+### ================> php2.nanorc <================
+
+
+# PHP Syntax Highlighting
+syntax "php2" "\.php[2345s~]?$"
+color brightblue "(.*)\("
+color blue "\$[a-zA-Z_0-9$]*|[=!<>]"
+color green "(var|class|function|echo|case|break|default|exit|switch|if|else|elseif|@|while)\s"
+color green "[.,{}();]"
+color red "('.*')|(\".*\")"
+color brightyellow "(#.*|//.*)$"
+color brightyellow start="/\*" end="\*/"
+color brightblue "(<\?(php)?|\?>)"
+color white start="\?>" end="<\?(php)?" 
+
+### ================> plaudis.nanorc <================
+
+## Here is an example for Paludis control files
+##
+
+syntax "bashrc" "bashrc$"
+## Base text:
+color brightblack "^.+$"
+## sh syntax:
+color brightwhite "\b(case|do|done|elif|else|esac|exit|fi|for|function|if|in|local|read|return|select|shift|then|time|until|while)\b"
+icolor magenta "(.+\)|\[.+\])"
+color brightwhite "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|==|&|\|)"
+color brightwhite "-[Ldefgruwx]\b"
+color brightwhite "-(eq|ne|gt|lt|ge|le|s|n|z)\b"
+color brightblue "\b(cat|cd|chmod|chown|cp|echo|env|export|grep|install|let|ln|make|mkdir|mv|rm|sed|set|tar|touch|umask|unset)\b"
+icolor brightred "\$\{?[0-9A-Z_!@#$*?-]+\}?"
+color ,green "[[:space:]]+$"
+color green "\".*\""
+color brightwhite "case[[:space:]]\".+\""
+color brightgreen "\$\{.+\}"
+## Package name:
+color brightmagenta "\$\{PN\}"
+## Keywords:
+color brightwhite "(CHOST|CFLAGS|CXXFLAGS|MAKEOPTS)="
+color white "(SKIP_FUNCTIONS|PATH|CCACHE_SIZE|CCACHE_DIR|PALUDIS_USE_SAFE_RESUME)="
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "license-use" "(licenses|use)\.conf$"
+## Base text:
+color brightblack "^.+$"
+## Package name:
+color brightblue "/.*[[:space:]]"
+## Categories:
+color cyan "^.*/"
+## Version number:
+color white "-[[:digit:]]+(\.|[[:digit:]]|-.)*([[:space:]]|::)"
+## Repository name:
+color magenta "::.*[[:space:]]"
+## licenses and use:
+color green "[[:space:]][^[:space:]]*"
+color red "[[:space:]]-[^[:space:]]*"
+## Masking regulators:
+color brightred "^(<|<=|=|>=|>)*"
+color brightwhite "^(<|<=|=|>=|>)"
+## Additional variables:
+color brightgreen "(ALSA_CARDS|INPUT_DEVICES|LANGUAGE|LINGUAS|VIDEO_CARDS|PALUDIS_HOOKS):?"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "keywords" "keywords\.conf$"
+## Base text:
+color brightblack "^.+$"
+## Package name:
+color brightblue "/.*[[:space:]]"
+## Categories:
+color cyan "^.*/"
+## Version number:
+color white "-[[:digit:]]+(\.|[[:digit:]]|-.)*([[:space:]]|::)"
+## Repository name:
+color magenta "::.*[[:space:]]"
+## Accepted arches:
+color green "[[:space:]][~]?(alpha|amd64|arm|hppa|ia64|mips|ppc|ppc64|s390|sh|sparc|x86|x86-fbsd|\*)"
+color red "-\*"
+## Masking regulators:
+color brightred "^(<|<=|=|>=|>)*"
+color brightwhite "^(<|<=|=|>=|>)"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "mask-unmask" "package_(mask|unmask)\.conf$"
+## Base text:
+color brightblack "^.+$"
+## Package name:
+color brightblue "/.*"
+## Categories:
+color cyan "^.*/"
+## Version number:
+color white "-[[:digit:]]+(\.|[[:digit:]]|-.)*($|::)"
+## Repository name:
+color magenta "::.*$"
+## Masking regulators:
+color brightred "^(<|<=|=|>=|>)*"
+color brightwhite "^(<|<=|=|>=|>)"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "mirrors" "mirrors\.conf$"
+## Base text:
+color red "^.+$"
+## Serwer name:
+color brightwhite "^.*[[:space:]]"
+## Adress
+color brightblue "[[:space:]](ftp://|http://).*$"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+
+syntax "repositories" "repo"
+## Base text:
+color brightblack "^.+$"
+## Parameters:
+color magenta "=[[:space:]].+$"
+color brightwhite "^.*[[:space:]]=[[:space:]]"
+## Path:
+color green "/.+"
+color brightgreen "\$\{.*\}"
+## Adress:
+color brightblue "(svn\+https|svn\+http|http|rsync)://.*$"
+## Mark lines with spaces at end of it:
+color brightred ".*[[:space:]]$"
+## Comments:
+color brightred "#.*$"
+color yellow "^#.*$"
+color brightyellow "^##[[:space:]].*$"
+### ================> po.nanorc <================
+
+## *.po file syntax
+##
+syntax "po" "\.po$" "\.pot$"
+color brightblue "\b(msgid|msgstr)\b"
+color brightred "\/"
+color green "#.*$"
+color red "\bfuzzy\b"
+color yellow "\bc-format\b"
+color yellow "\""
+color red  "\"\""
+color brightyellow  "\"\\n\""
+color brightmagenta "\b(Project\-Id\-Version|Report\-Msgid\-Bugs\-To|Last\-Translator|Language\-Team|charset)\b"
+color cyan "\b(POT\-Creation\-Date|PO\-Revision\-Date|MIME\-Version|Content\-Type|Content\-Transfer\-Encoding)\b"
+color yellow "\b(Copyright|(C))\b"
+color yellow "[0-9]"
+color brightyellow "\b(UTF|ISO|Windows|Mac|IBM)\b\-[0-9]"
+color red "#~.*$"
+
+
+
+### ================> postgresql.nanorc <================
+
+syntax "postgreSQL" "\.sql$"
+icolor red "\b(A(LL|NALY(S|Z)E|ND|NY|RRAY|S|SC|SYMMETRIC|UTHORIZATION)|B(ETWEEN|INARY|OTH|Y)|C(ASE|AST|HECK|OLLATE|OLUMN|ONSTRAINT|REATE|ROSS|URRENT_(DATE|ROLE|TIME|TIMESTAMP|USER))|D(EFAULT|EFERRABLE|ESC|ISTINCT|O|ROP)|E(LSE|ND|XCEPT)|F(ALSE|OR(EIGN)?|REEZE|ROM|ULL)|GRANT|GROUP|HAVING|I(LIKE|N(ITIALLY|NER|TERSECT|TO)?|S|SNULL)|JOIN|L(EADING|EFT|IKE|IMIT|OCALTIME(STAMP)?)|N(ATURAL|EW|OT(NULL)?|ULL)|O(FF(SET)?|LD|N|NLY|R|RDER|UTER|VERLAPS)|PLACING|PRIMARY|REFERENCES|RIGHT|S(ELECT|ESSION_USER|IMILAR|OME|YMMETRIC)|T(ABLE|HEN|O|RAILING|RUE)|UNION|UNIQUE|USER|USING|VE(IW|RBOSE)|WHEN|WHERE|)\b"
+color magenta "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|=|&|\|)"
+color yellow "'[^']*'"
+color green "--.*$"
+
+### ================> pov.nanorc <================
+
+## Here is an example for POV-Ray.
+##
+syntax "pov" "\.(pov|POV|povray|POVRAY)$"
+color brightcyan "^[[:space:]]*#[[:space:]]*(declare)"
+color brightyellow "\b(sphere|cylinder|translate|matrix|rotate|scale)\b"
+color brightyellow "\b(orthographic|location|up|right|direction|clipped_by)\b"
+color brightyellow "\b(fog_type|fog_offset|fog_alt|rgb|distance|transform)\b"
+color brightred "^\b(texture)\b"
+color brightred "\b(light_source|background)\b"
+color brightred "\b(fog|object|camera)\b"
+color green "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|=|&|\|)"
+color brightmagenta "\b(union|group|subgroup)\b"
+## Comment highlighting
+color brightblue "//.*"
+color brightblue start="/\*" end="\*/"
+
+### ================> privoxy.nanorc <================
+
+syntax "privoxycfg" "(\.|/|)privoxy/config$"
+color brightwhite "[0-9]"
+color cyan "^[[:space:]]*[.a-z0-9-]*"
+color brightgreen "\ 1"
+color brightwhite "1[0-9]"
+color brightblue "\ \/.*$"
+color brightred "\ 0"
+color magenta "http:.*$"
+
+# important config settings without which it may not work the way You want it to :)
+color yellow "(listen-address|forward|accept-intercepted-requests)"
+
+# comments 
+color green "#.*$"
+
+#######################################
+syntax "privoxyaction" "(\.|/|).action$"
+
+color brightyellow start="\{" end="\}"
+color cyan "(\+|\-)(add-header|block|client-header-(filter|tagger)|content-type-overwrite|crunch-(client-header|if-none-match|server-header))"
+color cyan "(\+|\-)(deanimate-gifs|downgrade-http-version|fast-redirects|filter|force-text-mode|forward-override|handle-as-empty-document)"
+color cyan "(\+|\-)(hide-(accept-language|content-disposition|forwarded-for-headers|from-header|if-modified-since|refe(r|rr)er|user-agent))"
+color cyan "(\+|\-)(handle-as-image|inspect-jpegs|limit-connect|overwrite-last-modified|prevent-compression|server-header-(filter|tagger))"
+color cyan "(\+|\-)(session-cookies-only|set-image-blocker|crunch-(outgoing|incoming)-cookies|kill-popups|redirect|send(-|-vanilla-)wafer)"
+
+color yellow "\{\{(settings|alias)\}\}"
+# comments 
+color green "#.*$"
+color brightwhite "##.*$"
+color brightgreen "#-.*$"
+
+#######################################
+#syntax "privoxytemplate" "/etc/privoxy/templates/(\.|/|)"
+#color white "^.+$"
+#color green  start="<" end=">"
+#color cyan   "<[^> ]+"
+#color cyan   ">"
+#color yellow start="<!DOCTYPE" end="[/]?>"
+#color yellow start="<!--" end="-->"
+#color red    "&[^;]*;"
+
+
+### ================> profile.nanorc <================
+
+### all *profile files ( ~/.bash_profile, /etc/profile)
+syntax "profiles" "(\.|/|)profile$"
+color red "'(\\.|[^'])*'"
+color blue ""(\\.|[^\"])*""
+color magenta "[a-zA-Z0-9\_]+="
+color magenta "\b(sudo)\b"
+color cyan "\b(export)\b" "\b(alias)\b"
+color brightred "\b(umask)\b.*$"
+color green "#.*$"
+
+
+### ================> python.nanorc <================
+
+## Here is an example for Python.
+##
+syntax "python" "\.py$"
+icolor brightblue "def [0-9A-Z_]+"
+color brightcyan "\b(and|assert|break|class|continue|def|del|elif|else|except|exec|finally|for|from|global|if|import|in|is|lambda|map|not|or|pass|print|raise|return|try|while)\b"
+color brightgreen "['][^']*[^\\][']" "[']{3}.*[^\\][']{3}"
+color brightgreen "["][^"]*[^\\]["]" "["]{3}.*[^\\]["]{3}"
+color brightgreen start=""""[^"]" end=""""" start="'''[^']" end="'''"
+color brightred "#.*$"
+
+### ================> rcfiles-new.nanorc <================
+
+## this .rc is not meant for rcs in etc but those used in apps like wine
+syntax "rc" "\.rc$" 
+color cyan start="\{" end="\}"
+color brightgreen start="<" end=">"
+color brightyellow "(\"(\\.|[^\"])*\"|[0-9])"
+color green start="\/\*" end="\*\/"
+color yellow "(#(define|include)|LANGUAGE|FONT)"
+
+### all *rc files  ( e.g. .bashrc, inputrc, xtermcontrol .... )
+#syntax "rcfiles" "(\.|/|)rc$" "(\.|/|)control$"
+syntax "rcfiles" "((.ba|ba|c|.c)sh|input|xinit|eix|(.w|w)minet)|gtk|rc$"
+color red "'(\\.|[^'])*'"
+color blue ""(\\.|[^\"])*""
+color magenta "[A-Z0-9\_]+="
+color magenta "\b(sudo)\b"
+color cyan "\b(alias)\b"
+color brightcyan "\b(export)\b"
+color yellow "\b(shopt)\b"
+color brightred "\b(umask)\b.*$"
+color green "#.*$"
+
+## rc...
+syntax "rc2" "(wop|wget)rc$"
+color cyan "\=.*$"
+color brightgreen start="<" end=">"
+color brightyellow "[0-9]"
+icolor yellow "^[[:space:]]*[.0-9A-Z_]*[[:space:]]\="
+color brightred "[[:space:]]off"
+color brightgreen "[[:space:]]on"
+color green "#.*$"
+
+
+### ================> rcfiles.nanorc <================
+
+### all *rc files  ( e.g. .bashrc, inputrc, xtermcontrol .... )
+syntax "rcfiles" "\rc$" "(\.|/|)control$"
+color red "'(\\.|[^'])*'"
+color blue ""(\\.|[^\"])*""
+color magenta "[A-Z0-9\_]+="
+color magenta "\b(sudo)\b"
+color cyan "\b(alias)\b"
+color brightcyan "\b(export)\b"
+color yellow "\b(shopt)\b"
+color brightred "\b(umask)\b.*$"
+color green "#.*$"
+
+### ================> rsync.nanorc <================
+
+syntax "rsync" "rsyncd.conf$"
+color cyan "(hosts|(u|g)id|pid\ file|use\ chroot|read\ only|address|max\ connections|motd\ file)"
+color cyan "(log\ format|syslog\ facility|timeout)"
+color yellow "(path|comment|exclude)"
+color brightyellow  start="\[" end="\]"
+color green "#.*$"
+
+
+### ================> ruby.nanorc <================
+
+## Here is an example for Ruby.
+##
+syntax "ruby" "\.rb$"
+## Asciibetical list of reserved words
+color yellow "\b(BEGIN|END|alias|and|begin|break|case|class|def|defined\?|do|else|elsif|end|ensure|false|for|if|in|module|next|nil|not|or|redo|rescue|retry|return|self|super|then|true|undef|unless|until|when|while|yield)\b"
+## Constants
+color brightblue "(\$|@|@@)?\b[A-Z]+[0-9A-Z_a-z]*"
+## Ruby "symbols"
+icolor magenta "([ 	]|^):[0-9A-Z_]+\b"
+## Some unique things we want to stand out
+color brightyellow "\b(__FILE__|__LINE__)\b"
+## Regular expressions
+color brightmagenta "/([^/]|(\\/))*/[iomx]*" "%r\{([^}]|(\\}))*\}[iomx]*"
+## Shell command expansion is in `backticks` or like %x{this}.  These are
+## "double-quotish" (to use a perlism).
+color brightblue "`[^`]*`" "%x\{[^}]*\}"
+## Strings, double-quoted
+color green ""([^"]|(\\"))*"" "%[QW]?\{[^}]*\}" "%[QW]?\([^)]*\)" "%[QW]?<[^>]*>" "%[QW]?\[[^]]*\]" "%[QW]?\$[^$]*\$" "%[QW]?\^[^^]*\^" "%[QW]?![^!]*!"
+## Expression substitution.  These go inside double-quoted strings,
+## "like #{this}".
+color brightgreen "#\{[^}]*\}"
+## Strings, single-quoted
+color green "'([^']|(\\'))*'" "%[qw]\{[^}]*\}" "%[qw]\([^)]*\)" "%[qw]<[^>]*>" "%[qw]\[[^]]*\]" "%[qw]\$[^$]*\$" "%[qw]\^[^^]*\^" "%[qw]![^!]*!"
+## Comments
+color cyan "#[^{].*$" "#$"
+color brightcyan "##[^{].*$" "##$"
+## "Here" docs
+color green start="<<-?'?EOT'?" end="^EOT"
+## Some common markers
+color brightcyan "(XXX|TODO|FIXME|\?\?\?)"
+
+### ================> sh.nanorc <================
+
+## Here is an example for Bourne shell scripts.
+##
+syntax "sh" "\.sh$"
+icolor brightgreen "^[0-9A-Z_]+\(\)"
+color green "\b(case|do|done|elif|else|esac|exit|fi|for|function|if|in|local|read|return|select|shift|then|time|until|while)\b"
+color green "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|=|&|\|)"
+color green "-[Ldefgruwx]\b"
+color green "-(eq|ne|gt|lt|ge|le|s|n|z)\b"
+color brightblue "\b(cat|cd|chmod|chown|cp|echo|env|export|grep|install|let|ln|make|mkdir|mv|rm|sed|set|tar|touch|umask|unset)\b"
+icolor brightred "\$\{?[0-9A-Z_!@#$*?-]+\}?"
+color cyan "(^|[[:space:]])#.*$"
+color brightyellow ""(\\.|[^"])*"" "'(\\.|[^'])*'"
+color ,green "[[:space:]]+$"
+
+### ================> shlike.nanorc <================
+
+## Here is an example for Bourne shell scripts.
+##
+syntax "shlike" "\.(m4|sub|guess)$" "missing$" "configure\.ac$" "config\.(charset|rpath|status)$" "configure$"
+icolor brightgreen "^[0-9A-Z_]+\(\)"
+color green "\b(case|do|done|elif|else|esac|exit|fi|for|function|if|in|local|read|return|select|shift|then|time|until|while)\b"
+color green "(\{|\}|\(|\)|\;|\]|\[|`|\\|\$|<|>|!|=|&|\|)"
+color green "-[Ldefgruwx]\b"
+color green "-(eq|ne|gt|lt|ge|le|s|n|z)\b"
+color brightblue "\b(cat|cd|chmod|chown|cp|echo|env|export|grep|install|let|ln|make|mkdir|mv|rm|sed|set|tar|touch|umask|unset)\b"
+icolor brightred "\$\{?[0-9A-Z_!@#$*?-]+\}?"
+color cyan "(^|[[:space:]])#.*$"
+color brightyellow ""(\\.|[^"])*"" "'(\\.|[^'])*'"
+
+### ================> softcam.nanorc <================
+
+syntax "softcam" "(S|s)oft(c|C)am.(K|k)ey$"
+color yellow "(I|S|V|N|W|F)\ [0-9a-zA-Z]*\ 0[0-9A-F]"
+color brightyellow "(I|S|V|N|W|F|B)\ [0-9a-zA-Z]*\ (M|X|E|N)(1|2)"
+color brightgreen "B\ [0-9]*\:[0-9]*|:(H|V|L)"
+color magenta "(05(0|1)(1|3|5))"
+color red "(4(0|1)0(1|2))"
+color brightred "4(8|9)01"
+color brightblue "(2111|7101|a(4|5)01)"
+color cyan "\;.*$"
+color green "#.*$"
+
+### ================> tab.nanorc <================
+
+### all *tab files ( e.g. fstab, crontab, inittab )
+syntax "fstab" "(\.|/|)tab$"
+color magenta "\b(none)\b.*$" "\b(wait)\b" "\b(respawn)\b"
+color red "/dev/hd.*$" "\b(ctrlaltdel)\b" "\b(initdefault)\b"
+color blue "/dev/sr.*$" "/dev/cd.*$" "\/sbin.*$"
+color cyan "/dev/sd.*$"
+color brightcyan "^.*(nfs|smbfs).*$"
+color yellow "/dev/fd.*$"
+color red "root"
+color brightwhite "[0-9]"
+color green "#.*$"
+
+
+### ================> tcl.nanorc <================
+
+syntax "tcl" "\.tcl$"
+
+## Standard Tcl [info commands]
+color green "\b(after|append|array|auto_execok|auto_import|auto_load|auto_load_index|auto_qualify|binary|break|case|catch|cd|clock|close|concat|continue|encoding|eof|error|eval|exec|exit|expr|fblocked|fconfigure|fcopy|file|fileevent|flush|for|foreach|format|gets|glob|global|history|if|incr|info|interp|join|lappend|lindex|linsert|list|llength|load|lrange|lreplace|lsearch|lset|lsort|namespace|open|package|pid|puts|pwd|read|regexp|regsub|rename|return|scan|seek|set|socket|source|split|string|subst|switch|tclLog|tell|time|trace|unknown|unset|update|uplevel|upvar|variable|vwait|while)\b"
+## Basic Tcl sub commands.
+color green "\b(array anymore|array donesearch|array exists|array get|array names|array nextelement|array set|array size|array startsearch|array statistics|array unset)\b"
+color green "\b(string bytelength|string compare|string equal|string first|string index|string is|string last|string length|string map|string match|string range|string repeat|string replace|string to|string tolower|string totitle|string toupper|string trim|string trimleft|string trimright|string will|string wordend|string wordstart)\b"
+## Extended TclX [info commands]
+color green "\b(alarm|auto_load_pkg|bsearch|catclose|catgets|catopen|ccollate|cconcat|cequal|chgrp|chmod|chown|chroot|cindex|clength|cmdtrace|commandloop|crange|csubstr|ctoken|ctype|dup|echo|execl|fcntl|flock|fork|fstat|ftruncate|funlock|host_info|id|infox|keyldel|keylget|keylkeys|keylset|kill|lassign|lcontain|lempty|lgets|link|lmatch|loadlibindex|loop|lvarcat|lvarpop|lvarpush|max|min|nice|pipe|profile|random|readdir|replicate|scancontext|scanfile|scanmatch|select|server_accept|server_create|signal|sleep|sync|system|tclx_findinit|tclx_fork|tclx_load_tndxs|tclx_sleep|tclx_system|tclx_wait|times|translit|try_eval|umask|wait)\b"
+## Syntax.
+color brightblue "proc[[:space:]]" "(\{|\})"
+color green "(\(|\)|\;|`|\\|\$|<|>|!|=|&|\|)"
+color brightyellow ""(\\.|[^"])*"" "'(\\.|[^'])*'"
+icolor brightred "\$\{?[0-9A-Z_!@#$*?-]+\}?"
+color ,green "[[:space:]]+$"
+color ,magenta "^([[:space:]]+|)#.*"
+
+### ================> tex.nanorc <================
+
+## Here is a short example for TeX files.
+##
+syntax "tex" "\.tex$"
+icolor green "\\.|\\[A-Z]*"
+color magenta "[{}]"
+color blue "%.*"
+
+### ================> urls.nanorc <================
+
+##############################################################################
+#
+# Syntax highlighting for HTTP codes
+#
+# Author:  Josef 'Jupp' Schugt, jupp(a)rubyforge.org
+# License: GPL 2  or later
+#
+# Version: 2004-02-25
+#
+##############################################################################
+
+syntax "urls"
+color brightmagenta   "^.*$"
+color cyan      "^(1[0-9][0-9]|20[256]|30[45]).*$"
+color green      "^20[03].*$"
+color brightyellow   "^(201|30[0-37]).*$"
+color brightred      "^(204|[45][0-9][0-9]|666).*$"
+
+
+### ================> vhost.nanorc <================
+
+## Apache httpd.conf highlighting
+##
+#how to add sites-enabled files?  "default" is too generic to keep in here I think
+syntax "vhost" "(\.|/|)vhost\.conf"
+color brightwhite "(ServerRoot|(Lock|Pid)File|Timeout|(Max)?KeepAlive(Requests|Timeout)?)"
+color brightwhite "(User|Group|LogFormat|ErrorLog|Include|(Script)?Alias)"
+color brightwhite "(ErrorDocument|AccessFileName|UseCanonicalName|TypesConfig|DefaultType)"
+color brightwhite "(HostnameLookups|IndexOptions|(Readme|Header)Name|LanguagePriority)"
+color brightwhite "(AddIcon(ByEncoding|ByType)?|DefaultIcon|IndexIgnore|BrowserMatch)"
+color brightwhite "(Add(Encoding|Language|(Default)?Charset|Type|Handler)|DirectoryIndex)"
+color brightwhite "(DocumentRoot|Server(Admin|Signature)|LogLevel|CustomLog)"
+color brightwhite "((Force)?LanguagePriority|NameVirtualHost)"
+color brightyellow "(SetHandler|Order|Deny|Allow|SetOutputFilter)"
+color yellow "(AllowOverride|FileInfo|AuthConfig|Limit)"
+color yellow "([^A-Z0-9a-z]Options|Indexes|(\+|\-)?SymLinksIfOwnerMatch)"
+color yellow "(Includes(NoExec)?|(\+|\-)?MultiViews)"
+color yellow "(None|allow,deny|deny,allow|(allow)? from (all)?|Prefer|Fallback)"
+color yellow "(Add(Handler|OutputFilter)|NumServers|AcceptMutex)"
+color yellow "((Min|Max)Spare(Threads|Servers)|Start(Threads|Servers))"
+color yellow "(MaxClients|(Max)?ThreadsPerChild|MaxRequestsPerChild)"
+color yellow "(FancyIndexing|VersionSort|ExecCGI|FollowSymLinks)"
+color brightred "(On|Off)[[:space:]]*$"
+color brightred "[[:space:]]+(debug|info|notice|warn|error|crit|alert|emerg)[[:space:]]*$"
+color brightred "[[:space:]]+(combined|common|referer|agent)[[:space:]]*$"
+color brightred "[[:space:]]+(redirect\-carefully|nokeepalive)[[:space:]]*"
+color brightred "[[:space:]]+(force\-response\-1\.0)[[:space:]]*"
+color brightred "[[:space:]]+(downgrade\-1\.0)[[:space:]]*"
+color brightred "[[:space:]]+application/[a-zA-Z\-]+[[:space:]]*"
+color brightred "[[:space:]]+type-map[[:space:]]*"
+color magenta "[[:space:]]+[0-9]+[[:space:]]*"
+color magenta "(/)?(2[0-5]{2}|1[0-9]{2}|[1-9][0-9]|[1-9])(\.(2[0-5]{2}|1[0-9]{2}|[1-9][0-9]|[0-9])){3}([[:space:]]+::(2[0-5]{2}|1[0-9]{2}|[1-9][0-9]|[0-9])/(2[0-5]{2}|1[0-9]{2}|[1-9][0-9]|[0-9]))?"
+color brightcyan start="<" end=">"
+color white ""(\\.|[^\"])*""
+# Unix-based paths
+# can't use \] in the regex for some reason?!? Maybe a bug?
+# this is preventing a 100% "to the end of the line" match for a few
+# lines (the trailing characters from ] to the EOL are not highlighted.
+# if anyone knows how to make it work, let me know.. ;)
+color white "[[:space:]]+(/[/\[\^#A-Za-z0-9\.\*\_\-]+)+"
+color green "^[[:space:]]*#.*" 
+color cyan "\b(ServerName|Serveralias|DocumentRoot|DirectoryIndex|ErrorLog|CustomLog)\b"
+
+
+### ================> xdefaults.nanorc <================
+
+## Xdefaults
+syntax "Xdefaults" "(\.|/|)default.$" "(\.|/|)resource.$" "fonts.alias"
+color magenta "XTerm"
+color cyan "Rxvt"
+color white "\*(\\.|[^'])*\:"
+color brightblue "\b(true)\b"
+color brightred "\b(false)\b"
+color brightwhite "[0-9]"
+color green "!.*$" "#.*$"
+
+
+### ================> xml.nanorc <================
+
+##############################################################################
+#
+# Syntax highlighting for XML files
+#
+# Author:  Josef 'Jupp' Schugt, jupp(a)rubyforge.org
+# License: GPL 2  or later
+#
+# Version: 2004-02-25
+#
+##############################################################################
+
+syntax "ml" ".*\.([jrs]?html?|xml|sgml?|lhtml|opml|kdevelop|vcproj|glade|xsd|plist|gcs|dtd|dcl)$" "catalog$" "docbook$"
+color white "^.+$"
+color green  start="<" end=">"
+color cyan   "<[^> ]+"
+color cyan   ">"
+color yellow start="<!DOCTYPE" end="[/]?>"
+color yellow start="<!--" end="-->"
+color red    "&[^;]*;"
+
+
+### ================> xorg.nanorc <================
+
+## syntax highlighting in xorg.conf
+##
+syntax "xorg" "xorg\.conf$"
+color brightwhite "[^A-Za-z0-9](End)?Sub[sS]ection([^A-Za-z0-9]|[[:space:]]*)"
+color brightwhite "^[[:space:]]*(End)?Section([^A-Za-z0-9]|[[:space:]]*)"
+color yellow "[^A-Za-z0-9](Monitor|View[pP]ort|Virtual)[^A-Za-z0-9]"
+color yellow "[^A-Za-z0-9]Mod(e|es|eline|ulePath|elName)[^A-Za-z0-9]"
+color yellow "[^A-Za-z0-9](\+vsync|\+hsync|HorizSync|VertRefresh)[^A-Za-z0-9]"
+color yellow "[^A-Za-z0-9](Rgb|Font)Path[^A-Za-z0-9]"
+color yellow "[^A-Za-z0-9](Default(Color)?)?Depth[^A-Za-z0-9]"
+color yellow "[^A-Za-z0-9](Input)?Device[^A-Za-z0-9]"
+color yellow "[^A-Za-z0-9](Identifier|Screen|Option)[^A-Za-z0-9]"
+color yellow "[^A-Za-z0-9]((Left|Right)Of|Driver|Load)[^A-Za-z0-9]"
+color yellow "[^A-Za-z0-9](VendorName|BoardName|BusID)[^A-Za-z0-9]"
+color magenta "[0-9]"
+color white ""(\\.|[^\"])*""
+color green "#.*"
+

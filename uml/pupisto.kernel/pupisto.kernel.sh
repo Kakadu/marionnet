@@ -286,7 +286,7 @@ pushd "$TWDIR"
 
 # Download, uncompress and untar the kernel:
 local KERNEL_SUBDIR=${VERSION%.*}
-local KERNEL_SUBDIR=${KERNEL_SUBDIR//3.?/3.x}
+local KERNEL_SUBDIR=${KERNEL_SUBDIR//3.*/3.x}
 
 # To save the tarball:
 mkdir -p $DOWNLOADS_DIRECTORY

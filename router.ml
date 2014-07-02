@@ -31,7 +31,8 @@ module Const = struct
  let port_no_min = 4
  let port_no_max = 16
 
- let port_0_ip_config_default = Initialization.router_port0_default_ipv4_config
+ let port_0_ipv4_config_default : Ipv4.config        = Initialization.router_port0_default_ipv4_config
+ let port_0_ipv6_config_default : Ipv6.config option = Initialization.router_port0_default_ipv6_config
  let memory_default = 48
 end
 
@@ -41,7 +42,8 @@ module Data = struct
 type t = {
   name               : string;
   label              : string;
-  port_0_ip_config   : Ipv4.config;
+  port_0_ipv4_config : Ipv4.config;
+  port_0_ipv6_config : Ipv6.config option;
   port_no            : int;
   distribution       : string;          (* epithet *)
   variant            : string option;
@@ -81,7 +83,8 @@ module Make_menus (Params : sig
     let reaction {
          name = name;
          label = label;
-         port_0_ip_config = port_0_ip_config;
+         port_0_ipv4_config = port_0_ipv4_config;
+         port_0_ipv6_config = port_0_ipv6_config;
          port_no = port_no;
          distribution = distribution;
          variant = variant;
@@ -95,7 +98,8 @@ module Make_menus (Params : sig
           ~network:st#network
           ~name
           ~label
-          ~port_0_ip_config
+          ~port_0_ipv4_config
+          ~port_0_ipv6_config
           ~epithet:distribution
           ?variant:variant
           ~kernel
@@ -121,14 +125,16 @@ module Make_menus (Params : sig
      let kernel = r#get_kernel in
      let show_unix_terminal = r#get_show_unix_terminal in
      let port_no = r#get_port_no in
-     let port_0_ip_config = r#get_port_0_ip_config in
+     let port_0_ipv4_config = r#get_port_0_ipv4_config in
+     let port_0_ipv6_config = r#get_port_0_ipv6_config in
      (* The user cannot remove receptacles used by a cable. *)
      let port_no_min = st#network#port_no_lower_of (r :> User_level.node)
      in
      Dialog_add_or_update.make
        ~title ~name ~label ~distribution ?variant ~show_unix_terminal
        ~port_no ~port_no_min
-       ~port_0_ip_config
+       ~port_0_ipv4_config
+       ~port_0_ipv6_config
        ~kernel
        ~updating:() (* the user cannot change the distrib & variant *)
        ~ok_callback:Add.ok_callback  ()
@@ -136,7 +142,8 @@ module Make_menus (Params : sig
     let reaction {
          name = name;
          label = label;
-         port_0_ip_config = port_0_ip_config;
+         port_0_ipv4_config = port_0_ipv4_config;
+         port_0_ipv6_config = port_0_ipv6_config;
          port_no = port_no;
 	 kernel = kernel;
          show_unix_terminal = show_unix_terminal;
@@ -147,7 +154,7 @@ module Make_menus (Params : sig
       let r = ((Obj.magic d):> User_level_router.router) in
       let action () =
         r#update_router_with
-          ~name ~label ~port_0_ip_config ~port_no ~kernel ~show_unix_terminal
+          ~name ~label ~port_0_ipv4_config ?port_0_ipv6_config ~port_no ~kernel ~show_unix_terminal
       in
       st#network_change action ();
 
@@ -231,7 +238,8 @@ let make
  ?(title="Add a router")
  ?(name="")
  ?label
- ?(port_0_ip_config=Const.port_0_ip_config_default)
+ ?(port_0_ipv4_config=Const.port_0_ipv4_config_default)
+ ?(port_0_ipv6_config=Const.port_0_ipv6_config_default)
  ?(port_no=Const.port_no_default)
  ?(port_no_min=Const.port_no_min)
  ?(port_no_max=Const.port_no_max)
@@ -245,7 +253,12 @@ let make
  ?(dialog_image_file=Initialization.Path.images^"ico.router.dialog.png")
  () :'result option =
   let old_name = name in
-  let ((b1,b2,b3,b4),b5) = port_0_ip_config  in
+  let ((b1,b2,b3,b4),b5) = port_0_ipv4_config  in
+  let port_0_ipv6_config : bool * string (* User representation *) =
+    match port_0_ipv6_config with
+    | None   -> (false, "2001:db9::ff/32")
+    | Some v -> (true, Ipv6.string_of_config v)
+  in
   let vm_installations =  Disk.get_router_installations () in
   let (w,_,name,label) =
     Gui_bricks.Dialog_add_or_update.make_window_image_name_and_label
@@ -257,13 +270,14 @@ let make
       ?label
       ()
   in
-  let ((s1,s2,s3,s4,s5), port_no, distribution_variant_kernel, show_unix_terminal) =
+  let ((s1,s2,s3,s4,s5), port_0_ipv6_config_obj, port_no, distribution_variant_kernel, show_unix_terminal) =
     let vbox = GPack.vbox ~homogeneous:false ~border_width:20 ~spacing:10 ~packing:w#vbox#add () in
     let form =
       Gui_bricks.make_form_with_labels
         ~packing:vbox#add
         [(s_ "Ports number");
-         (s_ "Port 0 address");
+         (s_ "Port 0 IPv4 address");
+         (s_ "Port 0 Ipv6 address");
          (s_ "Distribution");
          (s_ "Variant");
          (s_ "Kernel");
@@ -275,13 +289,24 @@ let make
       Gui_bricks.spin_byte ~lower:port_no_min ~upper:port_no_max ~step_incr:2
       ~packing:(form#add_with_tooltip (s_ "Number of router ports" )) port_no
     in
-    let port_0_ip_config =
+    let port_0_ipv4_config =
       Gui_bricks.spin_ipv4_address_with_cidr_netmask
         ~packing:(form#add_with_tooltip
                     ~just_for_label:()
                     (s_ "IPv4 configuration of the first router port (0)"))
         b1 b2 b3 b4 b5
     in
+    (* --- *)
+    let port_0_ipv6_config_obj : < active : bool;  content : string;  hbox : GPack.box;  check_button : GButton.toggle_button;  entry : GEdit.entry > =
+      let (active, text) = port_0_ipv6_config in
+      Gui_bricks.activable_entry
+        ~packing:(form#add_with_tooltip (s_ "Optional IPv6 configuration of the first router port (0). For instance 2001:db9::ff/32"))
+        ~active
+        ~text
+        ~red_text_condition:(fun x -> not (Ipv6.String.is_valid_config x))
+        ()
+    in
+    (* --- *)
     form#add_section "Software";
     let distribution_variant_kernel =
       let packing_distribution =
@@ -309,18 +334,23 @@ let make
         ~packing:(form#add_with_tooltip (s_ "Do you want access the router also by a Unix terminal?" ))
         ()
     in
-    (port_0_ip_config, port_no, distribution_variant_kernel, show_unix_terminal)
+    (port_0_ipv4_config, port_0_ipv6_config_obj, port_no, distribution_variant_kernel, show_unix_terminal)
   in
   let get_widget_data () :'result =
     let name = name#text in
     let label = label#text in
-    let port_0_ip_config =
+    let port_0_ipv4_config =
       let s1 = int_of_float s1#value in
       let s2 = int_of_float s2#value in
       let s3 = int_of_float s3#value in
       let s4 = int_of_float s4#value in
       let s5 = int_of_float s5#value in
       ((s1,s2,s3,s4),s5)
+    in
+    let port_0_ipv6_config =
+      let obj = port_0_ipv6_config_obj in
+      if not obj#active then None else
+      try Some (Ipv6.config_of_string obj#content) with _ -> None
     in
     let port_no = int_of_float port_no#value in
     let distribution  = distribution_variant_kernel#selected in
@@ -333,7 +363,8 @@ let make
     let show_unix_terminal = show_unix_terminal#active in
       { Data.name = name;
         Data.label = label;
-        Data.port_0_ip_config = port_0_ip_config;
+        Data.port_0_ipv4_config = port_0_ipv4_config;
+        Data.port_0_ipv6_config = port_0_ipv6_config;
         Data.port_no = port_no;
         Data.distribution = distribution;
         Data.variant = variant;
@@ -427,7 +458,8 @@ module User_level_router = struct
 class router
   ~(network:User_level.network)
   ~name
-  ?(port_0_ip_config=Const.port_0_ip_config_default)
+  ?(port_0_ipv4_config=Const.port_0_ipv4_config_default)
+  ?(port_0_ipv6_config=Const.port_0_ipv6_config_default)
   ?label
   ?epithet
   ?variant
@@ -441,8 +473,15 @@ class router
   let network_alias = network in
   (* The ifconfig treeview wants a port 0 configuration at creation time:*)
   let ifconfig_port_row_completions =
-     let config = Ipv4.string_of_config (port_0_ip_config) in (* the class parameter *)
-     [ ("port0", [ "IPv4 address", Treeview.Row_item.String config]) ]
+     let ipv4_binding =
+       let ipv4_config = Ipv4.string_of_config (port_0_ipv4_config) in (* the class parameter *)
+       ("IPv4 address", Treeview.Row_item.String ipv4_config)
+     in
+     let ipv6_binding =
+       let ipv6_config = Option.extract_map_or (port_0_ipv6_config) (* the class parameter *) Ipv6.string_of_config "" in
+       ("IPv6 address", Treeview.Row_item.String ipv6_config)
+     in
+     [ ("port0", [ipv4_binding; ipv6_binding]) ]
   in
 
   object (self) inherit OoExtra.destroy_methods ()
@@ -580,25 +619,36 @@ class router
  method get_mac_addresses  = self#get_assoc_list_from_ifconfig ~key:"MAC address"
  method get_ipv4_addresses = self#get_assoc_list_from_ifconfig ~key:"IPv4 address"
 
- method get_port_0_ip_config =
+ method get_port_0_ipv4_config : Ipv4.config =
   let name = self#get_name in
   let x = network#ifconfig#get_port_attribute_by_index name 0 "IPv4 address" in
   match (Ipv4.import x) with
   | Some (Either.Right config)  -> config
   | Some (Either.Left  address) -> (address, 24)
-  | None                        -> Const.port_0_ip_config_default
+  | None                        -> Const.port_0_ipv4_config_default
 
- method set_port_0_ip_config port_0_ip_config =
+ method get_port_0_ipv6_config : Ipv6.config option =
+  let name = self#get_name in
+  let x = network#ifconfig#get_port_attribute_by_index name 0 "IPv6 address" in
+  try Some (Ipv6.config_of_string x) with _ -> Const.port_0_ipv6_config_default
+
+ method set_port_0_ipv4_config (port_0_ipv4_config : Ipv4.config) =
    network#ifconfig#set_port_string_attribute_by_index
      self#get_name 0 "IPv4 address"
-     (Ipv4.string_of_config port_0_ip_config);
+     (Ipv4.string_of_config port_0_ipv4_config);
 
- method update_router_with ~name ~label ~port_0_ip_config ~port_no ~kernel ~show_unix_terminal =
+ method set_port_0_ipv6_config (port_0_ipv6_config : Ipv6.config option) =
+   network#ifconfig#set_port_string_attribute_by_index
+     self#get_name 0 "IPv6 address"
+     (Option.extract_map_or (port_0_ipv6_config) (Ipv6.string_of_config) "");
+
+ method update_router_with ~name ~label ~port_0_ipv4_config ?port_0_ipv6_config ~port_no ~kernel ~show_unix_terminal =
    (* first action: *)
    self_as_virtual_machine_with_history_and_ifconfig#update_virtual_machine_with ~name ~port_no kernel;
    (* then we can set the object property "name" (read by #get_name): *)
    self_as_node_with_ledgrid_and_defects#update_with ~name ~label ~port_no;
-   self#set_port_0_ip_config port_0_ip_config;
+   self#set_port_0_ipv4_config (port_0_ipv4_config);
+   self#set_port_0_ipv6_config (port_0_ipv6_config);
    self#set_show_unix_terminal show_unix_terminal;
 
 end;;

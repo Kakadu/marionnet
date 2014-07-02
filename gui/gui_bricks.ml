@@ -227,6 +227,41 @@ let spin_ipv4_address_with_cidr_netmask
       let _ = wrap_with_label ?tooltip ?packing ?labelpos label_text table in
       (s1,s2,s3,s4,s5)
 
+(* An hbox containing a text entry activable with a check_button *)
+let activable_entry
+  ?packing
+  ?(homogeneous=false)
+  ?(active=false)
+  ?text
+  ?red_text_condition
+  ()
+  =
+  let hbox = GPack.hbox ?packing ~homogeneous () in
+  let check_button =
+    GButton.check_button
+      ~active
+      ~packing:(hbox#add)
+      ()
+  in
+  let entry =
+    GEdit.entry ?text ~packing:(hbox#add) ()
+  in
+  (entry#misc#set_sensitive check_button#active);
+  ignore (check_button#connect#toggled (fun () -> entry#misc#set_sensitive check_button#active));
+  let () =
+    match red_text_condition with
+    | None -> ()
+    | Some pred ->
+	ignore (entry#connect#changed
+	  (fun () ->
+	      let states = [ `ACTIVE; `INSENSITIVE; `NORMAL; `PRELIGHT; `SELECTED ] in
+	      match pred (entry#text) with
+	      | false -> (entry#misc#modify_text (ListExtra.product2 states [`BLACK]);      check_button#misc#modify_bg (ListExtra.product2 states [`WHITE]))
+	      | true  -> (entry#misc#modify_text (ListExtra.product2 states [`NAME "red"]); check_button#misc#modify_bg (ListExtra.product2 states [`NAME "red"]))
+	      ))
+  in
+  object method active = check_button#active  method content = entry#text method hbox = hbox method entry = entry method check_button = check_button end
+
 
 let add_help_button_if_necessary window = function
 | None   -> (fun () -> ())

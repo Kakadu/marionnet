@@ -70,6 +70,14 @@ val spin_ipv4_address_with_cidr_netmask :
   int -> int -> int -> int -> int ->
   GEdit.spin_button * GEdit.spin_button * GEdit.spin_button * GEdit.spin_button * GEdit.spin_button
 
+val activable_entry :
+  ?packing:(GObj.widget -> unit) ->
+  ?homogeneous:bool ->
+  ?active:bool ->
+  ?text:string ->
+  ?red_text_condition:(string -> bool) ->
+  unit -> < active : bool;  content : string;  hbox : GPack.box;  check_button : GButton.toggle_button;  entry : GEdit.entry >
+
 val make_tooltips_for_container :
   < connect : < destroy : callback:('a -> unit) -> 'b; .. >; .. > ->
   GObj.widget ->

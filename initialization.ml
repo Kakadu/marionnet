@@ -287,7 +287,7 @@ end (* Warnings *)
 
 (* Default for the factory-set configuration address for routers.
    The result is a couple (ip,nm) where ip is the 4-tuple IPv4 and nm is the CIDR netmask. *)
-let router_port0_default_ipv4_config  =
+let router_port0_default_ipv4_config : Ipv4.config =
  let variable_name = "MARIONNET_ROUTER_PORT0_DEFAULT_IPV4_CONFIG" in
  let default = "192.168.1.254/24" in
  let value = Configuration.extract_string_variable_or ~default variable_name in
@@ -297,6 +297,20 @@ let router_port0_default_ipv4_config  =
    Log.printf1 ~force:true "Warning: ill-formed value for %s\n" variable_name;
    parse default
    end
+;;
+
+let router_port0_default_ipv6_config : Ipv6.config option =
+ let variable_name = "MARIONNET_ROUTER_PORT0_DEFAULT_IPV6_CONFIG" in
+ let ovalue = Configuration.get_string_variable variable_name in
+ let parse arg = Ipv6.config_of_string arg in
+ let parsed_value =
+   try Option.map parse ovalue
+   with _ -> begin
+     Log.printf1 ~force:true "Warning: ill-formed value for %s\n" variable_name;
+     None
+   end
+ in
+ parsed_value
 ;;
 
 let keep_all_snapshots_when_saving =

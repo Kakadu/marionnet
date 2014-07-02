@@ -771,6 +771,7 @@ set_config_variable "BR2_PACKAGE_ETHTOOL" "y"
 set_config_variable "BR2_PACKAGE_FILE" "y"
 set_config_variable "BR2_PACKAGE_IPROUTE2" "y"
 set_config_variable "BR2_PACKAGE_IPTABLES" "y"
+set_config_variable "BR2_PACKAGE_IPUTILS" "y" # ping6 traceroute6 tracepath6
 set_config_variable "BR2_PACKAGE_KBD" "y"
 set_config_variable "BR2_PACKAGE_LESS" "y"
 set_config_variable "BR2_PACKAGE_LIGHTTPD" "y"

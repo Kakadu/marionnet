@@ -170,8 +170,10 @@ fi
     # ifconfig eth0 inet6 add 2003:abd::1/32
     if [[ -n $ipv6_address ]]; then
       # Try several commands:
-      ifconfig eth$i add $ipv6_address || \
-      ifconfig eth$i inet6 add $ipv6_address || \
+      ifconfig eth$i add $ipv6_address up || \
+      ifconfig eth$i add $ipv6_address    || \
+      ifconfig eth$i inet6 add $ipv6_address up || \
+      ifconfig eth$i inet6 add $ipv6_address    || \
       ip addr add $ipv6_address dev eth0 eth$i || \
       ip -6 addr add $ipv6_address dev eth0 eth$i || \
       echo 1>&2 "The Ipv6 address cannot be set, neither with \`ifconfig' nor with \`ip'"

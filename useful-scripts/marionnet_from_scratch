@@ -849,8 +849,8 @@ function download_our_kernels {
   # global OUR_BASE_URL
   local KERNELS
   KERNELS=$(wget -O - "$OUR_BASE_URL" \
-  | grep -o 'href="kernels_.*"' \
-  | grep -o "kernels_.*[.]tar[.]gz"\
+  | grep -o 'href="kernels_[^"]*"' \
+  | grep -o "kernels_[^\"]*[.]tar[.]gz"\
   )
   local i WEIGHT
   for i in $KERNELS; do
@@ -867,8 +867,8 @@ function download_our_big_filesystems {
   # global OUR_BASE_URL
   local FILESYSTEMS
   FILESYSTEMS=$(wget -O - "$OUR_BASE_URL" \
-  | grep -o 'href="filesystems_.*"' \
-  | grep -o "filesystems_.*[.]tar[.]gz"\
+  | grep -o 'href="filesystems_[^"]*"' \
+  | grep -o "filesystems_[^\"]*[.]tar[.]gz"\
   | grep -v "filesystems_pinocchio.*[.]tar[.]gz"\
   )
   local i WEIGHT
@@ -887,8 +887,8 @@ function download_our_pinocchio_filesystems {
   # global OUR_BASE_URL
   local FILESYSTEMS
   FILESYSTEMS=$(wget -O - "$OUR_BASE_URL" \
-  | grep -o 'href="filesystems_pinocchio.*"' \
-  | grep -o "filesystems_.*[.]tar[.]gz"\
+  | grep -o 'href="filesystems_pinocchio[^"]*"' \
+  | grep -o "filesystems_[^\"]*[.]tar[.]gz"\
   )
   local i WEIGHT
   for i in $FILESYSTEMS; do

@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+OCAMLBUILD_OPTIONS=-X uml
 COMPILE_OPTIONS += -g -w x
 DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade lablgtksourceview2 ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade lablgtksourceview2 ocamlbricks

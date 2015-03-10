@@ -207,7 +207,7 @@ PERFORM_MANUALLY_POST_ACTIONS = \
 
 # Edit all ml/mli files and Makefile.local with your $EDITOR
 edit:
-	test -n "$$EDITOR" && $$EDITOR Makefile.local $$(find . \( -name "_build*" -o -name "meta.ml" -o -name "$(EXCLUDE_FROM_EDITING)" -o -name "version.ml" -o -name "gui.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
+	test -n "$$EDITOR" && eval $$EDITOR Makefile.local $$(find . \( -name "_build*" -o -name "meta.ml" -o -name "$(EXCLUDE_FROM_EDITING)" -o -name "version.ml" -o -name "gui.ml" -o -name myocamlbuild.ml \) -prune -o -type f -a \( -name "*.ml" -o -name "*.mli" \) -print) &
 # Create the documentation
 documentation: world documentation-local
 	chmod +x Makefile.d/doc.sh
@@ -676,9 +676,9 @@ LOGFILE=_build/$(OCAMLBUILD_LOG)
 # -byte-plugin if needed:
 OCAMLBUILD_COMMAND_LINE = \
 	(if [ $$( $(call NATIVE_OR_BYTE) ) == 'byte' ]; then \
-	  echo 'ocamlbuild -j $(PROCESSOR_NO) -byte-plugin -verbose 2 -log $(OCAMLBUILD_LOG)'; \
+	  echo 'ocamlbuild -j $(PROCESSOR_NO) -byte-plugin -verbose 2 -log $(OCAMLBUILD_LOG) $(OCAMLBUILD_OPTIONS)'; \
 	else \
-	  echo 'ocamlbuild -j $(PROCESSOR_NO) -verbose 2 -log $(OCAMLBUILD_LOG)'; \
+	  echo 'ocamlbuild -j $(PROCESSOR_NO) -verbose 2 -log $(OCAMLBUILD_LOG) $(OCAMLBUILD_OPTIONS)'; \
 	fi)
 
 # Macro extracting, via source, the value associated to some keys
@@ -846,10 +846,18 @@ myocamlbuild.ml:
 	for x in $(DIRECTORIES_TO_INCLUDE); do \
 	  if test -d $(LIBRARYPREFIX)/$$x; then echo -en "A \"-I\"; A \"$(LIBRARYPREFIX)/$$x\"; " >> $@; fi; \
 	done; \
+	for x in $(DIRECTORIES_TO_INCLUDE); do \
+	  if test -d ./$$x; then echo -en "A \"-I\"; A \"../$$x\"; " >> $@; fi; \
+	done; \
 	echo -e "];;" >> $@; \
 	echo -en "let our_c_modules = [ " >> $@; \
 	for x in $(C_OBJECTS_TO_LINK); do \
 		echo -en "A \"$$x.o\"; " >> $@; \
+	done; \
+	echo -e "];;" >> $@; \
+	echo -en "let our_c_modules_options = our_c_modules @ [ " >> $@; \
+	for x in $(C_OBJECTS_TO_LINK_OPTIONS); do \
+		echo -en "A \"$$x\"; " >> $@; \
 	done; \
 	echo -e "];;" >> $@; \
 	#echo -en "let our_byte_link_options = our_include_options @ [ A \"-custom\"; " >> $@; \
@@ -885,7 +893,7 @@ myocamlbuild.ml:
 	echo -e "  flag [\"ocaml\"; \"doc\"; \"ourocamldocsettings\"]" >> $@; \
 	echo -e "       (S ([A \"-keep-code\"; A \"-colorize-code\"] @ our_include_options));" >> $@; \
 	echo -e "  flag [\"ocaml\"; \"link\"; \"ourcmodules\"]" >> $@; \
-	echo -e "       (S our_c_modules);" >> $@; \
+	echo -e "       (S our_c_modules_options);" >> $@; \
 	echo -e "  | _ -> ());;" >> $@)
 
 # Auto-generate a source file including meta information and configuration-time

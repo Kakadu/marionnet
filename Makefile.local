@@ -17,11 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-OCAMLBUILD_OPTIONS=-X uml
+OCAMLBUILD_OPTIONS= -quiet -X uml
 COMPILE_OPTIONS += -g -w x
 DIRECTORIES_TO_INCLUDE = camlp4 threads lablgtk2 lablglade lablgtksourceview2 ocamlbricks
 LIBRARIES_TO_LINK = unix threads str lablgtk lablglade lablgtksourceview2 ocamlbricks
 C_OBJECTS_TO_LINK +=
+EXCLUDE_FROM_SOURCE_FINDING=uml
 
 OCAMLBRICKS=$(LIBRARYPREFIX)/ocamlbricks
 PP_OPTION = camlp4of -I $(OCAMLBRICKS) gettext_extract_pot_p4.cmo option_extract_p4.cmo raise_p4.cmo log_module_loading_p4.cmo -I chip
@@ -29,6 +30,9 @@ PP_OPTION = camlp4of -I $(OCAMLBRICKS) gettext_extract_pot_p4.cmo option_extract
 OBJECTS_TO_LINK = gtkThread
 BYTE_PROGRAMS = marionnet.byte
 ROOT_BYTE_PROGRAMS = marionnet-daemon.byte
+
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+BYTE_LIBRARY_NAME = marionnet.cma
 
 native: marionnet.native marionnet-daemon.native
 byte: marionnet.byte marionnet-daemon.byte
@@ -58,6 +62,10 @@ MANUALLY_PRE_MAKE_IN_build =     \
 MANUALLY_POST_MAKE_IN_build = 
 
 marionnet.byte marionnet.native : manually_pre_actions version.ml gui.ml
+
+compile_for_testing:
+	@if grep -q "DDOCUMENTATION_OR_DEBUGGING" $(LOGFILE); then echo "Fine, already compiled for testing."; else make clean; fi; \
+	make PP_OPTION="$(PP_OPTION) -DDOCUMENTATION_OR_DEBUGGING"
 
 ########## Manually generated targets (not through ocamlbuild)
 

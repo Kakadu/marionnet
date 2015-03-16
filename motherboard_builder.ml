@@ -179,8 +179,7 @@ module Make (S : sig val st:State.globalState end) = struct
 
   (* Debugging: press F5 for immediately exiting the gtk main loop (only in the toplevel) *)
   let _ =
-    if List.mem (Array.get Sys.argv 0) ["/tmp/marionnet-toplevel"; "/tmp/marionnet-utop"]
-    then
+    if !Sys.interactive then 
       let stars = "*************************************" in
       Printf.kfprintf flush stdout
         "%s\nPress F5 to switch to the toplevel.\n%s\n\n" stars stars;

@@ -1171,13 +1171,24 @@ object(self)
     next_identifier_and_content_forest_marshaler#to_file
       (self#counter#get_next_fresh_value, forest)
       file_name;
-
+    
+(*  (* Per ifconfig *)
+  method file_version =     
+    let file_name = Option.extract filename#get in
+    let regexp_v1 = "IPv6 address.*IPv4 broadcast.*IPv4 netmask.*IPv4 address.*MAC address.*MTU.*Type.*Name" in
+    let regexp_v2 = "IPv6 gateway.*IPv6 address.*IPv4 gateway.*IPv4 address.*MAC address.*MTU.*Type.*Name" in
+    let x = StringExtra.of_charlist (get_first_chars_of_file file_name 250) in
+    if StrExtra.First.matchingp (Str.regexp regexp_v1) x then Some "1" else (* continue:*)
+    if StrExtra.First.matchingp (Str.regexp regexp_v2) x then Some "2" else (* continue:*)
+    None*)
+    
   method load =
     self#detach_view_in
       (fun () ->
         self#clear;
         let file_name = Option.extract filename#get in
         try
+(*           let () = failwith "LOAD!!!!!!" in (* PROBLEMA: NON SI CHIUDE LA FINESTRA DI APERTURA!!!!!!!!!*) *)
           let next_identifier, complete_forest =
             (next_identifier_and_content_forest_marshaler#from_file file_name) in
           self#counter#set_next_fresh_value_to next_identifier;

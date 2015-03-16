@@ -67,8 +67,7 @@ let () = Argv.tuning
 
 (* Parse now (except if we are debugging with the toplevel): *)
 let () =
-  if not (List.mem (Array.get Sys.argv 0) ["/tmp/marionnet-toplevel"; "/tmp/marionnet-utop"])
-   then Argv.parse ()
+  if not !Sys.interactive then Argv.parse ()
 ;;
 
 (* Now we may inspect the references: *)
@@ -84,12 +83,13 @@ let do_not_print_splash_message =
 
 (* else continue: *)
 let () = if do_not_print_splash_message = false then
-Log.printf7 ~v:0 ~banner:false
+Log.printf8 ~v:0 ~banner:false
   "=======================================================
  Welcome to %s
  Version              : %s
  Source revision      : %s
  Ocamlbricks revision : %s - %s
+ Ocaml version        : %s
 
  Built in date %s on system:
 
@@ -107,6 +107,7 @@ Log.printf7 ~v:0 ~banner:false
   Meta.version
   (Printf.sprintf "%s - %s" Meta.revision Meta.source_date)
   Meta_ocamlbricks.revision Meta_ocamlbricks.source_date
+  Meta.ocaml_version
   Meta.build_date
   (StringExtra.fmt ~tab:8 ~width:40 Meta.uname)
 ;;
@@ -317,9 +318,4 @@ let keep_all_snapshots_when_saving =
   Configuration.extract_bool_variable_or
     ~default:false
     "MARIONNET_KEEP_ALL_SNAPSHOTS_WHEN_SAVING"
-
-(* Enter the right directory: *)
-try
-  Unix.chdir Path.marionnet_home;
-with _ ->
-  failwith ("Could not enter the directory (" ^ Path.marionnet_home ^ ")");;
+  

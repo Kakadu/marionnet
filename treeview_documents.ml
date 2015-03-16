@@ -114,29 +114,29 @@ object(self)
 
 
   method private file_to_format pathname =
-    if Filename.check_suffix pathname ".html" or
-      Filename.check_suffix pathname ".htm" or
-      Filename.check_suffix pathname ".HTML" or
+    if Filename.check_suffix pathname ".html" || 
+      Filename.check_suffix pathname ".htm" || 
+      Filename.check_suffix pathname ".HTML" || 
       Filename.check_suffix pathname ".HTM" then
       "html"
-    else if Filename.check_suffix pathname ".text" or
-      Filename.check_suffix pathname ".txt" or
-      Filename.check_suffix pathname "readme" or
-      Filename.check_suffix pathname "lisezmoi" or
-      Filename.check_suffix pathname ".TEXT" or
-      Filename.check_suffix pathname ".TXT" or
-      Filename.check_suffix pathname "README" or
+    else if Filename.check_suffix pathname ".text" || 
+      Filename.check_suffix pathname ".txt" || 
+      Filename.check_suffix pathname "readme" || 
+      Filename.check_suffix pathname "lisezmoi" || 
+      Filename.check_suffix pathname ".TEXT" || 
+      Filename.check_suffix pathname ".TXT" || 
+      Filename.check_suffix pathname "README" || 
       Filename.check_suffix pathname "LISEZMOI" then
       "text"
-    else if Filename.check_suffix pathname ".ps" or
-      Filename.check_suffix pathname ".eps" or
-      Filename.check_suffix pathname ".PS" or
+    else if Filename.check_suffix pathname ".ps" || 
+      Filename.check_suffix pathname ".eps" || 
+      Filename.check_suffix pathname ".PS" || 
       Filename.check_suffix pathname ".EPS" then
       "ps"
-    else if Filename.check_suffix pathname ".dvi" or
+    else if Filename.check_suffix pathname ".dvi" || 
       Filename.check_suffix pathname ".DVI" then
       "dvi"
-    else if Filename.check_suffix pathname ".pdf" or
+    else if Filename.check_suffix pathname ".pdf" || 
       Filename.check_suffix pathname ".PDF" then
       "pdf"
     else

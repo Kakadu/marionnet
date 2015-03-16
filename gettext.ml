@@ -57,11 +57,18 @@ let localeprefix =
        )
 ;;
 
-(** Build the module, now *)
+(* Gettext is disable for `utop'. See the bzr commit message, revno 459, for details about this workaround: *)
+IFDEF DOCUMENTATION_OR_DEBUGGING THEN
+let s_ x = x;;
+let f_ x = x;;
+Log.printf "Gettext disable for testing (compatibility with utop)\n" ;;
+ELSE
+(** Build the module, now: *)
 include
   Gettext_builder.Make(struct
       let text_domain = text_domain
       let directory = localeprefix
      end);;
+ENDIF
 
 Log.printf1 "Gettext instanciated with directory `%s'\n" localeprefix;;

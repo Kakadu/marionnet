@@ -216,7 +216,7 @@ $ ${0##*/} --no-kernel --router --name pulcinella"
 # successfully buildroot compilation (2.6.18 fails)
 # Another possible default could be 2.6.32 (last statically-linked
 # available version of our patched (ghost2) kernel)
-DEFAULT_KERNEL_VERSION=3.2.60
+DEFAULT_KERNEL_VERSION=3.2.64
 
 # Manage now your options in a convenient order
 #
@@ -815,6 +815,7 @@ set_config_variable "BR2_TARGET_ROOTFS_EXT2_NONE" "y"
 
 # net-tools (in order to have `arp' and an ifconfig acceptiong CIDR notation):
 # set_config_variable "BR2_PACKAGE_NET_TOOLS" "y" # busybox + our ifconfig wrapper!
+set_config_variable "BR2_PACKAGE_NET_TOOLS" "y" # in order to have `arp'
 
 # Option -q/--quagga
 if [[ -n ${option_q} ]]; then

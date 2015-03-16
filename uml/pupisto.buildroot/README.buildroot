@@ -21,3 +21,22 @@ or directly something like:
 
 ./pupisto.buildroot.sh --kernel 3.2.60 --router --name guignol -c _build.guignol-with-linux-3.2.60.2014-06-30.16h14/
 
+Note that the same error appears with kernel 3.2.64:
+---
+>>> linux-headers 3.2.64 Configuring
+(cd /homes/unison/jean/DEVEL/repos/marionnet/uml/pupisto.buildroot/_build.guignol-with-linux-3.2.64.2014-11-25.16h46/buildroot/output/build/linux-headers-3.2.64; PATH="/homes/unison/jean/DEVEL/repo
+make[1]: entrant dans le répertoire « /homes/unison/jean/DEVEL/repos/marionnet/uml/pupisto.buildroot/_build.guignol-with-linux-3.2.64.2014-11-25.16h46/buildroot/output/build/linux-headers-3.2.64 
+  CHK     include/linux/version.h
+  HOSTCC  scripts/basic/fixdep
+  HOSTCC  arch/x86/tools/relocs
+  UPD     include/linux/version.h
+/bin/sh: 1: scripts/basic/fixdep: not found
+make[2]: *** [arch/x86/tools/relocs] Erreur 127
+make[1]: *** [archscripts] Erreur 2
+make[1]: *** Attente des tâches non terminées....
+make[1]: quittant le répertoire « /homes/unison/jean/DEVEL/repos/marionnet/uml/pupisto.buildroot/_build.guignol-with-linux-3.2.64.2014-11-25.16h46/buildroot/output/build/linux-headers-3.2.64 »
+make: *** [/homes/unison/jean/DEVEL/repos/marionnet/uml/pupisto.buildroot/_build.guignol-with-linux-3.2.64.2014-11-25.16h46/buildroot/output/build/linux-headers-3.2.64/.stamp_configured] Erreur 2
+make: quittant le répertoire « /homes/unison/jean/DEVEL/repos/marionnet/uml/pupisto.buildroot/_build.guignol-with-linux-3.2.64.2014-11-25.16h46/buildroot »
+Exiting because of an unexpected error in line 152
+---
+and disappears in the same way re-launching the script in the same directory.

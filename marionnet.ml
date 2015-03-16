@@ -33,6 +33,11 @@ open Talking
 module S = Serial
 module G = Gui_source_editing
 
+(* Enter the right directory: *)
+let _enter_the_right_directory = 
+  try Sys.chdir (Initialization.Path.marionnet_home)
+  with _ -> failwith ("Could not enter the directory (" ^ Initialization.Path.marionnet_home ^ ")")
+
 (** The global state containing the main window (st#mainwin) and all relevant dynamic
     attributes of the application *)
 let st = new globalState ()

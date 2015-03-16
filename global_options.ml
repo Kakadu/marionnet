@@ -56,10 +56,6 @@ let get_workaround_wirefilter_problem () =
     (fun () ->
       !workaround_wirefilter_problem);;
 
-(** How often we should restart wirefilters (average) *)
-let automatic_reboot_thread_interval =
-  180.0;;
-
 (** The name of the host bridge device used to implement network sockets: *)
 let ethernet_socket_bridge_name =
   let default = "br0" in

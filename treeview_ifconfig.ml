@@ -16,6 +16,11 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
+(* Note: this data structure may be inspected interactively (test_with_utop.sh + F5),
+   exploiting the toplevel printer, with something like:
+   let f = Forest.to_treelist (Marionnet.treeview_ifconfig#get_forest) ;;
+*)
+   
 open Gettext;;
 module Row_item = Treeview.Row_item ;;
 module Row = Treeview.Row ;;
@@ -295,7 +300,7 @@ object(self)
 
   method load =
     (* Load the forest, as usual: *)
-    super#load;
+(* (* (* (*     super#load; *) *) *) *)
     (* ...but also load the counters used for generating fresh addresses: *)
     let counters_file_name = (Option.extract filename#get)^"-counters" in
     (* _OBSOLETE_mac_address_as_int read for backward compatibility: *)
@@ -331,7 +336,7 @@ object(self)
         ~shown_header:(s_ "MAC address")
         ~default:(fun () -> Row_item.String self#generate_mac_address)
         ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
-                                          (self#is_a_valid_mac_address s) or s = "")
+                                          (self#is_a_valid_mac_address s) || s = "")
         ()
     in
     let _ =
@@ -339,7 +344,7 @@ object(self)
         ~header:mtu_header
         ~default:(fun () -> Row_item.String "1500")
         ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
-                                          (self#is_a_valid_mtu s) or s = "")
+                                          (self#is_a_valid_mtu s) || s = "")
         ()
     in
     let _ =
@@ -352,7 +357,7 @@ object(self)
                     else
                       Row_item.String "")
         ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
-                                          (self#is_a_valid_ipv4_address s) or s = "")
+                                          (self#is_a_valid_ipv4_address s) || s = "")
         ()
     in
     let _ =
@@ -365,7 +370,7 @@ object(self)
                     else
                       Row_item.String "")
         ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
-                                          (self#is_a_valid_ipv4_gateway s) or s = "")
+                                          (self#is_a_valid_ipv4_gateway s) || s = "")
         ()
     in
     let _ =
@@ -378,7 +383,7 @@ object(self)
                     else
                       Row_item.String "")
         ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
-                                          (self#is_a_valid_ipv6_address s) or s = "")
+                                          (self#is_a_valid_ipv6_address s) || s = "")
         ()
     in
     let _ =
@@ -391,7 +396,7 @@ object(self)
                     else
                       Row_item.String "")
         ~constraint_predicate:(fun i -> let s = Row_item.extract_String i in
-                                          (self#is_a_valid_ipv6_gateway s) or s = "")
+                                          (self#is_a_valid_ipv6_gateway s) || s = "")
         ()
     in
 
@@ -399,12 +404,12 @@ object(self)
       ~name:(s_ "you should choose a port to define this parameter")
       (fun row ->
 	let uneditable = Row.CheckBox_field.get ~field:uneditable_header row in
-	(not uneditable) or
+	(not uneditable) || 
 	(List.for_all (fun (name, value) ->
-			name = name_header or
-			name = type_header or
-			name = uneditable_header or
-			self#is_column_reserved name or
+			name = name_header || 
+			name = type_header || 
+			name = uneditable_header || 
+			self#is_column_reserved name || 
 			value = Row_item.String "")
 		      row));
 
@@ -414,8 +419,8 @@ object(self)
 	let port_name = (Row.get_name row) in
 	let port_type = (Row.Icon_field.get ~field:type_header row) in
 	let address   = (Row.String_field.get ~field:ipv4_address_header row) in
-	(port_name <> "port0") or
-	(port_type <> "router-port") or
+	(port_name <> "port0") || 
+	(port_type <> "router-port") || 
 	((self#is_a_valid_ipv4_address_for_router address)));
 
     (* In this treeview the involved device is the parent: *)

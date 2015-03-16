@@ -263,7 +263,7 @@ let ask_for_file
   Option.iter (fun (w,r) -> dialog#set_extra_widget w) extra_widget;
 
   if (action=`SELECT_FOLDER)        then (try (dialog#add_shortcut_folder "/tmp") with _ -> ());
-  if (action=`OPEN or action=`SAVE) then
+  if (action=`OPEN || action=`SAVE) then
     begin
       let filter_list = List.append (List.map get_filter_by_name filter_names) filters in
       List.iter dialog#add_filter filter_list;
@@ -303,8 +303,8 @@ let ask_for_existing_writable_folder_pathname_supporting_sparse_files
  ~title
  () =
   let valid = fun pathname ->
-    if (not (Sys.file_exists pathname)) or
-       (not (Shell.dir_comfortable pathname)) or
+    if (not (Sys.file_exists pathname)) ||
+       (not (Shell.dir_comfortable pathname)) ||
        (not (does_directory_support_sparse_files pathname)) then
         begin
          Simple_dialogs.error

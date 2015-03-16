@@ -47,6 +47,9 @@ localeprefix=${prefix}/share/locale
 # default setting:
 documentationprefix=${prefix}/share/doc
 
+# Version of OCaml we are using to compile the project:
+ocaml_version=$(ocamlc -version || exit -1)
+
 # Location of the standard Ocaml libraries required to compile 
 # and link the project.
 # *No* trailing slash should be included.

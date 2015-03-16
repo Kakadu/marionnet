@@ -445,7 +445,7 @@ class virtual cable_dot_zone ?(reversed=false) ~(motherboard:Motherboard.t) () =
       let p2  = n2#dotPortForEdges  r2 in
       let pl2 = n2#dotLabelForEdges r2 in
       (* if there is a vertex with both port and portlabel not empty => set labeldistance +0.5 *)
-      if ((p1<>"" && pl1<>"") or (p2<>"" && pl2<>""))
+      if ((p1<>"" && pl1<>"") || (p2<>"" && pl2<>""))
       then ("labeldistance="^(string_of_float (labeldistance_base +. 0.5))^",") else ""
       end
     in

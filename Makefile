@@ -40,6 +40,7 @@ SHELL=/bin/bash
 
 OCAMLBUILD = $$( $(call OCAMLBUILD_COMMAND_LINE) )
 LIBRARYPREFIX=$(shell $(call READ_CONFIG, libraryprefix); echo $$libraryprefix)
+OCAML_VERSION=$(shell $(call READ_CONFIG, ocaml_version); echo $$ocaml_version)
 OCAML_LIBRARYPREFIX=$(shell $(call READ_CONFIG, ocaml_libraryprefix); echo $$ocaml_libraryprefix)
 
 # The main target. Its implementation is entirely project-dependant:
@@ -747,7 +748,7 @@ FIX_VERSION = \
 # the value of sourcedirectories:
 SOURCE_SUBDIRECTORIES = \
 	sourcedirectories=''; \
-	for d in `find -name _"build*" -prune -o -type d | grep -v "/[.]bzr\$$" | grep -v "/[.]bzr/" \
+	for d in `find \( -path "_build*" -o -name "[.]bzr" -o -name "$(EXCLUDE_FROM_SOURCE_FINDING)" \) -prune -o -type d \
 	          | grep -v /_build\$$ | grep -v /_build/ \
 	          | grep -v ^.$$ | sort`; do \
 		if ls $$d/*.ml &> /dev/null  || \
@@ -907,6 +908,7 @@ meta.ml: META CONFIGME
 	echo -e "let name = \"$$name\";;" >> $@ && \
 	echo -e "let version = \"$$version\";;" >> $@ && \
 	echo -e "let prefix = \"$$prefix\";;" >> $@ && \
+	echo -e "let ocaml_version = \"$(OCAML_VERSION)\";;" >> $@ && \
 	echo -e "let ocaml_libraryprefix = \"$(OCAML_LIBRARYPREFIX)\";;" >> $@ && \
 	echo -e "let libraryprefix = \"$(LIBRARYPREFIX)\";;" >> $@ && \
 	echo -e "let configurationprefix = \"$$configurationprefix\";;" >> $@ && \

@@ -718,7 +718,7 @@ class globalState = fun () ->
  method is_there_something_on_or_sleeping () =
   let result =
     List.exists
-      (fun node -> node#can_gracefully_shutdown or node#can_resume)
+      (fun node -> node#can_gracefully_shutdown || node#can_resume)
       (self#network#nodes#get)
   in
   begin

@@ -311,8 +311,8 @@ class device_led_grid
   () =
 (* Let's prevent stupid errors... *)
 let _ = assert(ports > 1) in
-let _ = assert(((ports mod 2) = 0) or (lines = 1)) in
-let _ = assert((lines = 1) or (lines = 2))
+let _ = assert(((ports mod 2) = 0) || (lines = 1)) in
+let _ = assert((lines = 1) || (lines = 2))
 in
 object(self)
   inherit led_grid

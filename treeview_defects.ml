@@ -273,7 +273,7 @@ object(self)
     float_of_string (Row.String_field.get ~field row)
 
   method private is_empty_or_a_number_between s minimum maximum =
-    s = "" or
+    s = "" ||
     (try
       Scanf.sscanf s "%f" (fun x -> x >= minimum && x <= maximum)
     with _ -> false)
@@ -301,7 +301,7 @@ object(self)
       List.filter
         (fun (header, _) ->
           let c = String.get header ((String.length header) - 1) in
-          ((c = ')' or c = '%') && (* we're interested in percentages and times *)
+          ((c = ')' || c = '%') && (* we're interested in percentages and times *)
           (match minimum_delay with
             None -> true
           | Some _ -> not (header = minimum_delay_header)) &&
@@ -437,12 +437,12 @@ object(self)
     ~name:(s_ "you should choose a direction to define this parameter")
     (fun row ->
       let uneditable = Row.CheckBox_field.get ~field:uneditable_header row in
-      (not uneditable) or
+      (not uneditable) || 
       (List.for_all (fun (name, value) ->
-                       name = name_header or
-                       name = type_header or
-                       name = uneditable_header or
-                       self#is_column_reserved name or
+                       name = name_header || 
+                       name = type_header || 
+                       name = uneditable_header || 
+                       self#is_column_reserved name || 
                        value = Row_item.String "")
                     row));
 

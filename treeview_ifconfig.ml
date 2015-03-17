@@ -300,7 +300,7 @@ object(self)
 
   method load =
     (* Load the forest, as usual: *)
-(* (* (* (*     super#load; *) *) *) *)
+    super#load;
     (* ...but also load the counters used for generating fresh addresses: *)
     let counters_file_name = (Option.extract filename#get)^"-counters" in
     (* _OBSOLETE_mac_address_as_int read for backward compatibility: *)

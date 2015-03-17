@@ -1118,6 +1118,7 @@ configurationprefix=\$prefix/etc
 documentationprefix=\$prefix/share/doc
 localeprefix=\$prefix/share/locale
 ocaml_sources=$LIB_OCAML/caml
+ocaml_version=$(ocamlc -version || echo ${OCAML_VERSION//[\[\]]/})
 EOF
 
 launch_and_log "Compiling ocamlbricks" 'make clean && make && make install' 4002673

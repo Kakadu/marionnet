@@ -45,8 +45,8 @@ type filename = string;;
 /tmp/marionnet-588078453.dir/test_machine/tmp/sketch.png
 /tmp/marionnet-588078453.dir/test_machine/states
 /tmp/marionnet-588078453.dir/test_machine/states/states-forest
-/tmp/marionnet-588078453.dir/test_machine/states/ports-counters
-/tmp/marionnet-588078453.dir/test_machine/states/ports
+/tmp/marionnet-588078453.dir/test_machine/states/ports-counters    # now states/ifconfig-counters
+/tmp/marionnet-588078453.dir/test_machine/states/ports             # now states/ifconfig
 /tmp/marionnet-588078453.dir/test_machine/states/defects
 /tmp/marionnet-588078453.dir/test_machine/states/texts
 /tmp/marionnet-588078453.dir/test_machine/scripts
@@ -101,7 +101,6 @@ class globalState = fun () ->
   | ActiveRunnableProject      -> "ActiveRunnableProject"
 
   (** Are we working with an active project. *)
-(*   method active_project = (app_state#get_alone <> NoActiveProject) *)
   method active_project = (app_state#get_alone <> NoActiveProject)
 
   val sensitive_when_Active   = Chip.wlist ~name:"sensitive_when_Active" []
@@ -163,7 +162,36 @@ class globalState = fun () ->
   method pngSketchFile  = Filename.concat self#tmpDir "sketch.png"
   method networkFile    = Filename.concat self#netmodelDir "network.xml"
   method dotoptionsFile = Filename.concat self#netmodelDir "dotoptions.marshal"
+  
+  method project_version_file = self#complete_dir "version"
 
+ (* The treeview `ifconfig' may be used to derive the informations about the project version
+    if necessary. This may be done inspecting the existence and the content of its related files:
+    - `v0 is the version of marionnet 0.90.x series
+    - `v1 is the version of trunk revno >= 445 with ocamlbricks revno >= 387 (2013/11/17) to trunk revno 460 (included);
+          the treeview `ifconfig' is saved in an incompatible (forest) format in states/ports (as in `v0)
+    - `v2 is the version of trunk revno >= 461 and marionnet 1.0;
+          the treeview `ifconfig' is saved in an incompatible (forest) format in states/ifconfig, in order to prevent 
+          seg-faults of old binaries reading a new project *)
+  method opening_project_version : [ `v0 | `v1 | `v2 ] option = (* None stands for undefined, i.e. failed to identify *)
+    try 
+      let version = PervasivesExtra.get_first_line_of_file (self#project_version_file) in
+      match version with
+      | Some "v0" -> Some `v0   (* marionnet 0.90.x *)
+      | Some "v1" -> Some `v1   (* trunk revno >= 445 with ocamlbricks revno >= 387 (2013/11/17) to trunk revno 460 (included) *)
+      | Some "v2" -> Some `v2   (* trunk revno >= 461 and marionnet 1.0 *)
+      | _         -> self#treeview#ifconfig#try_to_understand_in_which_project_version_we_are
+    with _ -> None
+
+  (* Project are saved anymway in the newest version: *)  
+  method closing_project_version : [ `v0 | `v1 | `v2 ] = `v2
+    
+  method private string_of_project_version : [ `v0 | `v1 | `v2 ] -> string = 
+    function `v0 -> "v0" | `v1 -> "v1" | `v2 -> "v2"
+
+  method private project_version_of_string : string -> [ `v0 | `v1 | `v2 ] = 
+    function "v0" -> `v0 | "v1" -> `v1 | "v2" -> `v2 | _ -> assert false
+    
   (** New project which will be saved into the given filename. *)
   method new_project ~filename  =
     begin
@@ -239,44 +267,38 @@ class globalState = fun () ->
  method import_network
    ?(emergency:(unit->unit)=(fun x->x))
    ?(dotAction:(unit->unit)=fun x->x)
+   ~project_version
    (f:filename) =
    begin
-
-   (* Backup the network. *)
-   self#network#save_to_buffers;
-
-   (* Plan to restore the network if something goes wrong. *)
-   let emergency = fun e ->
-         Log.printf1 "import_network: emergency (%s)!!!\n" (Printexc.to_string e);
-	 self#network#restore_from_buffers;
-         emergency ()
-   in
-
-   (* Read the given file. *)
-   (if (Shell.regfile_readable f)
-   then try
-       let result = User_level.Xml.load_network self#network f in
-       Log.printf ("import_network: network imported\n");
-       result
-   with e -> (emergency e;  raise e)
-   else begin
-     emergency (Failure "file not readable");
-     raise (Failure "state#import_network: cannot open the xml file")
-     end
-     );
-
-   (* Fix the app_state and update it if necessary *)
-   app_state#set ActiveNotRunnableProject ;
-   self#update_state (); (* is it runnable? *)
-
-   (* Undump Dot_tuning.network *)
-   dotAction ();
-
-   (* Force GUI coherence. *)
-   self#gui_coherence ();
-
-   (* Update the network sketch *)
-   self#refresh_sketch ();
+    (* Backup the network. *)
+    self#network#save_to_buffers;
+    (* Plan to restore the network if something goes wrong. *)
+    let emergency = fun e ->
+          Log.printf1 "state#import_network: emergency (%s)!!!\n" (Printexc.to_string e);
+          self#network#restore_from_buffers;
+          emergency ()
+    in
+    (* Read the given file. *)
+    (if (Shell.regfile_readable f)
+    then try
+        let result = User_level.Xml.load_network ~project_version self#network f in
+        Log.printf ("state#import_network: network imported\n");
+        result
+    with e -> (emergency e;  raise e)
+    else begin
+      emergency (Failure "file not readable");
+      raise (Failure "state#import_network: cannot open the xml file")
+      end
+      );
+    (* Fix the app_state and update it if necessary *)
+    app_state#set ActiveNotRunnableProject ;
+    self#update_state (); (* is it runnable? *)
+    (* Undump Dot_tuning.network *)
+    dotAction ();
+    (* Force GUI coherence. *)
+    self#gui_coherence ();
+    (* Update the network sketch *)
+    self#refresh_sketch ();
    end
 
 
@@ -288,42 +310,36 @@ class globalState = fun () ->
     (* Set the project filename *)
     project_filename#set (Some filename);
     let pwd = self#make_the_project_working_directory in
-
+    (* --- *)
     let opening_project_progress_bar =
-      let opening_word = (s_ "Opening") in
-      let text_on_label =
-        Printf.sprintf "<big><b>%s</b></big>"
-          opening_word
-      in
       Progress_bar.make_progress_bar_dialog
        ~modal:true
        ~title:(s_ "Work in progress")
-       ~text_on_label
+       ~text_on_label:(Printf.sprintf "<big><b>%s</b></big>" (s_ "Opening"))
        ~text_on_sub_label:(Printf.sprintf (f_ "<tt><small>%s</small></tt>") filename)
        ()
     in
     opening_project_progress_bar#show ();
-
+    (* --- *)
     (* Extract the mar file into the pwdir *)
     let command_line =
       Printf.sprintf "tar -xSvzf %s -C %s"
         (Option.extract project_filename#get)
         pwd
     in
-
+    (* --- *)
     let synchronous_loading () = begin
-
+      (* --- *)
       Log.system_or_fail command_line;
-
+      (* --- *)
       (* Look for the name of the root directory of the mar file. Some checks here. *)
       let mar_inner_dir =
 	try
 	  (match (SysExtra.readdir_as_list pwd) with
 	  | [x] ->
 	    let skel = (SysExtra.readdir_as_list (Filename.concat pwd x)) in
-	    if ListExtra.subset skel ["states";"netmodel";"scripts";"hostfs";"classtest"]
-	    then x
-	    else failwith "state#open_project: no expected content in the project root directory."
+	    if ListExtra.subset skel ["states"; "netmodel"; "scripts"; "hostfs"; "classtest"; "version"] then x else (* continue: *)
+	    failwith "state#open_project: no expected content in the project root directory."
 	  |  _  ->
 	    failwith "state#open_project: no rootname found in the project directory."
 	  )
@@ -332,14 +348,30 @@ class globalState = fun () ->
 	  raise e;
 	end;
       in
-
+      (* --- *)
       (* Set the project name *)
       project_name#set (Some mar_inner_dir);
       let prefix = self#get_project_subdirs_prefix in
-
+      (* --- *)
       (* Create the tmp subdirectory. *)
       Unix.mkdir (prefix^"tmp") 0o755 ;
-
+      (* --- *)
+      (* Determine the version of the project we are opening: *)
+      let project_version : [ `v0 | `v1 | `v2 ] = 
+        match self#opening_project_version with
+        | Some v -> v
+        | None   -> failwith "state#open_project: project version cannot be identified"
+      in
+      let project_version_as_string = self#string_of_project_version project_version in
+      Log.printf1 "state#open_project: project version is %s\n" (project_version_as_string);
+      let () = 
+        if project_version <> self#closing_project_version then 
+        Simple_dialogs.warning
+          (s_ "Project in old file format")
+          (s_ "This project will be automatically converted in a format not compatible with previous versions of this software. If you want to preserve compatibility, don't save it or save it with another name.")
+         ()
+      in
+      (* --- *)
       (* Dot_tuning.network will be undumped after the network,
 	in order to support cable inversions. *)
       let dotAction () = begin
@@ -354,18 +386,20 @@ class globalState = fun () ->
 	self#dotoptions#set_toolbar_widgets ()
 	end
       in
-
-      Log.printf ("state#open_project: calling import_network\n");
+      (* --- *)
+      Log.printf ("state#open_project: calling load_treeviews\n");
       (* Undump treeview's data. Doing this action now we allow components
-	to modify the treeviews according to the marionnet version: *)
-      self#load_treeviews;
-
+	 to modify the treeviews according to the marionnet version: *)
+      self#load_treeviews ~project_version ();
+      (* --- *)
+      Log.printf ("state#open_project: calling import_network\n");
       (* Second, read the xml file containing the network definition.
 	If something goes wrong, close the project. *)
       (try
 	self#import_network
 	  ~emergency:(fun () -> self#close_project)
 	  ~dotAction
+	  ~project_version
 	  self#networkFile
       with e ->
 	self#clear_treeviews;
@@ -373,7 +407,8 @@ class globalState = fun () ->
       );
       self#register_state_after_save_or_open;
       ()
-    end (* synchronous_loading *)
+    end (* function synchronous_loading *)
+    (* --- *)
     in
     let _ =
       Task_runner.the_task_runner#schedule
@@ -429,8 +464,10 @@ class globalState = fun () ->
       ]
    end
 
-  method private load_treeviews =
-    List.iter (fun (treeview : Treeview.t) -> treeview#load) self#get_treeview_list
+  method private load_treeviews ~project_version () =
+    List.iter 
+      (fun (treeview : Treeview.t) -> treeview#load ~project_version ())
+      self#get_treeview_list
 
   method private save_treeviews =
     List.iter (fun (treeview : Treeview.t) -> treeview#save ()) self#get_treeview_list
@@ -449,7 +486,6 @@ class globalState = fun () ->
      refresh_sketch_counter_value_after_last_save <- Some self#refresh_sketch_counter#get;
      treeview_forest_list_after_save <- Some (self#get_treeview_complete_forest_list);
    end
-
 
   method project_already_saved =
     (match refresh_sketch_counter_value_after_last_save, self#refresh_sketch_counter#get with
@@ -530,6 +566,10 @@ class globalState = fun () ->
     (* Save treeviews (just to play it safe, because treeview files should be automatically)
        re-written at every update): *)
     self#save_treeviews;
+
+    (* Save the project's version: *)
+    let project_version_as_string = self#string_of_project_version (self#closing_project_version) in
+    UnixExtra.put (self#project_version_file) (project_version_as_string);
 
     (* (Re)write the .mar file *)
     let cmd =

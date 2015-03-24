@@ -201,7 +201,8 @@ module Make (S : sig val st:State.globalState end) = struct
 	let concat = Filename.concat in
 	let dir = Some (concat prefix "states/") in
 	let h   = Some (concat prefix "states/states-forest") in
-	let i   = Some (concat prefix "states/ports") in
+     (* let i   = Some (concat prefix "states/ports") in *) (* old project version (bzr revno <= 460) *)
+	let i   = Some (concat prefix "states/ifconfig") in
 	let d   = Some (concat prefix "states/defects") in
 	let t   = Some (concat prefix "states/texts") in
 	(h,i,d,t,dir,dir,dir,dir)

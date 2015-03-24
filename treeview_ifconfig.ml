@@ -162,15 +162,15 @@ object(self)
     self#children_no_of ~parent_name:device_name
 
   method private add_port ?port_row_completions device_name =
-    let device_row_id = self#unique_row_id_of_name device_name in
-    let current_port_no =
-      self#port_no_of device_name in
+    let device_row_id = self#unique_row_id_of_name (device_name) in
+    let current_port_no = self#port_no_of (device_name) in
     let port_type =
       match self#get_row_type (device_row_id) with
       | "machine" | "world_bridge" -> "machine-port"
       | "gateway" (* retro-compatibility *) -> "machine-port"
       | "router"             -> "router-port"
-      | _                    -> "other-device-port" in
+      | _                    -> "other-device-port" 
+    in
     let port_prefix =
       match self#get_row_type (device_row_id) with
         "machine" | "world_bridge" -> "eth"
@@ -298,16 +298,70 @@ object(self)
       (_OBSOLETE_mac_address_as_int, !next_ipv4_address_as_int, !next_ipv6_address_as_int)
       counters_file_name;
 
-  method load =
+  (* The treeview `ifconfig' may be used to derive the informations about the project version. This may 
+     be done inspecting the existence and the content of its related files. 
+     This method is useful in the class`state' to correctly load the set of all treeviews. *)  
+  method try_to_understand_in_which_project_version_we_are : [ `v0 | `v1 | `v2 ] option =   
+    (* --- *)
+    let new_file_name = Option.extract (filename#get) in  (* states/ifconfig *)
+    let () = Log.printf1 "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: new_file_name: %s\n" new_file_name in
+    if (Sys.file_exists new_file_name) then Some `v2 else (* continue: *)
+    (* --- *)
+    let old_file_name = Filename.concat (Filename.dirname new_file_name) "ports" in
+    let () = Log.printf1 "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: old_file_name: %s\n" old_file_name in
+    if not (Sys.file_exists old_file_name) then None else (* continue: *)
+    (* --- *)
+    let () = Log.printf "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: HERE1\n" in
+    let regexp_v0 = "IPv6 address.*IPv4 netmask.*IPv4 address.*MAC address.*MTU.*Type.*Name" in
+    let regexp_v1 = "IPv6 gateway.*IPv6 address.*IPv4 gateway.*IPv4 address.*MAC address.*MTU.*Type.*Name" in
+    let x = StringExtra.of_charlist (PervasivesExtra.get_first_chars_of_file old_file_name 250) in
+    if StrExtra.First.matchingp (Str.regexp regexp_v0) x then Some `v0 else (* continue:*)
+    let () = Log.printf "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: HERE2\n" in
+    if StrExtra.First.matchingp (Str.regexp regexp_v1) x then Some `v1 else (* continue:*)
+    let () = Log.printf "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: HERE3\n" in
+    None
+    
+  method private load_counters ?(base_name = Option.extract filename#get) () =
+    try
+      let counters_file_name = (base_name)^"-counters" in
+      (* _OBSOLETE_mac_address_as_int read for backward compatibility: *)
+      let _OBSOLETE_mac_address_as_int, the_next_ipv4_address_as_int, the_next_ipv6_address_as_int =
+	counters_marshaler#from_file counters_file_name 
+      in
+      next_ipv4_address_as_int := the_next_ipv4_address_as_int;
+      next_ipv6_address_as_int := the_next_ipv6_address_as_int
+    with _ -> ()
+    
+  (* Method redefinition, because we have also to load the counters. 
+     And we have also to understand which is precisely the file to load (according to the project version). 
+     This treeview was previously saved into states/ports and now is saved into states/ifconfig. 
+     This choice prevents old binaries from seg-faults reading projects in the new format. *)
+  method load ?file_name ~project_version () =
+    let file_name, apply_changes_automatically_once_loaded = 
+      let do_nothing = lazy () in
+      match file_name with
+      | Some x -> x, (do_nothing) 
+      | None -> 
+         let new_file_name = Option.extract (filename#get) in
+         let old_file_name = Filename.concat (Filename.dirname new_file_name) "ports" in
+         let file_name = 
+           match project_version with
+           | `v0 | `v1 -> old_file_name (* but the format is different: v1 and v2 files are similar *)
+           | `v2       -> new_file_name
+         in
+         let action = if (file_name = old_file_name) then lazy (Unix.unlink old_file_name) else do_nothing in
+         (file_name, action)
+    in
+    if not (Sys.file_exists file_name) then 
+      failwith (Printf.sprintf "treeview_ifconfig#load: file %s not found" file_name)
+    else (* continue: *)
     (* Load the forest, as usual: *)
-    super#load;
+    let () = super#load ~file_name ~project_version () in
     (* ...but also load the counters used for generating fresh addresses: *)
-    let counters_file_name = (Option.extract filename#get)^"-counters" in
-    (* _OBSOLETE_mac_address_as_int read for backward compatibility: *)
-    let _OBSOLETE_mac_address_as_int, the_next_ipv4_address_as_int, the_next_ipv6_address_as_int =
-      counters_marshaler#from_file counters_file_name in
-    next_ipv4_address_as_int := the_next_ipv4_address_as_int;
-    next_ipv6_address_as_int := the_next_ipv6_address_as_int
+    let () = self#load_counters ~base_name:(file_name) () in
+    (* Apply necessary changes according to the project version: *)
+    let () = Lazy.force apply_changes_automatically_once_loaded in
+    ()
 
   initializer
     let _ =

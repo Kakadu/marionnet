@@ -191,14 +191,18 @@ class network =
     ListExtra.foreach names (fun n -> try (network#reversed_cable_set true n) with _ -> ())
 
   (** Undump the state of [self] from the given file. *)
-  method load_from_file (file_name : string) =
-   let forest = network_marshaller#from_file file_name in
+  method load_from_file ~(project_version: [`v0|`v1|`v2]) (fname : string) =
+    let (forest:Xforest.t) = 
+      match project_version with
+      | `v2 | `v1 -> network_marshaller#from_file (fname)
+      | `v0       -> Forest_backward_compatibility.load_from_old_file (fname)
+    in
    (* we are manually setting the verbosity 3 *)
    (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr forest);
    match Forest.to_tree forest with
    | (("dotoptions", attrs), children) -> self#from_tree ("dotoptions", attrs) children
    | _ -> assert false
-
+   
  (** Dot_tuning to forest encoding. *)
   method to_tree : (string * (string * string) list) Forest.tree =
    Forest.tree_of_leaf ("dotoptions", [
@@ -1832,10 +1836,14 @@ module Xml = struct
 
  let network_marshaller = new Oomarshal.marshaller ;;
 
-(** Parse the file containing an xforest representation of the network.
-    The given network is updated during the parsing. *)
- let load_network (net:network) (fname:string) =
-  let (forest:Xforest.t) = network_marshaller#from_file fname in
+ (** Parse the file containing an xforest representation of the network.
+     The given network is updated during the parsing. *)
+ let load_network ~(project_version: [`v0|`v1|`v2]) (net:network) (fname:string) =
+  let (forest:Xforest.t) = 
+    match project_version with
+    | `v2 | `v1 -> network_marshaller#from_file (fname)
+    | `v0       -> Forest_backward_compatibility.load_from_old_file (fname)
+  in
   (* we are manually setting the verbosity 3 *)
   (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr forest);
   match Forest.to_tree forest with

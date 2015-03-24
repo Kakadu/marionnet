@@ -157,12 +157,12 @@ module Row = struct
 
   (* Specific methods for the string field "Name": *)
   let eq_name ?fallback value = String_field.eq ?fallback ~caller:"eq_name" ~field:"Name" ~value
-  let get_name     = String_field.get ~caller:"get_name" ~field:"Name"
+  let get_name         = String_field.get ~caller:"get_name" ~field:"Name"
   let set_name value t = String_field.set ~field:"Name" ~value t
 
   (* Specific methods for the string field "_id": *)
   let eq_id ?fallback value = String_field.eq ?fallback ~caller:"eq_id" ~field:"_id" ~value
-  let get_id     = String_field.get ~caller:"get_id" ~field:"_id"
+  let get_id         = String_field.get ~caller:"get_id" ~field:"_id"
   let set_id value t = String_field.set ~field:"_id" ~value t
 
  (** Print a written representation of the given row, suitable for debugging;
@@ -187,6 +187,38 @@ module Row = struct
     Printf.kfprintf flush channel "%s\n" (to_pretty_string row)
 
 end (* module Row *)
+
+module Backward_compatibility = struct
+
+ open Forest_backward_compatibility
+ 
+ type row        = (string * row_item) list
+  and row_item   = String of string | CheckBox of bool | Icon of string
+  and row_forest = row forest
+
+ let import_row_item = function
+ | String   s -> Row_item.String s 
+ | CheckBox b -> Row_item.CheckBox b
+ | Icon s     -> Row_item.Icon s
+ 
+ let import_row = List.map (function (field, row_item) -> (field, import_row_item row_item))
+ 
+ let import_row_forest f =  
+  Forest.map (import_row) (forest_conversion f)
+ 
+ (* Main module's function: *)
+ let load_from_old_file (file_name) : (int * Row.t Forest.t) =
+   let m = new Oomarshal.marshaller in
+   (* Loading forest in the old format: *)
+   let (next_identifier : int), (complete_forest : row_forest) =
+      m#from_file (file_name) 
+   in
+   (* Conversion to the new format: *)
+   let complete_forest = import_row_forest (complete_forest) in
+   (* --- *)
+   (next_identifier, complete_forest)
+  
+end (* Backward_compatibility *)
 
 type row_id = int;;
 
@@ -683,6 +715,10 @@ object(self)
       raise e; (* re-raise *)
     end
 
+  (* Useful to filter information loaded from uncompatible files: *)  
+  method column_headers =
+    Hashtbl.fold (fun k _ ks -> k::ks) (get_column) []
+        
   method is_column_reserved header =
     let column = self#get_column header in
     column#is_reserved
@@ -1163,7 +1199,6 @@ object(self)
     Printf.kfprintf flush stderr "Next identifier: %i\n" next_identifier;
     Forest.print_forest ~string_of_node ~channel:stderr forest
 
-
   method save ?(with_forest_treatment=fun x->x) () =
     let file_name = Option.extract filename#get in
     Log.printf1 "treeview#save: saving into %s\n" file_name;
@@ -1171,30 +1206,33 @@ object(self)
     next_identifier_and_content_forest_marshaler#to_file
       (self#counter#get_next_fresh_value, forest)
       file_name;
-    
-(*  (* Per ifconfig *)
-  method file_version =     
-    let file_name = Option.extract filename#get in
-    let regexp_v1 = "IPv6 address.*IPv4 broadcast.*IPv4 netmask.*IPv4 address.*MAC address.*MTU.*Type.*Name" in
-    let regexp_v2 = "IPv6 gateway.*IPv6 address.*IPv4 gateway.*IPv4 address.*MAC address.*MTU.*Type.*Name" in
-    let x = StringExtra.of_charlist (get_first_chars_of_file file_name 250) in
-    if StrExtra.First.matchingp (Str.regexp regexp_v1) x then Some "1" else (* continue:*)
-    if StrExtra.First.matchingp (Str.regexp regexp_v2) x then Some "2" else (* continue:*)
-    None*)
-    
-  method load =
+      
+  method load ?(file_name=Option.extract filename#get) ~(project_version : [ `v0 | `v1 | `v2 ]) () =
     self#detach_view_in
       (fun () ->
-        self#clear;
-        let file_name = Option.extract filename#get in
+        let () = Log.printf1 "Preparing to load a treeview content from file %s\n" file_name in
+        let () = self#clear in
         try
-(*           let () = failwith "LOAD!!!!!!" in (* PROBLEMA: NON SI CHIUDE LA FINESTRA DI APERTURA!!!!!!!!!*) *)
-          let next_identifier, complete_forest =
-            (next_identifier_and_content_forest_marshaler#from_file file_name) in
-          self#counter#set_next_fresh_value_to next_identifier;
-          self#set_complete_forest complete_forest;
-          (if (Global_options.Debug_level.get ()) >= 3 then (* we are manually setting the verbosity 3 *)
-            Forest.print_forest ~string_of_node:Row.to_pretty_string ~channel:stderr complete_forest);
+          let (next_identifier, complete_forest) =
+            match project_version with
+            | `v2 | `v1 -> next_identifier_and_content_forest_marshaler#from_file (file_name) 
+            | `v0       -> Backward_compatibility.load_from_old_file (file_name)
+          in
+          let () = self#counter#set_next_fresh_value_to next_identifier in
+          (* Remove incompatible bindings if necessary: *)
+          let complete_forest = 
+            let admissible_fields = SetExtra.String_set.of_list (self#column_headers) in
+            Forest.map 
+              (List.filter (fun (field,_) -> SetExtra.String_set.mem field admissible_fields))
+              complete_forest
+          in
+          let () = self#set_complete_forest complete_forest in
+          let () = Log.printf1 "Ok, treeview content successfully loaded from: %s\n" file_name in
+          let () =           
+            if (Global_options.Debug_level.get ()) >= 3 then (* we have to set the verbosity to level 3 *)
+            Forest.print_forest ~string_of_node:Row.to_pretty_string ~channel:stderr (complete_forest)
+          in
+          ()
         with e -> begin
           Log.printf2 "Loading the treeview %s: failed (%s); I'm setting an empty forest, in the hope that nothing serious will happen\n\n" file_name (Printexc.to_string e);
         end);

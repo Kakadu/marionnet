@@ -311,14 +311,11 @@ object(self)
     let () = Log.printf1 "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: old_file_name: %s\n" old_file_name in
     if not (Sys.file_exists old_file_name) then None else (* continue: *)
     (* --- *)
-    let () = Log.printf "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: HERE1\n" in
     let regexp_v0 = "IPv6 address.*IPv4 netmask.*IPv4 address.*MAC address.*MTU.*Type.*Name" in
-    let regexp_v1 = "IPv6 gateway.*IPv6 address.*IPv4 gateway.*IPv4 address.*MAC address.*MTU.*Type.*Name" in
+    let regexp_v1 = "IPv6 gateway.*IPv6 address.*IPv4 gateway.*IPv4 address.*MAC address.*MTU.*Type" in
     let x = StringExtra.of_charlist (PervasivesExtra.get_first_chars_of_file old_file_name 250) in
     if StrExtra.First.matchingp (Str.regexp regexp_v0) x then Some `v0 else (* continue:*)
-    let () = Log.printf "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: HERE2\n" in
     if StrExtra.First.matchingp (Str.regexp regexp_v1) x then Some `v1 else (* continue:*)
-    let () = Log.printf "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: HERE3\n" in
     None
     
   method private load_counters ?(base_name = Option.extract filename#get) () =

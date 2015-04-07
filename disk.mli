@@ -126,24 +126,32 @@ class virtual_machine_installations :
   end
 
 (** Final user's machines strictu sensu *)
-val get_machine_installations :
+val find_machine_installations :
   ?user_filesystem_searching_list:string list ->
   ?root_filesystem_searching_list:string list ->
   ?kernel_searching_list:string list ->
   ?kernel_prefix:string ->
   ?kernel_default_epithet:string ->
   ?filesystem_default_epithet:string ->
-  unit -> virtual_machine_installations
+  ?lifetime:float -> (* 60. seconds *)
+  unit -> virtual_machine_installations Lazy_perishable.t
 
-val get_router_installations :
+(** Instance of find_machine_installations (any optional argument provided): *)  
+val get_machine_installations : virtual_machine_installations Lazy_perishable.t
+
+val find_router_installations :
   ?user_filesystem_searching_list:string list ->
   ?root_filesystem_searching_list:string list ->
   ?kernel_searching_list:string list ->
   ?kernel_prefix:string ->
   ?kernel_default_epithet:string ->
   ?filesystem_default_epithet:string ->
-  unit -> virtual_machine_installations
+  ?lifetime:float -> (* 60. seconds *)
+  unit -> virtual_machine_installations Lazy_perishable.t
 
+(** Instance of find_router_installations (any optional argument provided): *)  
+val get_router_installations : virtual_machine_installations Lazy_perishable.t
+  
 val vm_installations_and_epithet_of_prefixed_filesystem :
   string -> virtual_machine_installations * [`distrib] epithet
 

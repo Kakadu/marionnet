@@ -542,34 +542,44 @@ class virtual_machine_installations
 
 end
 
-let get_router_installations
+let find_router_installations
   ?(user_filesystem_searching_list = user_filesystem_searching_list)
   ?(root_filesystem_searching_list = root_filesystem_searching_list)
   ?(kernel_searching_list=kernel_searching_list)
   ?(kernel_prefix = kernel_prefix)
   ?(kernel_default_epithet=Initialization.router_kernel_default_epithet)
   ?(filesystem_default_epithet=Initialization.router_filesystem_default_epithet)
+  ?(lifetime=60.) (* seconds *)
   () =
-     new virtual_machine_installations
-       ~prefix:"router-"
-       ~kernel_default_epithet
-       ~filesystem_default_epithet
-       ()
+     Lazy_perishable.create 
+       (fun () -> new virtual_machine_installations
+         ~prefix:"router-"
+         ~kernel_default_epithet
+         ~filesystem_default_epithet
+         ())
+       lifetime
 
-let get_machine_installations
+let get_router_installations = find_router_installations ()
+       
+let find_machine_installations
   ?(user_filesystem_searching_list = user_filesystem_searching_list)
   ?(root_filesystem_searching_list = root_filesystem_searching_list)
   ?(kernel_searching_list=kernel_searching_list)
   ?(kernel_prefix = kernel_prefix)
   ?(kernel_default_epithet=Initialization.machine_kernel_default_epithet)
   ?(filesystem_default_epithet=Initialization.machine_filesystem_default_epithet)
+  ?(lifetime=60.) (* seconds *)
   () =
-     new virtual_machine_installations
-       ~prefix:"machine-"
-       ~kernel_default_epithet
-       ~filesystem_default_epithet
-       ()
+     Lazy_perishable.create 
+       (fun () -> new virtual_machine_installations
+	 ~prefix:"machine-"
+	 ~kernel_default_epithet
+ 	 ~filesystem_default_epithet
+	 ())
+       lifetime
 
+let get_machine_installations = find_machine_installations ()
+       
 let vm_installations_and_epithet_of_prefixed_filesystem prefixed_filesystem =
  try
   let p = String.index prefixed_filesystem '-' in

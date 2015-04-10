@@ -374,17 +374,18 @@ class globalState = fun () ->
       (* --- *)
       (* Dot_tuning.network will be undumped after the network,
 	in order to support cable inversions. *)
-      let dotAction () = begin
-	(try
-	  self#dotoptions#load_from_file self#dotoptionsFile;
-	  Log.printf ("state#open_project: dotoptions recovered\n");
-	with e ->
-	  begin
-	    Log.printf ("state#open_project: cannot read the dotoptions file => resetting defaults\n");
-	    self#dotoptions#reset_defaults ()
-	  end);
+      let dotAction () =
+        let () = 
+	  try
+	    let () = self#dotoptions#load_from_file ~project_version (self#dotoptionsFile) in
+	    Log.printf ("state#open_project: dotoptions recovered\n")
+	  with e ->
+	    begin
+	      Log.printf ("state#open_project: cannot read the dotoptions file => resetting defaults\n");
+	      self#dotoptions#reset_defaults ()
+	    end
+	in
 	self#dotoptions#set_toolbar_widgets ()
-	end
       in
       (* --- *)
       Log.printf ("state#open_project: calling load_treeviews\n");

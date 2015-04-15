@@ -59,7 +59,7 @@ let duplicate_cow_file_into_states_directory
     Filename.concat states_directory name_of_the_copy
   in
   let command_line =
-    (Printf.sprintf "cp --sparse=always %s %s"
+    (Printf.sprintf "cp --sparse=always '%s' '%s'"
 	full_source_pathname
 	full_copy_pathname)
   in

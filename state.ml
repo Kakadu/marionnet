@@ -238,7 +238,7 @@ class globalState = fun () ->
          project_name#set None ;
          let cmd =
            Printf.sprintf
-             "rm -rf %s"
+             "rm -rf '%s'"
              (Option.extract project_working_directory#get)
          in
          (* Update the network sketch (now empty) *)
@@ -279,7 +279,7 @@ class globalState = fun () ->
           emergency ()
     in
     (* Read the given file. *)
-    (if (Shell.regfile_readable f)
+    (if (UnixExtra.regfile_r_or_link_to f)
     then try
         let result = User_level.Xml.load_network ~project_version self#network f in
         Log.printf ("state#import_network: network imported\n");
@@ -323,7 +323,7 @@ class globalState = fun () ->
     (* --- *)
     (* Extract the mar file into the pwdir *)
     let command_line =
-      Printf.sprintf "tar -xSvzf %s -C %s"
+      Printf.sprintf "tar -xSvzf '%s' -C '%s'"
         (Option.extract project_filename#get)
         pwd
     in
@@ -511,18 +511,17 @@ class globalState = fun () ->
 
   (** Rewrite the compressed archive prj_filename with the content of the project working directory (pwdir). *)
   method save_project =
-
     if self#active_project then begin
     Log.printf "state#save_project starting...\n";
-
+    (* --- *)
     let filename = Option.extract project_filename#get in
     let project_working_directory = Option.extract project_working_directory#get in
     let project_name = Option.extract project_name#get in
-
+    (* --- *)
     (* Progress bar periodic callback. *)
     let fill =
       (* disk usage (in kb) with the unix command *)
-      let du x = match UnixExtra.run ("du -sk "^x) with
+      let du x = match UnixExtra.run (Printf.sprintf "du -sk '%s'" x) with
        | kb, (Unix.WEXITED 0) -> (try Some (float_of_string (List.hd (StringExtra.split ~d:'\t' kb))) with _ -> None)
        | _,_                  -> None
       in
@@ -536,7 +535,7 @@ class globalState = fun () ->
                     | None -> 0.5)
       | None -> fun () -> 0.5
     in
-
+    (* --- *)
     let window =
       let text_about_saved_snapshots =
         match Global_options.Keep_all_snapshots_when_saving.extract () with
@@ -579,7 +578,7 @@ class globalState = fun () ->
         let excluded_items = List.map (Printf.sprintf "--exclude states/%s") excluded_cows in
         String.concat " " ("--exclude tmp"::excluded_items)
       in
-      Printf.sprintf "tar -cSvzf %s -C %s %s %s"
+      Printf.sprintf "tar -cSvzf '%s' -C '%s' %s '%s'"
         filename
         project_working_directory
         exclude_command_section
@@ -650,7 +649,7 @@ class globalState = fun () ->
         let pwd = Option.extract project_working_directory#get in
         let old_pathname = Filename.concat pwd old_name in
         let new_pathname = Filename.concat pwd new_name in
-        Printf.sprintf "mv %s %s" old_pathname new_pathname
+        Printf.sprintf "mv '%s' '%s'" old_pathname new_pathname
       in
       Log.system_or_ignore cmd;
     end

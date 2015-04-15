@@ -26,20 +26,24 @@
 (** Return the given pathname as it is, if it doesn't contain funny characters
     we don't want to bother supporting, like ' ', otherwise raise an exception.
     No check is performed on the pathname actual existence or permissions: *)
-let check_pathname_validity pathname =
+(*let check_pathname_validity pathname =
   if StrExtra.First.matchingp (Str.regexp "^[.a-zA-Z0-9_\\/\\-]+$") pathname then
     pathname
   else
-    failwith "The pathname "^ pathname ^" contains funny characters, and we don't support it";;
+    failwith "The pathname "^ pathname ^" contains funny characters, and we don't support it";;*)
 
+let are_there_funny_chars x = not (StrExtra.First.matchingp (Str.regexp "^[.a-zA-Z0-9_\\/\\-]+$") x)
+    
 (** Return true iff the the given directory exists and is on a filesystem supporting
     sparse files. This function doesn't check whether the directory is writable: *)
 let does_directory_support_sparse_files pathname =
+  (* Funny chars are not allowed because the uml kernel is very strict about filename specifications (ubda=.., ubdb=.., etc) *)
+  if are_there_funny_chars (pathname) then false else (* continue: *)
   (* All the intelligence of this method lies in the external script, loaded
      at preprocessing time: *)
   let content = INCLUDE_AS_STRING "scripts/can-directory-host-sparse-files.sh" in
   try
-    match UnixExtra.script content [(check_pathname_validity pathname)] with
+    match UnixExtra.script content [pathname] with
     | (0,_,_) -> true
     |   _     -> false
   with _ -> false
@@ -96,20 +100,9 @@ end;; (* module Msg *)
     This function is thought as a 'filter' thru which user-supplied filenames should
     be always sent before use. The optional argument extension should be a string with
     *no* dot *)
-let check_path_name_validity_and_add_extension_if_needed ?(extension="mar") path_name =
+let check_filename_validity_and_add_extension_if_needed ?(extension="mar") path_name =
   let directory = Filename.dirname path_name in
   let correct_extension = "." ^ extension in
-  let directory =
-    try
-      check_pathname_validity directory
-    with _ -> begin
-      Simple_dialogs.error
-        (s_ "Invalid directory name")
-        (Printf.sprintf (f_ "The name \"%s\" is not a valid directory.\n\nDirectory names \
-must contain only letters, numbers, dots, dashes ('-') and underscores ('_').") directory)
-        ();
-      failwith "the given directory name is invalid";
-    end in
   let path_name = Filename.basename path_name in
   let check_chopped_basename_validity chopped_basename =
     if StrExtra.Class.identifierp ~allow_dash:() chopped_basename then
@@ -235,33 +228,31 @@ let get_filter_by_name = function
 (** The edialog asking for file or folder. It returns a simple environment with an unique identifier
     [gen_id] bound to the selected name *)
 let ask_for_file
-
-    ?(enrich=mkenv [])
-    ?(title="FILE SELECTION")
-    ?(valid:(string->bool)=(fun x->true))
-    ?(filter_names = allfilters)
-    ?(filters:(GFile.filter list)=[])
-    ?(extra_widget:(GObj.widget * (unit -> string)) option)
-    ?(action=`OPEN)
-    ?(gen_id="filename")
-    ?(help=None)()
-    =
-
+  ?(enrich=mkenv [])
+  ?(title="FILE SELECTION")
+  ?(valid:(string->bool)=(fun x->true))
+  ?(filter_names = allfilters)
+  ?(filters:(GFile.filter list)=[])
+  ?(extra_widget:(GObj.widget * (unit -> string)) option)
+  ?(action=`OPEN)
+  ?(gen_id="filename")
+  ?(help=None)()
+  =
   let dialog = GWindow.file_chooser_dialog
       ~icon:Icon.icon_pixbuf
       ~action:action
       ~title
-      ~modal:true () in
-
+      ~modal:true () 
+  in
   dialog#unselect_all ;
   if (help=None) then () else dialog#add_button_stock `HELP `HELP ;
   dialog#add_button_stock `CANCEL `CANCEL ;
   dialog#add_button_stock `OK `OK;
   ignore (dialog#set_current_folder (Initialization.cwd_at_startup_time));
-
+  (* --- *)
   dialog#set_default_response `OK;
   Option.iter (fun (w,r) -> dialog#set_extra_widget w) extra_widget;
-
+  (* --- *)
   if (action=`SELECT_FOLDER)        then (try (dialog#add_shortcut_folder "/tmp") with _ -> ());
   if (action=`OPEN || action=`SAVE) then
     begin
@@ -290,7 +281,7 @@ let ask_for_file
   |  _ -> cont := false
   end
   done;
-
+  (* --- *)
   dialog#destroy ();
   !result
 ;;
@@ -303,36 +294,66 @@ let ask_for_existing_writable_folder_pathname_supporting_sparse_files
  ~title
  () =
   let valid = fun pathname ->
-    if (not (Sys.file_exists pathname)) ||
-       (not (Shell.dir_comfortable pathname)) ||
+    (* --- *)
+    if (not (Sys.file_exists pathname)) then 
+      begin
+	let () =
+	  Simple_dialogs.error
+	    (s_ "Invalid directory")
+	    (s_ "The directory doesn't exists!\nYou must choose an exiting directory name.")
+	    () 
+	in
+	false 
+      end
+    else (* continue: *)
+    (* --- *)
+    (* Resolve symlinks which are problematic for starting components: *)
+    let pathname = Option.extract (UnixExtra.realpath pathname) in 
+    (* --- *)
+    if (are_there_funny_chars pathname) then 
+      begin 
+	let () = 
+	  Simple_dialogs.error
+	    (s_ "Invalid directory name")
+	    (Printf.sprintf (f_ "The name \"%s\" is not a valid directory.\n\nDirectory names must contain only letters, numbers, dots, dashes ('-') and underscores ('_').") pathname)
+	    ()
+	in
+	false
+      end 
+    else (* continue: *)
+    (* --- *)
+    if (not (UnixExtra.dir_rwx_or_link_to pathname)) ||
        (not (does_directory_support_sparse_files pathname)) then
         begin
-         Simple_dialogs.error
-           (s_ "Invalid directory")
-           (s_ "Choose a directory which is existing, modifiable and hosted on a filesystem supporting sparse files (ext2, ext3, ext4, reiserfs, NTFS, ...)")
-          ();
-         false;
+          let () =
+	    Simple_dialogs.error
+	      (s_ "Invalid directory")
+	      (s_ "Choose a directory which is existing, modifiable and hosted on a filesystem supporting sparse files (ext2, ext3, ext4, reiserfs, NTFS, ...)")
+	      () 
+	  in
+          false
         end
     else true
-  in ask_for_file ~enrich ~title ~valid ~filter_names:[] ~action:`SELECT_FOLDER ~gen_id:"foldername" ~help () ;;
-
+  in 
+  ask_for_file ~enrich ~title ~valid ~filter_names:[] ~action:`SELECT_FOLDER ~gen_id:"foldername" ~help ()
+  
 
 (** The edialog asking for a fresh and writable filename. *)
 let ask_for_fresh_writable_filename
- ?(enrich=mkenv [])
- ~title
- ?(filters:(GFile.filter list) option)
- ?filter_names
- ?(extra_widget:(GObj.widget * (unit -> string)) option)
- ?(help=None) =
-
+  ?(enrich=mkenv [])
+  ~title
+  ?(filters:(GFile.filter list) option)
+  ?filter_names
+  ?(extra_widget:(GObj.widget * (unit -> string)) option)
+  ?(help=None) 
+  =
   let valid x =
     if (Sys.file_exists x)
     then ((Simple_dialogs.error
              (s_ "Name choice")
              (s_ "A file with the same name already exists!\n\nChoose another name for your file.")
              ()); false)
-    else (Shell.freshname_possible x)
+    else (UnixExtra.viable_freshname x)
   in
   let result =
     ask_for_file ~enrich ~title ~valid ?filters ?filter_names ?extra_widget ~action:`SAVE ~gen_id:"filename" ~help in
@@ -340,15 +361,14 @@ let ask_for_fresh_writable_filename
 
 (** The edialog asking for an existing filename. *)
 let ask_for_existing_filename ?(enrich=mkenv []) ~title ?(filter_names = allfilters) ?(help=None) () =
-
   let valid = fun x ->
     if not (Sys.file_exists x)
     then ((Simple_dialogs.error
              (s_ "File choice")
              (s_ "The file doesn't exists!\nYou must choose an exiting file name.")
              ()); false)
-    else (Shell.regfile_modifiable x) in
-
+    else (UnixExtra.regfile_rw_or_link_to x) 
+  in
   ask_for_file ~enrich ~title ~valid ~filter_names ~action:`OPEN ~gen_id:"filename" ~help ()
 ;;
 

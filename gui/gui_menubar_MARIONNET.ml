@@ -25,8 +25,6 @@ open Gettext;;
 module EDialog = Talking.EDialog
 module Msg = Talking.Msg
 let mkenv = Environment.make_string_env
-let check_path_name_validity_and_add_extension_if_needed =
-  Talking.check_path_name_validity_and_add_extension_if_needed
 
 open GdkKeysyms
 open GtkStock
@@ -83,7 +81,7 @@ module Created_entry_project_new = Menu_factory.Make_entry
 
    let reaction r = begin
      st#shutdown_everything ();
-     let filename = check_path_name_validity_and_add_extension_if_needed (r#get "filename") in
+     let filename = Talking.check_filename_validity_and_add_extension_if_needed (r#get "filename") in
      let actions () =
        begin
        st#close_project;
@@ -165,7 +163,7 @@ module Created_entry_project_save_as = Menu_factory.Make_entry
 
    let reaction r =
      if st#is_there_something_on_or_sleeping () then Msg.error_saving_while_something_up () else
-     let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
+     let filename = Talking.check_filename_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
       st#save_project_as filename;
      with _ -> (Simple_dialogs.error (s_ "Save project as") ((s_ "Failed to save the project into the file ")^filename) ())
@@ -190,7 +188,7 @@ module Created_entry_project_copy_to = Menu_factory.Make_entry
 
    let reaction r =
      if st#is_there_something_on_or_sleeping () then Msg.error_saving_while_something_up () else
-     let filename = check_path_name_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
+     let filename = Talking.check_filename_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
        st#copy_project_into filename
      with _ -> (Simple_dialogs.error (s_ "Project copy to" ) ((s_ "Failed to copy the project into the file ")^filename) ())
@@ -259,8 +257,8 @@ module Created_entry_project_export = Menu_factory.Make_entry
 
    let reaction r =
      let output_format = (r#get "extra_widget") in
-     let filename = check_path_name_validity_and_add_extension_if_needed ~extension:output_format (r#get "filename") in
-     let command = Printf.sprintf "dot -T%s -o %s %s" output_format filename st#dotSketchFile in
+     let filename = Talking.check_filename_validity_and_add_extension_if_needed ~extension:output_format (r#get "filename") in
+     let command = Printf.sprintf "dot -T%s -o '%s' '%s'" output_format filename st#dotSketchFile in
      let on_error () =
 	Simple_dialogs.error
 	  "Export network image"
@@ -332,7 +330,10 @@ module Created_entry_options_cwd = Menu_factory.Make_entry
     Talking.EDialog.ask_for_existing_writable_folder_pathname_supporting_sparse_files
        ~title:(s_ "Choose the temporary working directory")
        ~help:(Some Msg.help_repertoire_de_travail) ()
-   let reaction r = st#temporary_directory#set (r#get "foldername")
+   let reaction r = 
+     let pathname = (r#get "foldername") in
+     let realpath = Option.extract (UnixExtra.realpath pathname) in
+     st#temporary_directory#set (realpath)
   end) (F)
 let options_cwd = Created_entry_options_cwd.item
 

@@ -802,13 +802,12 @@ class uml_process =
          (fun (ei, h) -> ethernet_interface_to_uml_command_line_argument umid ei h)
          (List.combine (ListExtra.range 0 (ethernet_interface_no - 1)) hublet_processes))
       [
-       "ubda=" ^ cow_file_name ^ "," ^ filesystem_file_name;
-(*        "ubd0s=" ^ cow_file_name ^ "," ^ filesystem_file_name; *)
-       "ubdb=" ^ swap_file_name;
+       "ubda=" ^ (cow_file_name) ^ "," ^ (filesystem_file_name);
+       "ubdb=" ^ (swap_file_name);
        "umid=" ^ umid;
        "mem=" ^ (string_of_int memory) ^ "M";
        "root=98:0";
-       "hostfs="^hostfs_pathname;
+       "hostfs=" ^ (hostfs_pathname);
        "hostname="^umid;
        "guestkind="^guestkind;
        "xterm="^Initialization.marionnet_terminal;
@@ -892,14 +891,14 @@ class uml_process =
     try
       let dd_command_line =
         Printf.sprintf
-          "dd if=/dev/zero bs=1024 seek=%i count=1 of=%s"
+          "dd if=/dev/zero bs=1024 seek=%i count=1 of='%s'"
           swap_file_size
           swap_file_name
       in
       Log.system_or_fail dd_command_line;
       Log.printf2 "%s#create_swap_file: created the swap file %s.\n" umid swap_file_name;
       let mkswap_command_line =
-        Printf.sprintf "export PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin; mkswap %s" swap_file_name
+        Printf.sprintf "export PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin; mkswap '%s'" swap_file_name
       in
       Log.system_or_fail mkswap_command_line;
       Log.printf2 "%s#create_swap_file: executed mkswap on the swap file %s.\n" umid swap_file_name;
@@ -909,10 +908,10 @@ class uml_process =
 
   method delete_swap_file =
     try
-      Log.system_or_fail (Printf.sprintf "rm -f %s" swap_file_name);
-      Log.printf2 "%s#delete_swap_file: deleted the swap file %s.\n" umid swap_file_name;
+      Log.system_or_fail (Printf.sprintf "rm -f '%s'" swap_file_name);
+      Log.printf2 "%s#delete_swap_file: deleted the swap file '%s'\n" umid swap_file_name;
     with e -> begin
-      Log.printf2 ~v:2 "%s#delete_swap_file: WARNING: removing the swap file %s failed.\n" umid swap_file_name;
+      Log.printf2 ~v:2 "%s#delete_swap_file: WARNING: removing the swap file '%s' failed.\n" umid swap_file_name;
     end
 
 (*   (\** There is a specific and better way to stop a UML processes, using *)
@@ -1135,7 +1134,7 @@ class uml_process =
   (** Destroy the host directory shared by hostfs. This should only be called at machine
      deletion time. *)
   method remove_hostfs_directory =
-    ignore (Unix.system (Printf.sprintf "rm -rf %s" self#hostfs_directory_pathname));
+    ignore (Unix.system (Printf.sprintf "rm -rf '%s'" self#hostfs_directory_pathname));
     ()
 
   method private grant_host_x_server_access =

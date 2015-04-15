@@ -192,7 +192,7 @@ let () =
 (** Choose a reasonable temporary working directory: *)
 let () =
  let suitable_tmp pathname =
-   (Shell.dir_comfortable pathname) &&
+   (UnixExtra.dir_rwx_or_link_to pathname) &&
    (Talking.does_directory_support_sparse_files pathname)
  in
  let defined_and_suitable_tmp x =

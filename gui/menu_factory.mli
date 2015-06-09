@@ -79,10 +79,10 @@ module type Parents = sig  val parent: menu_parent  val window : GWindow.window 
 
 module Make : functor (M : Parents) -> Factory
 
-type env  = string Environment.string_env
+type env  = string Environments.string_env
 type name = string
 
-val mkenv     : (string * 'a) list -> 'a Environment.string_env
+val mkenv     : (string * 'a) list -> 'a Environments.string_env
 
 val no_dialog_but_simply_return_name : string -> unit -> string option
 

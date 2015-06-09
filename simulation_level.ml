@@ -337,7 +337,7 @@ class virtual process_which_creates_a_socket_at_spawning_time =
   (** vde_switch_processes need to be up before we connect cables or UMLs to
       them, so they have to be spawned in a *synchronous* way: *)
   method spawn =
-    Log.printf1 "process_w_c_a_socket_at_s_time#spawn: spawning the process which will create the socket %s\n" self#get_socket_name;
+    Log.printf1 "process_w_c_a_socket_at_s_time#spawn: spawning the process which will create the socket %s\n" (Shell.escaped_filename self#get_socket_name);
     super#spawn;
     (* We also check that the process is alive: if spawning it failed than the death
        monitor will take care of everything it's needed and destroy the device: in
@@ -378,7 +378,7 @@ class vde_switch_process =
  let socket_name_prefix =
   match socket_name_prefix with
   | Some p -> p
-  | None -> Printf.sprintf "%s-socket-" (if hub then "hub" else "switch")
+    | None -> Printf.sprintf "%s-socket-" (if hub then "hub" else "switch")
  in
  object(self)
   inherit process_which_creates_a_socket_at_spawning_time
@@ -419,9 +419,9 @@ class vde_switch_process =
     let optional_mgmt =
       List.concat
         (Option.to_list
-           (Option.map (fun name -> ["--mgmt"; name]) self#get_management_socket_name))
+           (Option.map (fun name -> ["--mgmt"; (Shell.escaped_filename name)]) self#get_management_socket_name))
     in
-    self#append_arguments ("-unix" :: self#get_socket_name :: optional_mgmt);
+    self#append_arguments ("-unix" :: (Shell.escaped_filename self#get_socket_name) :: optional_mgmt);
 
 end;; (* class vde_switch_process *)
 
@@ -498,7 +498,7 @@ class slirpvde_process =
   in
   let arguments = List.concat [
        [ "--mod";  "777";       (* To do: find a reasonable value for this *) ];
-       [ "--unix"; existing_socket_name ];
+       [ "--unix"; (Shell.escaped_filename existing_socket_name) ];
        network;
        dhcp;
        ]
@@ -529,7 +529,7 @@ class unixterm_process =
   let command_launched_by_xterm =
     Printf.sprintf
        "%s %s"
-       unixterm management_socket_name
+       unixterm (Shell.escaped_filename management_socket_name)
   in
   (* Redefined if rlwrap, ledit or rlfe are installed: *)
   let command_launched_by_xterm =
@@ -633,7 +633,7 @@ object(self)
              ~leftward_min_delay
              ~leftward_max_delay
              ();
-           [ "-v"; ((left_end#get_socket_name) ^ ":" ^ (right_end#get_socket_name)) ]])
+           [ "-v"; ((Shell.escaped_filename left_end#get_socket_name) ^ ":" ^ (Shell.escaped_filename right_end#get_socket_name)) ]])
       ~stdin:an_input_descriptor_never_sending_anything
       ~stdout:dev_null_out
       ~stderr:dev_null_out
@@ -715,7 +715,7 @@ let ethernet_interface_to_uml_command_line_argument umid port_index hublet =
   let ifconfig = Treeview_ifconfig.extract () in
   "eth" ^ (string_of_int port_index) ^ "=daemon," ^
   (ifconfig#get_port_attribute_by_index umid port_index "MAC address") ^
-  ",unix," ^ (hublet#get_socket_name) ^ "/ctl";;
+  ",unix," ^ (Shell.escaped_filename (hublet#get_socket_name)) ^ "/ctl";;
 
 let random_ghost_mac_address () =
   let random () = Printf.sprintf "%02x" (Random.int 256) in
@@ -802,12 +802,12 @@ class uml_process =
          (fun (ei, h) -> ethernet_interface_to_uml_command_line_argument umid ei h)
          (List.combine (ListExtra.range 0 (ethernet_interface_no - 1)) hublet_processes))
       [
-       "ubda=" ^ (cow_file_name) ^ "," ^ (filesystem_file_name);
-       "ubdb=" ^ (swap_file_name);
+       "ubda=" ^ (Shell.escaped_filename cow_file_name) ^ "," ^ (Shell.escaped_filename filesystem_file_name);
+       "ubdb=" ^ (Shell.escaped_filename swap_file_name);
        "umid=" ^ umid;
        "mem=" ^ (string_of_int memory) ^ "M";
        "root=98:0";
-       "hostfs=" ^ (hostfs_pathname);
+       "hostfs=" ^ (Shell.escaped_filename hostfs_pathname);
        "hostname="^umid;
        "guestkind="^guestkind;
        "xterm="^Initialization.marionnet_terminal;

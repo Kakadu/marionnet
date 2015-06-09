@@ -225,7 +225,7 @@ module Make (S : sig val st:State.globalState end) = struct
     let _ =
       new treeview_filenames
 	~pwd:st#project_working_directory
-	~prn:st#project_name
+	~prn:st#project_root_basename
 	~h:st#treeview#history#filename
 	~i:st#treeview#ifconfig#filename
 	~d:st#treeview#defects#filename

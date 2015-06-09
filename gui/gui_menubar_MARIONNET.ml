@@ -24,7 +24,7 @@ open Gettext;;
 (* Shortcuts *)
 module EDialog = Talking.EDialog
 module Msg = Talking.Msg
-let mkenv = Environment.make_string_env
+let mkenv = Environments.make_string_env
 
 open GdkKeysyms
 open GtkStock
@@ -59,7 +59,7 @@ module Common_dialogs = struct
 
 end
 
-type env  = string Environment.string_env
+type env  = string Environments.string_env
 let env_to_string (t:env) = t#to_string (fun s->s)
 
 module Created_entry_project_new = Menu_factory.Make_entry
@@ -84,8 +84,8 @@ module Created_entry_project_new = Menu_factory.Make_entry
      let filename = Talking.check_filename_validity_and_add_extension_if_needed (r#get "filename") in
      let actions () =
        begin
-       st#close_project;
-       st#new_project filename ;
+       st#close_project_sync;
+       st#new_project_sync filename;
        end in
      if (st#active_project) && ((r#get "save_current") = "yes")
       then
@@ -121,7 +121,7 @@ module Created_entry_project_open = Menu_factory.Make_entry
       st#shutdown_everything ();
       let filename = (r#get "filename") in
       let actions () = begin
-         st#close_project;
+         st#close_project_sync;
          try
           st#open_project filename;
          with e -> ((Simple_dialogs.error (s_ "Open a project") ((s_ "Failed to open the file ")^filename) ()); raise e)
@@ -165,7 +165,7 @@ module Created_entry_project_save_as = Menu_factory.Make_entry
      if st#is_there_something_on_or_sleeping () then Msg.error_saving_while_something_up () else
      let filename = Talking.check_filename_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
-      st#save_project_as filename;
+      let () = st#save_project_as ~filename () in ()
      with _ -> (Simple_dialogs.error (s_ "Save project as") ((s_ "Failed to save the project into the file ")^filename) ())
 
   end) (F)
@@ -190,7 +190,7 @@ module Created_entry_project_copy_to = Menu_factory.Make_entry
      if st#is_there_something_on_or_sleeping () then Msg.error_saving_while_something_up () else
      let filename = Talking.check_filename_validity_and_add_extension_if_needed ~extension:"mar" (r#get "filename") in
      try
-       st#copy_project_into filename
+       let () = st#copy_project_into ~filename () in ()
      with _ -> (Simple_dialogs.error (s_ "Project copy to" ) ((s_ "Failed to copy the project into the file ")^filename) ())
 
   end) (F)
@@ -215,7 +215,7 @@ module Created_entry_project_close = Menu_factory.Make_entry
     let () = if (st#active_project) && ((r#get "answer") = "yes")
               then st#save_project
               else () in
-    st#close_project;
+    st#close_project_sync;
     end
 
   end) (F)
@@ -306,7 +306,7 @@ module Created_entry_project_quit = Menu_factory.Make_entry
     Log.printf "Killing the death monitor thread...\n";
     Death_monitor.stop_polling_loop ();
     st#network#destroy_process_before_quitting ();
-    st#close_project;
+    st#close_project_sync;
     st#quit_async ()
 
   end) (F)

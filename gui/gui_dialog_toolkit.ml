@@ -58,7 +58,7 @@ module Make (Toplevel : sig val toplevel : GWindow.dialog_any end) = struct
  end (* Tooltip *)
 
 
- type env  = string Environment.string_env
+ type env  = string Environments.string_env
 
  (* Moved from talking.ml. Generic dialog loop for component INSERT/UPDATE. The inserted or updated name must be unique in the network. *)
  let dialog_loop ?(help=None) dialog (scan_dialog:unit->env) (st:State.globalState) =

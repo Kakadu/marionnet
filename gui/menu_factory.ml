@@ -113,7 +113,7 @@ module Make (M: Parents) = struct
 end
 
 (* Shortcuts *)
-let mkenv = Environment.make_string_env
+let mkenv = Environments.make_string_env
 
 (** Useful when there is no dialog preceeding the reaction: *)
 let no_dialog_but_simply_return_name = fun name () -> Some name

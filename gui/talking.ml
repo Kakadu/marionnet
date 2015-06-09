@@ -32,13 +32,15 @@
   else
     failwith "The pathname "^ pathname ^" contains funny characters, and we don't support it";;*)
 
-let are_there_funny_chars x = not (StrExtra.First.matchingp (Str.regexp "^[.a-zA-Z0-9_\\/\\-]+$") x)
-    
+(*let are_there_funny_chars x = not (StrExtra.First.matchingp (Str.regexp "^[.a-zA-Z0-9_\\/\\-]+$") x)
+let are_there_funny_chars x = false*)
+let are_there_shell_special_chars x = (StrExtra.First.matchingp (Str.regexp "[ )(&*?$]") x)
+
 (** Return true iff the the given directory exists and is on a filesystem supporting
     sparse files. This function doesn't check whether the directory is writable: *)
 let does_directory_support_sparse_files pathname =
   (* Funny chars are not allowed because the uml kernel is very strict about filename specifications (ubda=.., ubdb=.., etc) *)
-  if are_there_funny_chars (pathname) then false else (* continue: *)
+  if are_there_shell_special_chars (pathname) then false else (* continue: *)
   (* All the intelligence of this method lies in the external script, loaded
      at preprocessing time: *)
   let content = INCLUDE_AS_STRING "scripts/can-directory-host-sparse-files.sh" in
@@ -50,7 +52,7 @@ let does_directory_support_sparse_files pathname =
 ;;
 
 (* Shortcuts *)
-let mkenv = Environment.make_string_env ;;
+let mkenv = Environments.make_string_env ;;
 
 (* **************************************** *
               Module MSG
@@ -93,19 +95,19 @@ It is a standard gzipped tarball which can also be opened with standard tools.")
 end;; (* module Msg *)
 
 (** Check that the given pathname is acceptable, and that it has the correct extension or
-    no extension; if the argument has the corret extension then just return it; it it's
+    no extension; if the argument has the correct extension then just return it; it it's
     otherwise valid but has no extension then return the argument with the extension
     appended; if it's invalid or has a wrong extension then show an appropriate
     error message and raise an exception.
     This function is thought as a 'filter' thru which user-supplied filenames should
     be always sent before use. The optional argument extension should be a string with
     *no* dot *)
-let check_filename_validity_and_add_extension_if_needed ?(extension="mar") path_name =
+let check_filename_validity_and_add_extension_if_needed ?identifier ?(extension="mar") path_name =
   let directory = Filename.dirname path_name in
   let correct_extension = "." ^ extension in
   let path_name = Filename.basename path_name in
   let check_chopped_basename_validity chopped_basename =
-    if StrExtra.Class.identifierp ~allow_dash:() chopped_basename then
+    if (identifier = None) || StrExtra.Class.identifierp ~allow_dash:() chopped_basename then
       chopped_basename
     else begin
       Simple_dialogs.error
@@ -156,16 +158,16 @@ name must start with a letter and can contain letters, numbers, dashes ('-') and
 module EDialog = struct
 
 (** An edialog is a dialog which returns an env as result if succeed *)
-type env = string Environment.string_env
+type env = string Environments.string_env
 type edialog = unit -> env option
 
 (** Dialog related exceptions. *)
 exception BadDialog     of string * string;;
-exception StrangeDialog of string * string * (string Environment.string_env);;
+exception StrangeDialog of string * string * (string Environments.string_env);;
 exception IncompleteDialog;;
 
 (** The (and) composition of edialogs is again an env option *)
-let rec compose (dl:edialog list) () (*: ((('a,'b) Environment.env) option)*) =
+let rec compose (dl:edialog list) () (*: ((('a,'b) Environments.env) option)*) =
   match dl with
   | []  -> raise (Failure "EDialog.compose")
   | [d] -> d ()
@@ -173,7 +175,7 @@ let rec compose (dl:edialog list) () (*: ((('a,'b) Environment.env) option)*) =
              | None   -> None
              | Some (r:env) -> (match (compose l ()) with
                           | None   -> None
-                          | Some z -> Some (Environment.string_env_updated_by r z)
+                          | Some z -> Some (Environments.string_env_updated_by r z)
                           )
              )
 ;;
@@ -310,12 +312,13 @@ let ask_for_existing_writable_folder_pathname_supporting_sparse_files
     (* Resolve symlinks which are problematic for starting components: *)
     let pathname = Option.extract (UnixExtra.realpath pathname) in 
     (* --- *)
-    if (are_there_funny_chars pathname) then 
+    if (are_there_shell_special_chars pathname) then 
       begin 
 	let () = 
 	  Simple_dialogs.error
 	    (s_ "Invalid directory name")
-	    (Printf.sprintf (f_ "The name \"%s\" is not a valid directory.\n\nDirectory names must contain only letters, numbers, dots, dashes ('-') and underscores ('_').") pathname)
+            (* (Printf.sprintf (f_ "The name \"%s\" is not a valid directory.\n\nDirectory names must contain only letters, numbers, dots, dashes ('-') and underscores ('_').") pathname) *)
+	    (Printf.sprintf (f_ "The name \"%s\" contains some shell special chars (blanks, parenthesis,..) which are not allowed.") pathname)
 	    ()
 	in
 	false

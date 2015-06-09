@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
-val are_there_funny_chars : string -> bool
+val are_there_shell_special_chars : string -> bool
 val does_directory_support_sparse_files : string -> bool
 
 module Msg :
@@ -25,17 +25,20 @@ module Msg :
     val help_nom_pour_le_projet : unit -> unit
   end
 
-val check_filename_validity_and_add_extension_if_needed : ?extension:string -> string -> string
+val check_filename_validity_and_add_extension_if_needed : 
+  ?identifier:unit  ->  (* Force to use only identifiers i.e. letters, numbers, underscores and dashes *)
+  ?extension:string ->  (* By default "mar" *)
+  string -> string
 
 module EDialog :
   sig
-    type edialog = unit -> string Environment.string_env option
+    type edialog = unit -> string Environments.string_env option
     exception BadDialog of string * string
-    exception StrangeDialog of string * string * string Environment.string_env
+    exception StrangeDialog of string * string * string Environments.string_env
     exception IncompleteDialog
 
-    val compose  : edialog list -> unit -> string Environment.string_env option
-    val sequence : edialog list -> unit -> string Environment.string_env option
+    val compose  : edialog list -> unit -> string Environments.string_env option
+    val sequence : edialog list -> unit -> string Environments.string_env option
 
     val image_filter  : unit -> GFile.filter
     val all_files     : unit -> GFile.filter
@@ -58,7 +61,7 @@ module EDialog :
       GFile.filter
 
     val ask_for_file :
-      ?enrich:string Environment.string_env ->
+      ?enrich:string Environments.string_env ->
       ?title:string ->
       ?valid:(string -> bool) ->
       ?filter_names:[< `ALL
@@ -76,15 +79,15 @@ module EDialog :
       ?action:GtkEnums.file_chooser_action ->
       ?gen_id:string ->
       ?help:(unit -> unit) option ->
-      unit -> string Environment.string_env option
+      unit -> string Environments.string_env option
 
     val ask_for_existing_writable_folder_pathname_supporting_sparse_files :
-      ?enrich:Shell.filexpr Environment.string_env ->
+      ?enrich:Shell.filexpr Environments.string_env ->
       ?help:(unit -> unit) option ->
-      title:string -> unit -> Shell.filexpr Environment.string_env option
+      title:string -> unit -> Shell.filexpr Environments.string_env option
 
     val ask_for_fresh_writable_filename :
-      ?enrich:string Environment.string_env ->
+      ?enrich:string Environments.string_env ->
       title:string ->
       ?filters:GFile.filter list ->
       ?filter_names:[< `ALL
@@ -99,10 +102,10 @@ module EDialog :
                     list ->
       ?extra_widget:GObj.widget * (unit -> string) ->
       ?help:(unit -> unit) option ->
-      unit -> string Environment.string_env option
+      unit -> string Environments.string_env option
 
     val ask_for_existing_filename :
-      ?enrich:Shell.filexpr Environment.string_env ->
+      ?enrich:Shell.filexpr Environments.string_env ->
       title:string ->
       ?filter_names:[< `ALL
                      | `DOT of Dot.output_format
@@ -115,13 +118,13 @@ module EDialog :
                      > `ALL `IMG `JPEG `MAR `SCRIPT `XML ]
                     list ->
       ?help:(unit -> unit) option ->
-      unit -> string Environment.string_env option
+      unit -> string Environments.string_env option
 
     val ask_question :
-      ?enrich:string Environment.string_env ->
+      ?enrich:string Environments.string_env ->
       ?title:string ->
       ?gen_id:string ->
       ?help:(unit -> unit) option ->
       ?cancel:bool ->
-      question:string -> unit -> string Environment.string_env option
+      question:string -> unit -> string Environments.string_env option
   end

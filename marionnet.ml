@@ -42,10 +42,9 @@ let _enter_the_right_directory =
     attributes of the application *)
 let st = new globalState ()
 
-(** Add a global thunk allowing to invoke the sketch refresh method, visible from many
-    modules: *)
+(** Add a global thunk allowing to invoke the sketch refresh method, 
+    visible from many modules: *)
 let () = User_level.Refresh_sketch_thunk.set (fun () -> st#refresh_sketch ())
-let () = st#gui_coherence ()
 
 module State = struct let st = st end
 
@@ -329,8 +328,10 @@ st#mainwin#window_MARIONNET#set_title Initialization.window_title;
 (* This action must be done when all treeviews are set: *)
 Motherboard.set_treeview_filenames_invariant ();
 
-st#sensitive_when_Active#insert (st#mainwin#notebook_CENTRAL#coerce);
-st#sensitive_when_Runnable#insert (st#mainwin#hbox_BASE#coerce);
+StackExtra.push (st#mainwin#notebook_CENTRAL#coerce) (st#sensitive_when_Active);
+StackExtra.push (st#mainwin#hbox_BASE#coerce)        (st#sensitive_when_Runnable);
+
+let () = Motherboard.sensitive_widgets_initializer () in
 
 (* Open the project specified at command line, if any: *)
 let () =

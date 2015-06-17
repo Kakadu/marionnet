@@ -1423,9 +1423,23 @@ class network () =
 
  method motherboard = Motherboard.extract ()
 
- val nodes : node Chip.wlist = Chip.wlist ~name:"network#nodes" []
+ (* Note that the default equality is not suitable because the inner value is a Queue.t, 
+    that is to say an immutable reference. Thus, we have to redefine it. 
+    Important note: in order to define the equality correctly, we exploit the partial application.
+    Actually, when the Cortex will be solicited for an evaluation, it will call this function on
+    its current value to obtain a predicate for committed values. *)
+ val nodes : (node Queue.t) Cortex.t = 
+   let equality xs = (* just an argument here! we use it to define a predicate *)
+     let xs' = QueueExtra.to_list xs in 
+     fun ys -> (QueueExtra.to_list ys) = xs'
+   in  
+   Cortex.return ~equality (Queue.create ())
+   
  method nodes = nodes
-
+ method get_node_list       = Cortex.apply nodes (QueueExtra.to_list)
+ method set_node_list xs    = Cortex.set   nodes (QueueExtra.of_list xs)
+ method is_node_queue_empty = Cortex.apply nodes (Queue.is_empty) 
+ 
  val cables : cable Chip.wlist = Chip.wlist ~name:"network#cables" []
  method cables = cables
 
@@ -1444,17 +1458,17 @@ class network () =
 
  method components : (component list) =
    List.append
-     (nodes#get  :> component list)
+     (self#get_node_list :> component list)
      (cables#get :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
 
  method components_of_kind ?(kind:[`Node | `Cable] option) () =
    match kind with
    | None        -> self#components
-   | Some `Node  -> (nodes#get  :> (component list))
+   | Some `Node  -> (self#get_node_list :> (component list))
    | Some `Cable -> (cables#get :> (component list))
 
  method disjoint_union_of_nodes_and_cables : ((component * [`Node | `Cable]) list) =
-   let xs = List.map (fun x -> x,`Node ) (nodes#get  :> component list)  in
+   let xs = List.map (fun x -> x,`Node ) (self#get_node_list :> component list)  in
    let ys = List.map (fun x -> x,`Cable) (cables#get :> component list)  in
    List.append xs ys
 
@@ -1473,11 +1487,11 @@ class network () =
    Log.printf "\tDestroying all nodes (machines, switchs, hubs, routers, etc)...\n";
    (List.iter
       (fun node -> try node#destroy with _ -> ())
-      nodes#get);
+      (self#get_node_list));
    Log.printf "\tSynchronously wait that everything terminates...\n";
    (if not scheduled then Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks);
    Log.printf "\tMaking the network graph empty...\n";
-   nodes#set [] ;
+   (self#set_node_list []);
    cables#set  [] ;
    Log.printf "\tWait for all devices to terminate...\n";
    (** Make sure that all devices have actually been terminated before going
@@ -1489,20 +1503,20 @@ class network () =
   begin
    Log.printf "destroy_process_before_quitting: BEGIN\n";
    (List.iter (fun cable -> try cable#destroy_right_now with _ -> ())   cables#get);
-   (List.iter (fun device -> try device#destroy_right_now with _ -> ()) nodes#get);
+   (List.iter (fun device -> try device#destroy_right_now with _ -> ()) (self#get_node_list));
    Log.printf "destroy_process_before_quitting: END (success)\n";
   end
 
  method restore_from_buffers =
   begin
    self#reset ();
-   nodes#set nodes_buffer;
+   (self#set_node_list nodes_buffer);
    cables#set cables_buffer;
   end
 
  method save_to_buffers =
   begin
-   nodes_buffer  <- nodes#get;
+   nodes_buffer  <- self#get_node_list;
    cables_buffer <- cables#get;
   end
 
@@ -1542,7 +1556,7 @@ class network () =
      end in tip prefix 1
 
  method get_node_by_name n =
-   try List.find (fun x->x#get_name=n) nodes#get  with _ -> failwith ("get_node_by_name "^n)
+   try List.find (fun x->x#get_name=n) (self#get_node_list)  with _ -> failwith ("get_node_by_name "^n)
 
  method get_cable_by_name n =
    try List.find (fun x->x#get_name=n) cables#get with _ -> failwith ("get_cable_by_name "^n)
@@ -1592,7 +1606,7 @@ class network () =
 	  in
 	  (List.map (fun p -> (n,p)) (self#free_user_port_names_of_node ~force_to_be_included node))
 	)
-	nodes#get
+	(self#get_node_list)
   in List.concat npss
 
  (* Unused...*)
@@ -1604,7 +1618,7 @@ class network () =
  (* The total number of endpoints in the network: *)
  method private endpoint_no =
    let sum xs = List.fold_left (+) 0 xs in
-   sum (List.map (fun node -> node#get_port_no) nodes#get)
+   sum (List.map (fun node -> node#get_port_no) (self#get_node_list))
 
  method are_there_almost_2_free_endpoints : bool =
     let busy_no = List.length (self#involved_node_and_port_index_list) in
@@ -1627,7 +1641,7 @@ class network () =
   let min_multiple = (ceil ((float_of_int min_port_no) /. k)) *. k in
   int_of_float (max min_multiple k)
 
- method node_exists  n = let f=(fun x->x#get_name=n) in (List.exists f nodes#get)
+ method node_exists  n = let f=(fun x->x#get_name=n) in (List.exists f (self#get_node_list))
  method cable_exists n = let f=(fun x->x#get_name=n) in (List.exists f cables#get)
  method name_exists  n = List.mem n self#names
 
@@ -1638,7 +1652,7 @@ class network () =
     if (self#name_exists node#get_name) then
       failwith "User_level.network#add_node: name already used in the network"
     else
-      nodes#append node
+      (Cortex.apply nodes (Queue.push node))
 
  (** Remove a node from the network. Remove it from the node list
      and remove all related cables. TODO: change this behaviour! *)
@@ -1647,8 +1661,9 @@ class network () =
      (* Destroy cables first: they refer what we're removing... *)
      let cables_to_destroy = List.filter (fun c->c#is_node_involved node_name) cables#get in
      (* The cable#destroy will call itself the network#del_cable_by_name: *)
-     List.iter (fun cable -> cable#destroy) cables_to_destroy;
-     nodes#filter (fun x->not (x=node))
+     let () = List.iter (fun cable -> cable#destroy) cables_to_destroy in
+     (* nodes#filter (fun x->not (x=node)) *)
+     (Cortex.apply nodes (QueueExtra.filter ((<>)node)))
 
  (** Cable must connect free ports: *)
  (* TODO: manage ledgrid with a reactive system!!!*)
@@ -1671,7 +1686,7 @@ class network () =
 
  (** List of node names in the network *)
  method get_node_names  =
-   List.map (fun x->x#get_name) (nodes#get)
+   List.map (fun x->x#get_name) (self#get_node_list)
 
  method private predicate_of_optional_devkind ?devkind () =
   match devkind with
@@ -1680,7 +1695,7 @@ class network () =
 
  method get_nodes_such_that ?devkind (predicate) =
   let devkindp = self#predicate_of_optional_devkind ?devkind () in
-  List.filter (fun x -> (devkindp x) && (predicate x)) (nodes#get)
+  List.filter (fun x -> (devkindp x) && (predicate x)) (self#get_node_list)
 
  (* --- can_startup --- *)
 
@@ -1759,7 +1774,7 @@ class network () =
    (* show nodes *)
    let msg= try
         (String.concat " , "
-        (List.map (fun d->d#get_name^" ("^(d#string_of_devkind)^")") nodes#get))
+        (List.map (fun d->d#get_name^" ("^(d#string_of_devkind)^")") (self#get_node_list)))
         with _ -> ""
    in Log.printf1 "Nodes \r\t\t: %s\n" msg;
   (* show links *)
@@ -1791,7 +1806,7 @@ class network () =
 (StringExtra.Text.to_string
    (List.map
      (fun (n:node)->n#dotTrad opt#iconsize_for_dot)
-     (ListExtra.permute opt#shuffler_as_function nodes#get)
+     (ListExtra.permute opt#shuffler_as_function (self#get_node_list))
    ))
 ^"
 /* ***********************

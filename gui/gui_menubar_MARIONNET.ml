@@ -367,7 +367,7 @@ let workaround_wirefilter_problem =
  add_check_item "Workaround wirefilter problem"
   ~active:Global_options.workaround_wirefilter_problem_default
   ~callback:(fun active ->
-         Log.printf "You toggled the option (wirefilter)\n"; flush_all ();
+         Log.printf "You toggled the option (wirefilter)\n";
          Global_options.set_workaround_wirefilter_problem active)
  ()
 
@@ -390,12 +390,12 @@ let help_apropos =
                 Sensitiveness
  * **************************************** *)
 
-let () = List.iter (* when Active *)
-          (fun w -> st#sensitive_when_Active#insert w#coerce)
+let () = List.iter (* when a project is active *)
+          (fun w -> StackExtra.push (w#coerce) st#sensitive_when_Active)
           [project_save; project_save_as; project_copy_to; project_close; project_export]
 
-let () = List.iter (* when NoActive *)
-          (fun w -> st#sensitive_when_NoActive#insert w#coerce)
+let () = List.iter (* when no project is active *)
+          (fun w -> StackExtra.push (w#coerce) st#sensitive_when_NoActive)
           [options_cwd]
 
 end

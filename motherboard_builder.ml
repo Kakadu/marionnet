@@ -32,60 +32,81 @@ module Make (S : sig val st:State.globalState end) = struct
  let w = st#mainwin
  let system = st#system
 
- (* Main window title manager *)
-
-  chip main_window_title_manager : (project_filename) -> () =
-    let title = match project_filename with
-    | None          ->  Initialization.window_title
-    | Some filename -> (Initialization.window_title ^ " - " ^ filename)
-    in
-    w#window_MARIONNET#set_title title
-
-  let main_window_title_manager =
-    new main_window_title_manager
-      ~name:"main_window_title_manager"
-      ~project_filename:st#project_filename ();;
-
+  (* Reactive setting: st#project_filename -> w#window_MARIONNET#title *)
+  let main_window_title_reaction : Thunk.id = 
+    Cortex.on_commit_append 
+      (st#project_filename)
+      (fun _ filename ->      (* previous and commited state *)
+	let title = match filename with
+	| None          ->  Initialization.window_title
+	| Some filename ->  Printf.sprintf "%s - %s" (Initialization.window_title) (filename)
+	in
+        w#window_MARIONNET#set_title (title))
+       
   (* Sensitiveness manager *)
+  
+  (* Note: why the GC doesn't free this structure (and the related trigger)? *)
+  let update_project_state_sensitiveness =
+    Cortex.group_pair 
+      ~on_commit:(fun (_,_) (filename, nodes) -> (* previous and commited state *)
+         (* Convenient aliases: *)
+         let wa = (st#sensitive_when_Active) in
+         let wr = (st#sensitive_when_Runnable) in
+         let wn = (st#sensitive_when_NoActive) in
+         (* --- *)
+         let active   = (filename <> None) in
+         let runnable = active && (not (Queue.is_empty nodes)) in
+	 let () = 
+	   Log.printf2 "update_project_state_sensitiveness: state project is: active=%b runnable=%b\n" 
+	     (active) (runnable)
+	 in
+	 match active, runnable with
+	 | false, _ ->  
+	     StackExtra.iter (fun x->x#misc#set_sensitive false) (wa);
+	     StackExtra.iter (fun x->x#misc#set_sensitive false) (wr);
+	     StackExtra.iter (fun x->x#misc#set_sensitive true)  (wn);
+         (* --- *)
+	 | true, false ->  
+	     StackExtra.iter (fun x->x#misc#set_sensitive true)  (wa);
+	     StackExtra.iter (fun x->x#misc#set_sensitive false) (wr);
+	     StackExtra.iter (fun x->x#misc#set_sensitive false) (wn);
+         (* --- *)
+	 | true, true ->  
+	     StackExtra.iter (fun x->x#misc#set_sensitive true)  (wa);
+	     StackExtra.iter (fun x->x#misc#set_sensitive true)  (wr);
+	     StackExtra.iter (fun x->x#misc#set_sensitive false) (wn);
+         ) (* end of ~on_commit *)
+      (* --- *)
+      (st#project_filename)  (*  first member of the group *)
+      (st#network#nodes)     (* second member of the group *)
 
-  chip sensitiveness_manager : (
-    app_state,
-    wa:(GObj.widget list),
-    wr:(GObj.widget list),
-    wn:(GObj.widget list))
-    -> () =
-    let print_log () =
-      Log.printf4
-           "sensitiveness_manager: the project is in the state: %s #wa=%d #wr=%d #wn=%d\n"
-            st#app_state_as_string
-            (List.length wa) (List.length wr) (List.length wn)
-    in
-    (match app_state with
-    | State.NoActiveProject
-     ->  print_log ();
-         List.iter (fun x->x#misc#set_sensitive false) (wa@wr) ;
-         List.iter (fun x->x#misc#set_sensitive true)  wn;
+  
+  (* Reactive setting: st#network#nodes -> cable's menu sensitiveness.
+     Forbid cable additions if there are not enough free ports; explicitly enable
+     them if free ports are enough: *)
+  let update_cable_menu_entries_sensitiveness : Thunk.id = 
+    Cortex.on_commit_append 
+      (st#network#nodes)
+      (fun _ _ ->      
+         (* The previous and commited state are ignored. 
+            This kind of code (on_commit) is outside a critical section, 
+            so we can comfortably re-call st#network methods: *)
+         let () = Log.printf1 "update_cable_menu_entries_sensitiveness: updating %d widgets\n" 
+           (StackExtra.length st#sensitive_cable_menu_entries)
+         in
+         let condition = st#network#are_there_almost_2_free_endpoints in
+         (StackExtra.iter (fun x->x#misc#set_sensitive condition) st#sensitive_cable_menu_entries)
+      )
 
-    | State.ActiveNotRunnableProject
-     ->  print_log ();
-         List.iter (fun x->x#misc#set_sensitive true)  wa ;
-         List.iter (fun x->x#misc#set_sensitive false) (wr@wn);
-
-    | State.ActiveRunnableProject
-     ->  print_log ();
-         List.iter (fun x->x#misc#set_sensitive true)  (wa@wr) ;
-         List.iter (fun x->x#misc#set_sensitive false) wn;
-    )
-
-  let sensitiveness_manager =
-    new sensitiveness_manager
-      ~name:"sensitiveness_manager"
-      ~app_state:st#app_state
-      ~wa:st#sensitive_when_Active#coerce
-      ~wr:st#sensitive_when_Runnable#coerce
-      ~wn:st#sensitive_when_NoActive#coerce
-      () ;;
-
+  (* Called in marionnet.ml before entering the main loop: *)
+  let sensitive_widgets_initializer () =
+    let () = StackExtra.iter (fun x->x#misc#set_sensitive false) (st#sensitive_when_Active)   in
+    let () = StackExtra.iter (fun x->x#misc#set_sensitive false) (st#sensitive_when_Runnable) in
+    let () = StackExtra.iter (fun x->x#misc#set_sensitive true)  (st#sensitive_when_NoActive) in
+    (* --- *)
+    let () = StackExtra.iter (fun x->x#misc#set_sensitive false) (st#sensitive_cable_menu_entries) in
+    ()
+      
   (* Dot tuning manager. Is a toggling chip of arity 6. *)
   chip dot_tuning_manager :
     (iconsize      : string  ,
@@ -116,9 +137,9 @@ module Make (S : sig val st:State.globalState end) = struct
    	~reversed_list:(reversed_rj45cables_cable :> (int * bool, (int * bool) list) Chip.wire)
    	~y:refresh_sketch_counter ()
 
-  chip sketch_refresher : (app_state, x:int) -> () =
+  chip sketch_refresher : (x:int) -> () =
    (* Do not refresh if there isn't an active project. This is not correct in general. FIX IT *)
-   if (app_state <> State.NoActiveProject) then
+   if (st#active_project) then
     begin
     self#tracing#message "refreshing...";
     (* Similar to State.globalState#refresh_sketch but without locking sketch. *)
@@ -156,7 +177,7 @@ module Make (S : sig val st:State.globalState end) = struct
     end
 
   let sketch_refresher =
-    new sketch_refresher ~name:"sketch_refresher" ~app_state:st#app_state ~x:refresh_sketch_counter ()
+    new sketch_refresher ~name:"sketch_refresher" (*~app_state:st#app_state*) ~x:refresh_sketch_counter ()
 
   (* Debugging: press F2 for printing the list of current components to stderr. *)
   let _ = st#mainwin#toplevel#event#connect#key_press ~callback:

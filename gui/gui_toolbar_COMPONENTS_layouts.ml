@@ -197,7 +197,7 @@ module Layout_for_network_edge
 
  (* Cable sensitiveness *)
  module Created_Add = Created_entries_for_network_component.Created_Add
- let () = State.st#add_sensitive_cable Created_Add.item#coerce
+ let () = StackExtra.push (Created_Add.item#coerce) (State.st#sensitive_cable_menu_entries)
 
 end
 

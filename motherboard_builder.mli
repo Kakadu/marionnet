@@ -3,4 +3,5 @@ module Make :
     sig
       val system : Chip.system
       val set_treeview_filenames_invariant : unit -> unit
+      val sensitive_widgets_initializer     : unit -> unit
     end

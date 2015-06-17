@@ -171,7 +171,7 @@ let iconsize_react () = if opt#gui_callbacks_disable then () else
 (** Reaction for the shuffle tuning *)
 let shuffle_react () =
   begin
-   opt#shuffler#set (ListExtra.shuffleIndexes (net#nodes#get));
+   opt#shuffler#set (ListExtra.shuffleIndexes (net#get_node_list));
    let namelist = net#get_node_names => ( (ListExtra.permute opt#shuffler_as_function) || fold_lines ) in
    st#flash ~delay:4000 ((s_ "Icons randomly arranged: ")^namelist);
   end

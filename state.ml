@@ -23,14 +23,6 @@ open Gettext;;
 let commit_suicide signal =
   raise Exit;;
 
-(** Model for the global state of the application.
-    The sensitive or visible properties of some widgets depend on this value.*)
-type application_state =
-  | NoActiveProject            (** Working with no project defined. User have to create or open. *)
-  | ActiveNotRunnableProject   (** Working with a project with an empty or non runnable network. *)
-  | ActiveRunnableProject      (** Working with a runnable project. *)
-;;
-
 type filename = string
  and pathname = string
 ;;
@@ -96,28 +88,29 @@ class globalState = fun () ->
    let statusbar_ctx = win#statusbar#new_context "global" in
    statusbar_ctx#flash ~delay msg
 
-  (** The state of application.*)
-  val app_state = Chip.wref ~name:"app_state" NoActiveProject
-  method app_state = app_state
-  method app_state_as_string = match app_state#get with
-  | NoActiveProject            -> "NoActiveProject"
-  | ActiveNotRunnableProject   -> "ActiveNotRunnableProject"
-  | ActiveRunnableProject      -> "ActiveRunnableProject"
-
-  (** Are we working with an active project. *)
-  method active_project = (app_state#get_alone <> NoActiveProject)
-
-  val sensitive_when_Active   = Chip.wlist ~name:"sensitive_when_Active" []
-  val sensitive_when_Runnable = Chip.wlist ~name:"sensitive_when_Runnable" []
-  val sensitive_when_NoActive = Chip.wlist ~name:"sensitive_when_NoActive" []
-  method sensitive_when_Active   : GObj.widget Chip.wlist = sensitive_when_Active
-  method sensitive_when_Runnable : GObj.widget Chip.wlist = sensitive_when_Runnable
-  method sensitive_when_NoActive : GObj.widget Chip.wlist = sensitive_when_NoActive
-
   (** The project filename. *)
-  val project_filename = Chip.wref ~name:"project_filename" None
+  val project_filename : string option Cortex.t = Cortex.return None
   method project_filename = project_filename
 
+  (** Are we working with an active project? *)
+  method active_project = Cortex.apply (project_filename) ((<>) None)
+
+  (** Are we working with an active project with some node defined? *)
+  method runnable_project = 
+    self#active_project && (not self#network#is_node_queue_empty)
+
+  (* Containers for widgets that must be sensitive when a project is active, runnable or not active: *)
+  val sensitive_when_Active   : GObj.widget StackExtra.t = StackExtra.create ()
+  val sensitive_when_Runnable : GObj.widget StackExtra.t = StackExtra.create ()
+  val sensitive_when_NoActive : GObj.widget StackExtra.t = StackExtra.create ()
+  (* --- *)
+  method sensitive_when_Active   = sensitive_when_Active
+  method sensitive_when_Runnable = sensitive_when_Runnable
+  method sensitive_when_NoActive = sensitive_when_NoActive
+
+  val sensitive_cable_menu_entries : GObj.widget StackExtra.t = StackExtra.create ()
+  method sensitive_cable_menu_entries = sensitive_cable_menu_entries
+  
   (** The project root base name, i.e. the name of the root directory in the tarball containing the project. *)
   val mutable project_root_basename = Chip.wref ~name:"project_root_basename" None
   method project_root_basename = project_root_basename
@@ -154,7 +147,7 @@ class globalState = fun () ->
   method private set_filename_and_root_basename ?root_basename ~filename () = begin 
     let root = Option.extract_or_force (root_basename) (lazy (self#project_root_basename_of_filename filename)) in
     (* --- *)
-    project_filename#set      (Some filename);
+    Cortex.set project_filename (Some filename);
     project_root_basename#set (Some root);
     end
 
@@ -167,12 +160,12 @@ class globalState = fun () ->
     end
 
   method private unset_filename_and_root_basename = begin 
-    project_filename#set      None;    (* Unset the project filename *)
+    Cortex.set project_filename (None);
     project_root_basename#set None;    (* Unset the project root basename *)
     end
 
   method private get_filename_and_root_basename =
-    (Option.extract project_filename#get,     
+    (Option.extract (Cortex.get project_filename),     
      Option.extract project_root_basename#get)
     
   (** Supposing all optional value defined (not equal to None): *)
@@ -248,10 +241,6 @@ class globalState = fun () ->
     let () = self#clear_treeviews in
     (* Reset dotoptions *)
     let () = self#dotoptions#reset_defaults () in
-    (* Set the app_state. *)
-    let () = app_state#set ActiveNotRunnableProject in
-    (* Force GUI coherence. *)
-    let () = self#gui_coherence () in
     (* Refresh the network sketch *)
     let () = self#refresh_sketch () in
     ()
@@ -262,9 +251,9 @@ class globalState = fun () ->
     Log.printf "state#close_project_sync: starting...\n";
     (* Destroy whatever the LEDgrid manager is managing: *)
     self#network#ledgrid_manager#reset;
-    (match app_state#get with
-      | NoActiveProject -> Log.printf "state#close_project_sync: no project opened.\n"
-      | _ ->
+    (match self#active_project with
+      | false -> Log.printf "state#close_project_sync: no project opened.\n"
+      | true ->
       begin
         let () = self#network#reset ~scheduled:true () in
         let () = self#unset_filename_and_root_basename in
@@ -277,10 +266,7 @@ class globalState = fun () ->
         self#mainwin#sketch#set_file "" ;
         (* Unset the project working directory. *)
         project_working_directory#set None;
-        (* Set the app_state. *)
-        app_state#set NoActiveProject;
-        (* Force GUI coherence. *)
-        self#gui_coherence ();
+        (* --- *)
         Log.printf1 "state#close_project_sync: destroying the old project working directory (%s)...\n" cmd;
         Log.system_or_ignore cmd;
       end (* there was an active project *)
@@ -317,13 +303,8 @@ class globalState = fun () ->
       raise (Failure "state#import_network: cannot open the xml file")
       end
       );
-    (* Fix the app_state and update it if necessary *)
-    app_state#set ActiveNotRunnableProject ;
-    self#update_state (); (* is it runnable? *)
     (* Undump Dot_tuning.network *)
     dotAction ();
-    (* Force GUI coherence. *)
-    self#gui_coherence ();
     (* Update the network sketch *)
     self#refresh_sketch ();
    end
@@ -351,7 +332,7 @@ class globalState = fun () ->
     (* Extract the mar file into the pwdir *)
     let command_line =
       Printf.sprintf "tar -xSvzf '%s' -C '%s'"
-        (Option.extract project_filename#get)
+        (Option.extract (Cortex.get project_filename))
         pwd
     in
     (* --- *)
@@ -543,7 +524,7 @@ class globalState = fun () ->
     if self#active_project then begin
     Log.printf "state#save_project starting...\n";
     (* --- *)
-    let filename = Option.extract project_filename#get in
+    let filename = Option.extract (Cortex.get project_filename) in
     let project_working_directory = Option.extract project_working_directory#get in
     let project_root_basename = Option.extract project_root_basename#get in
     (* --- *)
@@ -658,57 +639,24 @@ class globalState = fun () ->
           );
       with e -> (raise e)
 
-  val mutable sensitive_cables : GObj.widget list = []
-  method add_sensitive_cable x = sensitive_cables <- x::sensitive_cables
-
-  (** Forbid cable additions if there are not enough free ports; explicitly enable
-      them if free ports are enough: *)
-  method update_cable_sensitivity () =
-    let condition = self#network#are_there_almost_2_free_endpoints in
-    (List.iter (fun x->x#misc#set_sensitive condition) sensitive_cables)
-
   val refresh_sketch_counter = Chip.wcounter ~name:"refresh_sketch_counter" ()
   method refresh_sketch_counter = refresh_sketch_counter
 
   method refresh_sketch () =
    refresh_sketch_counter#set ();
 
+  (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SPOSTARE in NETWORK oppure in motherboard !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*) 
   method network_change : 'a. ('a -> unit) -> 'a -> unit =
   fun action obj ->
    begin
     action obj;
-    self#update_state ();
-    self#update_cable_sensitivity ();
     self#dotoptions#reset_shuffler ();
     self#dotoptions#reset_extrasize ();
     refresh_sketch_counter#set ();
    end
 
-  (** Update the state and force the gui coherence.
-      If a project is active, there are two possibilities:
-      1) there is at least a machine => the project is runnable
-      2) else => the project is not runnable *)
-  method update_state () =
-   begin
-    let old = app_state in
-    begin
-    match app_state#get_alone with
-     | NoActiveProject -> ()
-     | _ -> app_state#set  (* TODO: this is a rule (chip) in a reactive system! *)
-              (if self#network#nodes#get = []
-                 then ActiveNotRunnableProject
-                 else ActiveRunnableProject)
-    end;
-    if app_state <> old then self#gui_coherence () else ()
-   end
-
- (** Force coherence between state and sensitive attributes of mainwin's widgets *)
- method gui_coherence () =
-    self#update_state  () ;
-    self#update_cable_sensitivity ();
-
  (* Begin of methods moved from talking.ml *)
- method make_names_and_thunks ?(node_list=self#network#nodes#get) (verb) (what_to_do_with_a_node) =
+ method make_names_and_thunks ?(node_list=self#network#get_node_list) (verb) (what_to_do_with_a_node) =
   List.map
     (fun node -> (
       (verb ^ " " ^ node#get_name),
@@ -763,7 +711,7 @@ class globalState = fun () ->
   let result =
     List.exists
       (fun node -> node#can_gracefully_shutdown || node#can_resume)
-      (self#network#nodes#get)
+      (self#network#get_node_list)
   in
   begin
    Log.printf1 "is_there_something_on_or_sleeping: %s\n" (if result then "yes" else "no");

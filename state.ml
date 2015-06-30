@@ -76,7 +76,7 @@ class globalState = fun () ->
   method network = net
 
   (** Motherboard is set in Motherboard_builder. *)
-  method motherboard = Option.extract !Motherboard.content
+  method motherboard = Motherboard.extract ()
 
   method system = system
 
@@ -97,7 +97,7 @@ class globalState = fun () ->
 
   (** Are we working with an active project with some node defined? *)
   method runnable_project = 
-    self#active_project && (not self#network#is_node_queue_empty)
+    self#active_project && (not self#network#is_node_list_empty)
 
   (* Containers for widgets that must be sensitive when a project is active, runnable or not active: *)
   val sensitive_when_Active   : GObj.widget StackExtra.t = StackExtra.create ()
@@ -242,7 +242,7 @@ class globalState = fun () ->
     (* Reset dotoptions *)
     let () = self#dotoptions#reset_defaults () in
     (* Refresh the network sketch *)
-    let () = self#refresh_sketch () in
+    let () = self#refresh_sketch in
     ()
 
   (** Close the current project. The project is lost if the user hasn't saved it. 
@@ -306,7 +306,7 @@ class globalState = fun () ->
     (* Undump Dot_tuning.network *)
     dotAction ();
     (* Update the network sketch *)
-    self#refresh_sketch ();
+    self#refresh_sketch;
    end
 
 
@@ -494,12 +494,12 @@ class globalState = fun () ->
   val mutable treeview_forest_list_after_save = None
   method private register_state_after_save_or_open =
    begin
-     refresh_sketch_counter_value_after_last_save <- Some self#refresh_sketch_counter#get;
+     refresh_sketch_counter_value_after_last_save <- Some (Cortex.get self#refresh_sketch_counter);
      treeview_forest_list_after_save <- Some (self#get_treeview_complete_forest_list);
    end
 
   method project_already_saved =
-    (match refresh_sketch_counter_value_after_last_save, self#refresh_sketch_counter#get with
+    (match refresh_sketch_counter_value_after_last_save, (Cortex.get self#refresh_sketch_counter) with
      (* Efficient test: *)
     | Some x, y when x=y ->
         Log.printf "The project *seems* already saved.\n";
@@ -639,20 +639,54 @@ class globalState = fun () ->
           );
       with e -> (raise e)
 
-  val refresh_sketch_counter = Chip.wcounter ~name:"refresh_sketch_counter" ()
+  method private really_refresh_sketch =
+    let fs = self#dotSketchFile in
+    let ft = self#pngSketchFile in
+    try begin
+      let ch = open_out fs in
+      output_string ch (self#network#dotTrad ());
+      close_out ch;
+      let cmdline =
+        let splines = string_of_bool (Cortex.get self#network#dotoptions#curved_lines) in (* Appel de methode Cortex !!!!!!!!!!!!!!! *)
+        Printf.sprintf "dot -Gsplines=%s -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o '%s' '%s'" splines ft fs
+      in
+      let exit_code = Sys.command cmdline in
+      (* --- *)
+      self#mainwin#sketch#set_file (self#pngSketchFile);
+      (* --- *)
+      (if not (exit_code = 0) then
+        Simple_dialogs.error
+          (s_ "dot failed")
+          (Printf.sprintf
+              (f_ "Invoking dot failed. Did you install graphviz?\n\
+    The command line is\n%s\nand the exit code is %i.\n\
+    Marionnet will work, but you will not see the network graph picture until you fix the problem.\n\
+    There is no need to restart the application.")
+              cmdline
+              exit_code)
+          ());
+        end
+      with e ->
+        (Log.printf1
+           "Warning: exception raised in really_refresh_sketch:\n%s\nIgnoring.\n"
+           (Printexc.to_string e))
+      
+  (* The structure (counter) for the reactive sketch refreshing: *)
+  val refresh_sketch_counter = Cortex.return 0
   method refresh_sketch_counter = refresh_sketch_counter
 
-  method refresh_sketch () =
-   refresh_sketch_counter#set ();
+  (* Provoke the refreshing simply incrementing the counter (the on_commit reaction is defined elsewhere) *)
+  method refresh_sketch =
+   let _ = Cortex.move (refresh_sketch_counter) (fun x -> x+1) in ()
 
-  (* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SPOSTARE in NETWORK oppure in motherboard !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*) 
+  (* --- *) 
   method network_change : 'a. ('a -> unit) -> 'a -> unit =
   fun action obj ->
    begin
     action obj;
-    self#dotoptions#reset_shuffler ();
-    self#dotoptions#reset_extrasize ();
-    refresh_sketch_counter#set ();
+    self#dotoptions#shuffler_reset;
+    self#dotoptions#extrasize_reset;
+    self#refresh_sketch;
    end
 
  (* Begin of methods moved from talking.ml *)
@@ -744,4 +778,8 @@ class globalState = fun () ->
    Log.printf "Main thread: quit has been scheduled.\n";
    end
 
+ initializer 
+    let _ = Cortex.on_commit_append (refresh_sketch_counter) (fun _ _ -> self#really_refresh_sketch) in
+    ()
+    
 end;; (* class globalState *)

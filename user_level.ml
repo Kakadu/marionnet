@@ -22,220 +22,6 @@
 open Gettext;;
 module Recursive_mutex = MutexExtra.Recursive ;;
 
-(** A thunk allowing to invoke the sketch refresh method, accessible from many
-    modules: *)
-module Refresh_sketch_thunk = Stateful_modules.Variable (struct
-  type t = unit->unit
-  let name = Some "Refresh_sketch_thunk"
-  end)
-let refresh_sketch () = Refresh_sketch_thunk.extract () ()
-
-
-(* *************************** *
-        Module Dot_tuning
- * *************************** *)
-
-module Dot_tuning = struct
-
-
-(* *************************
-    class Dot_tuning.network
-   ************************* *)
-
-type index = int;; (* 0..(length-1) *)
-type shuffler = index list ;; (* represents a permutation of indexes of a list*)
-
-(* This part of the state will be filled loading Gui_toolbar_DOT_TUNING. *)
-class type dot_tuning_high_level_toolbar_driver =
- object
-  method get_iconsize              : string
-  method set_iconsize              : string -> unit
-  method get_nodesep               : float
-  method set_nodesep               : float -> unit
-  method get_labeldistance         : float
-  method set_labeldistance         : float -> unit
-  method get_extrasize             : float
-  method set_extrasize             : float -> unit
-  method get_image                 : GdkPixbuf.pixbuf
-  method get_image_current_width   : int
-  method get_image_current_height  : int
-  method reset_image_size          : unit -> unit
-  method get_image_original_width  : int
-  method get_image_original_height : int
-end (* class type high_level_toolbar_driver *)
-
-(** Dot options for a network *)
-let network_marshaller = new Oomarshal.marshaller;;
-
-(* TODO: rename is in network_dot_tuning_zone *)
-class network =
-
-  fun ?(iconsize="large") ?(shuffler=[]) ?(rankdir="TB") ?(nodesep=0.5) ?(labeldistance=1.6) ?(extrasize=0.) ?(curved_lines=false)
-
-      (* The handler for the real network *)
-      (network:( < reversed_cables:(string list); reversed_cable_set:(bool->string->unit); .. > ))  ->
-
-  object (self)
-  inherit Xforest.interpreter ()
-
-  method direct_cable_color    = "#949494"
-  method crossover_cable_color = "#6d8dc0"
-
-  val iconsize = Chip.wref ~name:"iconsize" iconsize
-  method iconsize = iconsize
-
-  val rankdir  = Chip.wref ~name:"rankdir" rankdir
-  method rankdir = rankdir
-
-  val curved_lines = Chip.wswitch ~name:"curved_lines" curved_lines
-  method curved_lines = curved_lines
-
-  val shuffler = Chip.wref ~name:"shuffler" shuffler
-  method shuffler = shuffler
-
-  val nodesep = Chip.wref ~name:"nodesep" nodesep
-  method nodesep = nodesep
-
-  val labeldistance = Chip.wref ~name:"labeldistance" labeldistance
-  method labeldistance = labeldistance
-
-  val extrasize = Chip.wref ~name:"extrasize" extrasize
-  method extrasize = extrasize
-
-  method iconsize_for_dot  = iconsize#get
-  method shuffler_as_function = ListExtra.asFunction shuffler#get (* returns the permutation function *)
-  method rankdir_for_dot   = "rankdir="^(rankdir#get)^";"
-  method nodesep_for_dot   = let s=(string_of_float nodesep#get) in ("nodesep="^s^"; ranksep="^s)
-  method labeldistance_for_dot = "labeldistance="^(string_of_float labeldistance#get)
-
-  (** This is the method used in user gui callbacks (reactions) *)
-  val mutable gui_callbacks_disable : bool   = false
-  method gui_callbacks_disable   = gui_callbacks_disable
-  method set_gui_callbacks_disable x = gui_callbacks_disable <- x
-  method disable_gui_callbacks    () = gui_callbacks_disable <- true
-  method enable_gui_callbacks     () =
-   ignore (GMain.Timeout.add ~ms:500 ~callback:(fun () -> gui_callbacks_disable <- false; false))
-
-  method reset_shuffler () = shuffler#set []
-
-  method reset_extrasize () =
-    begin
-    self#toolbar_driver#reset_image_size ();
-    extrasize#set 0.;
-    end
-
-  (* Delete _alone here:  *)
-  method reset_defaults () =
-    begin
-      iconsize#set "large";
-      shuffler#set [];
-      rankdir#set "TB";
-      curved_lines#reset ();
-      nodesep#set 0.5;
-      labeldistance#set 1.6 ;
-      ListExtra.foreach network#reversed_cables (network#reversed_cable_set false) ;
-      self#reset_extrasize () ;
-      self#set_toolbar_widgets ()
-    end
-
-  method ratio : string =
-   let extrasize = extrasize#get in
-   if (extrasize = 0.) then "ratio=compress;" else
-   begin
-    let x = Widget.Image.inch_of_pixels self#toolbar_driver#get_image_original_width in
-    let y = Widget.Image.inch_of_pixels self#toolbar_driver#get_image_original_height in
-    let area  = x *. y in
-    let delta_area = extrasize *. area /. 100. in
-    let delta = sqrt( (x+.y)**2. +. 4.*. delta_area  )  -.  (x+.y)  in
-    let x = string_of_float (x +. delta) in
-    let y = string_of_float (y +. delta) in
-    "size=\""^x^","^y^
-    "\";\nratio=fill;"
-   end
-
-  (** Accessor the dot tuning toolbar. This part of the state will be filled
-      loading Gui_toolbar_DOT_TUNING.
-      Inverted cables corresponds to dynamic menus, so they not need to be reactualized
-      (the dynamic menus are recalculated each time from network#reversed_cables. *)
-
-  val mutable toolbar_driver : dot_tuning_high_level_toolbar_driver option = None
-  method set_toolbar_driver t = toolbar_driver <- Some t
-  method toolbar_driver = match toolbar_driver with Some t -> t | None -> assert false
-
-  (** The dotoption gui reactualization *)
-
-  method set_toolbar_widgets () : unit =
-    begin
-      self#disable_gui_callbacks   () ;
-      self#toolbar_driver#set_iconsize iconsize#get ;
-      self#toolbar_driver#set_nodesep nodesep#get ;
-      self#toolbar_driver#set_labeldistance labeldistance#get ;
-      self#toolbar_driver#set_extrasize extrasize#get ;
-      self#enable_gui_callbacks    () ;
-      ()
-    end
-
-  (** Marshalling is performed in this ugly way because directly dumping the whole [self] object
-      would involve resolving references to Gtk callbacks, which are outside the OCaml heap and
-      hence (understandably) not supported by the marshaller. *)
-
-  (** Dump the current state of [self] into the given file. *)
-  method save_to_file (file_name : string) =
-    (* we are manually setting the verbosity 3 *)
-    (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr network#to_forest);
-    network_marshaller#to_file self#to_forest file_name
-
-  (** This method is used just for undumping dotoptions, so is not strict.
-      For instance, exceptions provoked by bad cable names are simply ignored. *)
-  method set_reversed_cables names =
-    ListExtra.foreach names (fun n -> try (network#reversed_cable_set true n) with _ -> ())
-
-  (** Undump the state of [self] from the given file. *)
-  method load_from_file ~(project_version: [`v0|`v1|`v2]) (fname : string) =
-    let (forest:Xforest.t) = 
-      match project_version with
-      | `v2 | `v1 -> network_marshaller#from_file (fname)
-      | `v0       -> Forest_backward_compatibility.load_from_old_file (fname)
-    in
-   (* we are manually setting the verbosity 3 *)
-   (if (Global_options.Debug_level.get ()) >= 3 then Xforest.print_xforest ~channel:stderr forest);
-   match Forest.to_tree forest with
-   | (("dotoptions", attrs), children) -> self#from_tree ("dotoptions", attrs) children
-   | _ -> assert false
-   
- (** Dot_tuning to forest encoding. *)
-  method to_tree : (string * (string * string) list) Forest.tree =
-   Forest.tree_of_leaf ("dotoptions", [
-     ("iconsize"      , iconsize#get                   ) ;
-     ("shuffler"      , (Xforest.encode shuffler#get)  ) ;
-     ("rankdir"       , rankdir#get                    ) ;
-     ("curved_lines"  , (string_of_bool curved_lines#get)) ;
-     ("nodesep"       , (string_of_float nodesep#get)      ) ;
-     ("labeldistance" , (string_of_float labeldistance#get)) ;
-     ("extrasize"     , (string_of_float extrasize#get)    ) ;
-     ("gui_callbacks_disable", (string_of_bool gui_callbacks_disable)) ;
-     ("invertedCables", (Xforest.encode network#reversed_cables)) ;
-     ])
-
- (** A Dotoption.network has just attributes (no children) in this version.
-     The Dotoption.network must be undumped AFTER the Netmodel.network in
-     order to have significant cable names (reversed_cables). *)
- method eval_forest_attribute = function
-  | ("iconsize"             , x ) -> self#iconsize#set x
-  | ("shuffler"             , x ) -> self#shuffler#set (Xforest.decode x)
-  | ("rankdir"              , x ) -> self#rankdir#set x
-  | ("curved_lines"         , x ) -> self#curved_lines#set_to (bool_of_string x)
-  | ("nodesep"              , x ) -> self#nodesep#set (float_of_string x)
-  | ("labeldistance"        , x ) -> self#labeldistance#set (float_of_string x)
-  | ("extrasize"            , x ) -> self#extrasize#set (float_of_string x)
-  | ("gui_callbacks_disable", x ) -> self#set_gui_callbacks_disable (bool_of_string x)
-  | ("invertedCables"       , x ) -> self#set_reversed_cables (Xforest.decode x)
-  | _ -> () (* Forward-comp. *)
-
-end;; (* class Dot_tuning.network *)
-
-end;; (* module Dot_tuning *)
-
 type devkind = [ `Machine | `Hub | `Switch | `Router | `World_gateway | `World_bridge | `Cloud ] ;;
 
 type nodename   = string ;;
@@ -313,7 +99,7 @@ class virtual ['parent] simulated_device () = object(self)
 
   method set_next_simulated_device_state state =
     next_automaton_state := state;
-    refresh_sketch (); (* show our transient simulation state icon *)
+    Sketch.refresh_sketch (); (* show our transient simulation state icon *)
 
   method virtual get_name : string
 
@@ -714,6 +500,8 @@ class port
     method internal_index = internal_index  (* ex: 0 *)
 end;;
 
+type defects = < duplication: float;  flip: float;  loss: float;  max_delay: float;  min_delay: float >
+
 (** Just a container of ports: *)
 class ['parent] ports_card
   ~network
@@ -784,7 +572,7 @@ end (** class ports_card *)
 
 (** Machines and routers have MDI ports, switches and hubs have MDI_X a priori.
     Currently, devices are sold with "intelligent" ports, i.e. MDI/MDI-X. *)
-type polarity = MDI | MDI_X | Intelligent ;;
+type polarity = MDI | MDI_X | MDI_Auto ;;
 
 (** A node of the network is essentially a container of ports.
     Defects may be added after the creation, using the related method. *)
@@ -886,9 +674,10 @@ class virtual node_with_ports_card = fun
    (* TODO: move it in the network class
      Return the list of cables of which a port of self is an endpoint: *)
    method private get_involved_cables =
-     List.filter (fun c->c#is_node_involved self#get_name) network#cables#get
+     network#get_cables_involved_by_node_name (self#get_name)
+(*      List.filter (fun c->c#is_node_involved self#get_name) network#get_cable_list *)
 
-end;;
+end;; (* class node_with_ports_card *)
 
 (* Justa an alias: *)
 class type virtual node = node_with_ports_card
@@ -1412,6 +1201,21 @@ end
 (** Class modelling the user-level network *)
 class network () =
  let ledgrid_manager = Ledgrid_manager.the_one_and_only_ledgrid_manager in
+ (* --- *)
+ (* A network is essentially a graph, i.e. a set of nodes and a set of edges (cables).
+    Both these sets will be implemented by Queue.t encapsulated in a Cortex.t, in order 
+    to be able to program in a reactive style.
+    For this kind of cortex, the default equality is not suitable because the inner value 
+    is a Queue.t, that is to say an *immutable* reference. Thus, we have to redefine it. 
+    Note that we exploit the partial application to define the equality correctly.
+    Actually, when the cortex will be solicited for an evaluation, it will call this 
+    function on its current value to obtain a *predicate* for committed values. *)
+ let queue_equality = 
+   fun xs -> (* just an argument after the lambda! but we can exploit it to define a predicate: *)
+     let xs' = (QueueExtra.to_list xs) in 
+     fun ys -> (QueueExtra.to_list ys) = xs'
+ in  
+ (* --- *)
  object (self)
  inherit Xforest.interpreter ()
 
@@ -1423,28 +1227,30 @@ class network () =
 
  method motherboard = Motherboard.extract ()
 
- (* Note that the default equality is not suitable because the inner value is a Queue.t, 
-    that is to say an immutable reference. Thus, we have to redefine it. 
-    Important note: in order to define the equality correctly, we exploit the partial application.
-    Actually, when the Cortex will be solicited for an evaluation, it will call this function on
-    its current value to obtain a predicate for committed values. *)
+ (* Immutable field. See the previous comment about the equality: *)
  val nodes : (node Queue.t) Cortex.t = 
-   let equality xs = (* just an argument here! we use it to define a predicate *)
-     let xs' = QueueExtra.to_list xs in 
-     fun ys -> (QueueExtra.to_list ys) = xs'
-   in  
-   Cortex.return ~equality (Queue.create ())
-   
+   Cortex.return ~equality:(queue_equality) (Queue.create ())
+ (* --- *)  
  method nodes = nodes
- method get_node_list       = Cortex.apply nodes (QueueExtra.to_list)
- method set_node_list xs    = Cortex.set   nodes (QueueExtra.of_list xs)
- method is_node_queue_empty = Cortex.apply nodes (Queue.is_empty) 
- 
- val cables : cable Chip.wlist = Chip.wlist ~name:"network#cables" []
+ method private nodes_append x = Cortex.apply nodes (Queue.push x)
+ method private nodes_remove x = Cortex.apply nodes (QueueExtra.filter ((<>)x))
+ method get_node_list          = Cortex.apply nodes (QueueExtra.to_list)
+ method set_node_list xs       = Cortex.set   nodes (QueueExtra.of_list xs)
+ method is_node_list_empty     = Cortex.apply nodes (Queue.is_empty) 
+
+ (* Immutable field. See the previous comment about the equality: *)
+ val cables : (cable Queue.t) Cortex.t = 
+   Cortex.return ~equality:(queue_equality) (Queue.create ())
+ (* --- *)  
  method cables = cables
+ method private cables_append x = Cortex.apply cables (Queue.push x)
+ method private cables_remove x = Cortex.apply cables (QueueExtra.filter ((<>)x))
+ method get_cable_list          = Cortex.apply cables (QueueExtra.to_list)
+ method set_cable_list xs       = Cortex.set   cables (QueueExtra.of_list xs)
+ method is_cable_list_empty     = Cortex.apply cables (Queue.is_empty) 
 
  (** Buffers to backup/restore data. *)
- val mutable nodes_buffer  : (node list) = []
+ val mutable nodes_buffer  : (node  list) = []
  val mutable cables_buffer : (cable list) = []
 
  (** Accessors *)
@@ -1452,24 +1258,24 @@ class network () =
 
  (** Related dot options fro drawing this virtual network.
      This pointer is shared with the project instance. *)
- val mutable dotoptions : (Dot_tuning.network option) = None
- method      dotoptions   = match dotoptions with Some x -> x | None -> raise (Failure "network#dotoptions")
- method  set_dotoptions x = dotoptions <- Some x
+ val mutable dotoptions : (Sketch.tuning option) = None
+ method dotoptions   = match dotoptions with Some x -> x | None -> raise (Failure "network#dotoptions")
+ method private set_dotoptions x = dotoptions <- Some x
 
  method components : (component list) =
    List.append
-     (self#get_node_list :> component list)
-     (cables#get :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
+     (self#get_node_list  :> component list)
+     (self#get_cable_list :> component list) (* CABLES MUST BE AT THE FINAL POSITION for marshaling !!!! *)
 
  method components_of_kind ?(kind:[`Node | `Cable] option) () =
    match kind with
    | None        -> self#components
-   | Some `Node  -> (self#get_node_list :> (component list))
-   | Some `Cable -> (cables#get :> (component list))
+   | Some `Node  -> (self#get_node_list  :> (component list))
+   | Some `Cable -> (self#get_cable_list :> (component list))
 
  method disjoint_union_of_nodes_and_cables : ((component * [`Node | `Cable]) list) =
-   let xs = List.map (fun x -> x,`Node ) (self#get_node_list :> component list)  in
-   let ys = List.map (fun x -> x,`Cable) (cables#get :> component list)  in
+   let xs = List.map (fun x -> x,`Node ) (self#get_node_list  :> component list)  in
+   let ys = List.map (fun x -> x,`Cable) (self#get_cable_list :> component list)  in
    List.append xs ys
 
  (** Setter *)
@@ -1483,7 +1289,7 @@ class network () =
    Log.printf "network#reset: begin\n\tDestroying all cables...\n";
    (List.iter
       (fun cable -> try cable#destroy with _ -> ())
-      cables#get);
+      self#get_cable_list);
    Log.printf "\tDestroying all nodes (machines, switchs, hubs, routers, etc)...\n";
    (List.iter
       (fun node -> try node#destroy with _ -> ())
@@ -1491,8 +1297,8 @@ class network () =
    Log.printf "\tSynchronously wait that everything terminates...\n";
    (if not scheduled then Task_runner.the_task_runner#wait_for_all_currently_scheduled_tasks);
    Log.printf "\tMaking the network graph empty...\n";
-   (self#set_node_list []);
-   cables#set  [] ;
+   (self#set_node_list  []);
+   (self#set_cable_list []);
    Log.printf "\tWait for all devices to terminate...\n";
    (** Make sure that all devices have actually been terminated before going
        on: we don't want them to lose filesystem access: *)
@@ -1502,22 +1308,22 @@ class network () =
  method destroy_process_before_quitting () =
   begin
    Log.printf "destroy_process_before_quitting: BEGIN\n";
-   (List.iter (fun cable -> try cable#destroy_right_now with _ -> ())   cables#get);
-   (List.iter (fun device -> try device#destroy_right_now with _ -> ()) (self#get_node_list));
+   (List.iter (fun cable  -> try cable#destroy_right_now  with _ -> ()) (self#get_cable_list));
+   (List.iter (fun device -> try device#destroy_right_now with _ -> ()) (self#get_node_list ));
    Log.printf "destroy_process_before_quitting: END (success)\n";
   end
 
  method restore_from_buffers =
   begin
    self#reset ();
-   (self#set_node_list nodes_buffer);
-   cables#set cables_buffer;
+   (self#set_node_list  nodes_buffer);
+   (self#set_cable_list cables_buffer);
   end
 
  method save_to_buffers =
   begin
    nodes_buffer  <- self#get_node_list;
-   cables_buffer <- cables#get;
+   cables_buffer <- self#get_cable_list;
   end
 
  method to_tree =
@@ -1559,15 +1365,18 @@ class network () =
    try List.find (fun x->x#get_name=n) (self#get_node_list)  with _ -> failwith ("get_node_by_name "^n)
 
  method get_cable_by_name n =
-   try List.find (fun x->x#get_name=n) cables#get with _ -> failwith ("get_cable_by_name "^n)
+   try List.find (fun x->x#get_name=n) self#get_cable_list with _ -> failwith ("get_cable_by_name "^n)
 
  method get_component_by_name ?kind n =
    let components = self#components_of_kind ?kind () in
    try List.find (fun x->x#get_name=n) components with _ -> failwith ("get_component_by_name "^n)
 
  method involved_node_and_port_index_list =
-   List.flatten (List.map (fun c->c#involved_node_and_port_index_list) cables#get)
+   List.flatten (List.map (fun c->c#involved_node_and_port_index_list) self#get_cable_list)
 
+ method get_cables_involved_by_node_name (node_name) =
+   List.filter (fun c->c#is_node_involved node_name) self#get_cable_list
+   
  method busy_port_indexes_of_node (node:node) =
    let node_name = node#get_name in
    let related_busy_pairs =
@@ -1642,40 +1451,39 @@ class network () =
   int_of_float (max min_multiple k)
 
  method node_exists  n = let f=(fun x->x#get_name=n) in (List.exists f (self#get_node_list))
- method cable_exists n = let f=(fun x->x#get_name=n) in (List.exists f cables#get)
+ method cable_exists n = let f=(fun x->x#get_name=n) in (List.exists f (self#get_cable_list))
  method name_exists  n = List.mem n self#names
 
  (** Adding components *)
 
  (** Nodes must have a unique name in the network *)
- method add_node (node:node) =
+ method add_node (node:node) : unit =
     if (self#name_exists node#get_name) then
       failwith "User_level.network#add_node: name already used in the network"
     else
-      (Cortex.apply nodes (Queue.push node))
+      self#nodes_append (node)
 
  (** Remove a node from the network. Remove it from the node list
      and remove all related cables. TODO: change this behaviour! *)
- method del_node_by_name (node_name:string) =
+ method del_node_by_name (node_name:string) : unit =
      let node = self#get_node_by_name (node_name) in
      (* Destroy cables first: they refer what we're removing... *)
-     let cables_to_destroy = List.filter (fun c->c#is_node_involved node_name) cables#get in
+     let cables_to_destroy = List.filter (fun c->c#is_node_involved node_name) self#get_cable_list in
      (* The cable#destroy will call itself the network#del_cable_by_name: *)
      let () = List.iter (fun cable -> cable#destroy) cables_to_destroy in
-     (* nodes#filter (fun x->not (x=node)) *)
-     (Cortex.apply nodes (QueueExtra.filter ((<>)node)))
+     self#nodes_remove (node)
 
  (** Cable must connect free ports: *)
  (* TODO: manage ledgrid with a reactive system!!!*)
- method add_cable (c:cable) =
-    if (self#name_exists c#get_name)
+ method add_cable (cable:cable) : unit =
+    if (self#name_exists cable#get_name)
     then failwith "User_level.network#add_cable: name already used in the network"
-    else cables#append c
+    else self#cables_append (cable)
 
  (** Remove a cable from network. Called by cable#destroy. *)
- method del_cable_by_name (cable_name) =
-     let c = self#get_cable_by_name (cable_name) in
-     cables#filter (fun x->not (x=c))
+ method del_cable_by_name (cable_name) : unit =
+     let cable = self#get_cable_by_name (cable_name) in
+     self#cables_remove (cable)
 
  method change_node_name (old_name) (new_name) =
    if old_name = new_name then () else
@@ -1743,25 +1551,25 @@ class network () =
 
  (** List of direct cable names in the network *)
  method get_direct_cable_names  =
-   let clist = List.filter (fun x->x#crossover=false) cables#get in
+   let clist = List.filter (fun x->x#crossover=false) self#get_cable_list in
    List.map (fun x->x#get_name) clist
 
  (** List of crossover cable names in the network *)
  method get_crossover_cable_names =
-   let clist= List.filter (fun x->x#crossover=true) cables#get in
+   let clist= List.filter (fun x->x#crossover=true) self#get_cable_list in
    List.map (fun x->x#get_name) clist
 
  method get_direct_cables =
-   List.filter (fun x->x#crossover=false) cables#get
+   List.filter (fun x->x#crossover=false) self#get_cable_list
 
  method get_crossover_cables  =
-   List.filter (fun x->x#crossover=true) cables#get
+   List.filter (fun x->x#crossover=true) self#get_cable_list
 
  (** Starting and showing the network *)
 
  (** List of reversed cables (used only for drawing network) *)
  method reversed_cables : (string list) =
-   let clist= List.filter (fun x->x#is_reversed) cables#get in
+   let clist= List.filter (fun x->x#is_reversed) self#get_cable_list in
    List.map (fun x->x#get_name) clist
 
  (** Set the reversed dotoptions field of a cable of the network (identified by name) *)
@@ -1779,7 +1587,7 @@ class network () =
    in Log.printf1 "Nodes \r\t\t: %s\n" msg;
   (* show links *)
    let msg=try
-        (String.concat "\n" (List.map (fun c->(c#show "\r\t\t  ")) cables#get))
+        (String.concat "\n" (List.map (fun c->(c#show "\r\t\t  ")) self#get_cable_list))
         with _ -> ""
    in Log.printf1 "Cables \r\t\t: %s\n" msg
 
@@ -1789,12 +1597,12 @@ class network () =
  (** Network translation into the dot language *)
  method dotTrad () =
  let opt = self#dotoptions in
- let labeldistance = opt#labeldistance#get in
- let curved_lines = opt#curved_lines#get in
- begin
+ let labeldistance = Cortex.get (opt#labeldistance) in
+ let curved_lines  = Cortex.get (opt#curved_lines) in
+ try begin
 "digraph plan {
 
-"^opt#ratio^"
+"(*^opt#ratio*)^"
 "^opt#rankdir_for_dot^"
 "^opt#nodesep_for_dot^";"^"
 
@@ -1820,12 +1628,10 @@ opt#labeldistance_for_dot^",tailclip=true];
 "^
 (StringExtra.Text.to_string
    (List.map (fun c->c#dot_traduction ~curved_lines ~labeldistance) self#get_direct_cables))
-
 ^"
 /* *********************************
       CROSSOVER/SERIAL CABLE EDGES
    ********************************* */
-
 
 edge [headclip=true,minlen=1.6,color=\""^self#dotoptions#crossover_cable_color^"\",weight=1];
 
@@ -1834,12 +1640,16 @@ edge [headclip=true,minlen=1.6,color=\""^self#dotoptions#crossover_cable_color^"
    (List.map (fun c->c#dot_traduction ~curved_lines ~labeldistance) self#get_crossover_cables))
 
 ^"} //END of digraph\n"
-
  end (* method dotTrad *)
+ with e ->
+    (Log.printf1
+       "Warning: exception raised in network#dotTrad:\n%s\nRe-raising.\n"
+       (Printexc.to_string e); 
+     raise e)
 
 initializer
 
- self#set_dotoptions (new Dot_tuning.network self);
+ self#set_dotoptions (new Sketch.tuning ~network:(self) ());
 
 end
 

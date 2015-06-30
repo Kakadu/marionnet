@@ -381,7 +381,7 @@ class world_gateway =
 
   method ledgrid_label = "World gateway"
   method defects_device_type = "router"
-  method polarity = User_level.Intelligent
+  method polarity = User_level.MDI_Auto
   method string_of_devkind = "world_gateway"
 
   method dotImg (z:User_level.iconsize) =

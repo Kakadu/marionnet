@@ -266,7 +266,7 @@ class cloud =
       ()
     as self_as_node_with_defects
   method defects_device_type = "cloud"
-  method polarity = User_level.Intelligent (* Because it is didactically meaningless *)
+  method polarity = User_level.MDI_Auto (* Because it is didactically meaningless *)
   method string_of_devkind = "cloud"
 
   method dotImg iconsize =

@@ -397,17 +397,10 @@ class virtual cable_dot_zone ?(reversed=false) ~(motherboard:Motherboard.t) () =
 
    method virtual crossover : bool
 
-   val reversed =
-     Chip.wref_in_cable
-       ~name:"reversed"
-       ~cable:motherboard#reversed_rj45cables_cable
-       reversed
-
-   method is_reversed = reversed#get
-   method set_reversed b = reversed#set b
-
-   initializer
-      self#add_destroy_callback (lazy (reversed#destroy ()));
+   val reversed = Cortex.return ~on_commit:(fun _ _ -> motherboard#refresh_sketch) (reversed)
+   method reversed       = reversed
+   method is_reversed    = Cortex.get reversed
+   method set_reversed b = Cortex.set reversed b
 
    method dot_color = match self#crossover with
    | false -> "#949494"
@@ -638,9 +631,9 @@ and cable =
     let module M = User_level in
     (* We need a crossover cable if the polarity is the same: *)
     match polarity0, polarity1 with
-     | M.Intelligent , _        | _     , M.Intelligent -> true
-     | M.MDI_X       , M.MDI    | M.MDI , M.MDI_X       -> (not crossover)
-     | M.MDI_X       , M.MDI_X  | M.MDI , M.MDI         -> crossover
+     | M.MDI_Auto , _           | _     , M.MDI_Auto -> true
+     | M.MDI_X       , M.MDI    | M.MDI , M.MDI_X    -> (not crossover)
+     | M.MDI_X       , M.MDI_X  | M.MDI , M.MDI      -> crossover
 
   method defects_cable_type = defects_cable_type
 
@@ -724,7 +717,7 @@ and cable =
             self#increment_alive_endpoint_no;
             Log.printf "Ok: connected\n";
           end);
-          User_level.refresh_sketch ());
+          Sketch.refresh_sketch ());
 
     (** Make the cable disconnected, or do nothing if it's already disconnected: *)
     method private disconnect_right_now =
@@ -746,7 +739,7 @@ and cable =
             self#decrement_alive_endpoint_no;
             Log.printf "Ok: disconnected\n";
           end);
-          User_level.refresh_sketch ());
+          Sketch.refresh_sketch ());
 
    (** 'Suspending means disconnecting for cables *)
    method suspend_right_now =

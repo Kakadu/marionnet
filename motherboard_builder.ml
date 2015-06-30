@@ -32,8 +32,12 @@ module Make (S : sig val st:State.globalState end) = struct
  let w = st#mainwin
  let system = st#system
 
+  (* ---------------------------------------- 
+              Reactive window title 
+     ---------------------------------------- *)
+     
   (* Reactive setting: st#project_filename -> w#window_MARIONNET#title *)
-  let main_window_title_reaction : Thunk.id = 
+  let update_main_window_title : Thunk.id = 
     Cortex.on_commit_append 
       (st#project_filename)
       (fun _ filename ->      (* previous and commited state *)
@@ -43,7 +47,9 @@ module Make (S : sig val st:State.globalState end) = struct
 	in
         w#window_MARIONNET#set_title (title))
        
-  (* Sensitiveness manager *)
+  (* ---------------------------------------- 
+            Reactive sensitiveness 
+     ---------------------------------------- *)
   
   (* Note: why the GC doesn't free this structure (and the related trigger)? *)
   let update_project_state_sensitiveness =
@@ -107,77 +113,26 @@ module Make (S : sig val st:State.globalState end) = struct
     let () = StackExtra.iter (fun x->x#misc#set_sensitive false) (st#sensitive_cable_menu_entries) in
     ()
       
-  (* Dot tuning manager. Is a toggling chip of arity 6. *)
-  chip dot_tuning_manager :
-    (iconsize      : string  ,
-     rankdir       : string  ,
-     curved_lines  : bool    ,
-     shuffler      : int list,
-     nodesep       : float   ,
-     labeldistance : float   ,
-     extrasize     : float   ,
-     reversed_list : (int * bool) list
-     ) -> (y)
-     = () ;;
-
-  let refresh_sketch_counter = st#refresh_sketch_counter
-  let reversed_rj45cables_cable = Chip.cable ~name:"reversed_rj45cables_cable" ()
-
-  let dot_tuning_manager =
+  (* ---------------------------------------- 
+               Reactive sketch
+     ---------------------------------------- *)
+  
+  (* --- *)
+  let () = 
    let d = st#network#dotoptions in
-   new dot_tuning_manager
-        ~name:"dot_tuning_manager"
-   	~iconsize:d#iconsize
-   	~rankdir:d#rankdir
-   	~curved_lines:d#curved_lines#as_wire
-   	~shuffler:d#shuffler
-   	~nodesep:d#nodesep
-   	~labeldistance:d#labeldistance
-   	~extrasize:d#extrasize
-   	~reversed_list:(reversed_rj45cables_cable :> (int * bool, (int * bool) list) Chip.wire)
-   	~y:refresh_sketch_counter ()
+   let update = (fun _ _ -> st#refresh_sketch) in
+   let _ = Cortex.on_commit_append (d#iconsize)      (update) in
+   let _ = Cortex.on_commit_append (d#rankdir)       (update) in
+   let _ = Cortex.on_commit_append (d#curved_lines)  (update) in
+   let _ = Cortex.on_commit_append (d#shuffler)      (update) in
+   let _ = Cortex.on_commit_append (d#nodesep)       (update) in
+   let _ = Cortex.on_commit_append (d#labeldistance) (update) in
+   let _ = Cortex.on_commit_append (d#extrasize)     (update) in
+   ()
 
-  chip sketch_refresher : (x:int) -> () =
-   (* Do not refresh if there isn't an active project. This is not correct in general. FIX IT *)
-   if (st#active_project) then
-    begin
-    self#tracing#message "refreshing...";
-    (* Similar to State.globalState#refresh_sketch but without locking sketch. *)
-    let fs = st#dotSketchFile in
-    let ft = st#pngSketchFile in
-    try begin
-      let ch = open_out fs in
-      output_string ch (st#network#dotTrad ());
-      close_out ch;
-      let command_line =
-        let splines = string_of_bool (st#network#dotoptions#curved_lines#get) in
-	Printf.sprintf "dot -Gsplines=%s -Efontname=FreeSans -Nfontname=FreeSans -Tpng -o '%s' '%s'" splines ft fs
-      in
-      self#tracing#message "The dot command line is";
-      self#tracing#message command_line;
-      let exit_code = Sys.command command_line in
-      self#tracing#message (Printf.sprintf "dot exited with exit code %i" exit_code);
-      st#mainwin#sketch#set_file st#pngSketchFile ;
-      (if not (exit_code = 0) then
-	Simple_dialogs.error
-	  (s_ "dot failed")
-	  (Printf.sprintf
-	      (f_ "Invoking dot failed. Did you install graphviz?\n\
-    The command line is\n%s\nand the exit code is %i.\n\
-    Marionnet will work, but you will not see the network graph picture until you fix the problem.\n\
-    There is no need to restart the application.")
-	      command_line
-	      exit_code)
-	  ());
-        end
-      with e ->
-        (Log.printf1
-           "Warning: exception raised in sketch_refresher:\n%s\nIgnoring.\n"
-           (Printexc.to_string e))
-    end
-
-  let sketch_refresher =
-    new sketch_refresher ~name:"sketch_refresher" (*~app_state:st#app_state*) ~x:refresh_sketch_counter ()
+  (* ---------------------------------------- 
+                  Debugging
+     ---------------------------------------- *)
 
   (* Debugging: press F2 for printing the list of current components to stderr. *)
   let _ = st#mainwin#toplevel#event#connect#key_press ~callback:
@@ -233,7 +188,8 @@ module Make (S : sig val st:State.globalState end) = struct
    let () =
      let m =
        object
-         method reversed_rj45cables_cable = reversed_rj45cables_cable
+(*          method reversed_rj45cables_cable = reversed_rj45cables_cable *)
+         method refresh_sketch = st#refresh_sketch
          method project_working_directory =
            Option.extract st#project_working_directory#get
        end

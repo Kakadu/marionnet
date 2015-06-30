@@ -1,6 +1,6 @@
 class type motherboard =
  object
-  method reversed_rj45cables_cable : (bool,bool) Chip.cable
+  method refresh_sketch : unit
   method project_working_directory : string
 end (* class type motherboard *)
 

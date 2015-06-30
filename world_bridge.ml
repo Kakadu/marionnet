@@ -286,7 +286,7 @@ class world_bridge =
       ()
     as self_as_node_with_defects
   method defects_device_type = "world_bridge"
-  method polarity = User_level.Intelligent (* Because is not pedagogic anyway. *)
+  method polarity = User_level.MDI_Auto (* Because is not pedagogic anyway. *)
   method string_of_devkind = "world_bridge"
 
   method dotImg iconsize =

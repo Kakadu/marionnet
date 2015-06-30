@@ -164,14 +164,14 @@ let fold_lines = function [] -> "" | l-> List.fold_left (fun x y -> x^" "^y) (Li
 let iconsize_react () = if opt#gui_callbacks_disable then () else
   begin
    let size = opt#toolbar_driver#get_iconsize in
-   opt#iconsize#set size;
+   Cortex.set opt#iconsize size;
    st#flash ~delay:4000 (Printf.sprintf (f_ "The icon size is fixed to value %s (default=large)") size);
   end
 
 (** Reaction for the shuffle tuning *)
 let shuffle_react () =
   begin
-   opt#shuffler#set (ListExtra.shuffleIndexes (net#get_node_list));
+   Cortex.set (opt#shuffler) (ListExtra.shuffleIndexes (net#get_node_list));
    let namelist = net#get_node_names => ( (ListExtra.permute opt#shuffler_as_function) || fold_lines ) in
    st#flash ~delay:4000 ((s_ "Icons randomly arranged: ")^namelist);
   end
@@ -179,7 +179,7 @@ let shuffle_react () =
 (** Reaction for the unshuffle tuning *)
 let unshuffle_react () =
   begin
-   opt#reset_shuffler ();
+   opt#shuffler_reset;
    let namelist = (net#get_node_names => fold_lines) in
    st#flash ~delay:4000 ((s_ "Default icon arrangement: ")^namelist);
   end
@@ -187,7 +187,7 @@ let unshuffle_react () =
 (** Reaction for the rankdir tunings *)
 let rankdir_react x () =
   begin
-   st#dotoptions#rankdir#set x;
+   Cortex.set (st#dotoptions#rankdir) x;
    let msg = match x with
     | "TB" -> (s_ "Arrange edges top-to-bottom (default)")
     | "LR" -> (s_ "Arrange edges left-to-right")
@@ -199,7 +199,7 @@ let rankdir_react x () =
 let nodesep_react () = if opt#gui_callbacks_disable then () else
   begin
    let y = opt#toolbar_driver#get_nodesep in
-   opt#nodesep#set y;
+   Cortex.set (opt#nodesep) y;
    st#flash (Printf.sprintf (f_ "The minimum edge size (distance between nodes) is fixed to the value %s (default=0.5)") (string_of_float y));
   end
 
@@ -207,7 +207,7 @@ let nodesep_react () = if opt#gui_callbacks_disable then () else
 let labeldistance_react () = if opt#gui_callbacks_disable then () else
   begin
    let y = opt#toolbar_driver#get_labeldistance in
-   opt#labeldistance#set y;
+   Cortex.set (opt#labeldistance) y;
    st#flash (Printf.sprintf (f_ "The distance between labels and icons is fixed to the value %s (default=1.6)") (string_of_float y));
   end
 
@@ -215,7 +215,7 @@ let labeldistance_react () = if opt#gui_callbacks_disable then () else
 let extrasize_react () = if opt#gui_callbacks_disable then () else
   begin
    let y = opt#toolbar_driver#get_extrasize in
-   opt#extrasize#set y;
+   Cortex.set (opt#extrasize) y;
    st#flash (Printf.sprintf (f_ "The canvas size is fixed to %s%% of the minimun value to contain the graph (default=0%%)") (string_of_int (int_of_float y)) );
   end
 
@@ -230,11 +230,10 @@ let reverse_edge_callback x () =
 (** Reaction for the spline's (straight/curved) tuning *)
 let curved_lines_react () = if opt#gui_callbacks_disable then () else
   begin
-   (* `set' means `commute' for reactive switches (wswitch): *)
-   st#dotoptions#curved_lines#set ();
-   let msg = match st#dotoptions#curved_lines#get with
-    | true  -> (s_ "Switched to curved lines")
-    | false -> (s_ "Switched to straight lines")
+   let msg = 
+     match (st#dotoptions#curved_lines_commute) with
+     | true  -> (s_ "Switched to curved lines")
+     | false -> (s_ "Switched to straight lines")
    in
    st#flash ~delay:4000 msg;
   end

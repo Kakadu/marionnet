@@ -84,8 +84,8 @@ module Created_entry_project_new = Menu_factory.Make_entry
      let filename = Talking.check_filename_validity_and_add_extension_if_needed (r#get "filename") in
      let actions () =
        begin
-       st#close_project_sync;
-       st#new_project_sync filename;
+       st#close_project;
+       st#new_project filename;
        end in
      if (st#active_project) && ((r#get "save_current") = "yes")
       then
@@ -121,15 +121,15 @@ module Created_entry_project_open = Menu_factory.Make_entry
       st#shutdown_everything ();
       let filename = (r#get "filename") in
       let actions () = begin
-         st#close_project_sync;
+         st#close_project;
          try
-          st#open_project filename;
+          st#open_project_async filename;
          with e -> ((Simple_dialogs.error (s_ "Open a project") ((s_ "Failed to open the file ")^filename) ()); raise e)
         end in
       if (st#active_project) && ((r#get "save_current")="yes")
       then
-       (st#save_project;
-        Task_runner.the_task_runner#schedule ~name:"open_project" actions)
+        (st#save_project;
+         Task_runner.the_task_runner#schedule ~name:"open_project" actions)
       else
        (actions ())
      end
@@ -212,10 +212,12 @@ module Created_entry_project_close = Menu_factory.Make_entry
 
    let reaction r = begin
     st#shutdown_everything ();
-    let () = if (st#active_project) && ((r#get "answer") = "yes")
-              then st#save_project
-              else () in
-    st#close_project_sync;
+    let () = 
+      if (st#active_project) && ((r#get "answer") = "yes")
+        then st#save_project
+        else () 
+    in
+    st#close_project;
     end
 
   end) (F)
@@ -258,7 +260,7 @@ module Created_entry_project_export = Menu_factory.Make_entry
    let reaction r =
      let output_format = (r#get "extra_widget") in
      let filename = Talking.check_filename_validity_and_add_extension_if_needed ~extension:output_format (r#get "filename") in
-     let command = Printf.sprintf "dot -T%s -o '%s' '%s'" output_format filename st#dotSketchFile in
+     let command = Printf.sprintf "dot -T%s -o '%s' '%s'" output_format filename st#project_paths#dotSketchFile in
      let on_error () =
 	Simple_dialogs.error
 	  "Export network image"
@@ -306,7 +308,7 @@ module Created_entry_project_quit = Menu_factory.Make_entry
     Log.printf "Killing the death monitor thread...\n";
     Death_monitor.stop_polling_loop ();
     st#network#destroy_process_before_quitting ();
-    st#close_project_sync;
+    st#close_project;
     st#quit_async ()
 
   end) (F)
@@ -317,7 +319,7 @@ let project_quit = Created_entry_project_quit.item
                 Menu "Options"
  * **************************************** *)
 
-let options         = add_menu (s_ "_Options")
+let options = add_menu (s_ "_Options")
 
 module Created_entry_options_cwd = Menu_factory.Make_entry
  (struct
@@ -333,7 +335,7 @@ module Created_entry_options_cwd = Menu_factory.Make_entry
    let reaction r = 
      let pathname = (r#get "foldername") in
      let realpath = Option.extract (UnixExtra.realpath pathname) in
-     st#temporary_directory#set (realpath)
+     st#project_paths#set_temporary_directory (realpath)
   end) (F)
 let options_cwd = Created_entry_options_cwd.item
 

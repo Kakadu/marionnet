@@ -64,6 +64,8 @@ let filesystem_history_interface =
     ~window
     ~hbox:(st#mainwin#filesystem_history_viewport)
     ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
+    ~method_directory:(fun () -> Option.extract st#project_paths#treeviewDir)
+    ~method_filename: (fun () -> Option.extract st#project_paths#treeview_history_file)
     ()
 
 (** See the comment in states_interface.ml for why we need this ugly kludge: *)
@@ -127,6 +129,8 @@ let treeview_ifconfig =
     ~window
     ~hbox:(st#mainwin#ifconfig_viewport)
     ~after_user_edit_callback
+    ~method_directory:(fun () -> Option.extract st#project_paths#treeviewDir)
+    ~method_filename: (fun () -> Option.extract st#project_paths#treeview_ifconfig_file)
     ()
 
 (** Make the defects interface: *)
@@ -135,6 +139,8 @@ let treeview_defects =
     ~window
     ~hbox:(st#mainwin#defects_viewport)
     ~after_user_edit_callback
+    ~method_directory:(fun () -> Option.extract st#project_paths#treeviewDir)
+    ~method_filename: (fun () -> Option.extract st#project_paths#treeview_defects_file)
     ()
 
 (** Make the texts interface: *)
@@ -143,6 +149,8 @@ let treeview_documents =
     ~window
     ~hbox:(st#mainwin#documents_viewport)
     ~after_user_edit_callback:(fun _ -> st#set_project_not_already_saved)
+    ~method_directory:(fun () -> Option.extract st#project_paths#treeviewDir)
+    ~method_filename: (fun () -> Option.extract st#project_paths#treeview_documents_file)
     ()
 
 module Just_for_testing = struct
@@ -207,7 +215,7 @@ let () =
    else () (* do nothing *)
  in
  let set_but_warning dir =
-   st#temporary_directory#set dir;
+   let () = st#project_paths#set_temporary_directory (dir) in
    warning_tmp_automatically_set_for_you dir
  in
  let marionnet_tmpdir = Initialization.Path.marionnet_tmpdir in
@@ -223,10 +231,10 @@ let () =
  let d6 = Option.map (fun h -> Filename.concat h "tmp") home in  (*  ~/tmp *)
  let d7 = home in                                                (*  ~/    *)
  begin
-  if defined_and_suitable_tmp d1 then st#temporary_directory#set (Option.extract d1) else
-  if defined_and_suitable_tmp d2 then st#temporary_directory#set (Option.extract d2) else
-  if suitable_tmp d3             then st#temporary_directory#set d3 else
-  if suitable_tmp d4             then st#temporary_directory#set d4 else
+  if defined_and_suitable_tmp d1 then st#project_paths#set_temporary_directory (Option.extract d1) else
+  if defined_and_suitable_tmp d2 then st#project_paths#set_temporary_directory (Option.extract d2) else
+  if suitable_tmp d3             then st#project_paths#set_temporary_directory d3 else
+  if suitable_tmp d4             then st#project_paths#set_temporary_directory d4 else
   if suitable_tmp d5             then set_but_warning d5 else
   if defined_and_suitable_tmp d6 then set_but_warning (Option.extract d6) else
   if defined_and_suitable_tmp d7 then set_but_warning (Option.extract d7) else
@@ -236,7 +244,7 @@ let () =
 	(s_ "You should probably create one of /tmp, ~/tmp and ~/ into a modern filesystem supporting sparse files (ext2, ext3, ext4, reiserfs, NTFS, ...), or set another suitable temporary working directory (menu Options). Marionnet will work with the current settings, but performance will be low and disk usage very high.")
 	();
       (* Set anyway the value to "/tmp": *)
-      st#temporary_directory#set "/tmp"
+      (st#project_paths#set_temporary_directory "/tmp")
     end
   end
 
@@ -325,9 +333,6 @@ let () = begin
 st#mainwin#toplevel#set_icon (Some Icon.icon_pixbuf);
 st#mainwin#window_MARIONNET#set_title Initialization.window_title;
 
-(* This action must be done when all treeviews are set: *)
-Motherboard.set_treeview_filenames_invariant ();
-
 StackExtra.push (st#mainwin#notebook_CENTRAL#coerce) (st#sensitive_when_Active);
 StackExtra.push (st#mainwin#hbox_BASE#coerce)        (st#sensitive_when_Runnable);
 
@@ -345,7 +350,7 @@ let () =
 	    filename
 	in
 	try
-	  st#open_project ~filename
+	  st#open_project_async ~filename
 	with
 	  _ ->
 	  begin

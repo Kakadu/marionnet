@@ -280,6 +280,7 @@ class cloud =
   method private make_simulated_device =
    ((new Simulation_level_cloud.cloud
         ~parent:self
+        ~working_directory:(network#working_directory)
         ~unexpected_death_callback:self#destroy_because_of_unexpected_death
         ()) :> User_level.node Simulation_level.device)
 
@@ -309,12 +310,14 @@ open Daemon_language
 class ['parent] cloud =
   fun (* ~id *)
       ~(parent:'parent)
+      ~working_directory
       ~unexpected_death_callback
       () ->
 object(self)
   inherit ['parent] Simulation_level.device
       ~parent
       ~hublet_no:2
+      ~working_directory
       ~unexpected_death_callback
       ()
       as super

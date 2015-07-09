@@ -44,12 +44,14 @@ let string_of_cable_direction d =
 
 class t =
 fun ~packing
+    ~method_directory 
+    ~method_filename
     ~after_user_edit_callback
     () ->
 object(self)
   inherit
     Treeview.treeview_with_a_primary_key_Name_column
-      ~packing
+      ~packing ~method_directory ~method_filename
       ~highlight_color:"Light Coral"
       ~hide_reserved_fields:true
       ()
@@ -464,8 +466,8 @@ module The_unique_treeview = Stateful_modules.Variable (struct
   end)
 let extract = The_unique_treeview.extract
 
-let make ~(window:GWindow.window) ~(hbox:GPack.box)  ~after_user_edit_callback () =
-  let result = new t ~packing:(hbox#add) ~after_user_edit_callback () in
+let make ~(window:GWindow.window) ~(hbox:GPack.box) ~after_user_edit_callback ~method_directory ~method_filename () =
+  let result = new t ~packing:(hbox#add) ~method_directory ~method_filename ~after_user_edit_callback () in
   let () = Treeview.add_expand_and_collapse_button ~window ~hbox (result:>Treeview.t) in
   The_unique_treeview.set result;
   result

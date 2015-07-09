@@ -552,6 +552,7 @@ class router
       ~umid:self#get_name
       ~id
       ~show_unix_terminal:self#get_show_unix_terminal
+      ~working_directory:(network#working_directory)
       ~unexpected_death_callback:self#destroy_because_of_unexpected_death
       ()
 
@@ -674,6 +675,7 @@ class ['parent] router =
       ?umid
       ~id
       ~show_unix_terminal
+      ~working_directory
       ~unexpected_death_callback
       () ->
 object(self)
@@ -696,6 +698,7 @@ object(self)
       ~id
       ~show_unix_terminal
       ~xnest:false
+      ~working_directory
       ~unexpected_death_callback
       ()
       as super

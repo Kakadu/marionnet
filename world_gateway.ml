@@ -441,6 +441,7 @@ class world_gateway =
 	~port_no:self#get_port_no
 	~network_address
 	~dhcp_enabled
+        ~working_directory:(network#working_directory)
 	~unexpected_death_callback:self#destroy_because_of_unexpected_death
 	()) :> User_level.node Simulation_level.device)
 
@@ -465,6 +466,7 @@ class ['parent] world_gateway =
       ~port_no
       ~network_address (* default 10.0.2.0 *)
       ~dhcp_enabled
+      ~working_directory
       ~unexpected_death_callback
       () ->
  (* an additional port will be used by the world *)
@@ -475,6 +477,7 @@ class ['parent] world_gateway =
     ~parent
     ~hublet_no
     ~last_user_visible_port_index
+    ~working_directory
     ~unexpected_death_callback
     () as super
 

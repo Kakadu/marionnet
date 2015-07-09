@@ -72,6 +72,7 @@ class virtual process_which_creates_a_socket_at_spawning_time :
   ?stderr:Unix.file_descr ->
   ?socket_name_prefix:string ->
   ?management_socket:unit ->
+  working_directory:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -97,6 +98,7 @@ class vde_switch_process :
   ?management_socket:unit ->
   ?fstp:unit ->
   ?rcfile:string ->
+  working_directory:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -118,6 +120,7 @@ class switch_process :
   port_no:int ->
   ?socket_name_prefix:string ->
   ?management_socket:unit ->
+  working_directory:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -139,6 +142,7 @@ class hub_process :
   port_no:int ->
   ?socket_name_prefix:string ->
   ?management_socket:unit ->
+  working_directory:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -158,6 +162,7 @@ class hub_process :
 
 class hublet_process :
   ?index:int ->
+  working_directory:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -300,6 +305,7 @@ class uml_process :
   ?show_unix_terminal:bool ->
   ?xnest_display_number:string ->
   ?guestkind:string ->
+  working_directory:string ->
   unexpected_death_callback:(int -> process_name -> unit) ->
   unit ->
   object
@@ -342,6 +348,7 @@ type user_level_parent = <
 class virtual ['parent] device :
   parent:'parent ->
   hublet_no:int ->
+  working_directory:string ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
@@ -372,6 +379,7 @@ class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_pro
   parent:'parent ->
   hublet_no:int ->
   ?last_user_visible_port_index:int ->
+  working_directory:string ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
@@ -413,6 +421,7 @@ class virtual ['parent] hub_or_switch :
   ?management_socket:unit ->
   ?fstp:unit ->
   ?rcfile:string ->
+  working_directory:string ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object
@@ -466,6 +475,7 @@ class virtual ['parent] machine_or_router :
   ?umid:string ->
   id:int ->
   ?show_unix_terminal:bool ->
+  working_directory:string ->
   unexpected_death_callback:(unit -> unit) ->
   unit ->
   object

@@ -29,12 +29,16 @@ type port_row_completions = (string * (string * Row_item.t) list) list
 
 class t =
 fun ~packing
+    ~method_directory 
+    ~method_filename
     ~after_user_edit_callback
     () ->
 object(self)
   inherit
     Treeview.treeview_with_a_primary_key_Name_column
       ~packing
+      ~method_directory
+      ~method_filename
       ~hide_reserved_fields:true
       ()
   as super
@@ -291,7 +295,7 @@ object(self)
     (* Save the forest, as usual: *)
     super#save ?with_forest_treatment ();
     (* ...but also save the counters used for generating fresh addresses: *)
-    let counters_file_name = (Option.extract filename#get)^"-counters" in
+    let counters_file_name = (self#filename)^"-counters" in
     (* For forward compatibility: *)
     let _OBSOLETE_mac_address_as_int = Random.int (256*256*256) in
     counters_marshaler#to_file
@@ -303,7 +307,7 @@ object(self)
      This method is useful in the class`state' to correctly load the set of all treeviews. *)  
   method try_to_understand_in_which_project_version_we_are : [ `v0 | `v1 | `v2 ] option =   
     (* --- *)
-    let new_file_name = Option.extract (filename#get) in  (* states/ifconfig *)
+    let new_file_name = (self#filename) in  (* states/ifconfig *)
     let () = Log.printf1 "treeview_ifconfig#try_to_understand_in_which_project_version_we_are: new_file_name: %s\n" new_file_name in
     if (Sys.file_exists new_file_name) then Some `v2 else (* continue: *)
     (* --- *)
@@ -318,7 +322,7 @@ object(self)
     if StrExtra.First.matchingp (Str.regexp regexp_v1) x then Some `v1 else (* continue:*)
     None
     
-  method private load_counters ?(base_name = Option.extract filename#get) () =
+  method private load_counters ?(base_name = self#filename) () =
     try
       let counters_file_name = (base_name)^"-counters" in
       (* _OBSOLETE_mac_address_as_int read for backward compatibility: *)
@@ -339,7 +343,7 @@ object(self)
       match file_name with
       | Some x -> x, (do_nothing) 
       | None -> 
-         let new_file_name = Option.extract (filename#get) in
+         let new_file_name = self#filename in
          let old_file_name = Filename.concat (Filename.dirname new_file_name) "ports" in
          let file_name = 
            match project_version with
@@ -497,8 +501,8 @@ module The_unique_treeview = Stateful_modules.Variable (struct
   end)
 let extract = The_unique_treeview.extract
 
-let make ~(window:GWindow.window) ~(hbox:GPack.box) ~after_user_edit_callback () =
-  let result = new t ~packing:(hbox#add) ~after_user_edit_callback () in
+let make ~(window:GWindow.window) ~(hbox:GPack.box) ~after_user_edit_callback ~method_directory ~method_filename () =
+  let result = new t ~packing:(hbox#add) ~after_user_edit_callback ~method_directory ~method_filename () in
   let () = Treeview.add_expand_and_collapse_button ~window ~hbox (result:>Treeview.t) in
   The_unique_treeview.set result;
   result

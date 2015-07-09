@@ -603,6 +603,7 @@ class machine
       ~umid:self#get_name
       ~id
       ~xnest:self#is_xnest_enabled
+      ~working_directory:(network#working_directory)
       ~unexpected_death_callback:self#destroy_because_of_unexpected_death
       ()
 
@@ -675,6 +676,7 @@ class ['parent] machine =
       ?(xnest=false)
       ?(console_no=1)
       ~id
+      ~working_directory
       ~unexpected_death_callback
       () ->
 object(self)
@@ -695,6 +697,7 @@ object(self)
       ~console_no
       ~id
       ~xnest
+      ~working_directory
       ~unexpected_death_callback
       ()
       as super

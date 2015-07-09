@@ -1126,14 +1126,12 @@ class virtual virtual_machine_with_history_and_ifconfig
 
   method get_states_directory =
     let history = (network#history:Treeview_history.t) in
-    (Option.extract history#directory#get)
+    history#directory
 
   method create_cow_file_name_and_thunk_to_get_the_source =
     let history = (network#history:Treeview_history.t) in
-    let cow_file_name =
-      Printf.sprintf "%s%s"
-        (Option.extract history#directory#get)
-        (history#add_state_for_device self#get_name)
+    let cow_file_name = 
+      Filename.concat (history#directory) (history#add_state_for_device self#get_name) 
     in
     (* Thunk that will be used by the simulation level to retreive
        the source cow file to be copied (if needed). The procedure
@@ -1199,7 +1197,7 @@ class type virtual cable = object
 end
 
 (** Class modelling the user-level network *)
-class network () =
+class network ~(project_working_directory: unit -> string option) () =
  let ledgrid_manager = Ledgrid_manager.the_one_and_only_ledgrid_manager in
  (* --- *)
  (* A network is essentially a graph, i.e. a set of nodes and a set of edges (cables).
@@ -1225,7 +1223,7 @@ class network () =
  method ifconfig = Treeview_ifconfig.extract ()
  method history  = Treeview_history.extract ()
 
- method motherboard = Motherboard.extract ()
+ method working_directory = Option.extract (project_working_directory ())
 
  (* Immutable field. See the previous comment about the equality: *)
  val nodes : (node Queue.t) Cortex.t = 

@@ -392,12 +392,12 @@ end (* module Eval_forest_child *)
 
 module User_level_cable = struct
 
-class virtual cable_dot_zone ?(reversed=false) ~(motherboard:Motherboard.t) () =
+class virtual cable_dot_zone ?(reversed=false) () =
  object (self)
 
    method virtual crossover : bool
 
-   val reversed = Cortex.return ~on_commit:(fun _ _ -> motherboard#refresh_sketch) (reversed)
+   val reversed = Cortex.return ~on_commit:(fun _ _ -> Sketch.refresh_sketch ()) (reversed)
    method reversed       = reversed
    method is_reversed    = Cortex.get reversed
    method set_reversed b = Cortex.set reversed b
@@ -602,9 +602,7 @@ and cable =
     | true  -> "crossover"
   in
   let network_alias = network in
-  let network_alias1 = network in
-  let network_alias2 = network
-  in
+  (* --- *)
   object (self)
   initializer
     left_endpoint#set_owner  (self :> <get_name:string>);
@@ -619,8 +617,8 @@ and cable =
     self#add_destroy_callback (lazy (network#del_cable_by_name self#get_name));
 
   inherit cable_defects_zone ~network:network_alias () as cable_defects_zone
-  inherit cable_dot_zone ~motherboard:network_alias1#motherboard ()
-  inherit ledgrid_management_zone ~network:network_alias2 ()
+  inherit cable_dot_zone ()
+  inherit ledgrid_management_zone ~network:network_alias ()
 
   method crossover = crossover
 
@@ -826,6 +824,7 @@ and cable =
            ~blinker_thread_socket_file_name:(network#ledgrid_manager#blinker_thread_socket_file_name)
            ?left_blink_command
            ?right_blink_command
+           ~working_directory:(network#working_directory)
            ~unexpected_death_callback:self#destroy_because_of_unexpected_death
            ())
 
@@ -889,12 +888,14 @@ class ['parent] ethernet_cable =
       ?blinker_thread_socket_file_name
       ?left_blink_command
       ?right_blink_command
+      ~working_directory
       ~(unexpected_death_callback : unit -> unit)
       () ->
 object(self)
   inherit ['parent] Simulation_level.device
       ~parent
       ~hublet_no:0
+      ~working_directory
       ~unexpected_death_callback
       ()
       as super

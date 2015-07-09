@@ -16,21 +16,17 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. *)
 
 
-(** Gui reactive system. *)
 open Gettext;;
 
 #load "include_type_definitions_p4.cmo"
 ;;
 INCLUDE DEFINITIONS "motherboard_builder.mli"
 ;;
-#load "chip_parser_p4.cmo"
-;;
 
 module Make (S : sig val st:State.globalState end) = struct
 
  open S
  let w = st#mainwin
- let system = st#system
 
   (* ---------------------------------------- 
               Reactive window title 
@@ -39,7 +35,7 @@ module Make (S : sig val st:State.globalState end) = struct
   (* Reactive setting: st#project_filename -> w#window_MARIONNET#title *)
   let update_main_window_title : Thunk.id = 
     Cortex.on_commit_append 
-      (st#project_filename)
+      (st#project_paths#filename)
       (fun _ filename ->      (* previous and commited state *)
 	let title = match filename with
 	| None          ->  Initialization.window_title
@@ -83,8 +79,8 @@ module Make (S : sig val st:State.globalState end) = struct
 	     StackExtra.iter (fun x->x#misc#set_sensitive false) (wn);
          ) (* end of ~on_commit *)
       (* --- *)
-      (st#project_filename)  (*  first member of the group *)
-      (st#network#nodes)     (* second member of the group *)
+      (st#project_paths#filename)  (*  first member of the group *)
+      (st#network#nodes)           (* second member of the group *)
 
   
   (* Reactive setting: st#network#nodes -> cable's menu sensitiveness.
@@ -134,25 +130,6 @@ module Make (S : sig val st:State.globalState end) = struct
                   Debugging
      ---------------------------------------- *)
 
-  (* Debugging: press F2 for printing the list of current components to stderr. *)
-  let _ = st#mainwin#toplevel#event#connect#key_press ~callback:
-             (fun k -> (if GdkEvent.Key.keyval k = GdkKeysyms._F2 then system#show_component_list ()); false)
-
-  (* Debugging: press F3 to display the dot representation of the motherboard. *)
-  let _ =
-   let display () =
-    begin
-    let fs = "/tmp/gui_motherboard.dot" in
-    let ft = "/tmp/gui_motherboard.png" in
-    let ch = open_out fs in
-    output_string ch (system#to_dot);
-    close_out ch;
-    ignore (Sys.command ("dot -Tpng -o '"^ft^"' '"^fs^"' && display '"^ft^"' &"))
-    end
-   in
-   st#mainwin#toplevel#event#connect#key_press ~callback:
-             (fun k -> (if GdkEvent.Key.keyval k = GdkKeysyms._F3 then display ()); false)
-
   (* Debugging: press F5 for immediately exiting the gtk main loop (only in the toplevel) *)
   let _ =
     if !Sys.interactive then 
@@ -169,56 +146,5 @@ module Make (S : sig val st:State.globalState end) = struct
          );
          false))
     else ()
-
-  chip treeview_filenames : (pwd:string option, prn:string option) -> (h,i,d,t,d1,d2,d3,d4) =
-    match pwd, prn with
-    | (Some pwd), (Some prn) ->
-	let prefix = FilenameExtra.concat_list [pwd; prn] in
-	let concat = Filename.concat in
-	let dir = Some (concat prefix "states/") in
-	let h   = Some (concat prefix "states/states-forest") in
-     (* let i   = Some (concat prefix "states/ports") in *) (* old project version (bzr revno <= 460) *)
-	let i   = Some (concat prefix "states/ifconfig") in
-	let d   = Some (concat prefix "states/defects") in
-	let t   = Some (concat prefix "states/texts") in
-	(h,i,d,t,dir,dir,dir,dir)
-    | _,_ -> (None, None, None, None, None, None, None, None)
-    ;;
-
-   let () =
-     let m =
-       object
-(*          method reversed_rj45cables_cable = reversed_rj45cables_cable *)
-         method refresh_sketch = st#refresh_sketch
-         method project_working_directory =
-           Option.extract st#project_working_directory#get
-       end
-     in
-     Motherboard.set m
-  ;;
-
-  (* Must be called only when treeview are made: *)
-  let set_treeview_filenames_invariant () =
-    let _ =
-      new treeview_filenames
-	~pwd:st#project_working_directory
-	~prn:st#project_root_basename
-	~h:st#treeview#history#filename
-	~i:st#treeview#ifconfig#filename
-	~d:st#treeview#defects#filename
-	~t:st#treeview#documents#filename
-	~d1:st#treeview#history#directory
-	~d2:st#treeview#ifconfig#directory
-	~d3:st#treeview#defects#directory
-	~d4:st#treeview#documents#directory
-	()
-   in ()
-   ;;
-
-(*  let pippo = WGButton.button ~name:"button_pippo" system ~label:"PIPPO" ~packing:(st#mainwin#hbuttonbox_BASE#pack) ()
-
-  chip f_class : (x:int) -> (y) = () ;;
-  let f = new f_class ~x:pippo#wire#enter ~y:refresh_sketch_counter ()*)
-
-
+    
 end

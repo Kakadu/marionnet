@@ -321,6 +321,7 @@ class hub =
     ((new Simulation_level_hub.hub
         ~parent:self
         ~hublet_no
+        ~working_directory:(network#working_directory)
         ~unexpected_death_callback
         ()) :> User_level.node Simulation_level.device)
 
@@ -352,6 +353,7 @@ class ['parent] hub =
   fun ~parent
       ~hublet_no
       ?(last_user_visible_port_index:int option)
+      ~working_directory
       ~unexpected_death_callback
       () ->
 object(self)
@@ -360,6 +362,7 @@ object(self)
       ~hublet_no
       ?last_user_visible_port_index
       ~hub:true
+      ~working_directory
       ~unexpected_death_callback
       ()
       as super

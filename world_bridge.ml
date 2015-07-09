@@ -285,6 +285,7 @@ class world_bridge =
       ~port_prefix:"eth"
       ()
     as self_as_node_with_defects
+    
   method defects_device_type = "world_bridge"
   method polarity = User_level.MDI_Auto (* Because is not pedagogic anyway. *)
   method string_of_devkind = "world_bridge"
@@ -301,6 +302,7 @@ class world_bridge =
    ((new Simulation_level_world_bridge.world_bridge
         ~parent:self
         ~bridge_name:Global_options.ethernet_socket_bridge_name
+        ~working_directory:(network#working_directory)
         ~unexpected_death_callback:self#destroy_because_of_unexpected_death
         ()) :> User_level.node Simulation_level.device)
 
@@ -331,6 +333,7 @@ open Daemon_language
     of which the first one is connected to the given host tun/tap interface: *)
 class world_bridge_hub_process =
   fun ~tap_name
+      ~working_directory
       ~unexpected_death_callback
       () ->
 object(self)
@@ -339,6 +342,7 @@ object(self)
       ~hub:true
       ~tap_name
       ~socket_name_prefix:"world_bridge_hub-socket-"
+      ~working_directory
       ~unexpected_death_callback
       ()
       as super
@@ -348,15 +352,18 @@ class ['parent] world_bridge =
   fun (* ~id *)
       ~(parent:'parent)
       ~bridge_name
+      ~working_directory
       ~unexpected_death_callback
       () ->
 object(self)
   inherit ['parent] Simulation_level.device
       ~parent
       ~hublet_no:1
+      ~working_directory
       ~unexpected_death_callback
       ()
       as super
+      
   method device_type = "world_bridge"
 
   val the_hublet_process = ref None
@@ -419,6 +426,7 @@ object(self)
   method private make_world_bridge_hub_process =
     new world_bridge_hub_process
       ~tap_name:self#make_world_bridge_tap
+      ~working_directory
       ~unexpected_death_callback:self#execute_the_unexpected_death_callback
       ()
 

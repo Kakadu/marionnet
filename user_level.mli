@@ -586,14 +586,15 @@ class type virtual cable =
   end
 
 class network :
+  project_working_directory: (unit -> string option) ->
   unit ->
   object ('a)
-    method ifconfig        : Treeview_ifconfig.t
-    method defects         : Treeview_defects.t
-    method history         : Treeview_history.t
-    method motherboard     : Motherboard.t
-    method ledgrid_manager : Ledgrid_manager.ledgrid_manager
-    method dotoptions      : Sketch.tuning
+    method ifconfig          : Treeview_ifconfig.t
+    method defects           : Treeview_defects.t
+    method history           : Treeview_history.t
+    method working_directory : string
+    method ledgrid_manager   : Ledgrid_manager.ledgrid_manager
+    method dotoptions        : Sketch.tuning
     (* --- *)
     method nodes  : node  Queue.t Cortex.t
     method cables : cable Queue.t Cortex.t

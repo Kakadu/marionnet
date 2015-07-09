@@ -266,11 +266,10 @@ object(self)
     display_number_as_server
 end;;
 
-class reserved_socket_name ~prefix ~program () =
- let motherboard = Motherboard.extract () in
+class reserved_socket_name ~prefix ~working_directory ~program () =
  let socket_name =
   UnixExtra.temp_file
-    ~parent:motherboard#project_working_directory
+    ~parent:working_directory
     ~prefix
     ()
  in
@@ -301,6 +300,7 @@ class virtual process_which_creates_a_socket_at_spawning_time =
     ?stderr
     ?(socket_name_prefix="socket-")
     ?management_socket
+    ~working_directory
     ~unexpected_death_callback
     () ->
 
@@ -311,13 +311,14 @@ class virtual process_which_creates_a_socket_at_spawning_time =
   val listening_socket  =
     new reserved_socket_name
       ~prefix:socket_name_prefix
+      ~working_directory
       ~program
       ()
 
   val management_socket =
     let prefix = socket_name_prefix^"mgmt-" in
     Option.map
-      (new reserved_socket_name ~prefix ~program)
+      (new reserved_socket_name ~prefix ~working_directory ~program)
       management_socket
 
   method private management_socket_unused_or_exists =
@@ -373,6 +374,7 @@ class vde_switch_process =
      ?management_socket
      ?fstp
      ?rcfile
+     ~working_directory
      ~unexpected_death_callback
      () ->
  let socket_name_prefix =
@@ -413,6 +415,7 @@ class vde_switch_process =
       ~stderr:dev_null_out
       ~socket_name_prefix
       ?management_socket
+      ~working_directory      
       ~unexpected_death_callback
       ()
   initializer
@@ -430,6 +433,7 @@ class switch_process =
   fun ~(port_no:int)
       ?socket_name_prefix
       ?management_socket
+      ~working_directory      
       ~unexpected_death_callback
       () ->
 object(self)
@@ -438,6 +442,7 @@ object(self)
       ~port_no
       ?socket_name_prefix
       ?management_socket
+      ~working_directory      
       ~unexpected_death_callback
       ()
       as super
@@ -448,6 +453,7 @@ class hub_process =
   fun ~(port_no:int)
       ?socket_name_prefix
       ?management_socket
+      ~working_directory      
       ~unexpected_death_callback
       () ->
 object(self)
@@ -456,6 +462,7 @@ object(self)
       ~port_no
       ?socket_name_prefix
       ?management_socket
+      ~working_directory      
       ~unexpected_death_callback
       ()
       as super
@@ -464,6 +471,7 @@ end;;
 (** A Hublet process is just a Hub process with exactly two ports *)
 class hublet_process =
   fun ?index
+      ~working_directory      
       ~unexpected_death_callback
       () ->
   let socket_name_prefix = match index with
@@ -474,6 +482,7 @@ class hublet_process =
    inherit hub_process
       ~port_no:2
       ~socket_name_prefix
+      ~working_directory      
       ~unexpected_death_callback
       ()
       as super
@@ -754,12 +763,12 @@ class uml_process =
       ?(show_unix_terminal=false)
       ?xnest_display_number
       ?(guestkind="machine") (* or "router" *)
+      ~working_directory      
       ~unexpected_death_callback
       () ->
-  let motherboard = Motherboard.extract () in
   let swap_file_name =
     match swap_file_name with
-    | None -> create_swap_file_name ~parent:motherboard#project_working_directory
+    | None -> create_swap_file_name ~parent:(working_directory)
     | Some f -> f
   in
   let debug_mode =
@@ -1197,6 +1206,7 @@ exception CantGoFromStateToState of device_state * device_state;;
 class virtual ['parent] device
  ~(parent:'parent)
  ~hublet_no (* TODO: remove it, use instead parent#get_port_no *)
+ ~working_directory      
  ~(unexpected_death_callback: unit -> unit)
  ()
  =
@@ -1206,6 +1216,7 @@ class virtual ['parent] device
      (fun index ->
         new hublet_process
               ~index
+              ~working_directory      
               ~unexpected_death_callback
               ())
  in
@@ -1338,6 +1349,7 @@ class virtual ['parent] main_process_with_n_hublets_and_cables
   ~(parent:'parent)
   ~hublet_no
   ?(last_user_visible_port_index=(hublet_no-1))
+  ~working_directory      
   ~unexpected_death_callback
   ()
   =
@@ -1345,6 +1357,7 @@ object(self)
   inherit ['parent] device
       ~parent
       ~hublet_no
+      ~working_directory      
       ~unexpected_death_callback
       ()
       as super
@@ -1432,6 +1445,7 @@ class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_pro
   fun ~(parent:'parent)
       ~hublet_no
       ?(last_user_visible_port_index:int option)
+      ~working_directory      
       ~unexpected_death_callback
       () ->
  object(self)
@@ -1440,6 +1454,7 @@ class virtual ['parent] main_process_with_n_hublets_and_cables_and_accessory_pro
       ~parent
       ~hublet_no
       ?last_user_visible_port_index
+      ~working_directory      
       ~unexpected_death_callback
       ()
       as super
@@ -1499,6 +1514,7 @@ class virtual ['parent] hub_or_switch =
       ?management_socket
       ?fstp
       ?rcfile
+      ~working_directory      
       ~unexpected_death_callback
       () ->
  object(self)
@@ -1507,6 +1523,7 @@ class virtual ['parent] hub_or_switch =
       ~parent
       ~hublet_no
       ?last_user_visible_port_index
+      ~working_directory      
       ~unexpected_death_callback
       ()
       as super
@@ -1523,6 +1540,7 @@ class virtual ['parent] hub_or_switch =
               ?management_socket
               ?fstp
               ?rcfile
+              ~working_directory      
               ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               ())
 
@@ -1554,6 +1572,7 @@ class virtual ['parent] machine_or_router =
       ?umid:(umid="uml-" ^ (string_of_int (gensym ())))
       ~id
       ?show_unix_terminal
+      ~working_directory      
       ~unexpected_death_callback
       () ->
 let half_hublet_no = ethernet_interface_no in
@@ -1565,6 +1584,7 @@ object(self)
   inherit ['parent] device
       ~parent
       ~hublet_no:(half_hublet_no * 2)
+      ~working_directory      
       ~unexpected_death_callback
       ()
       as super
@@ -1628,6 +1648,7 @@ object(self)
               ?xnest_display_number:(
                  if xnest then Some self#get_xnest_process#display_number_as_server
                           else None)
+              ~working_directory      
               ~unexpected_death_callback:self#execute_the_unexpected_death_callback
               (* The following parameter will be given to the uml process: *)
               ~guestkind:(if router then "router" else "machine")

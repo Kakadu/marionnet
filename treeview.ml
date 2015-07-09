@@ -647,11 +647,13 @@ object(self)
         failwith (Printf.sprintf "set: wrong datum type for icon column %s" self#header)
 end
 
-and (*class *) treeview = fun
-  ~packing
+and (* class *) treeview = fun
   ?(hide_reserved_fields=true)
   ?(highlight_foreground_color=Defaults.highlight_foreground_color)
   ?(highlight_color=Defaults.highlight_color)
+  ~packing
+  ~method_directory
+  ~method_filename
   () ->
 let gtree_column_list = new GTree.column_list in
 let vbox =
@@ -857,10 +859,6 @@ object(self)
           None) in
     Log.printf "Showing the contextual menu\n";
     let menu = GMenu.menu () in
-(*
-    let _ = GMenu.menu_item ~label:!contextual_menu_title ~packing:menu#append () in
-    let _ = GMenu.separator_item ~packing:menu#append () in
-    let _ = GMenu.separator_item ~packing:menu#append () in *)
     List.iter
       (fun menu_item ->
          match menu_item with
@@ -901,13 +899,9 @@ object(self)
     | (Some the_tree_store) ->
         the_tree_store
 
-  val filename : string option Chip.wref = Chip.wref ~name:"treeview#filename" None
-  method filename = filename
-
-  (** Note that the states directory {e must} be an absolute pathname
-      and {e must} include a trailing slash *)
-  val directory : string option Chip.wref = Chip.wref ~name:"treeview#directory" None
-  method directory = directory
+  (* The treeview's working directory and filename are provided by constructor: *)
+  method filename  : string = method_filename  ()
+  method directory : string = method_directory ()
 
   method add_string_column
     ~header ?shown_header
@@ -1200,14 +1194,14 @@ object(self)
     Forest.print_forest ~string_of_node ~channel:stderr forest
 
   method save ?(with_forest_treatment=fun x->x) () =
-    let file_name = Option.extract filename#get in
+    let file_name = self#filename in
     Log.printf1 "treeview#save: saving into %s\n" file_name;
     let forest = with_forest_treatment (self#get_complete_forest) in
     next_identifier_and_content_forest_marshaler#to_file
       (self#counter#get_next_fresh_value, forest)
       file_name;
       
-  method load ?(file_name=Option.extract filename#get) ~(project_version : [ `v0 | `v1 | `v2 ]) () =
+  method load ?(file_name=self#filename) ~(project_version : [ `v0 | `v1 | `v2 ]) () =
     self#detach_view_in
       (fun () ->
         let () = Log.printf1 "Preparing to load a treeview content from file %s\n" file_name in
@@ -1555,13 +1549,15 @@ end;;
 class t = treeview
 
 class virtual treeview_with_a_Name_column = fun
-  ~packing
   ?hide_reserved_fields
   ?highlight_foreground_color
   ?highlight_color
+  ~packing
+  ~method_directory
+  ~method_filename
   () ->
  object(self)
-  inherit t ~packing ?hide_reserved_fields ?highlight_foreground_color ?highlight_color ()
+  inherit t ?hide_reserved_fields ?highlight_foreground_color ?highlight_color ~packing ~method_directory ~method_filename ()
 
   val name_header = "Name"
   method get_row_name    = self#get_String_field    (name_header)
@@ -1602,13 +1598,18 @@ class virtual treeview_with_a_Name_column = fun
 
 (* Name is here a primary key: *)
 class virtual treeview_with_a_primary_key_Name_column
-  ~packing
   ?hide_reserved_fields
   ?highlight_foreground_color
   ?highlight_color
+  ~packing 
+  ~method_directory 
+  ~method_filename
   () =
   object(self)
-  inherit treeview_with_a_Name_column ~packing ?hide_reserved_fields ?highlight_foreground_color ?highlight_color ()
+  inherit 
+    treeview_with_a_Name_column 
+      ?hide_reserved_fields ?highlight_foreground_color ?highlight_color 
+      ~packing ~method_directory ~method_filename ()
 
   method unique_row_id_of_name name = self#unique_row_id_such_that  (Row.eq_name name)
   method unique_row_of_name name    = self#unique_row_such_that     (Row.eq_name name)

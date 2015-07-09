@@ -27,12 +27,16 @@ module Row_item = Treeview.Row_item ;;
 
 class t =
 fun ~packing
+    ~method_directory 
+    ~method_filename
     ~after_user_edit_callback
     () ->
 object(self)
   inherit
     Treeview.t
-      ~packing
+      ~packing 
+      ~method_directory
+      ~method_filename
       ~hide_reserved_fields:true
       ()
   as super
@@ -69,9 +73,9 @@ object(self)
   method private display row_id =
     let frmt = self#get_row_format (row_id) in
     let reader = self#format_to_reader frmt in
-    let file_name = self#get_row_filename row_id in
+    let pathname = Filename.concat (self#directory) (self#get_row_filename row_id) in
     let command_line =
-      Printf.sprintf "%s '%s/%s'&" reader (Option.extract directory#get) file_name in
+      Printf.sprintf "%s '%s'&" reader pathname in
     (* Here ~force:true would be useless, because of '&' (the shell well exit in any case). *)
     Log.system_or_ignore command_line
 
@@ -163,7 +167,7 @@ object(self)
   method private import_file ?(move=false) pathname =
     try
       let file_format    = self#file_to_format pathname in
-      let parent         = Option.extract directory#get in
+      let parent         = self#directory in
       let fresh_pathname = UnixExtra.temp_file ~parent ~prefix:"document-" () in
       let fresh_name     = Filename.basename fresh_pathname in
       let result         = (fresh_name, file_format) in
@@ -285,7 +289,7 @@ object(self)
       (fun selected_rowid_if_any ->
         let row_id = Option.extract selected_rowid_if_any in
         let file_name = (self#get_row_filename row_id) in
-        let pathname = Printf.sprintf "%s/%s" (Option.extract directory#get) file_name in
+        let pathname = Filename.concat (self#directory) (file_name) in
         UnixExtra.apply_ignoring_Unix_error Unix.unlink pathname;
         self#remove_row row_id;
         );
@@ -302,8 +306,8 @@ module The_unique_treeview = Stateful_modules.Variable (struct
   end)
 let extract = The_unique_treeview.extract
 
-let make ~(window:GWindow.window) ~(hbox:GPack.box) ~after_user_edit_callback () =
-  let result = new t ~packing:(hbox#add) ~after_user_edit_callback () in
+let make ~(window:GWindow.window) ~(hbox:GPack.box) ~after_user_edit_callback ~method_directory ~method_filename () =
+  let result = new t ~packing:(hbox#add) ~after_user_edit_callback ~method_directory ~method_filename () in
   let () = Treeview.add_expand_and_collapse_button ~window ~hbox (result:>Treeview.t) in
   The_unique_treeview.set result;
   result

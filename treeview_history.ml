@@ -32,12 +32,16 @@ end)
 (** Principal exported treeview type: *)
 class t =
 fun ~packing
+    ~method_directory 
+    ~method_filename
     ~after_user_edit_callback
     () ->
 object(self)
   inherit
     Treeview.treeview_with_a_Name_column
       ~packing
+      ~method_directory
+      ~method_filename
       ~hide_reserved_fields:true
       () as self_as_treeview
 
@@ -87,7 +91,7 @@ object(self)
     self#add_row ?parent_row_id:parent row
 
   method add_device ~name ~prefixed_filesystem ?variant ~icon () =
-    let states_directory = (Option.extract directory#get) in
+    let states_directory = (self#directory) in
     let file_name = Cow_files.make_temporary_cow_file_name ~states_directory () in
     let (variant_name, comment_suffix) =
       (match variant with
@@ -113,7 +117,7 @@ object(self)
   (List.iter
     (fun row ->
       let cow_filename = Row.String_field.get ~field:filename_header row in
-      let cow_pathname = Filename.concat (Option.extract directory#get) cow_filename in
+      let cow_pathname = Filename.concat (self#directory) cow_filename in
       (try Unix.unlink cow_pathname with _ -> ()))
     rows_to_remove
    );
@@ -133,7 +137,7 @@ object(self)
   method add_substate_of parent_file_name =
   let cow_file_name =
     Cow_files.make_temporary_cow_file_name
-      ~states_directory:(Option.extract directory#get)
+      ~states_directory:(self#directory)
       ()
   in
   let complete_row_to_copy =
@@ -196,7 +200,7 @@ object(self)
     (* Remove the full row: *)
     self#remove_row row_id;
     (* Remove the cow file: *)
-    let path_name = Filename.concat (Option.extract directory#get) file_name in
+    let path_name = Filename.concat (self#directory) file_name in
     (try Unix.unlink path_name with _ -> ());
     let most_recent_row_for_name = self#get_the_most_recent_state_with_name name in
     let id_of_the_most_recent_row_for_name =
@@ -259,7 +263,7 @@ object(self)
     let file_names = List.map (self#get_row_filename) row_ids in
     let file_exists cow_file_name =
       Cow_files.cow_file_exists
-        ~states_directory:(Option.extract self#directory#get)
+        ~states_directory:(self#directory)
         ~cow_file_name ()
     in
     List.filter (file_exists) file_names
@@ -355,14 +359,15 @@ object(self)
 
   method private actually_export_as_variant ~variant_dir ~cow_name ~variant_name () =
     (* Perform the actual copy: *)
-    let cow_path = (Option.extract directory#get) in
+    let cow_path = (self#directory) in
     let new_variant_pathname = Filename.concat variant_dir variant_name in
+    let cow_fullname = Filename.concat cow_path cow_name in
     let command_line =
       Printf.sprintf
-        "(mkdir -p '%s' && test -f '%s/%s' && cp --sparse=always '%s/%s' '%s')"
+        "(mkdir -p '%s' && test -f '%s' && cp --sparse=always '%s' '%s')"
         variant_dir
-        cow_path cow_name
-        cow_path cow_name
+        cow_fullname
+        cow_fullname
         new_variant_pathname in
     try
       Log.system_or_fail command_line;
@@ -538,8 +543,8 @@ module The_unique_treeview = Stateful_modules.Variable (struct
   end)
 let extract = The_unique_treeview.extract
 
-let make ~(window:GWindow.window) ~(hbox:GPack.box) ~after_user_edit_callback () =
-  let result = new t ~packing:(hbox#add) ~after_user_edit_callback () in
+let make ~(window:GWindow.window) ~(hbox:GPack.box) ~after_user_edit_callback ~method_directory ~method_filename () =
+  let result = new t ~packing:(hbox#add) ~after_user_edit_callback ~method_directory ~method_filename () in
   let () = Treeview.add_expand_and_collapse_button ~window ~hbox (result:>Treeview.t) in
   The_unique_treeview.set result;
   result

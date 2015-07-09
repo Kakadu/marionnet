@@ -409,6 +409,7 @@ class switch =
       ~port_prefix:"port"
       ()
     as self_as_node_with_ledgrid_and_defects
+    
   method ledgrid_label = "Switch"
   method defects_device_type = "switch"
   method polarity = User_level.MDI_X
@@ -444,21 +445,6 @@ class switch =
     let hublet_no = self#get_port_no in
     let show_vde_terminal = self#get_show_vde_terminal in
     let fstp = Option.of_bool (self#get_activate_fstp) in
-(*  let rcfile =
-      match self#get_rc_config with
-      | false, _ -> None
-      | true, content ->
-          let filename =
-            let motherboard = Motherboard.extract () in
-            UnixExtra.temp_file
-              ~parent:motherboard#project_working_directory
-              ~prefix:(Printf.sprintf "switch_%s_rcfile." self#get_name)
-              ~content
-              ()
-          in
-          self#add_destroy_callback (lazy (Unix.unlink filename));
-          Some filename
-    in*)
     let rcfile_content =
       match self#get_rc_config with
       | false, _ -> None
@@ -471,6 +457,7 @@ class switch =
        ~show_vde_terminal  (* TODO: why not accessible from parent? *)
        ?fstp
        ?rcfile_content
+       ~working_directory:(network#working_directory)
        ~unexpected_death_callback
        ()) :> User_level.node Simulation_level.device)
 
@@ -595,6 +582,7 @@ class ['parent] switch =
       ?fstp
       ?rcfile (* Unused: vde_switch doesn't interpret correctly commands provided in this way! *)
       ?rcfile_content
+      ~working_directory
       ~unexpected_death_callback
       () ->
 object(self)
@@ -606,6 +594,7 @@ object(self)
       ~management_socket:()
       ?fstp
       ?rcfile
+      ~working_directory
       ~unexpected_death_callback
       ()
       as super

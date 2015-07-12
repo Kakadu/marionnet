@@ -559,151 +559,243 @@ let make_window_image_name_and_label
 
 end (* module Dialog_add_or_update *)
 
-#load "chip_parser_p4.cmo"
-;;
+
 module Reactive_widget = struct
 
+  type abstract_combo_box_text = (item list) * (active_index option)
+   and item = string
+   and active_index = int (* 0..(n-1) *)
+   and node = item
+   and port = item
+
+  let item_of_abstract_combo_box_text (xs, oi) : item option = 
+    Option.bind oi (fun i -> Option.apply_or_catch (List.nth xs) i)
+   
+  (** Slightly high-level combo_box_text class. The object is a couple widget-cortex where the cortex 
+      represents abstractly the state of the widget. This state is the list of items with the selected 
+      one, if any. When the cortex changes, the widget is destroyed and a new widget is regenerated. 
+      Conversely, when the widget changes, the cortex's selected value is updated. *)
   class combo_box_text
-    ?name ?parent
-    ?system
-    ~(strings:string list) ?active
+    ~(strings:string list) 
+    ?active
     ?width
     ?height
-    ~packing
+    ?packing
     () =
-  let system = Option.extract system ~fallback:Chip.get_or_initialize_current_system in
-  let name = match name with None -> Chip.fresh_wire_name "combo_box_text" | Some x -> x in
-  let make_widget ?(active=0) strings =
-    let w = GEdit.combo_box_text ~strings ~use_markup:true ~active ~packing ?width ?height () in
-    ignore ((fst w)#connect#changed (fun _ -> ignore system#stabilize));
-    w
+  let make_widget ?(active=0) (strings) =
+    GEdit.combo_box_text ~strings ~use_markup:true ~active ?packing ?width ?height ()
   in
+  let () = Log.printf1 "combo_box_text called with strings: %s\n" (String.concat " " strings) in
   object (self)
-    inherit [string list * int option, string option] Chip.wire ~name ?parent system
-    val mutable content = make_widget ?active strings
-    val mutable strings_content = strings
-    method reset () = assert false (* unused! *)
-    method get_alone   = GEdit.text_combo_get_active content
-    method set_alone (strings, active) =
-      let active = match active with
-      | Some i -> Some i
-      | None ->
-          (* The old selected string, if exists, is recovered: *)
-          let active_string = GEdit.text_combo_get_active content in
-          Option.bind active_string (fun x -> ListExtra.indexOf x strings)
+    (* --- *)
+    val mutable cortex : (abstract_combo_box_text Cortex.t) = Cortex.return (strings, active)
+    (* --- *)
+    method cortex = cortex
+    method activate_first = ignore (Cortex.move cortex (function ((_::_) as xs0, None) -> (xs0, Some 0) | v -> v))
+    method get : string option = item_of_abstract_combo_box_text (Cortex.get cortex)
+    (* --- *)
+    val mutable widget = make_widget ?active (strings)
+    method private widget_get : string option = GEdit.text_combo_get_active widget
+    method private widget_set (active : int option) : unit = Option.iter ((fst widget)#set_active) active
+    method private widget_remake (strings, active) = 
+      begin
+        (fst widget)#destroy ();
+        widget <- make_widget ?active strings;
+        self#set_widget_to_cortex_connection;
+      end
+    (* --- *)
+    (* widget -> cortex (to call for all created widgets) *)
+    method private set_widget_to_cortex_connection = 
+      let change_state (xs0,_) = (* current state *) 
+        let a1 = Option.bind (self#widget_get) (fun x -> ListExtra.indexOf x xs0) in
+        (xs0, a1)
       in
-      (match strings = strings_content with
-      | true -> Option.iter ((fst content)#set_active) active
-      | false ->
-         (fst content)#destroy ();
-         content <- make_widget ?active strings;
-	 strings_content <- strings;
-      )
-    method destroy = (fst content)#destroy
-  end
+      let _ = (fst widget)#connect#changed (fun _ -> ignore (Cortex.move cortex change_state)) in
+      ()
+    (* --- *)
+    (* cortex -> widget *)
+    method private set_cortex_to_widget_connection = 
+      let on_commit (xs0,a0) (xs1,a1) = (* previous and proposed states *) 
+        if xs0 = xs1 then (self#widget_set a1) else (self#widget_remake (xs1,a1)) 
+      in
+      let _ = Cortex.on_commit_append (cortex) (on_commit) in
+      ()
+    (* --- *)
+    method destroy () = 
+      let () = (fst widget)#destroy () in
+      let () = Cortex.defuse cortex in
+      ()
+    (* --- *)
+    initializer
+       let () = self#set_cortex_to_widget_connection in
+       let () = self#set_widget_to_cortex_connection in
+       (* --- *)
+       (* Add a resistance to the cortex: *)
+       let resistance (xs0,a0) (xs1,a1) = (* previous and proposed states *)
+         let () = Log.printf4 "combo_box_text RESISTANCE: previous: %s [%d]  proposed: %s [%d]\n" 
+           (String.concat "," xs0) (Option.extract_or a0 (-1)) (String.concat "," xs1) (Option.extract_or a1 (-1))
+         in
+         (* If the proposed state has no selected item, we activate the previously selected item, if it exists in the new list: *)
+         let (xs1, a1) =
+           match (xs0,a0), (xs1,a1) with
+           | ((_::_), Some i0), ((_::_), None) ->     
+               let previously_active_item = (List.nth xs0 i0) in
+               let a1' = ListExtra.indexOf (previously_active_item) (xs1) in
+               (xs1, a1')
+           | (_,_) -> (xs1, a1)      
+         in
+         (xs1, a1) (* result of resistance! *)
+       in
+       let _ = Cortex.on_proposal_append (self#cortex) (resistance) in
+       ()
+       
+  end (* class combo_box_text *)
 
-  let partition ?(loopback=true) xys n0 p0 n1 p1 =
+  (* Domain power (four times): *)
+  type 'a power4 = 'a * 'a * 'a * 'a
+
+  let endpoints_partition_from_names
+   ?(allow_loopback=true)              (* allow the two endpoints (n0 and n1) to be the same node *)
+   (xys : (string * string) list)      (* The (node, port) list to partition *) 
+   (* Current constraints: *)
+   (n0 : string option)                (* first  node name, if selected *)
+   (p0 : string option)                (* first  port name, if selected *)
+   (n1 : string option)                (* second node name, if selected *)
+   (p1 : string option)                (* second port name, if selected *)
+   (* Solution: *)
+   : (abstract_combo_box_text) power4  (* the expected states (items and selected) of the four widgets *)
+   =
    let nodes_of xys = ListExtra.uniq (List.map fst xys) in
-   let substract (n0,p0) xys = match n0,p0 with
-   | (Some n0, Some p0) -> List.filter ((<>)(n0,p0)) xys
-   | (Some n0, None)    -> List.filter (fun (n,p)->n<>n0) xys
-   | _                  -> xys
-   in
+   (* If there is a single node, we are forced to accept a loopback connection: *)
+   let allow_loopback = allow_loopback || (List.length (nodes_of xys) <= 1) in
    let (>>=) = Option.bind in
-   let index_of n xs =
-     n >>= (fun n -> (Option.map fst (ListExtra.searchi ((=)n) xs)))
+   let index_of_optional_item (x : string option) xs =
+     x >>= (fun x -> (Option.map fst (ListExtra.searchi ((=)x) xs)))
    in
-   let ports_of n xys = match n with
-   | None -> []
-   | Some x -> ListExtra.filter_map (fun (n,p)-> if n=x then Some p else None) xys
+   let substract ~node ~port xys = 
+     match (allow_loopback, node, port) with
+     | (false, Some n0, _)       -> List.filter (fun (n,p)->n<>n0) xys
+     | (true,  Some n0, Some p0) -> List.filter ((<>)(n0,p0)) xys
+     | _                         -> xys
    in
-   let xs0 = nodes_of xys in
-   let xs0_active = index_of n0 xs0 in
-   let ys0 = ports_of n0 xys in
-   let ys0_active = index_of p0 ys0 in
-   let (xs1, ys1) =
-     let xys' = match loopback with
-     | true  -> substract (n0,p0)   xys
-     | false -> substract (n0,None) xys
-     in
-     (nodes_of xys', ports_of n1 xys')
+   let ports_of x nps = 
+     ListExtra.filter_map (fun (n,p)-> if n=x then Some p else None) nps
    in
-   let xs1_active = index_of n1 xs1 in
-   let ys1_active = index_of p1 ys1
+   (* --- *)
+   let extract_or_take_from_list (node) (port) (nps) : string * string =
+     match node, port with 
+     | None, _                                -> List.hd nps
+     | Some n, Some p when List.mem (n,p) nps -> (n, p)
+     | Some n, _                              -> (n, List.assoc n nps)
    in
+   (* --- *)
+   let xys0 = substract ~node:n1 ~port:p1 xys in
+   let xs0 = nodes_of xys0 in
+   (* --- *)
+   let (n0, p0) : string * string = extract_or_take_from_list n0 p0 xys0 in
+   let ys0 = ports_of (n0) xys0 in
+   let xs0_active = index_of_optional_item (Some n0) xs0 in
+   let ys0_active = index_of_optional_item (Some p0) ys0 in
+   (* --- *)
+   let xys1 = substract ~node:(Some n0) ~port:(Some p0) xys in
+   let xs1  = nodes_of xys1 in
+   let (n1, p1) : string * string = extract_or_take_from_list n1 p1 xys1 in
+   let ys1 = ports_of (n1) xys1 in
+   let xs1_active = index_of_optional_item (Some n1) xs1 in
+   let ys1_active = index_of_optional_item (Some p1) ys1 in
+   (* --- *)
+   let () = Log.printf4 "group RESISTANCE: finishing we have (%s,%s) (%s,%s)\n" n0 p0 n1 p1 in 
    let w1 = (xs0, xs0_active) in
    let w2 = (ys0, ys0_active) in
    let w3 = (xs1, xs1_active) in
    let w4 = (ys1, ys1_active) in
    (w1,w2,w3,w4)
    ;;
+   
+  (* Version suitable as resistance for the cortex group: *) 
+  let endpoints_partition_law ?allow_loopback (xys) 
+    : (abstract_combo_box_text) power4 -> (abstract_combo_box_text) power4 -> (abstract_combo_box_text) power4 
+    =
+    fun (_,_,_,_) (c1,c2,c3,c4) -> (* previous and proposed states *) 
+      let n0 : string option = item_of_abstract_combo_box_text c1 in (* first  node name, if selected *)
+      let p0 : string option = item_of_abstract_combo_box_text c2 in (* first  port name, if selected *)
+      let n1 : string option = item_of_abstract_combo_box_text c3 in (* second node name, if selected *)
+      let p1 : string option = item_of_abstract_combo_box_text c4 in (* second port name, if selected *)
+      (* --- *)
+      endpoints_partition_from_names ?allow_loopback xys n0 p0 n1 p1
+   
+  (* Version suitable to guess the initial division of choices (items) of the four widgets: *)  
+  let guess_humanly_speaking_enpoints ?n0 ?p0 ?n1 ?p1 xys =
+    let ((xs0,_),(ys0,_),(xs1,_),(ys1,_)) = endpoints_partition_from_names ~allow_loopback:false xys n0 p0 n1 p1 in
+    let x0 = Option.apply_or_catch List.hd xs0 in
+    let y0 = Option.apply_or_catch List.hd ys0 in
+    let x1 = Option.apply_or_catch List.hd xs1 in
+    let y1 = Option.apply_or_catch List.hd ys1 in
+    ((x0,y0),(x1,y1))
 
- let guess_humanly_speaking_enpoints xys n0 p0 n1 p1 =
-  let ((xs0,_),(ys0,_),(xs1,_),(ys1,_)) = partition ~loopback:false xys n0 p0 n1 p1 in
-  let x0 = Option.apply_or_catch List.hd xs0 in
-  let y0 = Option.apply_or_catch List.hd ys0 in
-  let x1 = Option.apply_or_catch List.hd xs1 in
-  let y1 = Option.apply_or_catch List.hd ys1 in
-  ((x0,y0),(x1,y1))
-
- chip partition_chip (xys:(string * string) list) : (x0,y0,x1,y1) -> (w1,w2,w3,w4)
-    = (partition xys x0 y0 x1 y1) ;;
-
- class cable_input_widget
+ 
+  class cable_input_widget
    ?n0 ?p0 ?n1 ?p1
    ?width
    ?height
-   ~packing_n0 ~packing_p0 ~packing_n1 ~packing_p1
+   ?packing_n0 ?packing_p0 ?packing_n1 ?packing_p1
    ~free_node_port_list
    ()
    =
-   let (w1,w2,w3,w4) = partition free_node_port_list n0 p0 n1 p1 in
+   let () = Log.printf1 "new cable_input_widget() called with: %s\n" 
+     (String.concat " " (List.map (fun (x,y) -> Printf.sprintf "%s.%s" x y) free_node_port_list)) 
+   in
+   let (w1,w2,w3,w4) = endpoints_partition_from_names (free_node_port_list) n0 p0 n1 p1 in
    let (xs0, xs0_active) = w1 in
    let (ys0, ys0_active) = w2 in
    let (xs1, xs1_active) = w3 in
    let (ys1, ys1_active) = w4 in
-   let system = new Chip.system () in
-   let n0_widget =
+   (* --- *)
+   let n0_combo_box_text =
      let packing = packing_n0 in
-     new combo_box_text ~name:"n0" ~system ~strings:xs0 ?active:xs0_active ?width ?height ~packing ()
+     new combo_box_text ~strings:xs0 ?active:xs0_active ?width ?height ?packing ()
    in
-   let p0_widget =
+   let p0_combo_box_text =
      let packing = packing_p0 in
-     new combo_box_text ~name:"p0" ~system ~strings:ys0 ?active:ys0_active ?width ?height ~packing ()
+     new combo_box_text ~strings:ys0 ?active:ys0_active ?width ?height ?packing ()
    in
-   let n1_widget =
+   let n1_combo_box_text =
      let packing = packing_n1 in
-     new combo_box_text ~name:"n1" ~system ~strings:xs1 ?active:xs1_active ?width ?height ~packing ()
+     new combo_box_text ~strings:xs1 ?active:xs1_active ?width ?height ?packing ()
    in
-   let p1_widget =
+   let p1_combo_box_text =
      let packing = packing_p1 in
-     new combo_box_text ~name:"p1" ~system ~strings:ys1 ?active:ys1_active ?width ?height ~packing ()
+     new combo_box_text ~strings:ys1 ?active:ys1_active ?width ?height ?packing ()
    in
-   let _partition_chip =
-     new partition_chip free_node_port_list
-       ~system
-       ~x0:n0_widget
-       ~y0:p0_widget
-       ~x1:n1_widget
-       ~y1:p1_widget
-       ~w1:n0_widget
-       ~w2:p0_widget
-       ~w3:n1_widget
-       ~w4:p1_widget
-       ()
+   let cortex_group = 
+     Cortex.group_quadruple 
+       ~on_proposal:(endpoints_partition_law ~allow_loopback:true (free_node_port_list))  
+       (n0_combo_box_text#cortex) (p0_combo_box_text#cortex) 
+       (n1_combo_box_text#cortex) (p1_combo_box_text#cortex)
    in
    object (self)
+     
+     method get_cortex_group = cortex_group 
+     method get_combo_boxes  = (n0_combo_box_text, p0_combo_box_text, n1_combo_box_text, p1_combo_box_text)
+     
      method get_widget_data =
-       ((n0_widget#get, p0_widget#get), (n1_widget#get, p1_widget#get))
+       ((n0_combo_box_text#get, p0_combo_box_text#get), (n1_combo_box_text#get, p1_combo_box_text#get))
 
-     method system = system
      method destroy =
-       List.iter
-         (fun w->w#destroy ())
-         [n0_widget; p0_widget; n1_widget; p1_widget]
-
+       let () = 
+         List.iter
+           (fun w->w#destroy ())
+           [n0_combo_box_text; p0_combo_box_text; n1_combo_box_text; p1_combo_box_text]
+       in
+       let () = Cortex.defuse cortex_group in
+       ()
+       
     initializer
-       ignore system#stabilize;
+       (* Very important to provoke the cortex_group's stabilization: *)
+       n0_combo_box_text#activate_first;
+       p0_combo_box_text#activate_first;
+       n1_combo_box_text#activate_first;
+       p1_combo_box_text#activate_first;
 
    end
 

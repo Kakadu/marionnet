@@ -170,36 +170,55 @@ module Dialog_add_or_update : sig
 
 end
 
-
 module Reactive_widget :
   sig
-    class cable_input_widget :
-      ?n0:string ->
-      ?p0:string ->
-      ?n1:string ->
-      ?p1:string ->
+    
+    type abstract_combo_box_text = (item list) * (active_index option)
+     and item = string
+     and active_index = int (* 0..(n-1) *)
+     and node = item
+     and port = item
+
+    class combo_box_text :                                                                                                                                                                             
+      strings:string list ->
+      ?active:int ->
       ?width:int ->
       ?height:int ->
-      packing_n0:(GObj.widget -> unit) ->
-      packing_p0:(GObj.widget -> unit) ->
-      packing_n1:(GObj.widget -> unit) ->
-      packing_p1:(GObj.widget -> unit) ->
+      ?packing:(GObj.widget -> unit) ->
+      unit ->
+      object
+        method cortex  : (abstract_combo_box_text) Cortex.t
+        method activate_first : unit
+        method get     : string option
+        method destroy : unit -> unit
+      end
+
+    type 'a power4 = 'a * 'a * 'a * 'a
+   
+    class cable_input_widget :
+      ?n0:string -> ?p0:string -> ?n1:string -> ?p1:string ->
+      ?width:int ->
+      ?height:int ->
+      ?packing_n0:(GObj.widget -> unit) ->
+      ?packing_p0:(GObj.widget -> unit) ->
+      ?packing_n1:(GObj.widget -> unit) ->
+      ?packing_p1:(GObj.widget -> unit) ->
       free_node_port_list:(string * string) list ->
       unit ->
       object
         method destroy : unit
-        method get_widget_data :
-          (string option * string option) * (string option * string option)
-        method system : Chip.system
+        method get_widget_data : (string option * string option) * (string option * string option)
+        (* Just for debugging: *)
+        method get_cortex_group : (abstract_combo_box_text) power4 Cortex.t
+        method get_combo_boxes  : (combo_box_text) power4
       end
 
     val guess_humanly_speaking_enpoints :
-      (string * string) list ->
-      string option -> string option -> string option -> string option ->
-      (string option * string option) * (string option * string option)
-
-  end
-
+      ?n0:string -> ?p0:string -> ?n1:string -> ?p1:string ->
+      (node * port) list ->
+      (node option * port option) * (node option * port option)
+      
+end (* Reactive_widget *)
 
 val button_image :
   ?window:GWindow.window ->

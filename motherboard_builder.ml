@@ -86,20 +86,21 @@ module Make (S : sig val st:State.globalState end) = struct
   (* Reactive setting: st#network#nodes -> cable's menu sensitiveness.
      Forbid cable additions if there are not enough free ports; explicitly enable
      them if free ports are enough: *)
-  let update_cable_menu_entries_sensitiveness : Thunk.id = 
-    Cortex.on_commit_append 
-      (st#network#nodes)
-      (fun _ _ ->      
-         (* The previous and commited state are ignored. 
-            This kind of code (on_commit) is outside a critical section, 
-            so we can comfortably re-call st#network methods: *)
+  let update_cable_menu_entries_sensitiveness : unit = 
+    (* The previous and commited state are ignored. 
+       This kind of code (on_commit) is outside a critical section, 
+       so we can comfortably re-call st#network methods: *)
+    let reaction _ _ =      
          let () = Log.printf1 "update_cable_menu_entries_sensitiveness: updating %d widgets\n" 
            (StackExtra.length st#sensitive_cable_menu_entries)
          in
          let condition = st#network#are_there_almost_2_free_endpoints in
          (StackExtra.iter (fun x->x#misc#set_sensitive condition) st#sensitive_cable_menu_entries)
-      )
-
+    in
+    let _ = Cortex.on_commit_append (st#network#nodes)  (reaction) in
+    let _ = Cortex.on_commit_append (st#network#cables) (reaction) in
+    ()
+    
   (* Called in marionnet.ml before entering the main loop: *)
   let sensitive_widgets_initializer () =
     let () = StackExtra.iter (fun x->x#misc#set_sensitive false) (st#sensitive_when_Active)   in

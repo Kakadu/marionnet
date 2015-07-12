@@ -275,11 +275,13 @@ let make
       ListExtra.filter_map (fun e->e) [left_user_endpoint; right_user_endpoint]
     in
     let updating = (force_to_be_included <> []) in
-    List.iter (fun (n,p) -> Log.printf2 "Forced to be included: (%s,%s)\n" n p) force_to_be_included;
+    let () = List.iter (fun (n,p) -> Log.printf2 "Forced to be included: (%s,%s)\n" n p) force_to_be_included in
+    (* --- *)
     let free_node_port_list as xys = network#free_endpoint_list_humanly_speaking ~force_to_be_included in
+    (* --- *)
     let ((n0,p0),(n1,p1)) = match updating with
     | true  -> ((n0,p0),(n1,p1))
-    | false -> Gui_bricks.Reactive_widget.guess_humanly_speaking_enpoints xys n0 p0 n1 p1
+    | false -> Gui_bricks.Reactive_widget.guess_humanly_speaking_enpoints ?n0 ?p0 ?n1 ?p1 xys
     in
     new Gui_bricks.Reactive_widget.cable_input_widget
 	  (*~width:100 ?height*)
@@ -291,9 +293,11 @@ let make
 	  ~free_node_port_list
 	  ()
   in
-
+  (* --- *)
   let get_widget_data () :'result =
     let ((n0,p0),(n1,p1)) = cable_input_widget#get_widget_data in
+    (* Destroy the reactive structure now: *)
+    let () = cable_input_widget#destroy in
     let name = name#text in
     let label = label#text in
       { Data.name = name;

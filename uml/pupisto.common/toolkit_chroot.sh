@@ -331,12 +331,74 @@ function binary_list {
  find $DIRS -perm -u=x ! -type d ! -name "*[.]so*" -exec basename {} \; | sort | tr '\n' ' '
 }
 
+function make_shellshock_somewhere {
+ # global SHELLSHOCK
+ [[ -x $SHELLSHOCK ]] && return 0
+ # else continue:
+ SHELLSHOCK=$(mktemp "/tmp/shellshock.XXXXXX.py")
+ cat >$SHELLSHOCK <<EOF
+#!/usr/bin/python
+
+# Run a program (probably an old version of Bash) in a modified environment.
+# The old (and unsafe) convention for function names is resumed. 
+# See http://www.dwheeler.com/essays/shellshock.html
+# J.V. Loddo - GPL
+
+# Usage: shellshock.py [COMMAND [ARG]...]
+
+import os
+import sys
+
+result={}
+#---
+for k in os.environ:
+  if (k[:10] == 'BASH_FUNC_') and ((k[-2:] == '%%') or (k[-2:] == '()')):
+    v = os.environ[k]
+    func_name = k[10:-2]
+    # We provide the three possibilities!
+    result[func_name] = v
+    if (k[-2:] == '%%'): 
+      result['BASH_FUNC_'+func_name+'()'] = v
+    else:
+      result['BASH_FUNC_'+func_name+'%%'] = v
+#---
+
+# Add new bindings:
+for k in result:
+  os.environ[k]=result[k]
+
+# Exec the program:
+os.execvp(sys.argv[1], sys.argv[1:]) 
+EOF
+# ---
+chmod +x $SHELLSHOCK
+}
+
+function chroot_is_shellshock_need {
+ local ROOT="$1"
+ # ---
+ if strings "$ROOT/bin/bash" | grep -q "BASH_FUNC_"; then
+   local BASH_VERSION=$(strings "$ROOT/bin/bash" | grep "Bash version" | grep -o "[1-9][0-9]*[.][1-9][0-9]*[.][1-9][0-9]")
+   [[ $BASH_VERSION < "4.3" ]] && return 0
+   { strings "$ROOT/bin/bash" | grep -q "%%"; } && return 0
+   return 1
+ else 
+   return 0 # need!
+ fi
+}
+
 function chroot_fcall {
  local ROOT="$1"
  shift
- local CMD="$@"
- # `bash -c' needs a single arguments:
- chroot "$ROOT" bash -c "$CMD"
+ local CMD="$@"  # `bash -c' needs a single arguments
+ # ---
+ # Ensure Bash's compatibility about function's name exporting:
+ if chroot_is_shellshock_need; then
+   make_shellshock_somewhere
+   $SHELLSHOCK chroot "$ROOT" bash -c "$CMD"
+ else  
+   chroot "$ROOT" bash -c "$CMD"
+ fi
 }
 
 # Example: sudo_chroot_fcall $ROOT binary_list

@@ -962,7 +962,7 @@ function mknod_for_virtual_disks {
  local ROOT=${1:-$DEBIANROOT}
  export -f mknod_for_virtual_disks_in_chroot
  sudo_chroot_fcall $ROOT mknod_for_virtual_disks_in_chroot
- sudo tar -C $ROOT -xz --keep-old-files -f $PUPISTO_FILES/dev.tar.gz
+ sudo tar -C $ROOT -xz --keep-newer-files --keep-old-files -f $PUPISTO_FILES/dev.tar.gz || true
 }
 
 # =============================================================

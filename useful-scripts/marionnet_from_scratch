@@ -17,8 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.26
-# 2014.03.27
+# Script version: 0.90.27
+# 2016.04.08
 
 # Thanks:
 # - Lucas Nussbaum for the idea of option "--download-only/-O",
@@ -82,7 +82,7 @@ COMMAND_LINE="$(realpath $COMMAND_LINE) "$@""
 # =============================================================
 
 # Getopt's format used to parse the command line:
-OPTSTRING="hp:m:b:o:gG:t:kl:d:v:NVDKPFAOc:"
+OPTSTRING="hp:m:b:o:gG:t:kl:d:v:NVDKPFTAOc:"
 
 function parse_cmdline {
 local i j flag
@@ -138,6 +138,9 @@ for i in "$@"; do
      ;;
     --no-filesystems|--ignore-filesystems)
      ARGS+=("-F");
+     ;;
+    --no-trunk-stuff|--ignore-trunk-stuff)
+     ARGS+=("-T");
      ;;
     --download-only)
      ARGS+=("-O");
@@ -226,7 +229,7 @@ Options:
   -c, --continue PATH		Continue execution started in PATH
   -k, --keep-debris		Don't clean temporary files when exiting
   -h				Print this message and exit
-  -m, --marionnet VERSION	Set marionnet's version
+  -m, --marionnet VERSION	Set marionnet's version (for instance 'trunk')
   -b, --ocamlbricks VERSION	Set ocamlbricks' version
   -o, --ocaml VERSION		Set ocaml's version
   -g, --use-godi		Use godi's ocaml distribution
@@ -242,6 +245,7 @@ Options:
   -F, --no-filesystems		Don't download other (big) filesystems
   -O, --download-only           Skip everything except downloads of kernels and filesystems
   -A, --no-all		        Equivalent to --no-{vde,dot,kernels,pinocchio,filesystems}
+  -T, --no-trunk-stuff	        Don't download kernels and filesystems for the 'trunk' version 
 Defaults:
   - the installation prefix is ${PREFIX}
   - the temporary working directory is $TMPDIR
@@ -260,7 +264,8 @@ Defaults:
   - ignore dot: $IGNORE_DOT
   - ignore kernels: $IGNORE_KERNELS
   - ignore pinocchio filesystems: $IGNORE_PINOCCHIO_FILESYSTEMS
-  - ignore other (big) filesystems: $IGNORE_BIG_FILESYSTEMS"
+  - ignore other (big) filesystems: $IGNORE_BIG_FILESYSTEMS
+  - ignore trunk stuff: $IGNORE_TRUNK_STUFF"
  exit $1
 }
 
@@ -381,6 +386,9 @@ if [[ -n ${option_P} || -n ${option_A} ]]; then IGNORE_PINOCCHIO_FILESYSTEMS=yes
 
 # Option -F, --no-filesystems
 if [[ -n ${option_F} || -n ${option_A} ]]; then IGNORE_BIG_FILESYSTEMS=yes; else IGNORE_BIG_FILESYSTEMS=no; fi
+
+# Option -T, --no-trunk-stuff
+if [[ -n ${option_T} ]]; then IGNORE_TRUNK_STUFF=yes; else IGNORE_TRUNK_STUFF=no; fi
 
 # Option -O, --download-only
 if [[ -n ${option_O} ]]; then DOWNLOAD_ONLY=yes; else DOWNLOAD_ONLY=no; fi
@@ -901,6 +909,64 @@ function download_our_pinocchio_filesystems {
   done
 }
 
+function download_our_v1_kernels {
+  # global OUR_BASE_URL
+  local OUR_TRUNK_SPECIFIC_URL="$OUR_BASE_URL/trunk"
+  local KERNELS
+  KERNELS=$(wget -O - "$OUR_TRUNK_SPECIFIC_URL" \
+  | grep -o 'href="kernels_[^"]*"' \
+  | grep -o "kernels_[^\"]*[.]tar[.]gz"\
+  )
+  local i WEIGHT
+  for i in $KERNELS; do
+    # Known weights:
+    case "$i" in
+      "kernels_linux-3.2.64-ghost.tar.gz") WEIGHT=6646 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log --sudo --script "Installing $i" "{ wget -O - '$OUR_TRUNK_SPECIFIC_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
+  done
+}
+
+function download_our_v1_tiny_filesystems {
+  # global OUR_BASE_URL
+  local OUR_TRUNK_SPECIFIC_URL="$OUR_BASE_URL/trunk"
+  local FILESYSTEMS
+  FILESYSTEMS=$(wget -O - "$OUR_TRUNK_SPECIFIC_URL" \
+  | grep -o 'href="filesystems_guignol[^"]*"' \
+  | grep -o "filesystems_[^\"]*[.]tar[.]gz"\
+  )
+  local i WEIGHT
+  for i in $FILESYSTEMS; do
+    # Known weights:
+    case "$i" in
+      "filesystems_guignol.tar.gz") WEIGHT=27175 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log --sudo --script "Installing $i" "{ wget -O - '$OUR_TRUNK_SPECIFIC_URL/$i' | tar 1>&2 xvzf -; }"  $WEIGHT
+  done
+}
+
+function download_our_v1_big_filesystems {
+  # global OUR_BASE_URL
+  local OUR_TRUNK_SPECIFIC_URL="$OUR_BASE_URL/trunk"
+  local FILESYSTEMS
+  FILESYSTEMS=$(wget -O - "$OUR_TRUNK_SPECIFIC_URL" \
+  | grep -o 'href="filesystems_[^"]*"' \
+  | grep -o "filesystems_[^\"]*[.]tar[.]gz"\
+  | grep -v "filesystems_guignol.*[.]tar[.]gz"\
+  )
+  local i WEIGHT
+  for i in $FILESYSTEMS; do
+    # Known weights:
+    case "$i" in
+      "filesystems_machine-debian-wheezy.tar.gz") WEIGHT=876807 ;;
+      *) unset WEIGHT ;;
+    esac
+    launch_and_log --sudo --script "Installing $i" "{ wget -O - '$OUR_TRUNK_SPECIFIC_URL/$i' | tar 1>&2 xvzf -; }" $WEIGHT
+  done
+}
+
 # Main function calling the previously defined functions (download_our_*):
 function download_marionnet_kernels_and_filesystems {
   # global  OUR_BASE_URL  SUDO_OR_NOTHING  PREFIX
@@ -923,6 +989,18 @@ function download_marionnet_kernels_and_filesystems {
   echo -n "* Installing other filesystems: dependency ignored (--no-filesystems)"
   echo_at_right_side --newline "ok"
   else download_our_big_filesystems; fi
+
+  # Download now v1's stuff for the trunk version (which is ready for):
+  if [[ $MARIONNET_VERSION = "trunk" ]]; then
+    if [[ $IGNORE_TRUNK_STUFF = yes ]]; then
+      echo -n "* Installing trunk stuff: dependency ignored (--no-trunk-stuff)"
+      echo_at_right_side --newline "ok"
+    else 
+      download_our_v1_kernels;
+      download_our_v1_tiny_filesystems;
+      download_our_v1_big_filesystems;
+    fi
+  fi
 
   popd 1>&2
 }

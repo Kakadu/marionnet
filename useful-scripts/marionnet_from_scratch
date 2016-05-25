@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # This file is part of marionnet
-# Copyright (C) 2010 2011 2012 2013  Jean-Vincent Loddo
-# Copyright (C) 2010 2011 2012 2013  Université Paris 13
+# Copyright (C) 2010 2011 2012 2013 2014 2015 2016  Jean-Vincent Loddo
+# Copyright (C) 2010 2011 2012 2013 2014 2015 2016  Université Paris 13
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +17,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Script version: 0.90.27
-# 2016.04.08
+# Script version: 0.90.28
+# 2016.05.25
 
 # Thanks:
 # - Lucas Nussbaum for the idea of option "--download-only/-O",
@@ -806,7 +806,7 @@ function echo_required_debian_packages {
  local LIST i VDE2_VERSION EXTRA_FOR_GODI
 
  # Then continue with aptitude
- for i in gcc g++ make flex libtool bison grep tar xterm wget mktemp realpath sed gawk aptitude; do
+ for i in gcc g++ make flex bison grep tar xterm wget mktemp realpath sed gawk aptitude; do
    LIST+=$(echo_debian_package_for_binary_if_really_needed $i $i)
  done
 
@@ -819,7 +819,7 @@ function echo_required_debian_packages {
 
  for i in \
    libgtk2.0-dev libglade2-dev liblablgtksourceview2-ocaml-dev $EXTRA_FOR_GODI \
-   bridge-utils coreutils debianutils diffutils \
+   libtool bridge-utils coreutils debianutils diffutils \
    net-tools uml-utilities util-linux x11-xserver-utils \
    coreutils findutils login procps gettext \
    rlfe; # alternatives are rlwrap and ledit
@@ -841,7 +841,7 @@ function echo_required_debian_packages {
  fi
 
  # x86_64 => libc6-i386
- if type uname && [[ $(uname -m) = "x86_64" ]] && ! dpkg -p libc6-i386; then
+ if type uname && [[ $(uname -m) = "x86_64" ]] && ! is_package_installed libc6-i386; then
    LIST+="libc6-i386 "
  fi 1>&2
 
@@ -1058,6 +1058,10 @@ fi
 
 if are_we_in_debian_or_derived; then
   echo "* This looks like a Debian or derived distribution. Oh, joy!"
+  # It's a joy but we have to workaround some security choices:
+  if [[ $SUDO_OR_EVAL    = sudo ]]; then SUDO_OR_EVAL="sudo -E"; fi
+  if [[ $SUDO_OR_NOTHING = sudo ]]; then SUDO_OR_NOTHING="sudo -E"; fi
+  # ---
   DEBIAN_PACKAGE_LIST=$(echo_required_debian_packages)
   echo "DEBIAN_PACKAGE_LIST=$DEBIAN_PACKAGE_LIST" 1>&2 # debugging
   if [[ -n ${DEBIAN_PACKAGE_LIST%% } ]]; then

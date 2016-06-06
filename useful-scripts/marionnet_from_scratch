@@ -563,7 +563,7 @@ function launch_and_log {
  EVAL_OR_SUDO=eval
  if [[ $1 = --as-root   || $1 = --sudo   ]]; then shift; EVAL_OR_SUDO=$SUDO_OR_EVAL; fi
  if [[ $1 = --as-script || $1 = --script ]]; then shift; AS_SCRIPT=yes; fi
- if [[ $EVAL_OR_SUDO = sudo ]]; then
+ if [[ ${EVAL_OR_SUDO%% *} = sudo ]]; then
    AS_SCRIPT=yes
  fi
  local MSG="$1"

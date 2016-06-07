@@ -1,6 +1,6 @@
 # This -*- sh -*- script is part of our reusable OCaml BRICKS library
-# Copyright (C) 2008 2011  Luca Saiu
-# Copyright (C) 2008 2012  Jean-Vincent Loddo
+# Copyright (C) 2008 2011 Luca Saiu
+# Copyright (C) 2008 2012 2016 Jean-Vincent Loddo
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,15 +32,22 @@
 # Section 2: Installation setup: prefixes, and the like
 ###########################################################################
 
-# Installation prefix, for example /usr or /usr/local
+# Run-time prefix, where resources will be really installed and available 
+# when the software will be launched. Examples are /usr or /usr/local.
 # *No* trailing slash should be included.
 prefix=/usr/local
+
+# Prefix for temporary or final installation; you should probably keep the 
+# default setting, which is ${prefix}. This variable has been introduced to 
+# deal with some specific packaging methods (Archlinux).
+# *No* trailing slash should be included.
+prefix_install=${prefix}
 
 # Prefix for host-wide configuration files; you should probably keep the
 # default setting:
 configurationprefix=/etc
 
-# Prefix for the locale files
+# Prefix for the locale files (at run-time)
 localeprefix=${prefix}/share/locale
 
 # Prefix for documentation files; you should probably keep the

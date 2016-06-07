@@ -1,8 +1,10 @@
 # This -*- makefile -*- is part of our build system for OCaml projects
 # Copyright (C) 2008, 2009  Luca Saiu
-# Copyright (C) 2008, 2010  Jean-Vincent Loddo
-# Copyright (C) 2008, 2009, 2010  Université Paris 13
+# Copyright (C) 2008, 2010, 2016  Jean-Vincent Loddo
+# Copyright (C) 2008, 2009, 2010, 2016  Université Paris 13
 # Updated in 2008 by Jonathan Roudiere
+# Thanks to JulioJu (https://github.com/JulioJu) for the patch
+# about prefix_install
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# This is the revision of 2008-04-21.
-
+# This is the revision of 2016-06-07.
 
 ######################################################################
 # This make file is general-purpose: the actual project-dependant part
@@ -226,14 +227,14 @@ install: install-programs install-libraries install-data install-configuration i
 	@(echo 'Success.')
 
 # The user is free to override this to add custom targets to install into the
-# $prefix/share/$name installation directory:
+# $prefix_install/share/$name installation directory:
 OTHER_DATA_TO_INSTALL =
 
 # The user is free to override this to add custom targets to install into the
 # $documentationprefix/$name installation directory:
 OTHER_DOCUMENTATION_TO_INSTALL =
 
-# Install the documentation from this package (_build/doc) into $prefix/share/$name:
+# Install the documentation from this package (_build/doc) into $prefix_install/share/$name:
 install-documentation: META CONFIGME install-documentation-local
 	@($(call READ_CONFIG, documentationprefix); \
 	$(call READ_META, name); \
@@ -270,11 +271,11 @@ install-documentation: META CONFIGME install-documentation-local
 # Just a handy alias:
 install-doc: install-documentation
 
-# Install the data from this package into $prefix/share/$name:
+# Install the data from this package into $prefix_install/share/$name:
 install-data: META CONFIGME main install-data-local
-	@($(call READ_CONFIG, prefix); \
+	@($(call READ_CONFIG, prefix_install); \
 	$(call READ_META, name); \
-	directory=$$prefix/share/$$name; \
+	directory=$$prefix_install/share/$$name; \
 	shopt -s nullglob; \
 	if [ -e share ]; then \
 	  dataifany=`ls -d share/*`; \
@@ -342,12 +343,12 @@ uninstall-configuration: CONFIGME uninstall-configuration-local
 	  echo "We don't have any configuration files to remove."; \
 	fi)
 
-# Remove the data of this package from $prefix/share/$name:
+# Remove the data of this package from $prefix_install/share/$name:
 uninstall-data: META CONFIGME uninstall-data-local
-	@( ($(call READ_CONFIG, prefix); \
+	@( ($(call READ_CONFIG, prefix_install); \
 	$(call READ_META, name); \
-	directory=$$prefix/share/$$name; \
-	echo "Removing $$name data from $$prefix/share/..."; \
+	directory=$$prefix_install/share/$$name; \
+	echo "Removing $$name data from $$prefix_install/share/..."; \
 	shopt -s nullglob; \
 	if rm -rf $$directory; then \
 	  echo "The entire directory $$directory was removed."; \
@@ -373,52 +374,53 @@ uninstall-documentation: META CONFIGME uninstall-documentation-local
 	echo 'Documentation uninstallation was successful.')
 
 # The user is free to override this to add custom targets to install into the
-# $prefix/bin installation directory; the typical use of this would be
+# $prefix_install/bin installation directory; the typical use of this would be
 # installing scripts.
 OTHER_PROGRAMS_TO_INSTALL =
 
-# These are programs to be installed into $prefix/sbin instead of $prefix/bin:
+# These are programs to be installed into $prefix_install/sbin 
+# instead of $prefix_install/bin:
 ROOT_NATIVE_PROGRAMS =
 ROOT_BYTE_PROGRAMS =
 
-# Install the programs from this package into $prefix/bin:
+# Install the programs from this package into $prefix_install/bin:
 install-programs: META CONFIGME programs install-programs-local
-	@($(call READ_CONFIG, prefix); 		     \
+	@($(call READ_CONFIG, prefix_install); 		     \
 	$(call READ_META, name);   		     \
-	echo "Creating $$prefix/bin/..."; \
-	(mkdir -p $$prefix/bin &> /dev/null || true); \
-	echo "Creating $$prefix/sbin/..."; \
-	(mkdir -p $$prefix/sbin &> /dev/null || true); \
-	echo "Installing programs from $$name into $$prefix/bin/..."; \
+	echo "Creating $$prefix_install/bin/..."; \
+	(mkdir -p $$prefix_install/bin &> /dev/null || true); \
+	echo "Creating $$prefix_install/sbin/..."; \
+	(mkdir -p $$prefix_install/sbin &> /dev/null || true); \
+	echo "Installing programs from $$name into $$prefix_install/bin/..."; \
 	shopt -s nullglob; \
 	for file in $(OTHER_PROGRAMS_TO_INSTALL) _build/*.byte _build/*.native; do \
 	  basename=`basename $$file`; \
 	  if echo " $(ROOT_NATIVE_PROGRAMS) $(ROOT_BYTE_PROGRAMS) " | grep -q " $$basename "; then \
-	    echo "Installing "`basename $$file`" as a \"root program\" into $$prefix/sbin..."; \
-	    cp -a $$file $$prefix/sbin/; \
-	    chmod +x $$prefix/sbin/$$basename; \
+	    echo "Installing "`basename $$file`" as a \"root program\" into $$prefix_install/sbin..."; \
+	    cp -a $$file $$prefix_install/sbin/; \
+	    chmod +x $$prefix_install/sbin/$$basename; \
 	  else \
-	    echo "Installing "`basename $$file`" into $$prefix/bin..."; \
-	    cp -a $$file $$prefix/bin/; \
-	    chmod +x $$prefix/bin/$$basename; \
+	    echo "Installing "`basename $$file`" into $$prefix_install/bin..."; \
+	    cp -a $$file $$prefix_install/bin/; \
+	    chmod +x $$prefix_install/bin/$$basename; \
 	  fi; \
 	done) && \
 	echo 'Program installation was successful.'
 
-# Remove the programs from this package from $prefix/bin:
+# Remove the programs from this package from $prefix_install/bin:
 uninstall-programs: META CONFIGME main uninstall-programs-local
-	@($(call READ_CONFIG, prefix); 		     \
+	@($(call READ_CONFIG, prefix_install); 		     \
 	$(call READ_META, name);   		     \
 	echo "Removing $$name programs..."; \
 	shopt -s nullglob; \
 	for file in $(OTHER_PROGRAMS_TO_INSTALL) _build/*.byte _build/*.native; do \
 	  basename=`basename $$file`; \
 	  if echo " $(ROOT_NATIVE_PROGRAMS) $(ROOT_BYTE_PROGRAMS) " | grep -q " $$basename "; then \
-	    echo -e "Removing the \"root program\" $$basename from $$prefix/sbin..."; \
-	    export pathname=$$prefix/sbin/`basename $$file`; \
+	    echo -e "Removing the \"root program\" $$basename from $$prefix_install/sbin..."; \
+	    export pathname=$$prefix_install/sbin/`basename $$file`; \
 	  else \
-	    echo -e "Removing $$basename from $$prefix/bin..."; \
-	    export pathname=$$prefix/bin/`basename $$file`; \
+	    echo -e "Removing $$basename from $$prefix_install/bin..."; \
+	    export pathname=$$prefix_install/bin/`basename $$file`; \
 	  fi; \
 	  rm -f $$pathname; \
 	done) && \
@@ -438,7 +440,7 @@ install-libraries: libraries install-libraries-local
 	  (mkdir -p $(LIBRARYPREFIX)/$$name &> /dev/null || true); \
 	  shopt -s nullglob; \
 	  cp -f META $(OTHER_LIBRARY_FILES_TO_INSTALL) \
-	        _build/*.cma _build/*.cmxa _build/*.a \
+	        _build/*.cma _build/*.cmxa _build/*.a _build/*.so \
 	        `find _build/ -name \*.cmi | grep -v /myocamlbuild` \
 	        `find _build/ -name \*.mli | grep -v /myocamlbuild` \
 	      $(LIBRARYPREFIX)/$$name/) && \
@@ -465,14 +467,18 @@ dist: clean dist-local
 	@($(call READ_META, name, version); \
 	$(call FIX_VERSION); \
 	echo "Making the source tarball _build/$$name-$$version.tar.gz ..."; \
+	if [ -d .bzr ]; then \
 	$(MAKE) meta.ml.released; \
 	$(MAKE) ChangeLog; \
+	fi; \
 	mkdir -p _build/$$name-$$version; \
 	cp -af * _build/$$name-$$version/ &> /dev/null; \
 	(tar --exclude=_build --exclude=meta.ml --exclude=.bzr -C _build -czf \
 	     _build/$$name-$$version.tar.gz $$name-$$version/ && \
 	rm -rf _build/$$name-$$version)) && \
-	rm -f meta.ml.released ChangeLog; \
+	if [ -d .bzr ]; then \
+	  rm -f meta.ml.released ChangeLog; \
+	fi; \
 	echo "Success."
 
 # These files are included also in binary tarballs:
@@ -692,7 +698,7 @@ SOURCE_AND_TEST = \
 		echo 'Evaluating $(1) failed.';    		\
 		exit 1;                           		\
 	fi;                                        		\
-	for i in $(2) $(3) $(4) $(5) $(6) $(7) $(8) $(9); do 	\
+	for i in $(2) $(3) $(4) $(5) $(6) $(7) $(8) $(9) $(10); do 	\
 		CMD="VAL=$$`echo $$i`"; eval $$CMD;		\
 	 	if test -z "$$VAL"; then                  	\
 			echo "FATAL: $${i} is undefined in $(1)."; 	\
@@ -708,7 +714,7 @@ SOURCE_AND_TEST = \
 #	$(call GREP_AND_TEST,META,name);
 #	$(call GREP_AND_TEST,META,name,version);
 GREP_AND_TEST = \
-	for i in $(2) $(3) $(4) $(5) $(6) $(7) $(8) $(9); do 	\
+	for i in $(2) $(3) $(4) $(5) $(6) $(7) $(8) $(9) $(10); do 	\
 		if ! CMD=`grep "^$$i=" $(1)`; then                 	\
 			echo "FATAL: $$i is undefined in $(1).";	\
 			exit 1;                            		\
@@ -723,7 +729,7 @@ GREP_AND_TEST = \
 # 	$(call READ_CONFIG,prefix,libraryprefix);
 #
 READ_CONFIG = \
-	$(call SOURCE_AND_TEST,CONFIGME,$(1),$(2),$(3),$(4),$(5),$(6),$(7),$(8),$(9))
+	$(call SOURCE_AND_TEST,CONFIGME,$(1),$(2),$(3),$(4),$(5),$(6),$(7),$(8),$(9),$(10))
 
 # Instance of GREP_AND_TEST: read the file "META" searching for a names
 # for all given names.
@@ -731,7 +737,7 @@ READ_CONFIG = \
 #	$(call READ_META,name,version);
 #
 READ_META = \
-	$(call GREP_AND_TEST,META,$(1),$(2),$(3),$(4),$(5),$(6),$(7),$(8),$(9))
+	$(call GREP_AND_TEST,META,$(1),$(2),$(3),$(4),$(5),$(6),$(7),$(8),$(9),$(10))
 
 # If the value of the 'version' variable contains the substring 'snapshot' then
 # append to its value the current date, in hacker format. 'version' must be already
@@ -861,7 +867,6 @@ myocamlbuild.ml:
 		echo -en "A \"$$x\"; " >> $@; \
 	done; \
 	echo -e "];;" >> $@; \
-	#echo -en "let our_byte_link_options = our_include_options @ [ A \"-custom\"; " >> $@; \
 	echo -en "let our_byte_link_options = our_include_options @ [ " >> $@; \
 	for x in $(LIBRARIES_TO_LINK); do \
 		echo -en "A \"$$x.cma\"; " >> $@; \
@@ -902,12 +907,13 @@ myocamlbuild.ml:
 meta.ml: META CONFIGME
 	@(echo "Building $@..." && \
 	$(call READ_META, name, version); \
-	$(call READ_CONFIG, prefix, configurationprefix, documentationprefix localeprefix); \
+	$(call READ_CONFIG, prefix, prefix_install, configurationprefix, documentationprefix localeprefix); \
 	echo -e "(** Automatically generated meta-informations about the project and its building. *)" > $@ && \
 	echo -e "(* This file is automatically generated; please don't edit it. *)\n" >> $@ && \
 	echo -e "let name = \"$$name\";;" >> $@ && \
 	echo -e "let version = \"$$version\";;" >> $@ && \
 	echo -e "let prefix = \"$$prefix\";;" >> $@ && \
+	echo -e "let prefix_install = \"$$prefix_install\";;" >> $@ && \
 	echo -e "let ocaml_version = \"$(OCAML_VERSION)\";;" >> $@ && \
 	echo -e "let ocaml_libraryprefix = \"$(OCAML_LIBRARYPREFIX)\";;" >> $@ && \
 	echo -e "let libraryprefix = \"$(LIBRARYPREFIX)\";;" >> $@ && \
@@ -923,11 +929,14 @@ meta.ml: META CONFIGME
 	else \
 	grep "let revision" <meta.ml.released >> $@ && \
 	grep "let source_date" <meta.ml.released >> $@ ; \
+	grep "let source_date_utc_yy_mm_dd" <meta.ml.released >> $@ ; \
 	fi &&\
 	echo "Success.")
 
 meta.ml.released: meta.ml
+	if [ -d .bzr ]; then \
 	cp $< $@
+	fi; \
 
 ###########################################################################
 # Include the project-dependant file (if any) which implements the '-local'

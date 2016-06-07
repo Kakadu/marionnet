@@ -1196,6 +1196,7 @@ cat >CONFIGME <<EOF
 ocaml_libraryprefix=$LIB_OCAML
 libraryprefix=$LIB_OCAML
 prefix=$PREFIX
+prefix_install=$PREFIX
 configurationprefix=\$prefix/etc
 documentationprefix=\$prefix/share/doc
 localeprefix=\$prefix/share/locale

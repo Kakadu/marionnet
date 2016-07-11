@@ -222,7 +222,7 @@ Download, compile and install marionnet and its principal dependencies.
 In addition to compile-time dependencies, when a run-time dependency
 like 'vde' or 'dot' seems not installed, the script automatically
 downloads, compiles and installs it from the appropriate project homepage
-or from our mirror (i.e. http://www.marionnet.org/download/mirror/).
+or from our mirror (i.e. https://www.marionnet.org/download/mirror/).
 Options:
   -p, --prefix PATH		Set the installation prefix
   -t, --tmpdir PATH		Set the temporary working directory
@@ -1046,7 +1046,7 @@ COMMAND_RESULT=$REPODIR/result
 ALREADY_DONE=$REPODIR/already_done
 touch $COMMAND_RESULT $ALREADY_DONE
 
-OUR_BASE_URL="http://www.marionnet.org/download/marionnet_from_scratch"
+OUR_BASE_URL="https://www.marionnet.org/download/marionnet_from_scratch"
 OUR_MIRROR="$OUR_BASE_URL/mirror/"
 
 if [[ $DOWNLOAD_ONLY = yes ]]; then

@@ -467,16 +467,16 @@ dist: clean dist-local
 	@($(call READ_META, name, version); \
 	$(call FIX_VERSION); \
 	echo "Making the source tarball _build/$$name-$$version.tar.gz ..."; \
-	if [ -d .bzr ]; then \
+	if [ -d .git ]; then \
 	$(MAKE) meta.ml.released; \
 	$(MAKE) ChangeLog; \
 	fi; \
 	mkdir -p _build/$$name-$$version; \
 	cp -af * _build/$$name-$$version/ &> /dev/null; \
-	(tar --exclude=_build --exclude=meta.ml --exclude=.bzr -C _build -czf \
+	(tar --exclude=_build --exclude=meta.ml --exclude=.git -C _build -czf \
 	     _build/$$name-$$version.tar.gz $$name-$$version/ && \
 	rm -rf _build/$$name-$$version)) && \
-	if [ -d .bzr ]; then \
+	if [ -d .git ]; then \
 	  rm -f meta.ml.released ChangeLog; \
 	fi; \
 	echo "Success."
@@ -532,10 +532,10 @@ dist-binary: dist-binary-local main documentation
 
 # Automatically generate a nice ChangeLog from bzr's history:
 ChangeLog:
-	@(if ! [ -d .bzr ]; then \
+	@(if ! [ -d .git ]; then \
 	  echo 'No ChangeLog available (bzr metadata are missing)' > $@; \
 	else \
-	  bzr log --gnu-changelog > $@; \
+	  git log  > $@; \
 	fi)
 
 # Remove generated stuff (the ChangeLog is only removed if we have Darcs
@@ -922,10 +922,10 @@ meta.ml: META CONFIGME
 	echo -e "let documentationprefix = \"$$documentationprefix\";;" >> $@ && \
 	echo -e "let uname = \"$(shell uname -srvmo)\";;" >> $@ && \
 	echo -e "let build_date = \"$(shell date '+%Y-%m-%d %k:%M:%S %z')\";;" >> $@ && \
-	if [ -d .bzr ]; then \
-	echo -e "let revision = \"$$(bzr revno)\";;" >> $@ && \
-	echo -e "let source_date = \"$$(bzr info --verbose | /bin/grep 'latest revision' | cut -d: -f2- | cut -d' ' -f3-)\";;" >> $@ && \
-	echo -e "let source_date_utc_yy_mm_dd = \"$$(./Makefile.d/bzr_date -- -u "+%Y-%m-%d")\";;" >> $@ ; \
+	if [ -d .git ]; then \
+	echo -e "let revision = \"0.90.3\";;" >> $@ && \
+	echo -e "let source_date = \"today\"" >> $@ && \
+	echo -e "let source_date_utc_yy_mm_dd = \"01-01-2016\";;" >> $@ ; \
 	else \
 	grep "let revision" <meta.ml.released >> $@ && \
 	grep "let source_date" <meta.ml.released >> $@ ; \

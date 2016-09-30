@@ -1,0 +1,21 @@
+opam-version: "1.2"
+name: "marionnet"
+version: "0.90.6"
+maintainer: "kakadu <kakadu.hafanana@gmail.com>"
+authors: "kakadu <kakadu.hafanana@gmail.com>"
+homepage: "http://www.marionnet.org/site/index.php/en/"
+bug-reports: "https://launchpad.net/marionnet"
+#license: ""
+#dev-repo: ""
+build: [
+  #["./configure" "--prefix=%{prefix}%"]
+  [make]
+]
+install: [make "install"]
+remove: ["ocamlfind" "remove" "marionnet"]
+depends: [
+  "ocamlfind" {build}
+  "lablgtk"
+  "gettext"
+  "conf-gtksourceview"
+]
